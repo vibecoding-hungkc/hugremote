@@ -1,11 +1,12 @@
 {
-  "name": "hugcode",
+  "name": "hugremote",
   "version": "1.0.0",
   "description": "Mobile-First Web IDE, Terminal Emulator & AI Coding Assistant for Smartphones",
   "type": "module",
   "main": "server/dist/index.js",
   "bin": {
-    "hugcode": "./bin/hugcode.js"
+    "hugremote": "./bin/hugremote.js",
+    "hugcode": "./bin/hugremote.js"
   },
   "files": [
     "bin",
@@ -19,7 +20,7 @@
     "build": "npm run build:client && npm run build:server",
     "build:client": "npm run build --prefix client",
     "build:server": "npm run build --prefix server",
-    "start": "node bin/hugcode.js",
+    "start": "node bin/hugremote.js",
     "dev": "npm run dev --prefix server"
   },
   "keywords": [
@@ -29,6 +30,7 @@
     "pty",
     "ssh",
     "claude-code",
+    "hugremote",
     "pwa"
   ],
   "author": "Duy Hung",

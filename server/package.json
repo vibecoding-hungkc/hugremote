@@ -1,7 +1,7 @@
 {
-  "name": "hugcode-server",
+  "name": "hugremote-server",
   "version": "1.0.0",
-  "description": "HugCode Mobile Web IDE Backend Server",
+  "description": "HugRemote Mobile Web IDE Backend Server",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

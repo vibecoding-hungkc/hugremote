@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  🐴 HugCode — Mobile-First Web IDE & Terminal Installer
-#  One-line install: curl -fsSL https://raw.githubusercontent.com/.../install.sh | bash
+#  🐴 HugRemote — Mobile-First Web IDE & Terminal Installer
+#  One-line install: curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/packaged/install.sh | bash
 # ==============================================================================
 
 set -e
@@ -16,18 +16,18 @@ C_RED='\033[31m'
 C_CORAL='\033[38;5;209m'
 
 echo -e "${C_CORAL}${C_BOLD}"
-echo "  _    _             _____          _      "
-echo " | |  | |           / ____|        | |     "
-echo " | |__| |_   _  __ | |     ___   __| | ___ "
-echo " |  __  | | | |/ _\`| |    / _ \ / _\` |/ _ \\"
-echo " | |  | | |_| | (_| | |___| (_) | (_| |  __/"
-echo " |_|  |_|\__,_|\__, |\_____\___/ \__,_|\___|"
-echo "                __/ |                      "
-echo "               |___/   Mobile-First Web IDE"
+echo "  _    _             _____                      _       "
+echo " | |  | |           |  __ \                    | |      "
+echo " | |__| |_   _  __  | |__) |___ _ __ ___   ___ | |_ ___ "
+echo " |  __  | | | |/ _\` |  _  // _ \ '_ \` _ \ / _ \| __/ _ \\"
+echo " | |  | | |_| | (_| | | \ \  __/ | | | | | (_) | ||  __/"
+echo " |_|  |_|\__,_|\__, |_|  \_\___|_| |_| |_|\___/ \__\___|"
+echo "                __/ |                                   "
+echo "               |___/               Mobile-First Web IDE "
 echo -e "${C_RESET}"
-echo -e "${C_BLUE}======================================================${C_RESET}"
-echo -e "${C_BOLD} Bắt đầu cài đặt HugCode Web IDE & Terminal...${C_RESET}"
-echo -e "${C_BLUE}======================================================${C_RESET}"
+echo -e "${C_BLUE}========================================================${C_RESET}"
+echo -e "${C_BOLD} Bắt đầu cài đặt HugRemote Web IDE & Terminal...${C_RESET}"
+echo -e "${C_BLUE}========================================================${C_RESET}"
 echo ""
 
 # 1. Kiểm tra hệ điều hành
@@ -58,7 +58,7 @@ check_node_version() {
 }
 
 if ! check_node_version; then
-  echo -e "${C_YELLOW}⚠️  Yêu cầu Node.js >= 18.x để chạy HugCode.${C_RESET}"
+  echo -e "${C_YELLOW}⚠️  Yêu cầu Node.js >= 18.x để chạy HugRemote.${C_RESET}"
   if command -v node >/dev/null 2>&1; then
     echo -e "   Phiên bản hiện tại: $(node -v) (không đủ điều kiện)"
   else
@@ -83,25 +83,24 @@ if [ -f "$SCRIPT_DIR/package.json" ] && [ -d "$SCRIPT_DIR/client" ] && [ -d "$SC
   INSTALL_DIR="$SCRIPT_DIR"
   echo -e "✓ Cài đặt từ thư mục hiện tại: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 else
-  INSTALL_DIR="${HUGCODE_DIR:-$HOME/.hugcode}"
+  INSTALL_DIR="${HUGREMOTE_DIR:-$HOME/.hugremote}"
   echo -e "✓ Thư mục đích: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 
   if [ -d "$INSTALL_DIR/.git" ]; then
     echo "  Đã tồn tại repo, đang cập nhật mã nguồn mới nhất..."
     cd "$INSTALL_DIR"
     git fetch origin
-    git checkout packaged || git checkout master
+    git checkout packaged || git checkout main
     git pull
   else
-    echo "  Đang tải mã nguồn HugCode..."
+    echo "  Đang tải mã nguồn HugRemote..."
     mkdir -p "$INSTALL_DIR"
-    # Clone repo
-    REPO_URL="${HUGCODE_REPO_URL:-https://github.com/vibecoding-hungkc/hugremote.git}"
+    REPO_URL="${HUGREMOTE_REPO_URL:-https://github.com/vibecoding-hungkc/hugremote.git}"
     if command -v git >/dev/null 2>&1; then
       git clone -b packaged "$REPO_URL" "$INSTALL_DIR" 2>/dev/null || \
       git clone "$REPO_URL" "$INSTALL_DIR"
     else
-      echo -e "${C_RED}❌ Vui lòng cài đặt git hoặc chạy từ npm: npm install -g hugcode${C_RESET}"
+      echo -e "${C_RED}❌ Vui lòng cài đặt git hoặc chạy từ npm: npm install -g hugremote${C_RESET}"
       exit 1
     fi
   fi
@@ -133,14 +132,15 @@ echo -e "${C_GREEN}✓ Hoàn tất build Frontend và Backend!${C_RESET}"
 
 # 5. Tạo CLI Executable Link
 echo ""
-echo -e "${C_BOLD}🔗 Thiết lập lệnh CLI 'hugcode'...${C_RESET}"
-BIN_SOURCE="$INSTALL_DIR/bin/hugcode.js"
+echo -e "${C_BOLD}🔗 Thiết lập lệnh CLI 'hugremote'...${C_RESET}"
+BIN_SOURCE="$INSTALL_DIR/bin/hugremote.js"
 chmod +x "$BIN_SOURCE"
 
 TARGET_BIN_DIR="$HOME/.local/bin"
 mkdir -p "$TARGET_BIN_DIR"
+ln -sf "$BIN_SOURCE" "$TARGET_BIN_DIR/hugremote"
 ln -sf "$BIN_SOURCE" "$TARGET_BIN_DIR/hugcode"
-echo -e "✓ Đã liên kết: ${C_GREEN}$TARGET_BIN_DIR/hugcode${C_RESET}"
+echo -e "✓ Đã liên kết lệnh: ${C_GREEN}$TARGET_BIN_DIR/hugremote${C_RESET} và ${C_GREEN}$TARGET_BIN_DIR/hugcode${C_RESET}"
 
 # Kiểm tra PATH
 if [[ ":$PATH:" != *":$TARGET_BIN_DIR:"* ]]; then
@@ -156,11 +156,11 @@ SETUP_SERVICE=false
 if [ "$PLATFORM" = "linux" ] && command -v systemctl >/dev/null 2>&1; then
   SERVICE_DIR="$HOME/.config/systemd/user"
   mkdir -p "$SERVICE_DIR"
-  SERVICE_FILE="$SERVICE_DIR/hugcode.service"
+  SERVICE_FILE="$SERVICE_DIR/hugremote.service"
 
   cat > "$SERVICE_FILE" <<EOF
 [Unit]
-Description=HugCode Mobile-First Web IDE (User Daemon)
+Description=HugRemote Mobile-First Web IDE (User Daemon)
 After=network.target
 
 [Service]
@@ -172,7 +172,7 @@ Environment=BASE_PATH=
 Environment=WORKSPACE_ROOT=$HOME/projects
 Environment=ALLOWED_ROOT=$HOME
 Environment=PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:\$PATH
-ExecStart=$TARGET_BIN_DIR/hugcode
+ExecStart=$TARGET_BIN_DIR/hugremote
 Restart=always
 RestartSec=3
 
@@ -187,25 +187,25 @@ fi
 
 # 7. Hoàn tất
 echo ""
-echo -e "${C_GREEN}${C_BOLD}======================================================${C_RESET}"
-echo -e "${C_GREEN}${C_BOLD} 🎉 CÀI ĐẶT HUGCODE THÀNH CÔNG!${C_RESET}"
-echo -e "${C_GREEN}${C_BOLD}======================================================${C_RESET}"
+echo -e "${C_GREEN}${C_BOLD}========================================================${C_RESET}"
+echo -e "${C_GREEN}${C_BOLD} 🎉 CÀI ĐẶT HUGREMOTE THÀNH CÔNG!${C_RESET}"
+echo -e "${C_GREEN}${C_BOLD}========================================================${C_RESET}"
 echo ""
 echo -e "${C_BOLD}Cách sử dụng:${C_RESET}"
 echo -e "  1. Chạy thủ công:"
-echo -e "     ${C_BLUE}hugcode${C_RESET}                 # Mở tại cổng 8099"
-echo -e "     ${C_BLUE}hugcode -p 3000${C_RESET}         # Đổi cổng"
-echo -e "     ${C_BLUE}hugcode -b /remote${C_RESET}      # Dùng với Cloudflare Tunnel / Reverse Proxy"
+echo -e "     ${C_BLUE}hugremote${C_RESET}                 # Mở tại cổng 8099"
+echo -e "     ${C_BLUE}hugremote -p 3000${C_RESET}         # Đổi cổng"
+echo -e "     ${C_BLUE}hugremote -b /remote${C_RESET}      # Dùng với Cloudflare Tunnel / Reverse Proxy"
 echo ""
 if [ "$SETUP_SERVICE" = true ]; then
   echo -e "  2. Quản lý chạy ngầm (Systemd):"
-  echo -e "     ${C_BLUE}systemctl --user start hugcode${C_RESET}    # Khởi động nền"
-  echo -e "     ${C_BLUE}systemctl --user enable hugcode${C_RESET}   # Tự bật khi máy khởi động"
-  echo -e "     ${C_BLUE}systemctl --user status hugcode${C_RESET}   # Xem trạng thái"
+  echo -e "     ${C_BLUE}systemctl --user start hugremote${C_RESET}    # Khởi động nền"
+  echo -e "     ${C_BLUE}systemctl --user enable hugremote${C_RESET}   # Tự bật khi máy khởi động"
+  echo -e "     ${C_BLUE}systemctl --user status hugremote${C_RESET}   # Xem trạng thái"
   echo ""
 fi
 echo -e "  3. Hoặc chạy trực tiếp không cần cài:"
-echo -e "     ${C_BLUE}npx hugcode${C_RESET}"
+echo -e "     ${C_BLUE}npx hugremote${C_RESET}"
 echo ""
 echo -e "${C_CORAL}Truy cập giao diện Web: ${C_BOLD}http://localhost:8099/${C_RESET}"
 echo ""

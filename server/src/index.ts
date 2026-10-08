@@ -101,7 +101,7 @@ async function main() {
   try {
     await fastify.listen({ port: PORT, host: HOST });
     const baseMsg = BASE_PATH ? ` (Base path prefix: ${BASE_PATH})` : ' (No prefix)';
-    console.log(`🚀 HugCode Server running at http://${HOST}:${PORT}${baseMsg}`);
+    console.log(`🚀 HugRemote Server running at http://${HOST}:${PORT}${baseMsg}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

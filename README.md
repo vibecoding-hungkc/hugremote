@@ -1,4 +1,4 @@
-# 🐴 HugCode (HugRemote) — Mobile-First Web IDE & Terminal
+# 🐴 HugRemote — Mobile-First Web IDE & Terminal
 
 > **Web IDE, Terminal Đa Cửa Sổ và Trợ lý Lập trình Claude Code tối ưu 100% cho điện thoại di động.**
 
@@ -10,16 +10,16 @@
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/packaged/install.sh | bash
 ```
-*Script sẽ tự động kiểm tra Node.js >= 18, build frontend/backend, tạo lệnh CLI `hugcode` và cấu hình systemd service chạy ngầm.*
+*Script sẽ tự động kiểm tra Node.js >= 18, build frontend/backend, tạo lệnh CLI `hugremote` và cấu hình systemd service chạy ngầm.*
 
 ### Cách 2: Chạy trực tiếp qua npm / npx
 ```bash
 # Chạy tức thì không cần cài:
-npx hugcode
+npx hugremote
 
 # Hoặc cài đặt global:
-npm install -g hugcode
-hugcode
+npm install -g hugremote
+hugremote
 ```
 
 ### Cách 3: Chạy từ mã nguồn Git
@@ -35,16 +35,16 @@ cd hugremote
 
 ```bash
 # Khởi chạy mặc định (Port 8099, bind :: dual-stack)
-hugcode
+hugremote
 
 # Đổi cổng lắng nghe
-hugcode -p 3000
+hugremote -p 3000
 
 # Chạy với đường dẫn con Subpath (cho Cloudflare Tunnel / Reverse Proxy / Nginx)
-hugcode -p 8099 -b /remote
+hugremote -p 8099 -b /remote
 
 # Tùy chỉnh thư mục Workspace và giới hạn truy cập
-hugcode -w ~/my-projects -a ~/
+hugremote -w ~/my-projects -a ~/
 ```
 
 ### Tùy chọn CLI:
@@ -92,19 +92,19 @@ hugcode -w ~/my-projects -a ~/
 
 ```bash
 # Khởi động dịch vụ nền
-systemctl --user start hugcode
+systemctl --user start hugremote
 
 # Bật tự động khởi động cùng hệ thống
-systemctl --user enable hugcode
+systemctl --user enable hugremote
 
 # Xem trạng thái hoạt động
-systemctl --user status hugcode
+systemctl --user status hugremote
 
 # Khởi động lại
-systemctl --user restart hugcode
+systemctl --user restart hugremote
 
 # Dừng dịch vụ
-systemctl --user stop hugcode
+systemctl --user stop hugremote
 ```
 
 ---

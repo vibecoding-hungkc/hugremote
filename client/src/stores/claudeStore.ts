@@ -178,8 +178,13 @@ export const useClaudeStore = defineStore('claude', () => {
   }
 
   async function sendMessage(prompt: string) {
-    const session = activeSession.value;
-    if (!session || !prompt.trim() || isGenerating.value) return;
+    if (!prompt.trim() || isGenerating.value) return;
+
+    let session = activeSession.value;
+    if (!session) {
+      session = await createSession();
+    }
+    if (!session) return;
 
     isGenerating.value = true;
     const now = new Date();

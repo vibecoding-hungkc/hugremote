@@ -164,7 +164,19 @@ class ClaudeService {
         const raw = fs.readFileSync(STORAGE_FILE, 'utf8');
         const list: ClaudeSession[] = JSON.parse(raw);
         if (Array.isArray(list)) {
-          list.forEach((s) => this.sessions.set(s.id, s));
+          let changed = false;
+          list.forEach((s) => {
+            const isAutoDefault =
+              !s.isCustomNamed &&
+              (!s.messages || s.messages.length === 0) &&
+              (s.name === 'hugcode' || s.name === 'hugremote');
+            if (isAutoDefault) {
+              changed = true;
+              return;
+            }
+            this.sessions.set(s.id, s);
+          });
+          if (changed) this.saveSessions();
         }
       } catch (e) {
         console.error('Failed to load claude sessions from disk:', e);
@@ -183,13 +195,8 @@ class ClaudeService {
     }
   }
 
-  getSessionsForServer(serverId: string, defaultCwd: string): ClaudeSession[] {
+  getSessionsForServer(serverId: string, _defaultCwd: string): ClaudeSession[] {
     const list = Array.from(this.sessions.values()).filter((s) => s.serverId === serverId);
-    if (list.length === 0) {
-      // Create initial default session for this server
-      const init = this.createSession(serverId, 'hugcode', defaultCwd || '~/projects/hugcode');
-      return [init];
-    }
     return list.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 

@@ -32,6 +32,9 @@ Tùy chọn:
   -b, --base-path <path>     Tiền tố đường dẫn subpath (vd: /remote hoặc $BASE_PATH)
   -w, --workspace <dir>      Thư mục workspace mặc định (mặc định: ~/projects hoặc $WORKSPACE_ROOT)
   -a, --allowed-root <dir>   Thư mục giới hạn tối đa duyệt file (mặc định: ~ hoặc $ALLOWED_ROOT)
+  --auth <mode>              Auth mode: none, password, google (mặc định: none hoặc $AUTH_MODE)
+  --password <pass>          Plain password cho password mode (hoặc $AUTH_PASSWORD)
+  --app-url <url>            Public app URL cho Google OAuth (hoặc $APP_URL)
   -v, --version              Hiển thị phiên bản
   --help                     Hiển thị hướng dẫn này
 
@@ -72,6 +75,15 @@ for (let i = 0; i < args.length; i++) {
   } else if (arg === '-a' || arg === '--allowed-root') {
     const val = args[++i];
     if (val) process.env.ALLOWED_ROOT = path.resolve(val.replace(/^~/, os.homedir()));
+  } else if (arg === '--auth') {
+    const val = args[++i];
+    if (val) process.env.AUTH_MODE = val;
+  } else if (arg === '--password') {
+    const val = args[++i];
+    if (val) process.env.AUTH_PASSWORD = val;
+  } else if (arg === '--app-url') {
+    const val = args[++i];
+    if (val) process.env.APP_URL = val;
   }
 }
 

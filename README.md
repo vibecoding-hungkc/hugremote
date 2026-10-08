@@ -1,113 +1,162 @@
 # 🐴 HugRemote — Mobile-First Web IDE & Terminal
 
-> **Web IDE, Terminal Đa Cửa Sổ và Trợ lý Lập trình Claude Code tối ưu 100% cho điện thoại di động.**
+> **Mobile-first web IDE, multi-window terminal, and Claude Code coding assistant optimized for phones.**
 
 ---
 
-## ⚡ Cài đặt nhanh
+## ⚡ Quick Install
 
-### Cách 1: Cài đặt 1 dòng lệnh bằng curl (Khuyên dùng)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/packaged/install.sh | bash
 ```
-*Script sẽ tự động kiểm tra Node.js >= 18, build frontend/backend, tạo lệnh CLI `hugremote` và cấu hình systemd service chạy ngầm.*
 
-### Cách 2: Chạy trực tiếp qua npm / npx
+Alternative:
+
 ```bash
-# Chạy tức thì không cần cài:
 npx hugremote
-
-# Hoặc cài đặt global:
 npm install -g hugremote
 hugremote
 ```
 
-### Cách 3: Chạy từ mã nguồn Git
-```bash
-git clone -b packaged https://github.com/vibecoding-hungkc/hugremote.git
-cd hugremote
-./install.sh
-```
-
 ---
 
-## 🚀 Cách sử dụng CLI
+## 🚀 CLI Usage
 
 ```bash
-# Khởi chạy mặc định (Port 8099, bind :: dual-stack)
+# Default: port 8099, no auth
 hugremote
 
-# Đổi cổng lắng nghe
-hugremote -p 3000
-
-# Chạy với đường dẫn con Subpath (cho Cloudflare Tunnel / Reverse Proxy / Nginx)
+# Reverse proxy / Cloudflare Tunnel subpath
 hugremote -p 8099 -b /remote
 
-# Tùy chỉnh thư mục Workspace và giới hạn truy cập
-hugremote -w ~/my-projects -a ~/
+# Password auth: one password field, no username
+hugremote --auth password --password 'your-password'
+
+# Google auth
+AUTH_MODE=google \
+APP_URL=https://your-domain.com \
+BASE_PATH=/remote \
+GOOGLE_CLIENT_ID=... \
+GOOGLE_CLIENT_SECRET=... \
+GOOGLE_ALLOWED_EMAILS=user@gmail.com,admin@domain.com \
+hugremote
 ```
 
-### Tùy chọn CLI:
-| Tham số | Ý nghĩa | Mặc định |
+### CLI Options
+
+| Option | Description | Default |
 |---|---|---|
-| `-p, --port <number>` | Cổng lắng nghe HTTP & WebSocket | `8099` (hoặc `$PORT`) |
-| `-h, --host <ip>` | Địa chỉ IP lắng nghe | `::` (hoặc `$HOST`) |
-| `-b, --base-path <path>` | Tiền tố đường dẫn subpath (vd: `/remote`) | `""` (hoặc `$BASE_PATH`) |
-| `-w, --workspace <dir>` | Thư mục khởi chạy mặc định | `~/projects` |
-| `-a, --allowed-root <dir>` | Thư mục gốc cho phép duyệt file | `~` |
-| `-v, --version` | Xem phiên bản | `1.0.0` |
-| `--help` | Xem trợ giúp lệnh | |
+| `-p, --port <number>` | HTTP & WebSocket port | `8099` or `$PORT` |
+| `-h, --host <ip>` | Bind address | `::` or `$HOST` |
+| `-b, --base-path <path>` | Subpath prefix, e.g. `/remote` | `""` or `$BASE_PATH` |
+| `-w, --workspace <dir>` | Default workspace | `~/projects` or `$WORKSPACE_ROOT` |
+| `-a, --allowed-root <dir>` | Maximum file-browser access root | `~` or `$ALLOWED_ROOT` |
+| `--auth <mode>` | `none`, `password`, or `google` | `none` or `$AUTH_MODE` |
+| `--password <pass>` | Plain password for password auth | `$AUTH_PASSWORD` |
+| `--app-url <url>` | Public app URL for Google OAuth | `http://localhost:8099` or `$APP_URL` |
+| `-v, --version` | Print version | `1.0.0` |
+| `--help` | Show help | |
 
 ---
 
-## 📱 Tính năng nổi bật
+## 🔐 Authentication
 
-### 1. Trải nghiệm Mobile-First 100%
-- Giao diện thiết kế theo chuẩn iOS Standalone PWA, thích ứng hoàn hảo với tai thỏ (*notch*), Dynamic Island và Home Indicator bar.
-- Khóa chống rung lắc vuốt ngang (`touch-action: pan-y`, `overscroll-behavior-x: none`).
-- Toàn bộ thao tác file, đổi tên, xác nhận đều dùng Bottom-Sheet Modal vuốt cảm ứng thay cho alert/prompt native trình duyệt.
+HugRemote supports three auth modes.
 
-### 2. Terminal Đa Cửa Sổ & Multi-Server SSH
-- Shell PTY thực tế tương tác WebSocket (kết nối PTY host hoặc SSH từ xa qua `~/.ssh/config`).
-- Gõ trực tiếp ngay con trỏ terminal trên bàn phím ảo điện thoại.
-- Khay phím tắt chuyên dụng cho mobile: `Esc`, `Tab`, `Ctrl+C`, `Enter`, 4 phím điều hướng, kèm bảng phím mở rộng (Ctrl combos, Git macros, shell operators).
-- Đổi tên, chỉnh sửa thư mục khởi chạy (`cwd`) và quản lý đa cửa sổ độc lập.
+### 1. No Auth
 
-### 3. Trợ lý Lập trình Claude Code AI (Extension Style)
-- Giao diện webview chuẩn của extension Claude Code chính thức cho VS Code / code-server.
-- Kết nối trực tiếp Claude CLI thật (`claude -p` binary), stream realtime Thinking và Task Execution Cards (Read, Edit Diff, Bash).
-- Hỗ trợ đổi Model (`Sonnet`, `Opus`), 4 mức Effort (`Low`, `Medium`, `High`, `Max`).
-- Nút bảo vệ quyền (Shield icon) bật/tắt Bypass Permissions (`--dangerously-skip-permissions`) tức thì ngay thanh chat.
-- Nút Send tự động chuyển thành nút Stop màu đỏ để ngắt tiến trình bằng `SIGINT`.
-- Thanh phím tắt nhanh: `⇧ Enter` (xuống dòng), `Ctrl+C` (copy), `Ctrl+V` (paste).
+```env
+AUTH_MODE=none
+```
 
-### 4. Quản lý Tệp & Trình soạn thảo Code
-- Quản lý cây thư mục, tạo mới, đổi tên, xóa tệp tin / thư mục an toàn.
-- Xem trước Markdown dạng HTML với nút chuyển đổi nhanh giữa Xem và Sửa.
-- Highlight cú pháp đa ngôn ngữ (JavaScript, TypeScript, Python, HTML, CSS, JSON, Markdown, Bash).
+This is the default. Use it for localhost, trusted LAN, or when Cloudflare Access / another reverse proxy already protects the app.
+
+### 2. Password Auth
+
+```env
+AUTH_MODE=password
+AUTH_PASSWORD=your-password
+SESSION_SECRET=random-long-secret
+AUTH_MAX_ATTEMPTS=5
+AUTH_LOCK_MINUTES=15
+```
+
+Behavior:
+
+- Login screen has only one password field.
+- No username.
+- The password is stored as plain text in env/service config for easier setup.
+- 5 wrong attempts from the same IP locks login for 15 minutes.
+- Successful login resets the failed-attempt counter.
+- Session is stored in an HttpOnly cookie.
+
+> Do not commit passwords/secrets to Git. Prefer systemd env, shell env, or a private `.env` file with `chmod 600`.
+
+### 3. Google Login
+
+```env
+AUTH_MODE=google
+APP_URL=https://your-domain.com
+BASE_PATH=/remote
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_ALLOWED_EMAILS=user@gmail.com,admin@domain.com
+SESSION_SECRET=random-long-secret
+```
+
+Only emails in `GOOGLE_ALLOWED_EMAILS` can access the app.
+
+Google OAuth Redirect URI:
+
+```text
+${APP_URL}${BASE_PATH}/auth/google/callback
+```
+
+Examples:
+
+```text
+http://localhost:8099/auth/google/callback
+https://hugtech.buaanvuive.com/remote/auth/google/callback
+```
 
 ---
 
-## 🛠️ Quản lý chạy ngầm với Systemd (Linux)
+## 📱 Key Features
+
+- Mobile-first PWA layout with iOS safe-area support.
+- Real PTY terminal over WebSocket for local and SSH-backed sessions.
+- Mobile terminal shortcut bar and expanded quick-key drawer.
+- Claude Code UI connected to the real Claude CLI with streaming thinking/tool cards.
+- Claude stop button sends `SIGINT` instead of generating fake output.
+- File explorer, Markdown preview, syntax-highlighted code viewer.
+
+---
+
+## 🛠️ User Systemd Service on Linux
 
 ```bash
-# Khởi động dịch vụ nền
 systemctl --user start hugremote
-
-# Bật tự động khởi động cùng hệ thống
 systemctl --user enable hugremote
-
-# Xem trạng thái hoạt động
 systemctl --user status hugremote
-
-# Khởi động lại
 systemctl --user restart hugremote
-
-# Dừng dịch vụ
 systemctl --user stop hugremote
 ```
 
+Edit service env at:
+
+```bash
+~/.config/systemd/user/hugremote.service
+```
+
+Then reload/restart:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user restart hugremote
+```
+
 ---
 
-## 📄 Bản quyền
-Phát hành theo giấy phép [MIT](LICENSE).
+## 📄 License
+
+Released under the [MIT](LICENSE) license.

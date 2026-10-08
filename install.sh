@@ -171,6 +171,13 @@ Environment=HOST=::
 Environment=BASE_PATH=
 Environment=WORKSPACE_ROOT=$HOME/projects
 Environment=ALLOWED_ROOT=$HOME
+Environment=AUTH_MODE=none
+Environment=AUTH_PASSWORD=
+Environment=SESSION_SECRET=
+Environment=APP_URL=http://localhost:8099
+Environment=GOOGLE_CLIENT_ID=
+Environment=GOOGLE_CLIENT_SECRET=
+Environment=GOOGLE_ALLOWED_EMAILS=
 Environment=PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:\$PATH
 ExecStart=$TARGET_BIN_DIR/hugremote
 Restart=always

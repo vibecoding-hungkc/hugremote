@@ -1,10 +1,16 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { WebSocket } from 'ws';
 import { parseSshConfig } from '../config.js';
+import { requireAuthForWs } from '../auth.js';
 import { sessionManager } from '../services/sessionManager.js';
 
 export const wsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.get('/ws/terminal', { websocket: true }, async (socket: WebSocket, req) => {
+    if (!requireAuthForWs(req)) {
+      socket.close(1008, 'Unauthorized');
+      return;
+    }
+
     const query = (req.query || {}) as Record<string, string>;
     const serverId = query.serverId || 'server-local';
     const sessionId = query.sessionId || `term-${Date.now()}`;

@@ -1,5 +1,6 @@
 <template>
-  <div class="app-root">
+  <AuthGate v-if="authStore.loading || authStore.needsLogin" />
+  <div v-else class="app-root">
     <!-- 1. Smart Unified Header -->
     <SmartHeader
       :active-tab="activeTab"
@@ -172,12 +173,15 @@ import NewClaudeModal from './components/NewClaudeModal.vue';
 import CreateItemModal from './components/CreateItemModal.vue';
 import ConfirmModal from './components/ConfirmModal.vue';
 import FolderTreePicker from './components/FolderTreePicker.vue';
+import AuthGate from './components/AuthGate.vue';
 
 import { useServerStore } from './stores/serverStore.js';
 import { useFileStore } from './stores/fileStore.js';
 import { useTerminalStore } from './stores/terminalStore.js';
 import { useClaudeStore } from './stores/claudeStore.js';
+import { useAuthStore } from './stores/authStore.js';
 
+const authStore = useAuthStore();
 const serverStore = useServerStore();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
@@ -291,6 +295,8 @@ function handleClaudeAttachFolder(folderPath: string) {
 }
 
 onMounted(async () => {
+  await authStore.fetchMe();
+  if (!authStore.authenticated) return;
   await serverStore.fetchServers();
   await fileStore.fetchFiles('');
   await claudeStore.fetchSessions();

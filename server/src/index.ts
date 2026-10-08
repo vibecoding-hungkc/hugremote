@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { PORT, HOST, BASE_PATH } from './config.js';
 import { apiRoutes } from './routes/api.js';
 import { wsRoutes } from './routes/ws.js';
+import { authGuard, authRoutes } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +26,9 @@ async function main() {
 
   await fastify.register(fastifyWs);
 
+  await fastify.register(authRoutes);
+  fastify.addHook('preHandler', authGuard);
+
   // Core API and WebSocket routes
   await fastify.register(apiRoutes);
   await fastify.register(wsRoutes);
@@ -35,6 +39,7 @@ async function main() {
       return reply.redirect(`${BASE_PATH}/`);
     });
 
+    await fastify.register(authRoutes, { prefix: BASE_PATH });
     await fastify.register(apiRoutes, { prefix: BASE_PATH });
     await fastify.register(wsRoutes, { prefix: BASE_PATH });
   }

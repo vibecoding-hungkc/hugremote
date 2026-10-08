@@ -28,7 +28,7 @@ Sử dụng:
 
 Tùy chọn:
   -p, --port <number>        Cổng lắng nghe HTTP/WS (mặc định: 8099 hoặc $PORT)
-  -h, --host <ip>            Địa chỉ IP lắng nghe (mặc định: '::' hoặc $HOST)
+  -h, --host <ip>            Địa chỉ IP bind (mặc định: 127.0.0.1 hoặc $HOST)
   -b, --base-path <path>     Tiền tố đường dẫn subpath (vd: /remote hoặc $BASE_PATH)
   -w, --workspace <dir>      Thư mục workspace mặc định (mặc định: ~/projects hoặc $WORKSPACE_ROOT)
   -a, --allowed-root <dir>   Thư mục giới hạn tối đa duyệt file (mặc định: ~ hoặc $ALLOWED_ROOT)

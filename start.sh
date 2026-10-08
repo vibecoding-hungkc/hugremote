@@ -2,7 +2,7 @@
 set -e
 
 PORT=${PORT:-8099}
-HOST=${HOST:-::}
+HOST=${HOST:-127.0.0.1}
 BASE_PATH=${BASE_PATH:-}
 WORKSPACE_ROOT=${WORKSPACE_ROOT:-/home/hermes-admin/projects}
 ALLOWED_ROOT=${ALLOWED_ROOT:-/home/hermes-admin}

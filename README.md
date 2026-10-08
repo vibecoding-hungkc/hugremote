@@ -1,28 +1,29 @@
 # 🐴 HugRemote — Mobile-First Web IDE & Terminal
 
-> **Web IDE, Terminal Đa Cửa Sổ và Trợ lý Lập trình Claude Code tối ưu 100% cho điện thoại di động.**
+> **Mobile-first web IDE, multi-window terminal, and Claude Code coding assistant optimized for phones.**
 
 ---
 
-## ⚡ Cài đặt nhanh
+## ⚡ Quick Install
 
-### Cách 1: Cài đặt 1 dòng lệnh bằng curl (Khuyên dùng)
+### Option 1: One-line curl installer (Recommended)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/packaged/install.sh | bash
 ```
-*Script sẽ tự động kiểm tra Node.js >= 18, build frontend/backend, tạo lệnh CLI `hugremote` và cấu hình systemd service chạy ngầm.*
 
-### Cách 2: Chạy trực tiếp qua npm / npx
+The installer checks Node.js >= 18, builds frontend/backend assets, creates the `hugremote` CLI command, and optionally configures a user-level systemd service.
+
+### Option 2: Run with npm / npx
 ```bash
-# Chạy tức thì không cần cài:
+# Run immediately without installing globally:
 npx hugremote
 
-# Hoặc cài đặt global:
+# Or install globally:
 npm install -g hugremote
 hugremote
 ```
 
-### Cách 3: Chạy từ mã nguồn Git
+### Option 3: Run from source
 ```bash
 git clone -b packaged https://github.com/vibecoding-hungkc/hugremote.git
 cd hugremote
@@ -31,83 +32,91 @@ cd hugremote
 
 ---
 
-## 🚀 Cách sử dụng CLI
+## 🚀 CLI Usage
 
 ```bash
-# Khởi chạy mặc định (Port 8099, bind :: dual-stack)
+# Default startup: port 8099, bind 127.0.0.1 only
 hugremote
 
-# Đổi cổng lắng nghe
+# Change the listening port
 hugremote -p 3000
 
-# Chạy với đường dẫn con Subpath (cho Cloudflare Tunnel / Reverse Proxy / Nginx)
+# Bind to another interface when needed
+hugremote --host 0.0.0.0
+hugremote --host ::
+
+# Use a subpath for Cloudflare Tunnel / reverse proxy / Nginx
 hugremote -p 8099 -b /remote
 
-# Tùy chỉnh thư mục Workspace và giới hạn truy cập
+# Customize workspace and file access root
 hugremote -w ~/my-projects -a ~/
 ```
 
-### Tùy chọn CLI:
-| Tham số | Ý nghĩa | Mặc định |
+### CLI Options
+
+| Option | Description | Default |
 |---|---|---|
-| `-p, --port <number>` | Cổng lắng nghe HTTP & WebSocket | `8099` (hoặc `$PORT`) |
-| `-h, --host <ip>` | Địa chỉ IP lắng nghe | `::` (hoặc `$HOST`) |
-| `-b, --base-path <path>` | Tiền tố đường dẫn subpath (vd: `/remote`) | `""` (hoặc `$BASE_PATH`) |
-| `-w, --workspace <dir>` | Thư mục khởi chạy mặc định | `~/projects` |
-| `-a, --allowed-root <dir>` | Thư mục gốc cho phép duyệt file | `~` |
-| `-v, --version` | Xem phiên bản | `1.0.0` |
-| `--help` | Xem trợ giúp lệnh | |
+| `-p, --port <number>` | HTTP & WebSocket listening port | `8099` or `$PORT` |
+| `-h, --host <ip>` | Bind address. Use `0.0.0.0` or `::` only when you intentionally want network exposure. | `127.0.0.1` or `$HOST` |
+| `-b, --base-path <path>` | Subpath prefix, for example `/remote` | `""` or `$BASE_PATH` |
+| `-w, --workspace <dir>` | Default terminal/project workspace | `~/projects` or `$WORKSPACE_ROOT` |
+| `-a, --allowed-root <dir>` | Maximum file-browser access root | `~` or `$ALLOWED_ROOT` |
+| `-v, --version` | Print version | `1.0.0` |
+| `--help` | Show help | |
 
 ---
 
-## 📱 Tính năng nổi bật
+## 📱 Key Features
 
-### 1. Trải nghiệm Mobile-First 100%
-- Giao diện thiết kế theo chuẩn iOS Standalone PWA, thích ứng hoàn hảo với tai thỏ (*notch*), Dynamic Island và Home Indicator bar.
-- Khóa chống rung lắc vuốt ngang (`touch-action: pan-y`, `overscroll-behavior-x: none`).
-- Toàn bộ thao tác file, đổi tên, xác nhận đều dùng Bottom-Sheet Modal vuốt cảm ứng thay cho alert/prompt native trình duyệt.
+### 1. 100% Mobile-First UX
+- iOS standalone PWA layout with safe-area support for notch, Dynamic Island, and home indicator.
+- Horizontal-drift protection with `touch-action: pan-y` and `overscroll-behavior-x: none`.
+- File actions, rename flows, and confirmations use touch-friendly bottom-sheet modals instead of native browser prompts.
 
-### 2. Terminal Đa Cửa Sổ & Multi-Server SSH
-- Shell PTY thực tế tương tác WebSocket (kết nối PTY host hoặc SSH từ xa qua `~/.ssh/config`).
-- Gõ trực tiếp ngay con trỏ terminal trên bàn phím ảo điện thoại.
-- Khay phím tắt chuyên dụng cho mobile: `Esc`, `Tab`, `Ctrl+C`, `Enter`, 4 phím điều hướng, kèm bảng phím mở rộng (Ctrl combos, Git macros, shell operators).
-- Đổi tên, chỉnh sửa thư mục khởi chạy (`cwd`) và quản lý đa cửa sổ độc lập.
+### 2. Multi-Window Terminal & Multi-Server SSH
+- Real PTY shell over WebSocket for local and SSH-backed terminal sessions.
+- Direct typing at the terminal cursor on mobile keyboards.
+- Mobile shortcut bar with `Esc`, `Tab`, `Ctrl C`, `Enter`, arrow keys, and an expanded quick-key drawer for Ctrl combos, Git macros, and common commands.
+- Rename terminal windows, edit startup directory (`cwd`), and manage independent sessions.
 
-### 3. Trợ lý Lập trình Claude Code AI (Extension Style)
-- Giao diện webview chuẩn của extension Claude Code chính thức cho VS Code / code-server.
-- Kết nối trực tiếp Claude CLI thật (`claude -p` binary), stream realtime Thinking và Task Execution Cards (Read, Edit Diff, Bash).
-- Hỗ trợ đổi Model (`Sonnet`, `Opus`), 4 mức Effort (`Low`, `Medium`, `High`, `Max`).
-- Nút bảo vệ quyền (Shield icon) bật/tắt Bypass Permissions (`--dangerously-skip-permissions`) tức thì ngay thanh chat.
-- Nút Send tự động chuyển thành nút Stop màu đỏ để ngắt tiến trình bằng `SIGINT`.
-- Thanh phím tắt nhanh: `⇧ Enter` (xuống dòng), `Ctrl+C` (copy), `Ctrl+V` (paste).
+### 3. Claude Code AI Assistant
+- Webview-style UI inspired by the official Claude Code VS Code / code-server extension.
+- Connects to the real Claude CLI (`claude -p`) with realtime streaming of thinking and execution cards.
+- Supports model switching (`Sonnet`, `Opus`) and effort levels (`Low`, `Medium`, `High`, `Max`).
+- Shield toggle for Bypass Permissions (`--dangerously-skip-permissions`) directly in the chat input.
+- Send button becomes a red Stop button and interrupts the process with `SIGINT`.
+- Quick shortcuts: `⇧ Enter` for newline, `Ctrl C` for copy, `Ctrl V` for paste.
 
-### 4. Quản lý Tệp & Trình soạn thảo Code
-- Quản lý cây thư mục, tạo mới, đổi tên, xóa tệp tin / thư mục an toàn.
-- Xem trước Markdown dạng HTML với nút chuyển đổi nhanh giữa Xem và Sửa.
-- Highlight cú pháp đa ngôn ngữ (JavaScript, TypeScript, Python, HTML, CSS, JSON, Markdown, Bash).
+### 4. File Manager & Code Viewer
+- Browse, create, rename, and delete files/folders safely.
+- Markdown preview with fast toggle between preview and edit modes.
+- Syntax highlighting for JavaScript, TypeScript, Python, HTML, CSS, JSON, Markdown, and Bash.
 
 ---
 
-## 🛠️ Quản lý chạy ngầm với Systemd (Linux)
+## 🛠️ User Systemd Service on Linux
 
 ```bash
-# Khởi động dịch vụ nền
+# Start the background service
 systemctl --user start hugremote
 
-# Bật tự động khởi động cùng hệ thống
+# Enable auto-start on login
 systemctl --user enable hugremote
 
-# Xem trạng thái hoạt động
+# Inspect status
 systemctl --user status hugremote
 
-# Khởi động lại
+# Restart
 systemctl --user restart hugremote
 
-# Dừng dịch vụ
+# Stop
 systemctl --user stop hugremote
 ```
 
+The installer-created service binds to `127.0.0.1` by default. Edit `~/.config/systemd/user/hugremote.service` and set `Environment=HOST=0.0.0.0` or `Environment=HOST=::` only if you explicitly need external network access.
+
 ---
 
-## 📄 Bản quyền
-Phát hành theo giấy phép [MIT](LICENSE).
+## 📄 License
+
+Released under the [MIT](LICENSE) license.

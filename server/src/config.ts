@@ -19,7 +19,7 @@ export interface ServerConfig {
 }
 
 export const PORT = parseInt(process.env.PORT || '8099', 10);
-export const HOST = process.env.HOST || '::';
+export const HOST = process.env.HOST || '127.0.0.1';
 
 // Prefix path for reverse proxy subpaths (e.g. BASE_PATH=/remote). Use if set, omitted otherwise.
 export const BASE_PATH = process.env.BASE_PATH

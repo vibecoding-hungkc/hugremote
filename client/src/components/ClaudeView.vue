@@ -545,9 +545,14 @@ function showUsageToast() {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
+  max-width: 100%;
   background: #1e1e24;
   position: relative;
   overflow: hidden;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
 }
 
 .claude-shortcut-bar {
@@ -600,11 +605,20 @@ function showUsageToast() {
 /* 1. Stream Area */
 .claude-ext-stream {
   flex: 1;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   padding: 16px 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  box-sizing: border-box;
 }
 
 /* User Message Card */
@@ -617,6 +631,9 @@ function showUsageToast() {
   color: #f1f5f9;
   line-height: 1.45;
   word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Assistant Message */
@@ -625,6 +642,9 @@ function showUsageToast() {
   align-items: flex-start;
   gap: 10px;
   padding: 2px 4px;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .claude-asst-dot {
@@ -648,15 +668,20 @@ function showUsageToast() {
 .claude-asst-content {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-x: hidden;
 }
 
 .claude-asst-text {
   font-size: 13.5px;
   color: #e2e8f0;
   line-height: 1.55;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 :deep(.inline-code) {
@@ -666,6 +691,9 @@ function showUsageToast() {
   color: #93c5fd;
   font-family: var(--font-mono, monospace);
   font-size: 12px;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 /* Tool Cards */
@@ -738,6 +766,8 @@ function showUsageToast() {
   flex-direction: column;
   gap: 6px;
   margin-top: 4px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .claude-tool-card {
@@ -746,6 +776,10 @@ function showUsageToast() {
   border-radius: 6px;
   padding: 8px 10px;
   font-size: 12px;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .claude-tool-header {
@@ -827,7 +861,11 @@ function showUsageToast() {
   font-family: var(--font-mono, monospace);
   font-size: 11px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
   margin: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .claude-diff-block {
@@ -836,6 +874,11 @@ function showUsageToast() {
   border-radius: 4px;
   font-family: var(--font-mono, monospace);
   font-size: 11px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .diff-add {
@@ -858,6 +901,8 @@ function showUsageToast() {
   background: rgba(217, 119, 87, 0.05);
   border-radius: 0 6px 6px 0;
   overflow: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .claude-thinking-header {

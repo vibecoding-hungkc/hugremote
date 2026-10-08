@@ -336,7 +336,11 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overflow-x: hidden;
   position: relative;
+  width: 100%;
+  max-width: 100vw;
+  overscroll-behavior-x: none;
 }
 
 /* Hub Overlay */

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { apiUrl, getBasePath } from '../utils/api.js';
+import { useI18nStore } from './i18nStore.js';
 
 type AuthMode = 'none' | 'password' | 'google';
 
@@ -12,6 +13,7 @@ interface AuthUser {
 }
 
 export const useAuthStore = defineStore('auth', () => {
+  const i18n = useI18nStore();
   const mode = ref<AuthMode>('none');
   const authenticated = ref(false);
   const user = ref<AuthUser | null>(null);
@@ -32,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
       authenticated.value = Boolean(data.authenticated);
       user.value = data.user || null;
     } catch (_) {
-      error.value = 'Cannot reach auth server.';
+      error.value = i18n.t('auth.cannotReach');
       authenticated.value = false;
     } finally {
       loading.value = false;
@@ -59,10 +61,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (data.error === 'locked') {
       retryAfterSeconds.value = Number(data.retryAfterSeconds || 900);
-      error.value = `Too many failed attempts. Try again in ${formatRetry(retryAfterSeconds.value)}.`;
+      error.value = i18n.t('auth.locked', { time: formatRetry(retryAfterSeconds.value) });
     } else if (data.error === 'wrong_password') {
       attemptsLeft.value = Number(data.attemptsLeft || 0);
-      error.value = `Wrong password. ${attemptsLeft.value} attempt${attemptsLeft.value === 1 ? '' : 's'} left.`;
+      error.value = i18n.t('auth.wrongPassword', { count: attemptsLeft.value });
     } else {
       error.value = data.error || 'Login failed.';
     }

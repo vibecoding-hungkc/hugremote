@@ -5,12 +5,12 @@
         <div class="auth-logo-mark">🐴</div>
         <div>
           <h1>HugRemote</h1>
-          <p>Private mobile IDE access</p>
+          <p>{{ t('auth.subtitle') }}</p>
         </div>
       </div>
 
       <div v-if="auth.mode === 'password'" class="auth-form" @keyup.enter="submitPassword">
-        <label class="auth-label" for="auth-password">Password</label>
+        <label class="auth-label" for="auth-password">{{ t('auth.passwordLabel') }}</label>
         <input
           id="auth-password"
           ref="passwordInput"
@@ -19,7 +19,7 @@
           type="password"
           inputmode="text"
           autocomplete="current-password"
-          placeholder="Enter password"
+          :placeholder="t('auth.passwordPlaceholder')"
           :disabled="submitting || auth.retryAfterSeconds > 0"
         />
         <button
@@ -28,24 +28,24 @@
           @click="submitPassword"
         >
           <span v-if="submitting" class="auth-spinner"></span>
-          <span>{{ submitting ? 'Unlocking...' : 'Unlock' }}</span>
+          <span>{{ submitting ? t('auth.unlocking') : t('auth.unlock') }}</span>
         </button>
       </div>
 
       <div v-else-if="auth.mode === 'google'" class="auth-form">
         <a class="auth-button google" :href="auth.googleLoginUrl()">
           <i class="ri-google-fill"></i>
-          <span>Continue with Google</span>
+          <span>{{ t('auth.google') }}</span>
         </a>
       </div>
 
       <div v-else class="auth-form">
-        <button class="auth-button" @click="auth.fetchMe">Retry</button>
+        <button class="auth-button" @click="auth.fetchMe">{{ t('common.retry') }}</button>
       </div>
 
       <p v-if="displayError" class="auth-error">{{ displayError }}</p>
       <p v-else class="auth-hint">
-        {{ auth.mode === 'google' ? 'Only allowed emails can access this app.' : 'Enter the configured app password to continue.' }}
+        {{ auth.mode === 'google' ? t('auth.googleHint') : t('auth.passwordHint') }}
       </p>
     </div>
   </div>
@@ -54,8 +54,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useAuthStore } from '../stores/authStore.js';
+import { useI18n } from '../composables/useI18n.js';
 
 const auth = useAuthStore();
+const { t } = useI18n();
 const password = ref('');
 const submitting = ref(false);
 const passwordInput = ref<HTMLInputElement | null>(null);
@@ -100,8 +102,8 @@ onMounted(() => {
   const err = params.get('error');
   if (err) {
     auth.error = err === 'email_not_allowed'
-      ? 'This Google email is not allowed.'
-      : `Login failed: ${err}`;
+      ? t('auth.googleDenied')
+      : t('auth.loginFailed', { error: err });
     window.history.replaceState({}, '', window.location.pathname);
   }
   focusPassword();

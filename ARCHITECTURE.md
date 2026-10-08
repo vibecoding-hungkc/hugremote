@@ -158,6 +158,7 @@ Sessions are in-memory and represented by signed `HttpOnly` cookies:
 ```text
 client/src/stores/
 ├── authStore.ts      # Auth mode/status, password login, logout, Google URL
+├── i18nStore.ts      # Locale state, translation lookup, persistence
 ├── serverStore.ts    # Local/SSH server list and current server
 ├── fileStore.ts      # Filesystem tree, file loading, writes, previews
 ├── terminalStore.ts  # Terminal window metadata and active session
@@ -165,6 +166,30 @@ client/src/stores/
 ```
 
 Stores call backend APIs directly using `apiUrl()` from `client/src/utils/api.ts`.
+
+### Internationalization
+
+The frontend i18n system is intentionally lightweight and easy to extend:
+
+```text
+client/src/i18n/messages.ts          # Supported locales and translation trees
+client/src/stores/i18nStore.ts       # Active locale, t(key), localStorage persistence
+client/src/composables/useI18n.ts    # Convenience access for components
+client/src/components/LanguageSwitcher.vue
+```
+
+Current locales:
+
+- `vi` — Vietnamese
+- `en` — English
+
+Add a new language by:
+
+1. Adding its locale code to `SUPPORTED_LOCALES`.
+2. Adding its label to `localeLabels`.
+3. Adding a matching translation tree in `messages`.
+
+Components should call `t('namespace.key')` rather than hardcoding user-facing strings. Use interpolation for dynamic values, for example `t('terminalHub.title', { server })`. Locale choice is stored in `localStorage` under `hugremote_locale` and updates `document.documentElement.lang`.
 
 ### UI Components
 

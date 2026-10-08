@@ -97,9 +97,9 @@
     <!-- 11. Confirm Delete Claude Session Modal -->
     <ConfirmModal
       :is-open="isConfirmDeleteClaudeOpen"
-      title="Đóng Phiên Claude"
-      :message="`Bạn có chắc chắn muốn đóng phiên chat '${deleteClaudeTargetName}' không?`"
-      confirm-label="Đóng Phiên"
+      :title="t('confirm.deleteClaudeTitle')"
+      :message="t('confirm.deleteClaudeMessage', { name: deleteClaudeTargetName })"
+      :confirm-label="t('confirm.deleteClaudeConfirm')"
       :is-danger="true"
       @close="isConfirmDeleteClaudeOpen = false"
       @confirm="executeDeleteClaudeSession"
@@ -142,12 +142,14 @@ import { useFileStore } from './stores/fileStore.js';
 import { useTerminalStore } from './stores/terminalStore.js';
 import { useClaudeStore } from './stores/claudeStore.js';
 import { useAppBootstrap } from './composables/useAppBootstrap.js';
+import { useI18n } from './composables/useI18n.js';
 
 const { authStore } = useAppBootstrap();
 const serverStore = useServerStore();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
+const { t } = useI18n();
 
 const activeTab = ref<'files' | 'editor' | 'terminal' | 'claude'>('files');
 const isServerModalOpen = ref(false);

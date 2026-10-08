@@ -6,7 +6,7 @@
       @click="$emit('change-tab', 'files')"
     >
       <i class="ri-folder-2-line dock-icon"></i>
-      <span class="dock-label">Files</span>
+      <span class="dock-label">{{ t('nav.files') }}</span>
     </button>
 
     <button
@@ -15,7 +15,7 @@
       @click="$emit('change-tab', 'terminal')"
     >
       <i class="ri-terminal-box-line dock-icon"></i>
-      <span class="dock-label">Terminal</span>
+      <span class="dock-label">{{ t('nav.terminal') }}</span>
       <span class="dock-badge">{{ terminalStore.currentServerSessions.length }}</span>
     </button>
 
@@ -34,6 +34,7 @@
 <script setup lang="ts">
 import { useTerminalStore } from '../stores/terminalStore.js';
 import { useClaudeStore } from '../stores/claudeStore.js';
+import { useI18n } from '../composables/useI18n.js';
 
 defineProps<{
   activeTab: 'files' | 'editor' | 'terminal' | 'claude';
@@ -45,6 +46,7 @@ defineEmits<{
 
 const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
+const { t } = useI18n();
 </script>
 
 <style scoped>

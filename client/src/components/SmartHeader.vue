@@ -2,7 +2,7 @@
   <header class="smart-header">
     <!-- Left: Server Management Selector Pill -->
     <div class="smart-header-left">
-      <button class="server-selector-btn" @click="$emit('open-server-modal')" title="Quản lý Server & SSH">
+      <button class="server-selector-btn" @click="$emit('open-server-modal')" :title="t('header.manageServer')">
         <span class="server-status-dot" :class="serverStore.currentServer.type === 'local' ? 'local' : 'remote'"></span>
         <span class="server-name">{{ serverStore.currentServer.name }}</span>
         <i class="ri-arrow-down-s-line" style="font-size:12px; color:#94a3b8;"></i>
@@ -14,7 +14,7 @@
       <!-- Context: Files (Displaying ONLY last 3 directory levels) -->
       <div v-if="activeTab === 'files'" class="ctx-header-item">
         <div class="breadcrumb-bar">
-          <button class="crumb-home-btn" @click="fileStore.fetchFiles('')" title="Về thư mục gốc">
+          <button class="crumb-home-btn" @click="fileStore.fetchFiles('')" :title="t('header.rootFolder')">
             <i class="ri-folder-open-line"></i>
           </button>
           
@@ -24,7 +24,7 @@
 
           <template v-else>
             <template v-if="fileBreadcrumbs.hasMore">
-              <span class="crumb-more" @click="fileStore.fetchFiles(fileBreadcrumbs.parentPath)" title="Thư mục cấp trên">...</span>
+              <span class="crumb-more" @click="fileStore.fetchFiles(fileBreadcrumbs.parentPath)" :title="t('header.parentFolder')">...</span>
               <span class="crumb-sep">/</span>
             </template>
             <template v-for="(part, idx) in fileBreadcrumbs.parts" :key="part.path">
@@ -44,14 +44,14 @@
       <!-- Context: Editor -->
       <div v-else-if="activeTab === 'editor'" class="ctx-header-item">
         <span class="editor-file-title" :title="fileStore.activeFile?.relPath">
-          <i class="ri-file-text-line"></i> {{ fileStore.activeFile?.name || 'Editor' }}
+          <i class="ri-file-text-line"></i> {{ fileStore.activeFile?.name || t('nav.editor') }}
         </span>
-        <span v-if="fileStore.activeFile?.isDirty" class="dirty-pill">● Sửa</span>
+        <span v-if="fileStore.activeFile?.isDirty" class="dirty-pill">● {{ t('header.dirty') }}</span>
       </div>
 
       <!-- Context: Terminal (Displaying last 2 directory levels by default) -->
       <div v-else-if="activeTab === 'terminal'" class="ctx-header-item">
-        <button class="term-session-pill" @click="$emit('open-session-hub')" title="Danh sách cửa sổ terminal">
+        <button class="term-session-pill" @click="$emit('open-session-hub')" :title="t('header.terminalSessions')">
           <i class="ri-terminal-box-line"></i>
           <span class="term-session-name">{{ terminalStore.activeSession?.name || 'terminal' }}</span>
           <span class="badge-count">{{ terminalStore.currentServerSessions.length }}</span>
@@ -61,7 +61,7 @@
 
       <!-- Context: Claude -->
       <div v-else-if="activeTab === 'claude'" class="ctx-header-item">
-        <button class="claude-session-pill" @click="$emit('open-claude-hub')" title="Danh sách phiên Claude">
+        <button class="claude-session-pill" @click="$emit('open-claude-hub')" :title="t('header.claudeSessions')">
           <i class="ri-sparkling-fill" style="color: #d97757;"></i>
           <span class="claude-session-name">{{ claudeStore.activeSession?.name || 'claude' }}</span>
           <span class="badge-count claude-badge">{{ claudeStore.currentServerSessions.length }}</span>
@@ -72,12 +72,13 @@
 
     <!-- Right: Contextual Action Buttons -->
     <div class="smart-header-right">
+      <LanguageSwitcher />
       <!-- Actions: Files -->
       <template v-if="activeTab === 'files'">
-        <button class="btn-icon-action" @click="$emit('prompt-create-item')" title="Tạo mới">
+        <button class="btn-icon-action" @click="$emit('prompt-create-item')" :title="t('common.create')">
           <i class="ri-add-line"></i>
         </button>
-        <button class="btn-icon-action" @click="fileStore.fetchFiles(fileStore.currentRel)" title="Tải lại">
+        <button class="btn-icon-action" @click="fileStore.fetchFiles(fileStore.currentRel)" :title="t('common.refresh')">
           <i class="ri-refresh-line"></i>
         </button>
       </template>
@@ -88,21 +89,21 @@
           v-if="fileStore.activeFile?.name.endsWith('.md')"
           class="btn-icon-action"
           @click="fileStore.fileMode = fileStore.fileMode === 'code' ? 'preview' : 'code'"
-          :title="fileStore.fileMode === 'code' ? 'Xem Preview' : 'Chỉnh sửa Code'"
+          :title="fileStore.fileMode === 'code' ? t('header.preview') : t('header.editCode')"
         >
           <i :class="fileStore.fileMode === 'code' ? 'ri-eye-line' : 'ri-edit-line'"></i>
         </button>
-        <button class="btn-icon-action" @click="fileStore.saveActiveFile" title="Lưu (Ctrl+S)">
+        <button class="btn-icon-action" @click="fileStore.saveActiveFile" :title="t('header.saveFile')">
           <i class="ri-save-line"></i>
         </button>
-        <button class="btn-icon-action" @click="fileStore.closeActiveFile(); $emit('change-tab', 'files')" title="Đóng file">
+        <button class="btn-icon-action" @click="fileStore.closeActiveFile(); $emit('change-tab', 'files')" :title="t('header.closeFile')">
           <i class="ri-close-line"></i>
         </button>
       </template>
 
       <!-- Actions: Terminal -->
       <template v-else-if="activeTab === 'terminal'">
-        <button class="btn-icon-action" @click="$emit('open-new-terminal-modal')" title="Tạo cửa sổ mới">
+        <button class="btn-icon-action" @click="$emit('open-new-terminal-modal')" :title="t('header.newWindow')">
           <i class="ri-add-line"></i>
         </button>
       </template>
@@ -113,18 +114,18 @@
           class="btn-icon-action"
           :class="{ active: claudeStore.compactTaskMode }"
           @click.stop="claudeStore.toggleCompactTaskMode()"
-          :title="claudeStore.compactTaskMode ? 'Tắt chế độ chỉ hiện task hiện tại' : 'Bật chế độ chỉ hiện task hiện tại'"
+          :title="claudeStore.compactTaskMode ? t('header.disableCompactTask') : t('header.enableCompactTask')"
         >
           <i class="ri-focus-3-line"></i>
         </button>
         <button
           class="btn-icon-action"
           @click.stop="claudeStore.isLimitsPopupOpen = true"
-          title="Xem hạn mức 5h & Tuần"
+          :title="t('header.limits')"
         >
           <i class="ri-dashboard-3-line" style="color: #f59e0b;"></i>
         </button>
-        <button class="btn-icon-action" @click="$emit('open-new-claude-modal')" title="Tạo phiên Claude mới">
+        <button class="btn-icon-action" @click="$emit('open-new-claude-modal')" :title="t('header.newClaudeSession')">
           <i class="ri-add-line"></i>
         </button>
       </template>
@@ -138,6 +139,8 @@ import { useServerStore } from '../stores/serverStore.js';
 import { useFileStore } from '../stores/fileStore.js';
 import { useTerminalStore } from '../stores/terminalStore.js';
 import { useClaudeStore } from '../stores/claudeStore.js';
+import { useI18n } from '../composables/useI18n.js';
+import LanguageSwitcher from './LanguageSwitcher.vue';
 
 defineProps<{
   activeTab: 'files' | 'editor' | 'terminal' | 'claude';
@@ -157,6 +160,7 @@ const serverStore = useServerStore();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
+const { t } = useI18n();
 
 interface BreadcrumbPart {
   name: string;

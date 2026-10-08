@@ -22,10 +22,10 @@ export const messages: Record<Locale, MessageTree> = {
       language: 'Ngôn ngữ',
     },
     nav: {
-      files: 'Files',
-      terminal: 'Terminal',
-      claude: 'Claude',
-      editor: 'Editor',
+      files: 'Tệp',
+      terminal: 'Lệnh',
+      claude: 'Trợ lý',
+      editor: 'Soạn thảo',
     },
     header: {
       manageServer: 'Quản lý Server & SSH',

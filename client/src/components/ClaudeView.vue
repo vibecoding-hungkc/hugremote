@@ -47,7 +47,7 @@
                   <span class="thinking-status-wrap">
                     <span v-if="msg.isThinking" class="thinking-spinner"></span>
                     <i v-else class="ri-check-line thinking-complete-icon"></i>
-                    <span>{{ msg.isThinking ? 'Claude đang suy nghĩ' : 'Đã suy nghĩ' }}</span>
+                    <span>{{ msg.isThinking ? t('claudeView.thinkingActive') : t('claudeView.thinkingDone') }}</span>
                   </span>
                   <i :class="msg.isThinkingExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'"></i>
                 </button>
@@ -186,8 +186,8 @@
             type="button"
             class="claude-permission-shield-btn"
             :class="{ bypass: activeSession?.bypassPermissions }"
-            :title="activeSession?.bypassPermissions ? 'Bypass permissions đang bật' : 'Permission protection đang bật'"
-            :aria-label="activeSession?.bypassPermissions ? 'Tắt bypass permissions' : 'Bật bypass permissions'"
+            :title="activeSession?.bypassPermissions ? t('claudeView.shieldBypassOn') : t('claudeView.shieldBypassOff')"
+            :aria-label="activeSession?.bypassPermissions ? t('claudeView.shieldTurnOff') : t('claudeView.shieldTurnOn')"
             @click="toggleBypassPermissions"
           >
             <i :class="activeSession?.bypassPermissions ? 'ri-shield-cross-line' : 'ri-shield-check-line'"></i>
@@ -233,7 +233,7 @@
             <button
               type="button"
               class="claude-model-badge"
-              title="Đổi model Claude"
+              :title="t('claudeView.changeModel')"
               @click.stop="isModelPopupOpen = !isModelPopupOpen; claudeStore.isLimitsPopupOpen = false"
             >
               <span>{{ currentModel }}</span>
@@ -246,7 +246,7 @@
             <button
               type="button"
               class="claude-mode-badge"
-              title="Chế độ thực thi"
+              :title="t('claudeView.execMode')"
               @click="cycleMode"
             >
               <i class="ri-flashlight-line"></i>
@@ -261,7 +261,7 @@
                 active: inputText.trim().length > 0 && !claudeStore.isGenerating,
                 stopping: claudeStore.isGenerating
               }"
-              :title="claudeStore.isGenerating ? 'Dừng yêu cầu đang chạy' : 'Gửi (Enter)'"
+              :title="claudeStore.isGenerating ? t('claudeView.stopRun') : t('claudeView.sendEnter')"
               :disabled="!claudeStore.isGenerating && !inputText.trim()"
               @click="claudeStore.isGenerating ? handleStop() : handleSend()"
             >
@@ -274,17 +274,17 @@
 
     <!-- Mobile Claude shortcut bar: between chat composer and bottom dock -->
     <div class="claude-shortcut-bar">
-      <button type="button" class="claude-shortcut-key" title="Xuống dòng" @click="insertNewLine">
+      <button type="button" class="claude-shortcut-key" :title="t('claudeView.newLine')" @click="insertNewLine">
         <span>⇧ Enter</span>
-        <small>Xuống dòng</small>
+        <small>{{ t('claudeView.newLineDesc') }}</small>
       </button>
-      <button type="button" class="claude-shortcut-key" title="Sao chép văn bản đã chọn" @click="copySelectedText">
+      <button type="button" class="claude-shortcut-key" :title="t('claudeView.copy')" @click="copySelectedText">
         <span>Ctrl C</span>
-        <small>Copy</small>
+        <small>{{ t('claudeView.copyDesc') }}</small>
       </button>
       <button type="button" class="claude-shortcut-key" :title="t('claudeView.pasteTitle')" @click="pasteClipboard">
         <span>Ctrl V</span>
-        <small>Paste</small>
+        <small>{{ t('claudeView.pasteDesc') }}</small>
       </button>
     </div>
   </div>
@@ -358,7 +358,7 @@ const currentLiveTask = computed(() => {
     return { title: cleanTitle, label, phase };
   }
 
-  return { title: 'Phân tích yêu cầu và codebase', label: 'Thinking', phase: 'Thinking' };
+  return { title: t('claudeView.analyzingCodebase'), label: 'Thinking', phase: 'Thinking' };
 });
 
 watch(() => claudeStore.isGenerating, (running) => {

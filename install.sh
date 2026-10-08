@@ -167,7 +167,7 @@ After=network.target
 Type=simple
 WorkingDirectory=$INSTALL_DIR
 Environment=PORT=8099
-Environment=HOST=127.0.0.1
+Environment=HOST=::
 Environment=BASE_PATH=
 Environment=WORKSPACE_ROOT=$HOME/projects
 Environment=ALLOWED_ROOT=$HOME
@@ -193,10 +193,9 @@ echo -e "${C_GREEN}${C_BOLD}====================================================
 echo ""
 echo -e "${C_BOLD}Cách sử dụng:${C_RESET}"
 echo -e "  1. Chạy thủ công:"
-echo -e "     ${C_BLUE}hugremote${C_RESET}                        # Mở tại cổng 8099, bind 127.0.0.1"
-echo -e "     ${C_BLUE}hugremote -p 3000${C_RESET}                # Đổi cổng"
-echo -e "     ${C_BLUE}hugremote --host 0.0.0.0${C_RESET}         # Cho phép truy cập từ mạng ngoài"
-echo -e "     ${C_BLUE}hugremote -b /remote${C_RESET}             # Dùng với Cloudflare Tunnel / Reverse Proxy"
+echo -e "     ${C_BLUE}hugremote${C_RESET}                 # Mở tại cổng 8099"
+echo -e "     ${C_BLUE}hugremote -p 3000${C_RESET}         # Đổi cổng"
+echo -e "     ${C_BLUE}hugremote -b /remote${C_RESET}      # Dùng với Cloudflare Tunnel / Reverse Proxy"
 echo ""
 if [ "$SETUP_SERVICE" = true ]; then
   echo -e "  2. Quản lý chạy ngầm (Systemd):"

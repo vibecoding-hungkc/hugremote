@@ -110,21 +110,6 @@
 
       <!-- Actions: Claude -->
       <template v-else-if="activeTab === 'claude'">
-        <button
-          class="btn-icon-action"
-          :class="{ active: claudeStore.compactTaskMode }"
-          @click.stop="claudeStore.toggleCompactTaskMode()"
-          :title="claudeStore.compactTaskMode ? t('header.disableCompactTask') : t('header.enableCompactTask')"
-        >
-          <i class="ri-focus-3-line"></i>
-        </button>
-        <button
-          class="btn-icon-action"
-          @click.stop="claudeStore.isLimitsPopupOpen = true"
-          :title="t('header.limits')"
-        >
-          <i class="ri-dashboard-3-line" style="color: #f59e0b;"></i>
-        </button>
         <button class="btn-icon-action" @click="$emit('open-new-claude-modal')" :title="t('header.newClaudeSession')">
           <i class="ri-add-line"></i>
         </button>

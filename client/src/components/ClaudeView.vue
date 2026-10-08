@@ -198,14 +198,25 @@
         <div class="claude-ext-controls-bar">
           <!-- Left Controls -->
           <div class="claude-ext-left-controls">
-            <!-- Plus button (Add context / attach file) -->
+            <!-- Target button: Compact task mode toggle -->
             <button
               type="button"
               class="claude-ctrl-btn"
-              title="Thêm ngữ cảnh / đính kèm file"
-              @click="$emit('open-tree-picker')"
+              :class="{ active: claudeStore.compactTaskMode }"
+              :title="claudeStore.compactTaskMode ? t('header.disableCompactTask') : t('header.enableCompactTask')"
+              @click.stop="claudeStore.toggleCompactTaskMode()"
             >
-              <i class="ri-add-line"></i>
+              <i class="ri-focus-3-line"></i>
+            </button>
+
+            <!-- Dashboard button: Limits & Usage -->
+            <button
+              type="button"
+              class="claude-ctrl-btn"
+              :title="t('header.limits')"
+              @click.stop="claudeStore.isLimitsPopupOpen = true"
+            >
+              <i class="ri-dashboard-3-line" style="color: #f59e0b;"></i>
             </button>
 
             <!-- Context Window: 63k/1000k -->
@@ -1142,6 +1153,12 @@ function showUsageToast() {
 .claude-ctrl-btn:active {
   background: #334155;
   transform: scale(0.96);
+}
+
+.claude-ctrl-btn.active {
+  background: rgba(217, 119, 87, 0.2);
+  border-color: rgba(217, 119, 87, 0.45);
+  color: #d97757;
 }
 
 /* Context Window Pill */

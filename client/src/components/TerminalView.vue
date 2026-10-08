@@ -93,38 +93,6 @@
           </div>
         </div>
 
-        <!-- Shell Operators -->
-        <div class="drawer-group">
-          <span class="drawer-group-title">Ký Tự Shell</span>
-          <div class="drawer-keys-row">
-            <button class="tb-btn" @click="sendKey('>')">&gt;</button>
-            <button class="tb-btn" @click="sendKey('>>')">&gt;&gt;</button>
-            <button class="tb-btn" @click="sendKey('<')">&lt;</button>
-            <button class="tb-btn" @click="sendKey('&&')">&amp;&amp;</button>
-            <button class="tb-btn" @click="sendKey('||')">||</button>
-            <button class="tb-btn" @click="sendKey('&')">&amp;</button>
-            <button class="tb-btn" @click="sendKey(';')">;</button>
-            <button class="tb-btn" @click="sendKey('`')">`</button>
-            <button class="tb-btn" @click="sendKey('\\')">\</button>
-            <button class="tb-btn" @click="sendQuote">"</button>
-            <button class="tb-btn" @click="sendSingleQuote">'</button>
-            <button class="tb-btn" @click="sendKey('$')">$</button>
-            <button class="tb-btn" @click="sendKey('~')">~</button>
-            <button class="tb-btn" @click="sendKey(':')">:</button>
-            <button class="tb-btn" @click="sendKey('*')">*</button>
-            <button class="tb-btn" @click="sendKey('{}')">{ }</button>
-            <button class="tb-btn" @click="sendKey('()')">( )</button>
-            <button class="tb-btn" @click="sendKey('[]')">[ ]</button>
-          </div>
-        </div>
-
-        <!-- Numbers Row -->
-        <div class="drawer-group">
-          <span class="drawer-group-title">Số</span>
-          <div class="drawer-keys-row">
-            <button v-for="n in 10" :key="n" class="tb-btn tb-num" @click="sendKey(String(n % 10))">{{ n % 10 }}</button>
-          </div>
-        </div>
 
         <!-- Git Shortcuts -->
         <div class="drawer-group">

@@ -11,8 +11,8 @@
           <button type="button" class="btn-limits-close" @click="$emit('close')">✕</button>
         </div>
 
-        <!-- Normal View -->
-        <div v-if="!isEditing" class="claude-limits-body">
+        <!-- Limits Visual Rows -->
+        <div class="claude-limits-body">
           <!-- 1. 5-Hour Limit (Usage) -->
           <div class="limit-card" :class="{ warning: fiveHourPercent >= 80 }">
             <div class="limit-card-top">
@@ -87,67 +87,13 @@
             </div>
           </div>
         </div>
-
-        <!-- Edit / Sync View -->
-        <div v-else class="claude-limits-edit-view">
-          <div class="edit-intro">
-            Dán kết quả lệnh <code>/usage</code> từ terminal hoặc tự điều chỉnh % thực tế:
-          </div>
-          
-          <textarea
-            v-model="rawInput"
-            class="edit-raw-textarea"
-            rows="3"
-            placeholder="Ví dụ:&#10;Usage ░░░░░░░░░░ 1% (resets in 3h 35m)&#10;Weekly █████████░ 94% (resets in 20h 35m)"
-            @input="onRawInput"
-          ></textarea>
-
-          <div class="edit-fields-row">
-            <div class="edit-col">
-              <label>5-Hour (%):</label>
-              <input type="number" v-model.number="editFivePercent" min="0" max="100" />
-            </div>
-            <div class="edit-col">
-              <label>5h Reset In:</label>
-              <input type="text" v-model="editFiveReset" placeholder="3h 35m" />
-            </div>
-          </div>
-
-          <div class="edit-fields-row">
-            <div class="edit-col">
-              <label>Weekly (%):</label>
-              <input type="number" v-model.number="editWeeklyPercent" min="0" max="100" />
-            </div>
-            <div class="edit-col">
-              <label>Weekly Reset In:</label>
-              <input type="text" v-model="editWeeklyReset" placeholder="20h 35m" />
-            </div>
-          </div>
-
-          <div class="edit-actions">
-            <button type="button" class="btn-edit-cancel" @click="cancelEdit">Hủy</button>
-            <button type="button" class="btn-edit-save" @click="saveEdit" :disabled="isSaving">
-              {{ isSaving ? 'Đang lưu...' : 'Lưu cập nhật' }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Footer Actions -->
-        <div class="claude-limits-footer">
-          <button type="button" class="btn-limits-sync" @click="toggleEdit">
-            <i class="ri-edit-line"></i> {{ isEditing ? 'Xem thông số' : 'Cập nhật số liệu' }}
-          </button>
-          <button type="button" class="btn-limits-refresh" @click="handleRefresh" :disabled="isRefreshing">
-            <i class="ri-refresh-line" :class="{ spin: isRefreshing }"></i> Làm mới
-          </button>
-        </div>
       </div>
     </div>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { computed, watch, onMounted, onUnmounted } from 'vue';
 import { useClaudeStore } from '../stores/claudeStore.js';
 
 const props = defineProps<{
@@ -159,15 +105,6 @@ defineEmits<{
 }>();
 
 const claudeStore = useClaudeStore();
-const isRefreshing = ref(false);
-const isEditing = ref(false);
-const isSaving = ref(false);
-
-const rawInput = ref('');
-const editFivePercent = ref(1);
-const editFiveReset = ref('3h 35m');
-const editWeeklyPercent = ref(94);
-const editWeeklyReset = ref('20h 35m');
 
 const fiveHourPercent = computed(() => claudeStore.limits.fiveHour.usedPercent);
 const fiveHourReset = computed(() => claudeStore.limits.fiveHour.resetIn);
@@ -190,75 +127,18 @@ const contextPercent = computed(() => {
   return ((k / 1000) * 100).toFixed(1);
 });
 
-function syncEditValues() {
-  editFivePercent.value = fiveHourPercent.value;
-  editFiveReset.value = fiveHourReset.value;
-  editWeeklyPercent.value = weeklyPercent.value;
-  editWeeklyReset.value = weeklyReset.value;
-}
+// Tự động tải số liệu mới nhất khi mở popup
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open) {
+      claudeStore.fetchLimits();
+    }
+  },
+  { immediate: true }
+);
 
-watch(() => props.isOpen, (open) => {
-  if (open) {
-    isEditing.value = false;
-    syncEditValues();
-    claudeStore.fetchLimits();
-  }
-});
-
-function toggleEdit() {
-  if (!isEditing.value) {
-    syncEditValues();
-  }
-  isEditing.value = !isEditing.value;
-}
-
-function cancelEdit() {
-  isEditing.value = false;
-  rawInput.value = '';
-}
-
-function onRawInput() {
-  const text = rawInput.value;
-  const usageMatch = text.match(/Usage[^\d]*(\d+)%\s*\((?:resets in\s*)?([^)]+)\)/i);
-  if (usageMatch) {
-    editFivePercent.value = parseInt(usageMatch[1], 10);
-    editFiveReset.value = usageMatch[2].trim();
-  }
-  const weeklyMatch = text.match(/Weekly[^\d]*(\d+)%\s*\((?:resets in\s*)?([^)]+)\)/i);
-  if (weeklyMatch) {
-    editWeeklyPercent.value = parseInt(weeklyMatch[1], 10);
-    editWeeklyReset.value = weeklyMatch[2].trim();
-  }
-}
-
-async function saveEdit() {
-  isSaving.value = true;
-  await claudeStore.updateLimits({
-    rawText: rawInput.value.trim() || undefined,
-    fiveHour: {
-      usedPercent: editFivePercent.value,
-      resetIn: editFiveReset.value,
-    },
-    weekly: {
-      usedPercent: editWeeklyPercent.value,
-      resetIn: editWeeklyReset.value,
-    },
-  });
-  isSaving.value = false;
-  isEditing.value = false;
-  rawInput.value = '';
-}
-
-async function handleRefresh() {
-  isRefreshing.value = true;
-  await claudeStore.fetchLimits();
-  syncEditValues();
-  setTimeout(() => {
-    isRefreshing.value = false;
-  }, 300);
-}
-
-// Auto update limits countdown every 60s
+// Tự động cập nhật countdown mỗi 60s khi popup đang mở
 let intervalId: any = null;
 onMounted(() => {
   intervalId = setInterval(() => {
@@ -465,145 +345,5 @@ onUnmounted(() => {
   border-radius: 4px;
   font-size: 10px;
   color: #cbd5e1;
-}
-
-/* Edit / Sync View */
-.claude-limits-edit-view {
-  background: #202029;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.edit-intro {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.edit-intro code {
-  background: rgba(255, 255, 255, 0.08);
-  padding: 1px 4px;
-  border-radius: 3px;
-  color: #e2e8f0;
-}
-
-.edit-raw-textarea {
-  width: 100%;
-  background: #141419;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 6px;
-  color: #e2e8f0;
-  font-size: 11px;
-  font-family: var(--font-mono, monospace);
-  padding: 6px 8px;
-  resize: none;
-  outline: none;
-}
-
-.edit-raw-textarea:focus {
-  border-color: #d97757;
-}
-
-.edit-fields-row {
-  display: flex;
-  gap: 8px;
-}
-
-.edit-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.edit-col label {
-  font-size: 10.5px;
-  color: #94a3b8;
-}
-
-.edit-col input {
-  background: #141419;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 5px;
-  padding: 4px 6px;
-  color: #f1f5f9;
-  font-size: 11.5px;
-  outline: none;
-}
-
-.edit-col input:focus {
-  border-color: #d97757;
-}
-
-.edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.btn-edit-cancel {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-  padding: 4px 10px;
-  border-radius: 5px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.btn-edit-save {
-  background: #d97757;
-  border: none;
-  color: #fff;
-  padding: 4px 12px;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* Footer Actions */
-.claude-limits-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.btn-limits-sync,
-.btn-limits-refresh {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
-  border-radius: 6px;
-  padding: 5px 10px;
-  font-size: 11.5px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.15s ease;
-  touch-action: manipulation;
-}
-
-.btn-limits-sync:hover,
-.btn-limits-refresh:hover,
-.btn-limits-sync:active,
-.btn-limits-refresh:active {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.spin {
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 </style>

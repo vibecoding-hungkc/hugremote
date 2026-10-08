@@ -3872,7 +3872,7 @@
             <div class="tb-scroll-keys" id="tb-scroll-keys">
               <button class="tb-btn tb-esc" data-key="ESC">ESC</button>
               <button class="tb-btn tb-tab" data-key="TAB">TAB</button>
-              <button class="tb-btn tb-danger" data-key="CTRL_C">^C</button>
+              <button class="tb-btn tb-danger" data-key="CTRL_C">Ctrl C</button>
               <button class="tb-btn" data-key="UP"><i class="ri-arrow-up-s-line"></i></button>
               <button class="tb-btn" data-key="DOWN"><i class="ri-arrow-down-s-line"></i></button>
               <button class="tb-btn" data-key="LEFT"><i class="ri-arrow-left-s-line"></i></button>
@@ -3895,18 +3895,18 @@
             <div class="drawer-group">
               <span class="drawer-group-title"><i class="ri-command-line"></i> Ctrl Shortcuts</span>
               <div class="drawer-keys-row">
-                <button class="tb-btn tb-danger" data-key="CTRL_C">^C Hủy</button>
-                <button class="tb-btn" data-key="CTRL_D">^D EOF</button>
-                <button class="tb-btn" data-key="CTRL_Z">^Z Stop</button>
-                <button class="tb-btn" data-key="CTRL_L">^L Clear</button>
-                <button class="tb-btn" data-key="CTRL_A">^A Đầu dòng</button>
-                <button class="tb-btn" data-key="CTRL_E">^E Cuối dòng</button>
-                <button class="tb-btn" data-key="CTRL_W">^W Xóa từ</button>
-                <button class="tb-btn" data-key="CTRL_U">^U Xóa dòng</button>
-                <button class="tb-btn" data-key="CTRL_R">^R Tìm lệnh</button>
-                <button class="tb-btn" data-key="CTRL_K">^K Xóa sau</button>
-                <button class="tb-btn" data-key="CTRL_Y">^Y Dán</button>
-                <button class="tb-btn" data-key="CTRL_X">^X</button>
+                <button class="tb-btn tb-danger" data-key="CTRL_C">Ctrl C Hủy</button>
+                <button class="tb-btn" data-key="CTRL_D">Ctrl D EOF</button>
+                <button class="tb-btn" data-key="CTRL_Z">Ctrl Z Stop</button>
+                <button class="tb-btn" data-key="CTRL_L">Ctrl L Clear</button>
+                <button class="tb-btn" data-key="CTRL_A">Ctrl A Đầu dòng</button>
+                <button class="tb-btn" data-key="CTRL_E">Ctrl E Cuối dòng</button>
+                <button class="tb-btn" data-key="CTRL_W">Ctrl W Xóa từ</button>
+                <button class="tb-btn" data-key="CTRL_U">Ctrl U Xóa dòng</button>
+                <button class="tb-btn" data-key="CTRL_R">Ctrl R Tìm lệnh</button>
+                <button class="tb-btn" data-key="CTRL_K">Ctrl K Xóa sau</button>
+                <button class="tb-btn" data-key="CTRL_Y">Ctrl Y Dán</button>
+                <button class="tb-btn" data-key="CTRL_X">Ctrl X</button>
               </div>
             </div>
 
@@ -4093,14 +4093,6 @@
                     <span class="limit-model-tag" id="limit-tag-model">Sonnet 5.5 Medium</span>
                   </div>
                 </div>
-              </div>
-
-              <!-- Footer Actions -->
-              <div class="claude-limits-footer">
-                <div class="limits-footer-hint">Tự động đồng bộ với lệnh <code>/usage</code></div>
-                <button type="button" class="btn-limits-refresh" id="btn-refresh-limits">
-                  <i class="ri-refresh-line"></i> Làm mới
-                </button>
               </div>
             </div>
 
@@ -7801,7 +7793,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       const btnClaudeLimitsPill = document.getElementById('btn-claude-limits-pill');
       const btnHeaderClaudeLimits = document.getElementById('btn-header-claude-limits');
       const btnCloseLimitsPopup = document.getElementById('btn-close-limits-popup');
-      const btnRefreshLimits = document.getElementById('btn-refresh-limits');
 
       function toggleClaudeLimitsPopup(show) {
         if (!claudeLimitsPopup) return;
@@ -7858,12 +7849,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       if (btnCloseLimitsPopup) {
         btnCloseLimitsPopup.addEventListener('click', () => {
           toggleClaudeLimitsPopup(false);
-        });
-      }
-
-      if (btnRefreshLimits) {
-        btnRefreshLimits.addEventListener('click', () => {
-          showToast('Đã làm mới thông tin hạn mức từ Claude Code CLI', 'info');
         });
       }
 

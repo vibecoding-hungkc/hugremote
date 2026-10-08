@@ -27,7 +27,7 @@
         <div class="tb-scroll-keys">
           <button class="tb-btn tb-esc" @click="sendKey('\x1b')">ESC</button>
           <button class="tb-btn tb-tab" @click="sendKey('\t')">TAB</button>
-          <button class="tb-btn tb-danger" @click="sendKey('\x03')">^C</button>
+          <button class="tb-btn tb-danger" @click="sendKey('\x03')">Ctrl C</button>
           <button class="tb-btn tb-arrow" @click="sendKey('\x1b[A')"><i class="ri-arrow-up-s-line"></i></button>
           <button class="tb-btn tb-arrow" @click="sendKey('\x1b[B')"><i class="ri-arrow-down-s-line"></i></button>
           <button class="tb-btn tb-arrow" @click="sendKey('\x1b[D')"><i class="ri-arrow-left-s-line"></i></button>
@@ -52,18 +52,18 @@
         <div class="drawer-group">
           <span class="drawer-group-title">Ctrl Shortcuts</span>
           <div class="drawer-keys-row">
-            <button class="tb-btn tb-danger" @click="sendKey('\x03')">^C Hủy</button>
-            <button class="tb-btn" @click="sendKey('\x04')">^D EOF</button>
-            <button class="tb-btn" @click="sendKey('\x1a')">^Z Stop</button>
-            <button class="tb-btn" @click="sendKey('\x0c')">^L Clear</button>
-            <button class="tb-btn" @click="sendKey('\x01')">^A Đầu dòng</button>
-            <button class="tb-btn" @click="sendKey('\x05')">^E Cuối dòng</button>
-            <button class="tb-btn" @click="sendKey('\x17')">^W Xóa từ</button>
-            <button class="tb-btn" @click="sendKey('\x15')">^U Xóa dòng</button>
-            <button class="tb-btn" @click="sendKey('\x12')">^R Tìm lệnh</button>
-            <button class="tb-btn" @click="sendKey('\x0b')">^K Xóa đến cuối</button>
-            <button class="tb-btn" @click="sendKey('\x19')">^Y Dán (yank)</button>
-            <button class="tb-btn" @click="sendKey('\x18')">^X</button>
+            <button class="tb-btn tb-danger" @click="sendKey('\x03')">Ctrl C Hủy</button>
+            <button class="tb-btn" @click="sendKey('\x04')">Ctrl D EOF</button>
+            <button class="tb-btn" @click="sendKey('\x1a')">Ctrl Z Stop</button>
+            <button class="tb-btn" @click="sendKey('\x0c')">Ctrl L Clear</button>
+            <button class="tb-btn" @click="sendKey('\x01')">Ctrl A Đầu dòng</button>
+            <button class="tb-btn" @click="sendKey('\x05')">Ctrl E Cuối dòng</button>
+            <button class="tb-btn" @click="sendKey('\x17')">Ctrl W Xóa từ</button>
+            <button class="tb-btn" @click="sendKey('\x15')">Ctrl U Xóa dòng</button>
+            <button class="tb-btn" @click="sendKey('\x12')">Ctrl R Tìm lệnh</button>
+            <button class="tb-btn" @click="sendKey('\x0b')">Ctrl K Xóa đến cuối</button>
+            <button class="tb-btn" @click="sendKey('\x19')">Ctrl Y Dán (yank)</button>
+            <button class="tb-btn" @click="sendKey('\x18')">Ctrl X</button>
           </div>
         </div>
 

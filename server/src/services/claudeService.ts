@@ -295,6 +295,7 @@ class ClaudeService {
   }
 
   getLimits(): ClaudeLimitsInfo {
+    this.loadLimits();
     const now = Date.now();
     let fiveHourMs = this.limits.fiveHour.resetsAt - now;
     let weeklyMs = this.limits.weekly.resetsAt - now;

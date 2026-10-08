@@ -50,52 +50,13 @@
       @close="isServerModalOpen = false"
     />
 
-    <!-- Terminal Session Hub Modal -->
-    <div v-if="isSessionHubOpen" class="hub-overlay" @click.self="isSessionHubOpen = false">
-      <div class="hub-sheet">
-        <div class="hub-header">
-          <div class="hub-title"><i class="ri-terminal-box-line"></i> Cửa sổ Terminal ({{ serverStore.currentServer.name }})</div>
-          <div class="hub-header-actions">
-            <button class="btn-action-icon" @click="openNewTerminalModalFromHub" title="Tạo cửa sổ mới">
-              <i class="ri-add-line"></i>
-            </button>
-            <button class="btn-hub-close" @click="isSessionHubOpen = false"><i class="ri-close-line"></i></button>
-          </div>
-        </div>
-
-        <div class="hub-cards">
-          <div
-            v-for="s in terminalStore.currentServerSessions"
-            :key="s.id"
-            class="hub-card"
-            :class="{ active: s.id === terminalStore.activeSessionId }"
-            @click="terminalStore.switchSession(s.id); isSessionHubOpen = false; activeTab = 'terminal'"
-          >
-            <div class="hub-card-top">
-              <span class="hub-card-name"><i class="ri-terminal-line"></i> {{ s.name }}</span>
-              <span v-if="s.id === terminalStore.activeSessionId" class="hub-badge-active">● Đang chọn</span>
-            </div>
-            <div class="hub-card-actions" @click.stop>
-              <button class="btn-action-icon" @click="handleEditTerminalSession(s)" title="Chỉnh sửa">
-                <i class="ri-edit-line"></i>
-              </button>
-              <button
-                v-if="terminalStore.currentServerSessions.length > 1"
-                class="btn-action-icon danger"
-                @click="terminalStore.closeSession(s.id)"
-                title="Đóng / Xóa cửa sổ"
-              >
-                <i class="ri-delete-bin-line"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <button class="btn-hub-create" @click="openNewTerminalModalFromHub">
-          <i class="ri-add-line"></i> Tạo cửa sổ Terminal mới
-        </button>
-      </div>
-    </div>
+    <TerminalSessionHubModal
+      :is-open="isSessionHubOpen"
+      @close="isSessionHubOpen = false"
+      @open-new="openNewTerminalModalFromHub"
+      @edit-session="handleEditTerminalSession"
+      @select="activeTab = 'terminal'"
+    />
 
     <!-- 5. New Terminal Modal -->
     <NewTerminalModal
@@ -159,7 +120,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import SmartHeader from './components/SmartHeader.vue';
 import FileExplorer from './components/FileExplorer.vue';
 import CodeEditor from './components/CodeEditor.vue';
@@ -168,6 +129,7 @@ import ClaudeView from './components/ClaudeView.vue';
 import BottomDock from './components/BottomDock.vue';
 import ServerModal from './components/ServerModal.vue';
 import NewTerminalModal from './components/NewTerminalModal.vue';
+import TerminalSessionHubModal from './components/TerminalSessionHubModal.vue';
 import ClaudeSessionHubModal from './components/ClaudeSessionHubModal.vue';
 import NewClaudeModal from './components/NewClaudeModal.vue';
 import CreateItemModal from './components/CreateItemModal.vue';
@@ -179,9 +141,9 @@ import { useServerStore } from './stores/serverStore.js';
 import { useFileStore } from './stores/fileStore.js';
 import { useTerminalStore } from './stores/terminalStore.js';
 import { useClaudeStore } from './stores/claudeStore.js';
-import { useAuthStore } from './stores/authStore.js';
+import { useAppBootstrap } from './composables/useAppBootstrap.js';
 
-const authStore = useAuthStore();
+const { authStore } = useAppBootstrap();
 const serverStore = useServerStore();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
@@ -294,13 +256,6 @@ function handleClaudeAttachFolder(folderPath: string) {
   }
 }
 
-onMounted(async () => {
-  await authStore.fetchMe();
-  if (!authStore.authenticated) return;
-  await serverStore.fetchServers();
-  await fileStore.fetchFiles('');
-  await claudeStore.fetchSessions();
-});
 </script>
 
 <style>

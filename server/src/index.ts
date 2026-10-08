@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import { PORT, HOST, BASE_PATH } from './config.js';
 import { apiRoutes } from './routes/api.js';
 import { wsRoutes } from './routes/ws.js';
-import { authGuard, authRoutes } from './auth.js';
+import { authGuard, authRoutes, validateAuthConfig } from './auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +20,8 @@ const fastify = Fastify({
 });
 
 async function main() {
+  validateAuthConfig();
+
   await fastify.register(cors, {
     origin: true,
   });

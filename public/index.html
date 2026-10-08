@@ -1,0 +1,4045 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>HugCode — Mobile Web IDE Prototype</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HugCode">
+  <meta name="theme-color" content="#0b0f19">
+  <!-- Remix Icon CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css">
+
+  <style>
+    /* ========================================================
+       HugCode Prototype - Mobile-First Stylesheet (100% Inline)
+       ======================================================== */
+    :root {
+      --bg-main: #090d16;
+      --bg-surface: #111827;
+      --bg-card: #172237;
+      --bg-elevated: #1f2e4d;
+      --border: #233152;
+      --border-light: #33446b;
+      --text-main: #f3f4f6;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      inset: 0;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 14px;
+    }
+
+    #app {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding-top: var(--safe-top);
+      overflow: hidden;
+    }
+
+    /* --- TOP HEADER --- */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      min-height: 48px;
+      flex-shrink: 0;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .app-logo {
+      font-weight: 800;
+      font-size: 16px;
+      color: #60a5fa;
+      letter-spacing: -0.5px;
+    }
+    .badge-prototype {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      text-transform: uppercase;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-reset-demo {
+      font-size: 11px;
+      padding: 5px 9px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-reset-demo:active {
+      background: var(--bg-elevated);
+      color: var(--text-main);
+    }
+
+    /* --- VIEWS CONTAINER --- */
+    .views-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .view {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
+      transition: opacity 0.15s ease-out;
+      background: var(--bg-main);
+    }
+    .view.active {
+      opacity: 1;
+      pointer-events: auto;
+      visibility: visible;
+      z-index: 10;
+    }
+
+    /* --- SUB HEADER --- */
+    .sub-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      min-height: 44px;
+      flex-shrink: 0;
+    }
+
+    /* --- BUTTONS --- */
+    .btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      touch-action: manipulation;
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-secondary {
+      background: var(--bg-card);
+      border-color: var(--border);
+      color: var(--text-main);
+    }
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+    .btn:disabled {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    /* ========================================================
+       TAB 1: FILE MANAGER
+       ======================================================== */
+    .breadcrumb-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow-x: auto;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      max-width: 60%;
+      scrollbar-width: none;
+    }
+    .breadcrumb-bar::-webkit-scrollbar { display: none; }
+    .crumb-item {
+      padding: 2px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .crumb-item:active { background: var(--bg-elevated); }
+    .crumb-item.active { color: #60a5fa; font-weight: 700; }
+    .crumb-sep { color: #475569; }
+
+    .file-actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .file-list-container {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 10px 10px 24px 10px;
+    }
+    .file-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .file-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .file-row:active {
+      background: var(--bg-card);
+      border-color: var(--border-light);
+    }
+    .file-row-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+    .file-icon {
+      font-size: 19px;
+      flex-shrink: 0;
+    }
+    .file-details {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .file-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .file-row-actions {
+      display: flex;
+      gap: 4px;
+      margin-left: 8px;
+    }
+    .btn-action-icon {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px;
+      font-size: 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn-action-icon:active {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    /* ========================================================
+       TAB 2: CODE EDITOR
+       ======================================================== */
+    .editor-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex: 1;
+    }
+    .editor-file-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: #38bdf8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dirty-pill {
+      font-size: 11px;
+      color: #fbbf24;
+      font-weight: bold;
+      background: rgba(245, 158, 11, 0.2);
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+    .dirty-pill.hidden { display: none; }
+
+    .editor-body {
+      flex: 1;
+      position: relative;
+      display: flex;
+      overflow: hidden;
+      background: #080c14;
+    }
+    .editor-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 24px;
+    }
+    .editor-empty-icon { font-size: 44px; }
+    
+    .editor-mock-wrapper {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    .editor-gutter {
+      width: 44px;
+      padding: 12px 6px;
+      background: #0d1320;
+      border-right: 1px solid var(--border);
+      color: #4b5563;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      text-align: right;
+      user-select: none;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .editor-textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #f1f5f9;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 12px 14px;
+      outline: none;
+      resize: none;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      user-select: text;
+    }
+
+    .editor-keybar-wrapper {
+      display: flex;
+      align-items: center;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      padding: 5px 6px;
+      gap: 6px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .editor-keybar {
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      white-space: nowrap;
+      gap: 6px;
+      scrollbar-width: none;
+      flex: 1;
+      min-width: 0;
+    }
+    .editor-keybar::-webkit-scrollbar { display: none; }
+    .key-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      flex-shrink: 0;
+      touch-action: manipulation;
+    }
+    .key-btn:active {
+      background: var(--primary);
+      color: #fff;
+      transform: scale(0.95);
+    }
+
+    /* ========================================================
+       TAB 3: TERMINAL
+       ======================================================== */
+    .terminal-header {
+      background: #0f172a;
+    }
+    /* Horizontal Session Tabs */
+    .session-tabs-bar {
+      display: flex;
+      align-items: center;
+      background: #070b14;
+      border-bottom: 1px solid var(--border);
+      padding: 6px 10px;
+      gap: 6px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .session-tabs-bar::-webkit-scrollbar { display: none; }
+    .session-tab-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 11px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      flex-shrink: 0;
+      touch-action: manipulation;
+    }
+    .session-tab-chip:active {
+      background: var(--bg-elevated);
+    }
+    .session-tab-chip.active {
+      background: #1e293b;
+      border-color: #60a5fa;
+      color: #93c5fd;
+      font-weight: 700;
+    }
+    .session-tab-close {
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 2px;
+    }
+    .session-tab-close:active {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .btn-add-tab-inline {
+      padding: 5px 10px;
+      font-size: 12px;
+      background: none;
+      border: 1px dashed var(--border-light);
+      color: var(--text-muted);
+      border-radius: 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-add-tab-inline:active {
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Màn List Cửa Sổ (Session Hub Sheet) */
+    .session-hub-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      z-index: 998;
+    }
+    .session-hub-overlay.hidden { display: none; }
+    .session-hub-sheet {
+      background: var(--bg-surface);
+      border-top: 2px solid #3b82f6;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      padding: 16px;
+      max-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+      box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.6);
+    }
+    .session-hub-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .session-hub-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .session-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-right: 2px;
+      padding-bottom: 8px;
+    }
+    .session-card {
+      display: flex;
+      flex-direction: column;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      gap: 8px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .session-card:active {
+      border-color: var(--border-light);
+    }
+    .session-card.active {
+      border-color: #3b82f6;
+      background: #111e38;
+    }
+    .session-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .session-card-name {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 14px;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .session-card-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      font-weight: 600;
+    }
+    .session-card-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .session-card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .terminal-tag {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #c084fc;
+      font-weight: 600;
+    }
+    .terminal-body {
+      flex: 1;
+      background: #050811;
+      padding: 10px 12px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.5;
+      color: #e2e8f0;
+      user-select: text;
+    }
+    .term-line {
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    .term-prompt {
+      color: #34d399;
+      font-weight: 600;
+    }
+    .term-path {
+      color: #60a5fa;
+    }
+    .term-active-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      min-height: 20px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #fff;
+      cursor: text;
+    }
+    .term-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 15px;
+      background: #60a5fa;
+      vertical-align: middle;
+      margin-left: 1px;
+      animation: termCursorBlink 1s infinite;
+    }
+    .term-cursor-char {
+      background: #60a5fa;
+      color: #000;
+      font-weight: bold;
+      animation: termCharBlink 1s infinite;
+    }
+    @keyframes termCursorBlink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+    @keyframes termCharBlink {
+      0%, 49% { background: #60a5fa; color: #000; }
+      50%, 100% { background: transparent; color: inherit; }
+    }
+    .term-hidden-capture {
+      position: absolute;
+      opacity: 0;
+      left: -9999px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+    }
+
+    /* Touch Bar */
+    .touch-bar {
+      display: flex;
+      align-items: center;
+      background: #0f172a;
+      border-top: 1px solid var(--border);
+      padding: 5px 6px;
+      gap: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .touch-bar-scroll {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .touch-bar-scroll::-webkit-scrollbar { display: none; }
+    .touch-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 8px 13px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      touch-action: manipulation;
+    }
+    .touch-btn:active {
+      background: #475569;
+      transform: scale(0.95);
+    }
+    .touch-btn.toggle.active {
+      background: var(--primary);
+      border-color: #60a5fa;
+      color: #fff;
+    }
+    .touch-btn.danger {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--danger);
+      color: #fca5a5;
+    }
+    .touch-btn.primary {
+      background: var(--primary);
+      border-color: var(--primary-hover);
+      color: #fff;
+    }
+
+    /* ========================================================
+       BOTTOM TAB BAR (MOBILE NAVIGATION)
+       ======================================================== */
+    .bottom-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      min-height: 58px;
+      flex-shrink: 0;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      height: 58px;
+      touch-action: manipulation;
+    }
+    .nav-item.active {
+      color: #60a5fa;
+    }
+    .nav-icon {
+      font-size: 20px;
+    }
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .nav-dot {
+      position: absolute;
+      top: 10px;
+      right: calc(50% - 16px);
+      width: 7px;
+      height: 7px;
+      background: #fbbf24;
+      border-radius: 50%;
+    }
+    .nav-dot.hidden { display: none; }
+
+    /* ========================================================
+       MODAL & TOAST
+       ======================================================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 999;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .modal-input {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      user-select: text;
+    }
+    .modal-input:focus {
+      border-color: var(--primary);
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+      pointer-events: none;
+      width: 90%;
+      max-width: 320px;
+    }
+    .toast {
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #3b82f6;
+      padding: 10px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      animation: fadeInOut 2.8s forwards;
+    }
+    .toast.success { border-color: var(--accent); color: #34d399; }
+    .toast.error { border-color: var(--danger); color: #f87171; }
+    .toast.warning { border-color: var(--warning); color: #fbbf24; }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(-10px); }
+      12% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+  
+    /* ========================================================
+       SMART ULTRA-COMPACT MOBILE LAYOUT (< 40px OVERHEAD)
+       ======================================================== */
+    
+    /* 1. SINGLE UNIFIED SMART TOP HEADER (Height: 38px) */
+    .smart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 40px;
+      padding: 0 10px;
+      background: #0d1322;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      flex-shrink: 0;
+      z-index: 50;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .smart-header.zen-hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      height: 0;
+      padding: 0;
+      border-bottom: none;
+      overflow: hidden;
+    }
+
+    .smart-header-left {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .btn-brand-menu {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: #60a5fa;
+      font-size: 14px;
+      font-weight: 800;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-brand-menu:active { background: var(--bg-elevated); transform: scale(0.94); }
+
+    .smart-header-center {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .ctx-header-item {
+      display: none;
+      align-items: center;
+      width: 100%;
+      min-width: 0;
+      gap: 6px;
+    }
+    .ctx-header-item.active {
+      display: flex;
+    }
+
+    /* Breadcrumb compact */
+    .breadcrumb-bar {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      overflow-x: auto;
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      scrollbar-width: none;
+      width: 100%;
+    }
+    .breadcrumb-bar::-webkit-scrollbar { display: none; }
+    .crumb-item {
+      padding: 2px 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .crumb-item.active { color: #60a5fa; font-weight: 700; }
+    .crumb-sep { color: #475569; font-size: 10px; }
+
+    /* Editor Title in Header */
+    .editor-file-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: #38bdf8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .dirty-pill {
+      font-size: 10px;
+      color: #fbbf24;
+      font-weight: bold;
+      background: rgba(245, 158, 11, 0.2);
+      padding: 1px 5px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .dirty-pill.hidden { display: none; }
+
+    /* Terminal Session Dropdown Pill in Header */
+    .term-session-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #c084fc;
+      font-weight: 600;
+      cursor: pointer;
+      max-width: 100%;
+      touch-action: manipulation;
+    }
+    .term-session-pill:active { background: var(--bg-elevated); }
+    .badge-count {
+      background: rgba(192, 132, 252, 0.2);
+      color: #c084fc;
+      font-size: 10px;
+      padding: 0 4px;
+      border-radius: 8px;
+    }
+
+    .smart-header-right {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .ctx-actions-item {
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+    .ctx-actions-item.active {
+      display: flex;
+    }
+
+    .btn-icon-action {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .btn-icon-action:active { background: var(--bg-elevated); transform: scale(0.92); }
+    .btn-icon-action.primary {
+      background: var(--primary);
+      border-color: #60a5fa;
+      color: #fff;
+    }
+    .btn-icon-action.primary:disabled {
+      background: var(--bg-card);
+      border-color: var(--border);
+      color: var(--text-muted);
+      opacity: 0.5;
+    }
+    .btn-icon-action.zen-btn {
+      color: #38bdf8;
+    }
+
+    /* 2. COMPACT SEGMENTED BOTTOM DOCK (Height: 44px + Safe Area) */
+    .smart-bottom-dock {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: calc(44px + env(safe-area-inset-bottom, 0px));
+      min-height: 44px;
+      background: #0d1322;
+      border-top: 1px solid var(--border);
+      padding: 0 10px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      gap: 6px;
+      flex-shrink: 0;
+      z-index: 50;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .smart-bottom-dock.zen-hidden {
+      transform: translateY(100%);
+      opacity: 0;
+      height: 0;
+      padding: 0;
+      border-top: none;
+      overflow: hidden;
+    }
+
+    .dock-tabs-group {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      gap: 4px;
+    }
+    .dock-item {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 32px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      touch-action: manipulation;
+    }
+    .dock-item:active { background: rgba(255,255,255,0.05); }
+    .dock-item.active {
+      background: var(--bg-card);
+      border-color: var(--border);
+      color: #60a5fa;
+      font-weight: 700;
+    }
+    .dock-icon { font-size: 15px; }
+    .dock-label { font-size: 12px; }
+    .dock-dot {
+      position: absolute;
+      top: 5px;
+      right: calc(50% - 18px);
+      width: 6px;
+      height: 6px;
+      background: #fbbf24;
+      border-radius: 50%;
+    }
+    .dock-dot.hidden { display: none; }
+    .dock-badge-num {
+      background: rgba(59, 130, 246, 0.25);
+      color: #93c5fd;
+      font-size: 10px;
+      padding: 0 4px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+    }
+
+    .btn-dock-zen {
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .btn-dock-zen:active { background: var(--bg-card); color: #fff; }
+
+    /* 3. FLOATING RESTORE PILL (When in Zen Mode) */
+    .floating-zen-restore {
+      position: fixed;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(17, 24, 39, 0.9);
+      backdrop-filter: blur(8px);
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      cursor: pointer;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      touch-action: manipulation;
+    }
+    .floating-zen-restore.hidden { display: none; }
+    .floating-zen-restore:active { transform: scale(0.95); }
+
+    /* 4. SMART POPOVERS */
+    .popover-menu {
+      position: fixed;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 5px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 200;
+      min-width: 150px;
+    }
+    .popover-menu.hidden { display: none; }
+    .popover-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 13px;
+      border-radius: 5px;
+      cursor: pointer;
+      text-align: left;
+      touch-action: manipulation;
+    }
+    .popover-item:active { background: var(--bg-card); }
+    .popover-item.danger { color: #f87171; }
+    .popover-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 3px 0;
+    }
+
+  
+    /* Pinned Quick Bar End Button (Thay cho floating icon to che khuất) */
+    .quick-bar-pin-btn {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: #60a5fa;
+      font-size: 14px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: -4px 0 10px rgba(0, 0, 0, 0.4);
+      z-index: 5;
+    }
+    .quick-bar-pin-btn:active {
+      background: var(--bg-elevated);
+      transform: scale(0.92);
+    }
+    .quick-bar-pin-btn.zen-active {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+
+  
+    /* --- MARKDOWN PREVIEW STYLES --- */
+    .markdown-preview-container {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 18px;
+      background: #080c15;
+      color: #e2e8f0;
+      line-height: 1.65;
+      font-family: var(--font-sans);
+      user-select: text;
+    }
+    .markdown-preview-container h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #60a5fa;
+      margin-top: 4px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .markdown-preview-container h2 {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #93c5fd;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .markdown-preview-container h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #bfdbfe;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+    .markdown-preview-container p {
+      margin-bottom: 12px;
+      font-size: 13.5px;
+      color: #cbd5e1;
+    }
+    .markdown-preview-container ul {
+      margin-left: 20px;
+      margin-bottom: 12px;
+    }
+    .markdown-preview-container li {
+      margin-bottom: 5px;
+      font-size: 13.5px;
+      color: #cbd5e1;
+    }
+    .markdown-preview-container pre {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-bottom: 14px;
+      color: #a5b4fc;
+    }
+    .markdown-preview-container code {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #f472b6;
+    }
+    .markdown-preview-container pre code {
+      background: transparent;
+      padding: 0;
+      color: inherit;
+    }
+    .markdown-preview-container blockquote {
+      border-left: 3px solid #3b82f6;
+      padding-left: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      font-style: italic;
+      background: rgba(59, 130, 246, 0.05);
+      border-radius: 0 4px 4px 0;
+      padding: 6px 10px;
+    }
+    .markdown-preview-container strong {
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* Back button in Editor Header */
+    .btn-back-header {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: #60a5fa;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .btn-back-header:active {
+      background: var(--bg-elevated);
+      transform: scale(0.94);
+    }
+    .btn-md-toggle {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: #38bdf8;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .btn-md-toggle:active { background: var(--bg-elevated); }
+    .btn-md-toggle.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #fff;
+    }
+
+  
+    /* --- EXPANDABLE TOUCH BAR & KEYBAR --- */
+    .touch-bar-container {
+      display: flex;
+      flex-direction: column;
+      background: #0b1120;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .touch-bar-main-row {
+      display: flex;
+      align-items: center;
+      padding: 5px 6px;
+      gap: 6px;
+      background: #0f172a;
+    }
+    .btn-keybar-expand-fixed {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 0 8px;
+      height: 32px;
+      background: var(--bg-card);
+      border: 1px solid #3b82f6;
+      border-radius: 6px;
+      color: #93c5fd;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+      z-index: 5;
+    }
+    .btn-keybar-expand-fixed:active {
+      background: var(--bg-elevated);
+      transform: scale(0.94);
+    }
+    .btn-keybar-expand-fixed.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #60a5fa;
+    }
+    .btn-keybar-expand-fixed .expand-arrow {
+      font-size: 10px;
+      transition: transform 0.2s ease;
+    }
+    .btn-keybar-expand-fixed.active .expand-arrow {
+      transform: rotate(180deg);
+    }
+
+    /* Expanded Drawer Panel */
+    .keybar-expanded-drawer {
+      display: none;
+      flex-direction: column;
+      background: #070c17;
+      border-top: 1px solid var(--border);
+      padding: 8px 10px;
+      gap: 10px;
+      max-height: 210px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      animation: expandDrawerAnim 0.2s ease-out forwards;
+    }
+    .keybar-expanded-drawer.show {
+      display: flex;
+    }
+    @keyframes expandDrawerAnim {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .drawer-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+    .drawer-btn-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .grid-key-btn {
+      padding: 7px 11px;
+      background: #172237;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      touch-action: manipulation;
+    }
+    .grid-key-btn:active {
+      background: #2b3e63;
+      transform: scale(0.95);
+    }
+    .grid-key-btn.ctrl {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: #3b82f6;
+      color: #93c5fd;
+    }
+    .grid-key-btn.danger {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: var(--danger);
+      color: #fca5a5;
+    }
+    .grid-key-btn.accent {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--accent);
+      color: #6ee7b7;
+    }
+    .grid-key-btn.cmd {
+      background: rgba(168, 85, 247, 0.18);
+      border-color: #a855f7;
+      color: #d8b4fe;
+      font-size: 12px;
+    }
+
+  
+    /* Remix Icon helper */
+    i[class^="ri-"], i[class*=" ri-"] {
+      vertical-align: middle;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .dock-icon i {
+      font-size: 18px;
+    }
+    .file-icon i {
+      font-size: 20px;
+    }
+    .btn-action-icon i {
+      font-size: 15px;
+    }
+    .grid-key-btn i, .drawer-section-title i {
+      font-size: 14px;
+    }
+
+  
+    /* Server Management Selector in Topbar */
+    .server-selector-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 9px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      max-width: 140px;
+    }
+    .server-selector-btn:active {
+      background: var(--bg-elevated);
+      border-color: #3b82f6;
+    }
+    .server-name-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .server-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .server-status-dot.local {
+      background: #3b82f6;
+      box-shadow: 0 0 6px rgba(59, 130, 246, 0.8);
+    }
+    .server-status-dot.remote {
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+    }
+
+    /* Server Card List Modal */
+    .server-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: 58vh;
+      padding-right: 2px;
+      padding-bottom: 8px;
+    }
+    .server-card {
+      display: flex;
+      flex-direction: column;
+      padding: 12px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      gap: 8px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .server-card:active {
+      border-color: var(--border-light);
+    }
+    .server-card.active {
+      border-color: #3b82f6;
+      background: #111e38;
+    }
+    .server-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .server-card-name {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 13.5px;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .server-card-badge {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .server-card-badge.active-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .server-card-badge.ssh-badge {
+      background: rgba(59, 130, 246, 0.18);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .server-card-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .server-card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+  
+    .server-card-badge.ssh-connected-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .badge-bg-pulse {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+      animation: pulseGlow 2s infinite;
+    }
+    @keyframes pulseGlow {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; transform: scale(1.15); }
+      100% { opacity: 0.6; }
+    }
+
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 1. SMART UNIFIED TOP HEADER (Chỉ 40px, chuyển ngữ cảnh theo Tab) -->
+    <header id="unified-header" class="smart-header">
+      <!-- Left: Nút Quản Lý Server (Mặc định máy hiện tại & remote servers từ SSH) -->
+      <div class="smart-header-left">
+        <button id="btn-server-manage" class="server-selector-btn" title="Quản lý Server & Kết nối SSH">
+          <span id="server-status-dot" class="server-status-dot local"></span>
+          <span id="current-server-label" class="server-name-text">hungpc</span>
+          <i class="ri-arrow-down-s-line" style="font-size:12px; color:var(--text-muted);"></i>
+        </button>
+      </div>
+
+      <!-- Center: Contextual info per view -->
+      <div class="smart-header-center">
+        <!-- View 1 Files: Breadcrumb -->
+        <div id="ctx-header-files" class="ctx-header-item active">
+          <div class="breadcrumb-bar" id="file-breadcrumb">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- View 2 Editor: Active file title -->
+        <div id="ctx-header-editor" class="ctx-header-item">
+          <span class="editor-file-title" id="editor-filename">Chưa chọn file</span>
+          <span id="editor-dirty-pill" class="dirty-pill hidden">● Sửa</span>
+        </div>
+
+        <!-- View 3 Terminal: Session selector pill -->
+        <div id="ctx-header-terminal" class="ctx-header-item">
+          <button id="btn-open-session-hub" class="term-session-pill" title="Chạm để mở danh sách cửa sổ">
+            <span id="current-term-name"><i class="ri-terminal-box-line"></i> main-shell</span>
+            <span class="badge-count" id="term-count-badge">1</span>
+            <span style="font-size:10px; color:#a855f7;">▾</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: Contextual action buttons -->
+      <div class="smart-header-right">
+        <!-- Actions for Files -->
+        <div id="ctx-actions-files" class="ctx-actions-item active">
+          <button id="btn-quick-new" class="btn-icon-action" title="Tạo file / thư mục mới"><i class="ri-add-line"></i></button>
+        </div>
+
+        <!-- Actions for Editor -->
+        <div id="ctx-actions-editor" class="ctx-actions-item">
+          <button id="btn-md-toggle" class="btn-md-toggle hidden" title="Chuyển chế độ xem trước/sửa"><i class="ri-eye-line"></i> Xem</button>
+          <button id="btn-save-file" class="btn-icon-action primary" disabled title="Lưu file"><i class="ri-save-line"></i></button>
+          <button id="btn-close-file" class="btn-icon-action" title="Đóng file"><i class="ri-close-line"></i></button>
+        </div>
+
+        <!-- Actions for Terminal -->
+        <div id="ctx-actions-terminal" class="ctx-actions-item">
+          <button id="btn-add-term" class="btn-icon-action" title="Thêm terminal mới"><i class="ri-add-line"></i></button>
+          <button id="btn-term-more" class="btn-icon-action" title="Tùy chọn terminal"><i class="ri-more-2-fill"></i></button>
+        </div>
+
+
+      </div>
+    </header>
+
+    <!-- 2. MAIN VIEWS (Tối đa hóa diện tích chiều cao) -->
+    <main class="views-wrapper">
+      <!-- VIEW 1: FILES -->
+      <section id="view-files" class="view active">
+        <div class="file-list-container">
+          <ul id="file-list" class="file-list">
+            <!-- Rendered by JS -->
+          </ul>
+        </div>
+      </section>
+
+      <!-- VIEW 2: EDITOR (Mở tự động khi chọn file) -->
+      <section id="view-editor" class="view">
+        <div class="editor-body">
+          <div id="editor-empty" class="editor-empty-state">
+            <div class="editor-empty-icon"><i class="ri-file-text-line" style="font-size:42px;"></i></div>
+            <p><b>Chưa có file nào mở</b></p>
+            <span style="font-size:12px;">Chạm vào tab <b>Files</b> để chọn file bắt đầu soạn thảo</span>
+          </div>
+
+          <!-- 1. Code Editor Textarea (Khi sửa code hoặc sửa file thông thường) -->
+          <div id="editor-content-box" class="editor-mock-wrapper" style="display:none;">
+            <div id="editor-gutter" class="editor-gutter">1</div>
+            <textarea id="editor-textarea" class="editor-textarea" spellcheck="false" placeholder="Nội dung file..."></textarea>
+          </div>
+
+          <!-- 2. Markdown Preview Box (Khi xem trước file .md) -->
+          <div id="editor-md-preview-box" class="markdown-preview-container" style="display:none;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Editor Quick Keybar Container với Nút Fixed Mở Rộng ở đầu -->
+        <div id="editor-keybar-container" class="touch-bar-container">
+          <div class="touch-bar-main-row">
+            <button id="editor-expand-btn" class="btn-keybar-expand-fixed" title="Mở rộng ký tự code">
+              <i class="ri-keyboard-line"></i><i class="ri-arrow-up-s-line expand-arrow"></i>
+            </button>
+            <div class="editor-keybar">
+              <button class="key-btn" data-act="tab">Tab</button>
+              <button class="key-btn" data-act="undo"><i class="ri-arrow-go-back-line"></i> Undo</button>
+              <button class="key-btn" data-act="left"><i class="ri-arrow-left-s-line"></i></button>
+              <button class="key-btn" data-act="right"><i class="ri-arrow-right-s-line"></i></button>
+              <button class="key-btn" data-char="{">{</button>
+              <button class="key-btn" data-char="}">}</button>
+              <button class="key-btn" data-char="(">(</button>
+              <button class="key-btn" data-char=")">)</button>
+              <button class="key-btn" data-char="=">=</button>
+              <button class="key-btn" data-char=";">;</button>
+              <button class="key-btn" data-char=":">:</button>
+              <button class="key-btn" data-char="'">'</button>
+              <button class="key-btn" data-char="&quot;">"</button>
+              <button class="key-btn" data-char="$">$</button>
+            </div>
+          </div>
+
+          <div id="editor-expanded-drawer" class="keybar-expanded-drawer">
+            <div>
+              <div class="drawer-section-title"><i class="ri-code-box-line"></i> Ký tự & Cặp dấu lập trình</div>
+              <div class="drawer-btn-grid">
+                <button class="grid-key-btn" data-char="{}">{ }</button>
+                <button class="grid-key-btn" data-char="()">()</button>
+                <button class="grid-key-btn" data-char="[]">[ ]</button>
+                <button class="grid-key-btn" data-char="=>">=&gt;</button>
+                <button class="grid-key-btn" data-char="===">===</button>
+                <button class="grid-key-btn" data-char="!==">!==</button>
+                <button class="grid-key-btn" data-char="&&">&amp;&amp;</button>
+                <button class="grid-key-btn" data-char="||">||</button>
+                <button class="grid-key-btn" data-char="const ">const</button>
+                <button class="grid-key-btn" data-char="function ">function</button>
+                <button class="grid-key-btn" data-char="return ">return</button>
+                <button class="grid-key-btn" data-char="import ">import</button>
+                <button class="grid-key-btn" data-char="export ">export</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: TERMINAL (CODE-SERVER STYLE: TRỰC TIẾP TRÊN MÀN HÌNH TERMINAL) -->
+      <section id="view-terminal" class="view">
+        <div id="terminal-body" class="terminal-body">
+          <div id="term-history-output"></div>
+          <div id="term-active-line" class="term-active-line"></div>
+        </div>
+
+        <!-- Hidden Input Capture để kích hoạt bàn phím ảo Mobile như xterm.js / code-server -->
+        <input type="text" id="term-hidden-capture" class="term-hidden-capture" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+
+        <!-- Virtual Touch Bar for Mobile Terminal với nút Fixed Mở Rộng ở đầu -->
+        <div class="touch-bar-container" id="terminal-touch-bar-container">
+          <!-- Main Row -->
+          <div class="touch-bar-main-row">
+            <!-- Nút fixed ở đầu thanh phím để mở rộng chiều cao -->
+            <button id="tb-expand-btn" class="btn-keybar-expand-fixed" title="Mở rộng chiều cao thanh phím & tổ hợp phím">
+              <i class="ri-keyboard-line"></i><i class="ri-arrow-up-s-line expand-arrow"></i>
+            </button>
+
+            <!-- Scrollable quick keys -->
+            <div class="touch-bar-scroll">
+              <button id="tb-esc" class="touch-btn" data-key="ESC">ESC</button>
+              <button id="tb-tab" class="touch-btn" data-key="TAB">TAB</button>
+              <button id="tb-enter" class="touch-btn primary" data-key="ENTER"><i class="ri-corner-down-left-line"></i> Enter</button>
+              <button id="tb-ctrl-c" class="touch-btn danger" data-key="CTRL_C">^C</button>
+              <button id="tb-up" class="touch-btn" data-key="UP"><i class="ri-arrow-up-s-fill"></i></button>
+              <button id="tb-down" class="touch-btn" data-key="DOWN"><i class="ri-arrow-down-s-fill"></i></button>
+              <button id="tb-left" class="touch-btn" data-key="LEFT"><i class="ri-arrow-left-s-fill"></i></button>
+              <button id="tb-right" class="touch-btn" data-key="RIGHT"><i class="ri-arrow-right-s-fill"></i></button>
+              <button id="tb-ctrl" class="touch-btn toggle">CTRL</button>
+              <button id="tb-alt" class="touch-btn toggle">ALT</button>
+              <button class="touch-btn" data-char="|">|</button>
+              <button class="touch-btn" data-char="~">~</button>
+              <button class="touch-btn" data-char="/">/</button>
+              <button class="touch-btn" data-char="-">-</button>
+              <button class="touch-btn" data-char="_">_</button>
+            </div>
+          </div>
+
+          <!-- Bảng mở rộng chiều cao với các tổ hợp phím thông dụng -->
+          <div id="tb-expanded-drawer" class="keybar-expanded-drawer">
+            <!-- 1. Tổ hợp phím Ctrl (CLI / Bash) -->
+            <div>
+              <div class="drawer-section-title"><i class="ri-command-line"></i> Tổ hợp Ctrl thông dụng (Bash / CLI)</div>
+              <div class="drawer-btn-grid">
+                <button class="grid-key-btn danger" data-key="CTRL_C">^C (Hủy lệnh)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_D">^D (Thoát/EOF)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_Z">^Z (Tạm dừng)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_L">^L (Xóa màn)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_A">^A (Về đầu)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_E">^E (Về cuối)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_R">^R (Tìm history)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_W">^W (Xóa 1 từ)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_U">^U (Xóa dòng)</button>
+                <button class="grid-key-btn ctrl" data-key="CTRL_K">^K (Xóa sau)</button>
+              </div>
+            </div>
+
+            <!-- 2. Điều hướng & Chức năng -->
+            <div>
+              <div class="drawer-section-title"><i class="ri-compass-3-line"></i> Điều hướng & Phím chức năng</div>
+              <div class="drawer-btn-grid">
+                <button class="grid-key-btn" data-key="HOME">Home</button>
+                <button class="grid-key-btn" data-key="END">End</button>
+                <button class="grid-key-btn" data-key="PGUP">PgUp</button>
+                <button class="grid-key-btn" data-key="PGDN">PgDn</button>
+                <button class="grid-key-btn" data-key="UP"><i class="ri-arrow-up-s-line"></i> Lên</button>
+                <button class="grid-key-btn" data-key="DOWN"><i class="ri-arrow-down-s-line"></i> Xuống</button>
+                <button class="grid-key-btn" data-key="LEFT"><i class="ri-arrow-left-s-line"></i> Trái</button>
+                <button class="grid-key-btn" data-key="RIGHT"><i class="ri-arrow-right-s-line"></i> Phải</button>
+                <button class="grid-key-btn" data-key="ESC">Esc</button>
+                <button class="grid-key-btn" data-key="TAB">Tab</button>
+                <button class="grid-key-btn accent" data-key="ENTER"><i class="ri-corner-down-left-line"></i> Enter</button>
+              </div>
+            </div>
+
+            <!-- 3. Ký tự Shell & Code thông dụng -->
+            <div>
+              <div class="drawer-section-title"><i class="ri-code-s-slash-line"></i> Ký tự Shell & Đường dẫn</div>
+              <div class="drawer-btn-grid">
+                <button class="grid-key-btn" data-char="|">|</button>
+                <button class="grid-key-btn" data-char=">">&gt;</button>
+                <button class="grid-key-btn" data-char=">>">&gt;&gt;</button>
+                <button class="grid-key-btn" data-char="<">&lt;</button>
+                <button class="grid-key-btn" data-char="&&">&amp;&amp;</button>
+                <button class="grid-key-btn" data-char="||">||</button>
+                <button class="grid-key-btn" data-char="&">&amp;</button>
+                <button class="grid-key-btn" data-char=";">;</button>
+                <button class="grid-key-btn" data-char=":">:</button>
+                <button class="grid-key-btn" data-char="~">~</button>
+                <button class="grid-key-btn" data-char="/">/</button>
+                <button class="grid-key-btn" data-char="\">\</button>
+                <button class="grid-key-btn" data-char="-">-</button>
+                <button class="grid-key-btn" data-char="_">_</button>
+                <button class="grid-key-btn" data-char="$">$</button>
+                <button class="grid-key-btn" data-char="*">*</button>
+                <button class="grid-key-btn" data-char="&quot;">"</button>
+                <button class="grid-key-btn" data-char="'">'</button>
+                <button class="grid-key-btn" data-char="`">`</button>
+                <button class="grid-key-btn" data-char="{}">{}</button>
+                <button class="grid-key-btn" data-char="()">()</button>
+                <button class="grid-key-btn" data-char="[]">[]</button>
+              </div>
+            </div>
+
+            <!-- 4. Lệnh nhanh 1 chạm -->
+            <div>
+              <div class="drawer-section-title"><i class="ri-flashlight-line"></i> Lệnh nhanh 1 chạm (Quick Run)</div>
+              <div class="drawer-btn-grid">
+                <button class="grid-key-btn cmd" data-cmd="ls -la">ls -la <i class="ri-corner-down-left-line"></i></button>
+                <button class="grid-key-btn cmd" data-cmd="cd ..">cd .. <i class="ri-corner-down-left-line"></i></button>
+                <button class="grid-key-btn cmd" data-cmd="git status">git status <i class="ri-corner-down-left-line"></i></button>
+                <button class="grid-key-btn cmd" data-cmd="clear">clear <i class="ri-corner-down-left-line"></i></button>
+                <button class="grid-key-btn cmd" data-cmd="pwd">pwd <i class="ri-corner-down-left-line"></i></button>
+                <button class="grid-key-btn cmd" data-cmd="node server.js">node server.js <i class="ri-corner-down-left-line"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 3. COMPACT 2-TAB BOTTOM DOCK (FILES + TERMINAL) -->
+    <nav class="smart-bottom-dock" id="smart-bottom-dock">
+      <div class="dock-tabs-group">
+        <button class="dock-item active" data-target="view-files">
+          <span class="dock-icon"><i class="ri-folder-3-line"></i></span>
+          <span class="dock-label">Files</span>
+        </button>
+        <button class="dock-item" data-target="view-terminal">
+          <span class="dock-icon"><i class="ri-terminal-box-line"></i></span>
+          <span class="dock-label">Terminal</span>
+          <span id="dock-term-count" class="dock-badge-num">1</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+
+
+  <!-- POPOVER: QUICK CREATE FILE / FOLDER (Ở Tab Files) -->
+  <div id="popover-new" class="popover-menu hidden">
+    <button id="pop-new-file" class="popover-item">
+      <i class="ri-file-add-line"></i><span>Tạo file mới</span>
+    </button>
+    <button id="pop-new-folder" class="popover-item">
+      <i class="ri-folder-add-line"></i><span>Tạo thư mục mới</span>
+    </button>
+  </div>
+
+  <!-- POPOVER: TERMINAL MORE ACTIONS (Ở Tab Terminal) -->
+  <div id="popover-term" class="popover-menu hidden">
+    <button id="pop-term-clear" class="popover-item">
+      <i class="ri-eraser-line"></i><span>Xóa màn hình</span>
+    </button>
+    <button id="pop-term-help" class="popover-item">
+      <i class="ri-question-line"></i><span>Hướng dẫn lệnh (help)</span>
+    </button>
+    <div class="popover-divider"></div>
+    <button id="pop-term-rename" class="popover-item">
+      <i class="ri-edit-line"></i><span>Đổi tên cửa sổ</span>
+    </button>
+    <button id="pop-term-close" class="popover-item danger">
+      <i class="ri-delete-bin-line"></i><span>Đóng cửa sổ này</span>
+    </button>
+  </div>
+
+  <!-- POPOVER: GLOBAL BRAND MENU -->
+  <div id="popover-brand" class="popover-menu hidden">
+    <div style="padding:6px 10px; font-weight:700; color:#60a5fa; font-size:12px;"><i class="ri-code-s-slash-line"></i> HugCode Mobile</div>
+    <div class="popover-divider"></div>
+    <button id="pop-brand-reset" class="popover-item danger">
+      <i class="ri-restart-line"></i><span>Khôi phục dữ liệu mẫu</span>
+    </button>
+    <button id="pop-brand-about" class="popover-item">
+      <i class="ri-information-line"></i><span>Thông tin phiên bản</span>
+    </button>
+  </div>
+
+  <!-- SERVER MANAGEMENT MODAL SHEET (QUẢN LÝ SERVER & REMOTE SSH HOSTS) -->
+  <div id="server-manage-modal" class="session-hub-overlay hidden">
+    <div class="session-hub-sheet">
+      <div class="session-hub-header">
+        <div class="session-hub-title"><i class="ri-server-line"></i> Quản lý Server &amp; SSH Hosts</div>
+        <button id="btn-close-server-modal" class="btn-action-icon"><i class="ri-close-line" style="font-size:18px;"></i></button>
+      </div>
+      <div style="font-size:11.5px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center; padding:0 2px;">
+        <span>Nguồn: <code>~/.ssh/config</code> &amp; Local Machine</span>
+        <button id="btn-add-ssh-host" class="btn btn-primary btn-sm">+ Thêm SSH Host</button>
+      </div>
+      <div class="server-card-list" id="server-card-list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- SESSION HUB MODAL SHEET (MÀN DANH SÁCH CÁC CỬA SỔ TERMINAL) -->
+  <div id="session-hub-modal" class="session-hub-overlay hidden">
+    <div class="session-hub-sheet">
+      <div class="session-hub-header">
+        <div class="session-hub-title"><i class="ri-file-list-3-line"></i> Danh sách cửa sổ Terminal</div>
+        <button id="btn-close-session-hub" class="btn-action-icon"><i class="ri-close-line" style="font-size:18px;"></i></button>
+      </div>
+      <button id="btn-hub-create-term" class="btn btn-primary" style="justify-content:center; padding:10px; font-size:14px;">
+        + Tạo cửa sổ terminal mới
+      </button>
+      <div class="session-card-list" id="session-card-list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DIALOG -->
+  <div id="modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <h3 id="modal-title" class="modal-title">Tiêu đề</h3>
+      <input type="text" id="modal-input" class="modal-input" placeholder="Nhập...">
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-secondary">Hủy</button>
+        <button id="modal-confirm" class="btn btn-primary">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ========================================================
+       MOCK ENGINE & APPLICATION SCRIPT (100% Client-Side)
+       ======================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+            // --- 1. MOCK FILE SYSTEM DATA (LOCAL + REMOTE SERVERS) ---
+      const PROD_VPS_FS = {
+        name: 'production-api',
+        type: 'dir',
+        children: {
+          'docker-compose.yml': {
+            type: 'file',
+            size: '1.8 KB',
+            modified: '2 giờ trước',
+            content: `version: '3.8'\nservices:\n  api:\n    image: hugtech/api:latest\n    restart: always\n    ports:\n      - "8000:8000"\n    environment:\n      - NODE_ENV=production\n      - DB_HOST=postgres\n  postgres:\n    image: postgres:16-alpine\n    restart: always\n    volumes:\n      - pgdata:/var/lib/postgresql/data\nvolumes:\n  pgdata:`
+          },
+          'nginx': {
+            type: 'dir',
+            children: {
+              'hugtech.conf': {
+                type: 'file',
+                size: '850 B',
+                modified: '1 ngày trước',
+                content: `server {\n  listen 80;\n  server_name api.hugtech.com;\n  location / {\n    proxy_pass http://api:8000;\n    proxy_set_header Host $host;\n  }\n}`
+              }
+            }
+          },
+          'logs': {
+            type: 'dir',
+            children: {
+              'access.log': {
+                type: 'file',
+                size: '14.2 KB',
+                modified: 'Vừa xong',
+                content: `[2026-10-06 14:02:11] 200 GET /api/v1/health\n[2026-10-06 14:02:15] 200 GET /api/v1/users\n[2026-10-06 14:02:22] 200 POST /api/v1/deploy`
+              }
+            }
+          },
+          '.env.production': {
+            type: 'file',
+            size: '420 B',
+            modified: '3 ngày trước',
+            content: `PORT=8000\nDB_PORT=5432\nDB_NAME=hugtech_prod\nREDIS_URL=redis://127.0.0.1:6379\nJWT_SECRET=production_secret_key_999`
+          }
+        }
+      };
+
+      const WORKER_NODE_FS = {
+        name: 'worker-node',
+        type: 'dir',
+        children: {
+          'tasks.py': {
+            type: 'file',
+            size: '1.2 KB',
+            modified: '5 giờ trước',
+            content: `import time\n\ndef background_job(job_id):\n    print(f"Processing job {job_id}...")\n    time.sleep(2)\n    return {"status": "completed"}`
+          },
+          'requirements.txt': {
+            type: 'file',
+            size: '150 B',
+            modified: '4 ngày trước',
+            content: `celery>=5.3.0\nredis>=5.0.0\nrequests>=2.31.0`
+          },
+          'worker.log': {
+            type: 'file',
+            size: '3.8 KB',
+            modified: 'Vừa xong',
+            content: `[INFO] Worker worker@node-01 ready.\n[INFO] Task background_job[abc-123] succeeded in 1.98s`
+          }
+        }
+      };
+
+      const STAGING_FS = {
+        name: 'staging-app',
+        type: 'dir',
+        children: {
+          'deploy.sh': {
+            type: 'file',
+            size: '340 B',
+            modified: 'Hôm qua',
+            content: `#!/usr/bin/env bash\necho "Pulling latest staging image..."\ndocker compose pull\ndocker compose up -d\necho "Staging updated successfully!"`
+          },
+          'test-report.json': {
+            type: 'file',
+            size: '520 B',
+            modified: '12 giờ trước',
+            content: `{\n  "suite": "E2E Staging Suite",\n  "total": 42,\n  "passed": 42,\n  "failed": 0,\n  "status": "GREEN"\n}`
+          }
+        }
+      };
+
+      const DEFAULT_LOCAL_FS = 
+      {
+        name: 'hugcode',
+        type: 'dir',
+        children: {
+          'src': {
+            type: 'dir',
+            children: {
+              'server.js': {
+                type: 'file',
+                size: '2.4 KB',
+                modified: '10 phút trước',
+                content: `// HugCode Backend Core
+const express = require('express');
+const http = require('http');
+const pty = require('node-pty');
+
+const app = express();
+const server = http.createServer(app);
+
+// Khởi chạy Terminal shell PTY
+const shell = process.env.SHELL || '/bin/bash';
+console.log('Spawning mobile terminal shell:', shell);
+
+server.listen(8099, () => {
+  console.log('HugCode Mobile IDE listening on :8099');
+});`
+              },
+              'touchBar.js': {
+                type: 'file',
+                size: '1.2 KB',
+                modified: '2 giờ trước',
+                content: `// Virtual Touch Bar for Mobile Terminal
+export class TouchBar {
+  constructor(term) {
+    this.term = term;
+    this.ctrlActive = false;
+    this.altActive = false;
+  }
+
+  handleKey(key) {
+    switch (key) {
+      case 'ESC': return '\\x1b';
+      case 'TAB': return '\\t';
+      case 'CTRL_C': return '\\x03';
+      case 'UP': return '\\x1b[A';
+      case 'DOWN': return '\\x1b[B';
+    }
+  }
+}`
+              }
+            }
+          },
+          'components': {
+            type: 'dir',
+            children: {
+              'FileExplorer.vue': {
+                type: 'file',
+                size: '3.1 KB',
+                modified: 'Hôm qua',
+                content: `<template>
+  <div class="file-explorer-mobile">
+    <div class="breadcrumb">{{ currentPath }}</div>
+    <ul class="file-items">
+      <li v-for="item in files" :key="item.name" @click="open(item)">
+        <span class="icon">{{ item.isDir ? 'folder' : 'file' }}</span>
+        <span>{{ item.name }}</span>
+      </li>
+    </ul>
+  </div>
+</template>`
+              },
+              'EditorView.vue': {
+                type: 'file',
+                size: '2.8 KB',
+                modified: 'Hôm qua',
+                content: `<template>
+  <div class="editor-mobile">
+    <header class="editor-bar">
+      <span>{{ activeFile }}</span>
+      <button @click="save">Lưu</button>
+    </header>
+    <textarea v-model="codeContent"></textarea>
+  </div>
+</template>`
+              }
+            }
+          },
+          'docs': {
+            type: 'dir',
+            children: {
+              'README.md': {
+                type: 'file',
+                size: '1.5 KB',
+                modified: 'Hôm nay',
+                content: `# HugCode — Mobile Web IDE
+
+Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình cảm ứng di động.
+
+## Tính năng nổi bật
+- **Mobile First 100%:** Giao diện co giãn tự động theo bàn phím ảo, không thanh cuộn ngang gây vướng víu.
+- **Xem trước Markdown (Preview):** Tự động render định dạng GitHub Markdown cho mọi file \`.md\`.
+- **Hỗ trợ Code Editor:** Tự động mở khi chạm vào file, có phím phụ Undo, Tab, cặp ngoặc.
+- **Terminal đa cửa sổ:** Dễ dàng thêm, đặt tên và quản lý nhiều phiên bash shell độc lập.
+
+> **Mẹo:** Bạn có thể bấm nút **Sửa** ở góc trên để chỉnh sửa nội dung Markdown này!
+`
+              },
+              'ux-guidelines.md': {
+                type: 'file',
+                size: '980 B',
+                modified: '3 ngày trước',
+                content: `### Mobile IDE UX Principles
+
+1. **Touch Targets:** Các nút chạm phải tối thiểu 36x36px đến 44x44px.
+2. **Không tràn ngang:** Code Editor và Markdown luôn tự ngắt dòng (wrap text).
+3. **Điều hướng tinh gọn:** Chỉ cần 2 tab chính là **Files** và **Terminal**. Mở file sẽ tự động mở Editor.
+4. **Phím điều hướng ảo:** Cung cấp đầy đủ Esc, Tab, Ctrl, mũi tên cho dòng lệnh shell.`
+              }
+            }
+          },
+          'package.json': {
+            type: 'file',
+            size: '720 B',
+            modified: '5 phút trước',
+            content: `{
+  "name": "hugcode",
+  "version": "1.0.0-prototype",
+  "description": "Mobile-First Remote Web IDE & Terminal",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "echo \\"All mock tests passed\\""
+  },
+  "dependencies": {
+    "express": "^5.0.0",
+    "node-pty": "^1.1.0",
+    "ws": "^8.18.0"
+  }
+}`
+          },
+          'config.json': {
+            type: 'file',
+            size: '340 B',
+            modified: '1 ngày trước',
+            content: `{
+  "theme": "dracula",
+  "fontSize": 14,
+  "tabSize": 2,
+  "mobileTouchBar": true,
+  "autoWrap": true
+}`
+          }
+        }
+      };
+
+      // Clone mock filesystem to allow live mutations
+      
+      let serverList = [
+        {
+          id: 'server-local',
+          name: 'hungpc',
+          type: 'local',
+          label: 'Máy hiện tại (Local Machine)',
+          host: '127.0.0.1',
+          user: 'hermes-admin',
+          port: 22,
+          desc: 'WSL2 Linux • Local Host Workspace',
+          workspace: '~/projects/hugcode',
+          isConnected: true, // Mặc định máy hiện tại luôn kết nối
+          currentPathStack: [],
+          activeOpenedFile: null,
+          currentFileMode: 'code',
+          activeTerminalId: 'term-local-1',
+          terminalSessions: [
+            {
+              id: 'term-local-1',
+              name: 'main-shell',
+              cwd: '~/projects/hugcode',
+              pathStack: [],
+              history: ['ls -la', 'npm start'],
+              historyIndex: 2,
+              lines: [
+                '<span style="color:#60a5fa; font-weight:bold;"><i class="ri-terminal-box-line"></i> HugCode Local Shell [hungpc]</span>',
+                '<span style="color:#94a3b8;">Cửa sổ: <b>main-shell</b> (PID 1024 /bin/bash)</span>',
+                '<span class="term-prompt">hermes-admin@hungpc:</span><span class="term-path">~/projects/hugcode</span>$ ls -la',
+                '<span style="color:#94a3b8;">drwxr-xr-x 1 admin admin 4096 Oct 06 </span><span style="color:#60a5fa; font-weight:bold;">components/</span> <span style="color:#60a5fa; font-weight:bold;">docs/</span> <span style="color:#60a5fa; font-weight:bold;">src/</span> config.json package.json',
+                ''
+              ],
+              draftInput: ''
+            }
+          ],
+          fs: JSON.parse(JSON.stringify(DEFAULT_LOCAL_FS))
+        },
+        {
+          id: 'server-prod',
+          name: 'prod-vps-sg',
+          type: 'ssh',
+          label: 'Production VPS (Singapore)',
+          host: '103.145.2.10',
+          user: 'deploy',
+          port: 22,
+          key: 'id_ed25519',
+          desc: 'Ubuntu 24.04 • 8GB RAM • Nginx + Docker',
+          workspace: '/var/www/production-api',
+          isConnected: true, // Đang kết nối nền sẵn!
+          currentPathStack: [],
+          activeOpenedFile: null,
+          currentFileMode: 'code',
+          activeTerminalId: 'term-prod-1',
+          terminalSessions: [
+            {
+              id: 'term-prod-1',
+              name: 'prod-ssh',
+              cwd: '/var/www/production-api',
+              pathStack: [],
+              history: ['docker compose ps', 'git status'],
+              historyIndex: 2,
+              lines: [
+                '<span style="color:#34d399;"><i class="ri-shield-keyhole-line"></i> [SSH Connected] deploy@103.145.2.10:22 (Publickey auth)</span>',
+                '<span style="color:#94a3b8;">Linux prod-vps-sg 6.5.0-generic x86_64 • Uptime: 48 days</span>',
+                '<span class="term-prompt">deploy@prod-vps-sg:</span><span class="term-path">/var/www/production-api</span>$ docker compose ps',
+                '<span style="color:#34d399;">NAME            STATUS    PORTS</span>',
+                'prod-api-1      Up        0.0.0.0:8000->8000/tcp',
+                'prod-postgres-1 Up        5432/tcp',
+                ''
+              ],
+              draftInput: ''
+            }
+          ],
+          fs: PROD_VPS_FS
+        },
+        {
+          id: 'server-worker',
+          name: 'api-worker-01',
+          type: 'ssh',
+          label: 'Worker Node (AWS EC2)',
+          host: '10.0.1.45',
+          user: 'ubuntu',
+          port: 22,
+          key: 'aws-worker.pem',
+          desc: 'Celery / Redis Background Worker',
+          workspace: '/app/worker',
+          isConnected: false, // Chưa kết nối
+          currentPathStack: [],
+          activeOpenedFile: null,
+          currentFileMode: 'code',
+          activeTerminalId: 'term-worker-1',
+          terminalSessions: [
+            {
+              id: 'term-worker-1',
+              name: 'worker-ssh',
+              cwd: '/app/worker',
+              pathStack: [],
+              history: [],
+              historyIndex: -1,
+              lines: [
+                '<span style="color:#34d399;"><i class="ri-shield-keyhole-line"></i> [SSH Connected] ubuntu@10.0.1.45:22</span>',
+                '<span style="color:#94a3b8;">Worker Node AWS EC2 • Active session</span>',
+                ''
+              ],
+              draftInput: ''
+            }
+          ],
+          fs: WORKER_NODE_FS
+        },
+        {
+          id: 'server-staging',
+          name: 'staging-server',
+          type: 'ssh',
+          label: 'Staging Environment',
+          host: 'staging.hugtech.com',
+          user: 'root',
+          port: 2222,
+          key: 'id_rsa',
+          desc: 'Test Environment & CI/CD Target',
+          workspace: '/home/deploy/staging',
+          isConnected: false,
+          currentPathStack: [],
+          activeOpenedFile: null,
+          currentFileMode: 'code',
+          activeTerminalId: 'term-staging-1',
+          terminalSessions: [
+            {
+              id: 'term-staging-1',
+              name: 'staging-ssh',
+              cwd: '/home/deploy/staging',
+              pathStack: [],
+              history: [],
+              historyIndex: -1,
+              lines: [
+                '<span style="color:#34d399;"><i class="ri-shield-keyhole-line"></i> [SSH Connected] root@staging.hugtech.com:2222</span>',
+                ''
+              ],
+              draftInput: ''
+            }
+          ],
+          fs: STAGING_FS
+        }
+      ];
+
+      let currentServerId = 'server-local';
+      let mockFS = serverList[0].fs;
+
+      let currentPathStack = []; // [] = root ('hugcode')
+      let activeOpenedFile = null; // { path: '...', name: '...', originalContent: '...', isDirty: false }
+      let currentFileMode = 'code'; // 'code' or 'md-preview' or 'md-edit'
+
+      // --- 2. TERMINAL MULTI-SESSION STATE (Liên kết theo từng Server) ---
+      let terminalSessions = serverList[0].terminalSessions;
+      let activeSessionId = serverList[0].activeTerminalId;
+      let sessionCounter = 1;
+
+      let ctrlActive = false;
+      let altActive = false;
+
+      // --- DOM REFERENCES ---
+      const unifiedHeader = document.getElementById('unified-header');
+      const smartBottomDock = document.getElementById('smart-bottom-dock');
+      const dockItems = document.querySelectorAll('#smart-bottom-dock .dock-item');
+      const views = document.querySelectorAll('.view');
+      const toastContainer = document.getElementById('toast-container');
+      const btnServerManage = document.getElementById('btn-server-manage');
+      const currentServerLabel = document.getElementById('current-server-label');
+      const serverStatusDot = document.getElementById('server-status-dot');
+      const serverManageModal = document.getElementById('server-manage-modal');
+      const serverCardList = document.getElementById('server-card-list');
+      const btnCloseServerModal = document.getElementById('btn-close-server-modal');
+      const btnAddSshHost = document.getElementById('btn-add-ssh-host');
+
+      // Dynamic Context Header Items
+      const ctxHeaderFiles = document.getElementById('ctx-header-files');
+      const ctxHeaderEditor = document.getElementById('ctx-header-editor');
+      const ctxHeaderTerminal = document.getElementById('ctx-header-terminal');
+
+      const ctxActionsFiles = document.getElementById('ctx-actions-files');
+      const ctxActionsEditor = document.getElementById('ctx-actions-editor');
+      const ctxActionsTerminal = document.getElementById('ctx-actions-terminal');
+
+      // Popovers
+      const popoverNew = document.getElementById('popover-new');
+      const popoverTerm = document.getElementById('popover-term');
+      const popoverBrand = document.getElementById('popover-brand');
+      const allPopovers = [popoverNew, popoverTerm, popoverBrand];
+
+      const btnQuickNew = document.getElementById('btn-quick-new');
+      const btnTermMore = document.getElementById('btn-term-more');
+
+      // Files DOM
+      const fileBreadcrumb = document.getElementById('file-breadcrumb');
+      const fileList = document.getElementById('file-list');
+
+      // Editor DOM
+      const editorFilename = document.getElementById('editor-filename');
+      const editorDirtyPill = document.getElementById('editor-dirty-pill');
+      const btnMdToggle = document.getElementById('btn-md-toggle');
+      const btnSaveFile = document.getElementById('btn-save-file');
+      const btnCloseFile = document.getElementById('btn-close-file');
+      const editorEmpty = document.getElementById('editor-empty');
+      const editorContentBox = document.getElementById('editor-content-box');
+      const editorMdPreviewBox = document.getElementById('editor-md-preview-box');
+      const editorKeybarContainer = document.getElementById('editor-keybar-container');
+      const editorGutter = document.getElementById('editor-gutter');
+      const editorTextarea = document.getElementById('editor-textarea');
+
+      // Terminal DOM (Code-Server Style)
+      const terminalBody = document.getElementById('terminal-body');
+      const termHistoryOutput = document.getElementById('term-history-output');
+      const termActiveLine = document.getElementById('term-active-line');
+      const termHiddenCapture = document.getElementById('term-hidden-capture');
+      const currentTermName = document.getElementById('current-term-name');
+      const termCountBadge = document.getElementById('term-count-badge');
+      const dockTermCount = document.getElementById('dock-term-count');
+      const btnOpenSessionHub = document.getElementById('btn-open-session-hub');
+      const btnAddTerm = document.getElementById('btn-add-term');
+      const sessionHubModal = document.getElementById('session-hub-modal');
+      const sessionCardList = document.getElementById('session-card-list');
+      const btnCloseSessionHub = document.getElementById('btn-close-session-hub');
+      const btnHubCreateTerm = document.getElementById('btn-hub-create-term');
+
+      // Modal DOM
+      const modal = document.getElementById('modal');
+      const modalTitle = document.getElementById('modal-title');
+      const modalInput = document.getElementById('modal-input');
+      const modalCancel = document.getElementById('modal-cancel');
+      const modalConfirm = document.getElementById('modal-confirm');
+      let modalResolve = null;
+
+      
+      // --- SERVER MANAGEMENT LOGIC (PERSISTENT MULTI-SERVER SESSIONS) ---
+      function getCurrentServer() {
+        return serverList.find(s => s.id === currentServerId) || serverList[0];
+      }
+
+      function updateServerTopbarUI() {
+        const cur = getCurrentServer();
+        const connectedCount = serverList.filter(s => s.isConnected).length;
+        currentServerLabel.textContent = cur.name;
+        serverStatusDot.className = `server-status-dot ${cur.type === 'local' ? 'local' : 'remote'}`;
+
+        if (connectedCount > 1) {
+          btnServerManage.title = `Quản lý Server: ${cur.name} (${connectedCount} server đang kết nối nền)`;
+        } else {
+          btnServerManage.title = `Quản lý Server: ${cur.name}`;
+        }
+      }
+
+      function saveCurrentServerState() {
+        const cur = getCurrentServer();
+        if (!cur) return;
+        cur.currentPathStack = [...currentPathStack];
+        cur.activeOpenedFile = activeOpenedFile ? { ...activeOpenedFile } : null;
+        cur.currentFileMode = currentFileMode;
+        cur.terminalSessions = terminalSessions;
+        cur.activeTerminalId = activeSessionId;
+        cur.editorTextareaValue = editorTextarea ? editorTextarea.value : '';
+        const actSess = getActiveSession();
+        if (actSess && termInput) {
+          actSess.draftInput = termInput.value;
+        }
+      }
+
+      function loadServerState(serverId) {
+        const target = serverList.find(s => s.id === serverId);
+        if (!target) return;
+
+        currentServerId = target.id;
+        target.isConnected = true; // Đánh dấu server này đã kết nối và đang online
+
+        mockFS = target.fs;
+        currentPathStack = target.currentPathStack ? [...target.currentPathStack] : [];
+        terminalSessions = target.terminalSessions || [];
+        activeSessionId = target.activeTerminalId || (terminalSessions[0] ? terminalSessions[0].id : 'term-1');
+
+        updateServerTopbarUI();
+
+        // 1. Khôi phục lại File Explorer đúng thư mục đang đứng
+        renderFileExplorer();
+
+        // 2. Khôi phục lại Editor (nếu server đó đang mở file thì giữ nguyên, ngược lại về view files)
+        if (target.activeOpenedFile) {
+          activeOpenedFile = target.activeOpenedFile;
+          currentFileMode = target.currentFileMode || 'code';
+          editorFilename.textContent = activeOpenedFile.name;
+          editorEmpty.style.display = 'none';
+          editorTextarea.value = target.editorTextareaValue || activeOpenedFile.originalContent;
+          setDirty(activeOpenedFile.isDirty || false);
+          updateMdView();
+        } else {
+          activeOpenedFile = null;
+          editorEmpty.style.display = 'flex';
+          editorContentBox.style.display = 'none';
+          editorMdPreviewBox.style.display = 'none';
+          editorKeybarContainer.style.display = 'none';
+          editorTextarea.value = '';
+          setDirty(false);
+          // Nếu đang ở view editor mà server đó không có file mở thì chuyển về view-files
+          const activeView = document.querySelector('.view.active');
+          if (activeView && activeView.id === 'view-editor') {
+            switchTab('view-files');
+          }
+        }
+
+        // 3. Khôi phục lại Terminal đúng các cửa sổ và log đang chạy của server đó
+        renderTerminalScreen();
+      }
+
+      function connectToServer(serverId) {
+        if (serverId === currentServerId) {
+          closeServerModal();
+          return;
+        }
+        const s = serverList.find(x => x.id === serverId);
+        if (!s) return;
+
+        const wasAlreadyConnected = s.isConnected;
+
+        // BƯỚC 1: LƯU TOÀN BỘ TRẠNG THÁI SERVER CŨ (File đang mở, Thư mục, Terminal sessions)
+        saveCurrentServerState();
+
+        // BƯỚC 2: TẢI TRẠNG THÁI SERVER MỚI (Server cũ vẫn giữ nguyên kết nối nền)
+        loadServerState(serverId);
+
+        closeServerModal();
+
+        if (wasAlreadyConnected) {
+          showToast(`Đã chuyển sang ${s.name} (Server cũ vẫn duy trì kết nối nền)`, 'info');
+        } else {
+          showToast(`Đã thiết lập kết nối SSH tới ${s.name} (${s.host})!`, 'success');
+        }
+      }
+
+      function disconnectServer(serverId) {
+        const s = serverList.find(x => x.id === serverId);
+        if (!s || s.type === 'local') {
+          showToast('Không thể ngắt kết nối máy cục bộ (Local Host)', 'warning');
+          return;
+        }
+        if (!confirm(`Bạn có chắc muốn ngắt kết nối SSH tới "${s.name}"? Các tiến trình nền trên máy này sẽ đóng.`)) return;
+
+        s.isConnected = false;
+        // Nếu đang đứng ở chính server này thì tự động chuyển về máy local
+        if (currentServerId === serverId) {
+          connectToServer('server-local');
+        } else {
+          renderServerCards();
+          updateServerTopbarUI();
+          showToast(`Đã ngắt kết nối SSH với ${s.name}`, 'info');
+        }
+      }
+
+      function renderServerCards() {
+        serverCardList.innerHTML = '';
+        serverList.forEach((s) => {
+          const card = document.createElement('div');
+          const isCurrent = s.id === currentServerId;
+          const isConnectedBg = !isCurrent && s.isConnected;
+
+          card.className = 'server-card' + (isCurrent ? ' active' : '');
+
+          const isLocal = s.type === 'local';
+          const icon = isLocal ? 'ri-computer-line' : 'ri-shield-keyhole-line';
+
+          let badgeHtml = '';
+          if (isCurrent) {
+            badgeHtml = '<span class="server-card-badge active-badge"><span class="badge-bg-pulse"></span> Đang mở (Active)</span>';
+          } else if (isConnectedBg) {
+            badgeHtml = '<span class="server-card-badge ssh-connected-badge"><span class="badge-bg-pulse"></span> Kết nối nền (Background)</span>';
+          } else {
+            badgeHtml = '<span class="server-card-badge ssh-badge">Chưa kết nối</span>';
+          }
+
+          const termCount = s.terminalSessions ? s.terminalSessions.length : 1;
+          const openFileName = s.activeOpenedFile ? s.activeOpenedFile.name : 'Không có';
+
+          card.innerHTML = `
+            <div class="server-card-top">
+              <span class="server-card-name">
+                <i class="${icon}"></i> ${escapeHtml(s.name)}
+              </span>
+              ${badgeHtml}
+            </div>
+            <div class="server-card-meta">
+              <span style="color:#e2e8f0; font-weight:600;">${escapeHtml(s.label)}</span>
+              <span><i class="ri-link"></i> ${escapeHtml(s.user)}@${escapeHtml(s.host)}:${s.port}</span>
+              <span><i class="ri-terminal-line"></i> Terminal: <b>${termCount} session</b> | File mở: <b>${escapeHtml(openFileName)}</b></span>
+              <span style="font-size:11px; color:#64748b;">${escapeHtml(s.desc)}</span>
+            </div>
+            <div class="server-card-actions">
+              ${isConnectedBg && !isLocal ? '<button class="btn btn-secondary btn-sm btn-disconnect-ssh" style="color:var(--danger)">Ngắt kết nối</button>' : ''}
+              <button class="btn btn-primary btn-sm btn-connect-server">${isCurrent ? 'Đang ở đây' : (isConnectedBg ? 'Vào Server' : 'Kết nối SSH')}</button>
+            </div>
+          `;
+
+          // Click to switch server
+          card.querySelector('.btn-connect-server').addEventListener('click', (e) => {
+            e.stopPropagation();
+            connectToServer(s.id);
+          });
+          card.addEventListener('click', () => {
+            connectToServer(s.id);
+          });
+
+          // Disconnect button
+          const disBtn = card.querySelector('.btn-disconnect-ssh');
+          if (disBtn) {
+            disBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              disconnectServer(s.id);
+            });
+          }
+
+          serverCardList.appendChild(card);
+        });
+      }
+
+      function openServerModal() {
+        saveCurrentServerState();
+        renderServerCards();
+        serverManageModal.classList.remove('hidden');
+      }
+
+      function closeServerModal() {
+        serverManageModal.classList.add('hidden');
+      }
+
+      btnServerManage.addEventListener('click', openServerModal);
+      btnCloseServerModal.addEventListener('click', closeServerModal);
+
+      btnAddSshHost.addEventListener('click', () => {
+        showPromptModal('Thêm SSH Host mới (IP / HostName)', '103.145.2.20', (ip) => {
+          if (!ip) return;
+          const hostName = `remote-server-${serverList.length}`;
+          const newS = {
+            id: 'server-' + Date.now(),
+            name: hostName,
+            type: 'ssh',
+            label: `Custom Remote (${ip})`,
+            host: ip,
+            user: 'root',
+            port: 22,
+            key: 'id_ed25519',
+            desc: 'Loaded from ~/.ssh/config • Custom SSH Host',
+            workspace: '/root',
+            isConnected: false,
+            currentPathStack: [],
+            activeOpenedFile: null,
+            currentFileMode: 'code',
+            activeTerminalId: `term-${hostName}-1`,
+            terminalSessions: [
+              {
+                id: `term-${hostName}-1`,
+                name: `${hostName}-shell`,
+                cwd: '/root',
+                pathStack: [],
+                history: [],
+                historyIndex: -1,
+                lines: [
+                  `<span style="color:#34d399;"><i class="ri-shield-keyhole-line"></i> [SSH Connected] root@${escapeHtml(ip)}:22</span>`,
+                  `<span style="color:#94a3b8;">Custom SSH Host session active</span>`,
+                  ''
+                ],
+                draftInput: ''
+              }
+            ],
+            fs: {
+              name: hostName,
+              type: 'dir',
+              children: {
+                'README.txt': { type: 'file', size: '140 B', modified: 'Vừa xong', content: `Connected to ${ip} via SSH configuration.` },
+                'status.log': { type: 'file', size: '280 B', modified: 'Vừa xong', content: `[INFO] SSH connection active to host ${ip}` }
+              }
+            }
+          };
+          serverList.push(newS);
+          connectToServer(newS.id);
+          showToast(`Đã thêm và kết nối SSH tới ${hostName}!`, 'success');
+        });
+      });
+// --- TOAST HELPER ---
+      function showToast(msg, type = 'info') {
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.textContent = msg;
+        toastContainer.appendChild(t);
+        setTimeout(() => t.remove(), 2600);
+      }
+
+      // --- POPOVER MANAGEMENT ---
+      function closeAllPopovers() {
+        allPopovers.forEach(p => p.classList.add('hidden'));
+      }
+
+      function togglePopover(popEl, anchorBtn) {
+        const isCurrentlyHidden = popEl.classList.contains('hidden');
+        closeAllPopovers();
+        if (isCurrentlyHidden) {
+          const rect = anchorBtn.getBoundingClientRect();
+          popEl.style.top = `${rect.bottom + 6}px`;
+          if (rect.left + 160 > window.innerWidth) {
+            popEl.style.right = `${window.innerWidth - rect.right}px`;
+            popEl.style.left = 'auto';
+          } else {
+            popEl.style.left = `${Math.max(8, rect.left - 60)}px`;
+            popEl.style.right = 'auto';
+          }
+          popEl.classList.remove('hidden');
+        }
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.popover-menu') && 
+            !e.target.closest('#btn-quick-new') && 
+            !e.target.closest('#btn-term-more') && 
+            !e.target.closest('#btn-brand-menu')) {
+          closeAllPopovers();
+        }
+      });
+
+      btnQuickNew.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePopover(popoverNew, btnQuickNew);
+      });
+
+      btnTermMore.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePopover(popoverTerm, btnTermMore);
+      });
+
+
+
+      // Popover items
+      document.getElementById('pop-new-file').addEventListener('click', () => {
+        closeAllPopovers();
+        handleCreateFile();
+      });
+      document.getElementById('pop-new-folder').addEventListener('click', () => {
+        closeAllPopovers();
+        handleCreateFolder();
+      });
+
+      document.getElementById('pop-term-clear').addEventListener('click', () => {
+        closeAllPopovers();
+        initTerminalOutput();
+        showToast('Đã xóa màn hình terminal', 'info');
+      });
+      document.getElementById('pop-term-help').addEventListener('click', () => {
+        closeAllPopovers();
+        executeCommand('help');
+      });
+      document.getElementById('pop-term-rename').addEventListener('click', () => {
+        closeAllPopovers();
+        renameSession(activeSessionId);
+      });
+      document.getElementById('pop-term-close').addEventListener('click', () => {
+        closeAllPopovers();
+        closeSession(activeSessionId);
+      });
+
+      document.getElementById('pop-brand-reset').addEventListener('click', () => {
+        closeAllPopovers();
+        if (confirm('Khôi phục lại toàn bộ dữ liệu mẫu ban đầu?')) {
+          mockFS = JSON.parse(JSON.stringify(DEFAULT_FS));
+          currentPathStack = [];
+          closeEditorFile();
+          renderFileExplorer();
+          terminalSessions = [
+            {
+              id: 'term-1',
+              name: 'main-shell',
+              cwd: '~/projects/hugcode',
+              pathStack: [],
+              history: [],
+              historyIndex: -1,
+              lines: [
+                '<span style="color:#60a5fa; font-weight:bold;"><i class="ri-terminal-box-line"></i> HugCode Remote Shell</span>',
+                '<span style="color:#94a3b8;">Cửa sổ: <b>main-shell</b> (PID 1024 /bin/bash)</span>',
+                '<span style="color:#94a3b8;">Nhập <b>help</b> để xem các lệnh mẫu có thể tương tác.</span>',
+                ''
+              ],
+              draftInput: ''
+            }
+          ];
+          activeSessionId = 'term-1';
+          sessionCounter = 1;
+          renderTerminalScreen();
+          showToast('Đã khôi phục dữ liệu mẫu!', 'success');
+        }
+      });
+
+      document.getElementById('pop-brand-about').addEventListener('click', () => {
+        closeAllPopovers();
+        showToast('HugCode Mobile Web IDE v1.0', 'info');
+      });
+
+      // --- TAB SWITCHING (SMART DYNAMIC CONTEXT) ---
+      function switchTab(targetId) {
+        closeAllPopovers();
+        views.forEach(v => v.classList.toggle('active', v.id === targetId));
+
+        const isFiles = targetId === 'view-files';
+        const isEditor = targetId === 'view-editor';
+        const isTerm = targetId === 'view-terminal';
+
+        // Update Dock Tabs (Only Files and Terminal are in dock)
+        dockItems.forEach(d => {
+          const dt = d.getAttribute('data-target');
+          if (isEditor) {
+            d.classList.toggle('active', dt === 'view-files');
+          } else {
+            d.classList.toggle('active', dt === targetId);
+          }
+        });
+
+
+
+        // Header Center
+        ctxHeaderFiles.classList.toggle('active', isFiles);
+        ctxHeaderEditor.classList.toggle('active', isEditor);
+        ctxHeaderTerminal.classList.toggle('active', isTerm);
+
+        // Header Right
+        ctxActionsFiles.classList.toggle('active', isFiles);
+        ctxActionsEditor.classList.toggle('active', isEditor);
+        ctxActionsTerminal.classList.toggle('active', isTerm);
+
+        if (isEditor) {
+          updateGutter();
+        } else if (isTerm) {
+          renderTerminalScreen();
+          setTimeout(() => {
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+          }, 50);
+        }
+      }
+
+      dockItems.forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.getAttribute('data-target')));
+      });
+
+      // --- FILE SYSTEM HELPERS ---
+      function getCurrentDirNode() {
+        let node = mockFS;
+        for (const segment of currentPathStack) {
+          if (node.children && node.children[segment] && node.children[segment].type === 'dir') {
+            node = node.children[segment];
+          } else {
+            currentPathStack = [];
+            return mockFS;
+          }
+        }
+        return node;
+      }
+
+      function renderFileExplorer() {
+        const currentDir = getCurrentDirNode();
+
+        // 1. Breadcrumbs
+        fileBreadcrumb.innerHTML = '';
+        const rootCrumb = document.createElement('span');
+        rootCrumb.className = 'crumb-item' + (currentPathStack.length === 0 ? ' active' : '');
+        rootCrumb.textContent = 'hugcode';
+        rootCrumb.addEventListener('click', () => {
+          currentPathStack = [];
+          renderFileExplorer();
+        });
+        fileBreadcrumb.appendChild(rootCrumb);
+
+        let tempStack = [];
+        currentPathStack.forEach((seg, idx) => {
+          tempStack.push(seg);
+          const sep = document.createElement('span');
+          sep.className = 'crumb-sep';
+          sep.textContent = '/';
+          fileBreadcrumb.appendChild(sep);
+
+          const crumb = document.createElement('span');
+          crumb.className = 'crumb-item' + (idx === currentPathStack.length - 1 ? ' active' : '');
+          crumb.textContent = seg;
+          const targetStack = [...tempStack];
+          crumb.addEventListener('click', () => {
+            currentPathStack = targetStack;
+            renderFileExplorer();
+          });
+          fileBreadcrumb.appendChild(crumb);
+        });
+        fileBreadcrumb.scrollLeft = fileBreadcrumb.scrollWidth;
+
+        // 2. File List
+        fileList.innerHTML = '';
+
+        if (currentPathStack.length > 0) {
+          const upRow = document.createElement('li');
+          upRow.className = 'file-row';
+          upRow.innerHTML = `
+            <div class="file-row-left">
+              <span class="file-icon"><i class="ri-folder-upload-line" style="color:#94a3b8"></i></span>
+              <div class="file-details">
+                <span class="file-name">.. (Lên thư mục cha)</span>
+                <span class="file-meta">Quay lại cấp trước</span>
+              </div>
+            </div>
+          `;
+          upRow.addEventListener('click', () => {
+            currentPathStack.pop();
+            renderFileExplorer();
+          });
+          fileList.appendChild(upRow);
+        }
+
+        const entries = Object.entries(currentDir.children || {}).sort((a, b) => {
+          if (a[1].type !== b[1].type) return a[1].type === 'dir' ? -1 : 1;
+          return a[0].localeCompare(b[0]);
+        });
+
+        if (entries.length === 0 && currentPathStack.length === 0) {
+          fileList.innerHTML = '<li style="text-align:center; padding:20px; color:var(--text-muted)">Thư mục trống</li>';
+          return;
+        }
+
+        entries.forEach(([name, item]) => {
+          const li = document.createElement('li');
+          li.className = 'file-row';
+
+          const icon = item.type === 'dir' ? '<i class="ri-folder-3-fill" style="color:#60a5fa"></i>' : getFileIcon(name);
+          const meta = item.type === 'dir' ? 'Thư mục' : `${item.size || '1 KB'} • ${item.modified || 'Vừa xong'}`;
+
+          li.innerHTML = `
+            <div class="file-row-left">
+              <span class="file-icon">${icon}</span>
+              <div class="file-details">
+                <span class="file-name">${name}</span>
+                <span class="file-meta">${meta}</span>
+              </div>
+            </div>
+            <div class="file-row-actions">
+              <button class="btn-action-icon btn-rename" title="Đổi tên"><i class="ri-edit-line"></i></button>
+              <button class="btn-action-icon btn-delete" title="Xóa"><i class="ri-delete-bin-line"></i></button>
+            </div>
+          `;
+
+          // Tap to Open: Directly opens editor / preview!
+          li.querySelector('.file-row-left').addEventListener('click', () => {
+            if (item.type === 'dir') {
+              currentPathStack.push(name);
+              renderFileExplorer();
+            } else {
+              openFileInEditor([...currentPathStack, name].join('/'), name, item.content);
+            }
+          });
+
+          // Rename
+          li.querySelector('.btn-rename').addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPromptModal('Đổi tên file/thư mục', name, (newName) => {
+              if (!newName || newName === name) return;
+              if (currentDir.children[newName]) {
+                showToast('Tên đã tồn tại!', 'error');
+                return;
+              }
+              currentDir.children[newName] = currentDir.children[name];
+              delete currentDir.children[name];
+              showToast(`Đã đổi tên thành: ${newName}`, 'success');
+              renderFileExplorer();
+            });
+          });
+
+          // Delete
+          li.querySelector('.btn-delete').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm(`Bạn có chắc muốn xóa "${name}" không?`)) {
+              delete currentDir.children[name];
+              showToast(`Đã xóa "${name}"`, 'success');
+              if (activeOpenedFile && activeOpenedFile.name === name) {
+                closeEditorFile();
+              }
+              renderFileExplorer();
+            }
+          });
+
+          fileList.appendChild(li);
+        });
+      }
+
+      function getFileIcon(filename) {
+        if (filename.endsWith('.js') || filename.endsWith('.ts')) return '<i class="ri-javascript-line" style="color:#f7df1e"></i>';
+        if (filename.endsWith('.json')) return '<i class="ri-braces-line" style="color:#eab308"></i>';
+        if (filename.endsWith('.md')) return '<i class="ri-markdown-line" style="color:#38bdf8"></i>';
+        if (filename.endsWith('.vue')) return '<i class="ri-vuejs-line" style="color:#41b883"></i>';
+        if (filename.endsWith('.html') || filename.endsWith('.htm')) return '<i class="ri-html5-line" style="color:#f97316"></i>';
+        if (filename.endsWith('.css')) return '<i class="ri-css3-line" style="color:#38bdf8"></i>';
+        return '<i class="ri-file-text-line" style="color:#94a3b8"></i>';
+      }
+
+      // --- CREATE FILE / FOLDER HANDLERS ---
+      function handleCreateFile() {
+        showPromptModal('Tạo File Mới', 'untitled.js', (filename) => {
+          if (!filename) return;
+          const currentDir = getCurrentDirNode();
+          if (currentDir.children[filename]) {
+            showToast('File đã tồn tại!', 'warning');
+            return;
+          }
+          currentDir.children[filename] = {
+            type: 'file',
+            size: '0 B',
+            modified: 'Vừa xong',
+            content: filename.endsWith('.md') 
+              ? `# ${filename}\n\nNội dung Markdown mới...\n` 
+              : `// File mới: ${filename}\nconsole.log('Hello HugCode!');\n`
+          };
+          showToast(`Đã tạo file "${filename}"`, 'success');
+          renderFileExplorer();
+          openFileInEditor([...currentPathStack, filename].join('/'), filename, currentDir.children[filename].content);
+        });
+      }
+
+      function handleCreateFolder() {
+        showPromptModal('Tạo Thư Mục Mới', 'new_folder', (folderName) => {
+          if (!folderName) return;
+          const currentDir = getCurrentDirNode();
+          if (currentDir.children[folderName]) {
+            showToast('Thư mục đã tồn tại!', 'warning');
+            return;
+          }
+          currentDir.children[folderName] = {
+            type: 'dir',
+            children: {}
+          };
+          showToast(`Đã tạo thư mục "${folderName}"`, 'success');
+          renderFileExplorer();
+        });
+      }
+
+      // --- 3. MARKDOWN RENDERER & EDITOR MANAGEMENT ---
+      function renderMarkdown(mdText) {
+        if (!mdText) return '<p style="color:var(--text-muted); font-style:italic;">File trống</p>';
+        let text = escapeHtml(mdText);
+
+        // Code blocks
+        text = text.replace(/```([a-zA-Z0-9_]*)\\n([\\s\\S]*?)```/g, '<pre><code>$2</code></pre>');
+        // Inline code
+        text = text.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+        // Headings
+        text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+        text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+        // Bold **text**
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        // Italic *text*
+        text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        // Blockquote >
+        text = text.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+        // Lists - item
+        text = text.replace(/^\s*-\s+(.*$)/gim, '<ul><li>$1</li></ul>');
+        text = text.replace(/<\/ul>\s*<ul>/g, '');
+        // Paragraphs
+        text = text.replace(/\n\n+/g, '</p><p>');
+        text = '<p>' + text + '</p>';
+        text = text.replace(/<p><\/p>/g, '');
+        text = text.replace(/<p>(<h[1-3]>)/g, '$1').replace(/(<\/h[1-3]>)<\/p>/g, '$1');
+        text = text.replace(/<p>(<pre>[\s\S]*?<\/pre>)<\/p>/g, '$1');
+        text = text.replace(/<p>(<ul>[\s\S]*?<\/ul>)<\/p>/g, '$1');
+        text = text.replace(/<p>(<blockquote>[\s\S]*?<\/blockquote>)<\/p>/g, '$1');
+        return text;
+      }
+
+      function updateMdView() {
+        if (!activeOpenedFile) return;
+        if (currentFileMode === 'md-preview') {
+          btnMdToggle.classList.remove('hidden');
+          btnMdToggle.innerHTML = '<i class="ri-edit-line"></i> Sửa';
+          btnMdToggle.classList.remove('active');
+          editorMdPreviewBox.style.display = 'block';
+          editorContentBox.style.display = 'none';
+          editorKeybarContainer.style.display = 'none';
+          editorMdPreviewBox.innerHTML = renderMarkdown(editorTextarea.value || activeOpenedFile.originalContent);
+        } else if (currentFileMode === 'md-edit') {
+          btnMdToggle.classList.remove('hidden');
+          btnMdToggle.innerHTML = '<i class="ri-eye-line"></i> Xem';
+          btnMdToggle.classList.add('active');
+          editorMdPreviewBox.style.display = 'none';
+          editorContentBox.style.display = 'flex';
+          editorKeybarContainer.style.display = 'flex';
+          updateGutter();
+        } else {
+          // Standard code file (.js, .json, etc.)
+          btnMdToggle.classList.add('hidden');
+          editorMdPreviewBox.style.display = 'none';
+          editorContentBox.style.display = 'flex';
+          editorKeybarContainer.style.display = 'flex';
+          updateGutter();
+        }
+      }
+
+      btnMdToggle.addEventListener('click', () => {
+        if (currentFileMode === 'md-preview') {
+          currentFileMode = 'md-edit';
+        } else if (currentFileMode === 'md-edit') {
+          currentFileMode = 'md-preview';
+        }
+        updateMdView();
+      });
+
+      function openFileInEditor(fullPath, name, content) {
+        activeOpenedFile = {
+          path: fullPath,
+          name: name,
+          originalContent: content || '',
+          isDirty: false
+        };
+
+        editorFilename.textContent = name;
+        editorEmpty.style.display = 'none';
+        editorTextarea.value = content || '';
+        setDirty(false);
+
+        // Check if markdown file -> default to preview!
+        if (name.toLowerCase().endsWith('.md')) {
+          currentFileMode = 'md-preview';
+        } else {
+          currentFileMode = 'code';
+        }
+        updateMdView();
+
+        switchTab('view-editor');
+        showToast(currentFileMode === 'md-preview' ? `Xem trước: ${name}` : `Đang mở: ${name}`, 'info');
+      }
+
+      function closeEditorFile() {
+        if (activeOpenedFile && activeOpenedFile.isDirty) {
+          if (!confirm('File có thay đổi chưa lưu. Bạn có muốn đóng?')) return;
+        }
+        activeOpenedFile = null;
+        editorFilename.textContent = 'Chưa chọn file';
+        editorEmpty.style.display = 'flex';
+        editorContentBox.style.display = 'none';
+        editorMdPreviewBox.style.display = 'none';
+        editorKeybarContainer.style.display = 'none';
+        editorTextarea.value = '';
+        setDirty(false);
+        switchTab('view-files');
+      }
+
+      
+      btnCloseFile.addEventListener('click', closeEditorFile);
+
+      function setDirty(isDirty) {
+        if (!activeOpenedFile) return;
+        activeOpenedFile.isDirty = isDirty;
+        btnSaveFile.disabled = !isDirty;
+        editorDirtyPill.classList.toggle('hidden', !isDirty);
+      }
+
+      editorTextarea.addEventListener('input', () => {
+        if (!activeOpenedFile) return;
+        const isDirty = editorTextarea.value !== activeOpenedFile.originalContent;
+        setDirty(isDirty);
+        updateGutter();
+      });
+
+      btnSaveFile.addEventListener('click', () => {
+        if (!activeOpenedFile) return;
+        const pathParts = activeOpenedFile.path.split('/');
+        const filename = pathParts.pop();
+        let targetDir = mockFS;
+        for (const p of pathParts) {
+          if (targetDir.children && targetDir.children[p]) {
+            targetDir = targetDir.children[p];
+          }
+        }
+        if (targetDir.children && targetDir.children[filename]) {
+          targetDir.children[filename].content = editorTextarea.value;
+          targetDir.children[filename].size = `${(editorTextarea.value.length / 1024).toFixed(1)} KB`;
+          targetDir.children[filename].modified = 'Vừa lưu';
+        }
+
+        activeOpenedFile.originalContent = editorTextarea.value;
+        setDirty(false);
+        showToast(`Đã lưu "${activeOpenedFile.name}" thành công!`, 'success');
+        renderFileExplorer();
+      });
+
+      function updateGutter() {
+        const lines = (editorTextarea.value || '').split('\n').length;
+        let gutterHtml = '';
+        for (let i = 1; i <= Math.max(1, lines); i++) {
+          gutterHtml += `${i}<br>`;
+        }
+        editorGutter.innerHTML = gutterHtml;
+      }
+
+      // Editor Keybar
+      document.querySelectorAll('.editor-keybar .key-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!activeOpenedFile) return;
+          const act = btn.getAttribute('data-act');
+          const char = btn.getAttribute('data-char');
+          const ta = editorTextarea;
+          const start = ta.selectionStart;
+          const end = ta.selectionEnd;
+
+          if (act === 'tab') {
+            ta.setRangeText('  ', start, end, 'end');
+          } else if (act === 'undo') {
+            ta.value = activeOpenedFile.originalContent;
+          } else if (act === 'left') {
+            const p = Math.max(0, start - 1);
+            ta.setSelectionRange(p, p);
+          } else if (act === 'right') {
+            const p = Math.min(ta.value.length, end + 1);
+            ta.setSelectionRange(p, p);
+          } else if (char) {
+            ta.setRangeText(char, start, end, 'end');
+          }
+          ta.focus();
+          setDirty(ta.value !== activeOpenedFile.originalContent);
+          updateGutter();
+        });
+      });
+
+      // --- 4. TERMINAL MULTI-SESSION ENGINE (CODE-SERVER IN-TERMINAL INPUT & TUI SUPPORT) ---
+      function getActiveSession() {
+        return terminalSessions.find(s => s.id === activeSessionId) || terminalSessions[0];
+      }
+
+      function renderActiveTerminalLine() {
+        const session = getActiveSession();
+        if (!termActiveLine) return;
+
+        const val = termHiddenCapture ? termHiddenCapture.value : (session.draftInput || '');
+        const start = termHiddenCapture ? (termHiddenCapture.selectionStart || val.length) : val.length;
+        const end = termHiddenCapture ? (termHiddenCapture.selectionEnd || val.length) : val.length;
+
+        const curServer = getCurrentServer();
+        let promptHtml = '';
+        if (session.isClaudeMode) {
+          promptHtml = '<span style="color:#d97706; font-weight:800;">claude</span> <span style="color:#38bdf8;">❯</span> ';
+        } else {
+          promptHtml = `<span class="term-prompt">${escapeHtml(curServer.user)}@${escapeHtml(curServer.name)}:</span><span class="term-path">${escapeHtml(session.cwd)}</span>$&nbsp;`;
+        }
+
+        if (start >= val.length) {
+          termActiveLine.innerHTML = `${promptHtml}<span class="term-text">${escapeHtml(val)}</span><span class="term-cursor"></span>`;
+        } else {
+          const before = val.substring(0, start);
+          const cursorChar = val.charAt(start);
+          const after = val.substring(start + 1);
+          termActiveLine.innerHTML = `${promptHtml}<span class="term-text">${escapeHtml(before)}</span><span class="term-cursor-char">${escapeHtml(cursorChar)}</span><span class="term-text">${escapeHtml(after)}</span>`;
+        }
+      }
+
+      function renderTerminalScreen() {
+        const session = getActiveSession();
+        currentTermName.innerHTML = `<i class="ri-terminal-box-line"></i> ${escapeHtml(session.name)}`;
+        termCountBadge.textContent = terminalSessions.length;
+        dockTermCount.textContent = terminalSessions.length;
+
+        if (termHistoryOutput) {
+          termHistoryOutput.innerHTML = '';
+          session.lines.forEach(lineHtml => {
+            const div = document.createElement('div');
+            div.className = 'term-line';
+            div.innerHTML = lineHtml;
+            termHistoryOutput.appendChild(div);
+          });
+        }
+
+        if (termHiddenCapture) {
+          termHiddenCapture.value = session.draftInput || '';
+          renderActiveTerminalLine();
+        }
+
+        terminalBody.scrollTop = terminalBody.scrollHeight;
+        renderSessionHubCards();
+      }
+
+      function renderSessionHubCards() {
+        sessionCardList.innerHTML = '';
+        terminalSessions.forEach((s) => {
+          const card = document.createElement('div');
+          const isCurrent = s.id === activeSessionId;
+          card.className = 'session-card' + (isCurrent ? ' active' : '');
+
+          const lastCmd = s.history.length ? s.history[s.history.length - 1] : 'idle (chưa chạy lệnh)';
+          const tuiModeBadge = s.isClaudeMode ? '<span class="server-card-badge ssh-badge" style="color:#fbbf24; border-color:#fbbf24;">TUI: Claude CLI</span>' : '';
+
+          card.innerHTML = `
+            <div class="session-card-top">
+              <span class="session-card-name"><i class="ri-terminal-box-line"></i> ${escapeHtml(s.name)}</span>
+              ${tuiModeBadge}
+              ${isCurrent ? '<span class="session-card-badge active-badge">● Đang chọn</span>' : ''}
+            </div>
+            <div class="session-card-meta">
+              <span><i class="ri-folder-line"></i> Thư mục: ${escapeHtml(s.cwd)}</span>
+              <span><i class="ri-terminal-line"></i> Lệnh cuối: <span style="color:#e2e8f0;">${escapeHtml(lastCmd)}</span></span>
+            </div>
+            <div class="session-card-actions">
+              <button class="btn btn-secondary btn-sm btn-hub-rename"><i class="ri-edit-line"></i> Đổi tên</button>
+              ${terminalSessions.length > 1 ? '<button class="btn btn-secondary btn-sm btn-hub-close" style="color:var(--danger)"><i class="ri-delete-bin-line"></i> Đóng</button>' : ''}
+              <button class="btn btn-primary btn-sm btn-hub-select">${isCurrent ? 'Đang mở' : 'Vào cửa sổ'}</button>
+            </div>
+          `;
+
+          // Select
+          card.querySelector('.btn-hub-select').addEventListener('click', (e) => {
+            e.stopPropagation();
+            switchSession(s.id);
+            closeSessionHub();
+          });
+          card.addEventListener('click', () => {
+            switchSession(s.id);
+            closeSessionHub();
+          });
+
+          // Rename
+          card.querySelector('.btn-hub-rename').addEventListener('click', (e) => {
+            e.stopPropagation();
+            renameSession(s.id);
+          });
+
+          // Close
+          const closeBtn = card.querySelector('.btn-hub-close');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              closeSession(s.id);
+            });
+          }
+
+          sessionCardList.appendChild(card);
+        });
+      }
+
+      function switchSession(id) {
+        if (id === activeSessionId) return;
+        const current = getActiveSession();
+        current.draftInput = termHiddenCapture ? termHiddenCapture.value : '';
+
+        activeSessionId = id;
+        renderTerminalScreen();
+        if (termHiddenCapture) termHiddenCapture.focus();
+        showToast(`Đã chuyển sang "${getActiveSession().name}"`, 'info');
+      }
+
+      function promptNewSession() {
+        sessionCounter++;
+        const defaultName = `term-${sessionCounter}`;
+        showPromptModal('Tạo Cửa Sổ Terminal Mới', defaultName, (name) => {
+          const finalName = (name || defaultName).trim();
+          const curServer = getCurrentServer();
+          const newSession = {
+            id: 'term-' + Date.now(),
+            name: finalName,
+            cwd: curServer.workspace,
+            pathStack: [],
+            history: [],
+            historyIndex: -1,
+            isClaudeMode: false,
+            lines: [
+              '<span style="color:#60a5fa; font-weight:bold;"><i class="ri-terminal-box-line"></i> HugCode Terminal Session</span>',
+              `<span style="color:#94a3b8;">Cửa sổ: <b>${escapeHtml(finalName)}</b> (Host: ${escapeHtml(curServer.name)})</span>`,
+              '<span style="color:#94a3b8;">Chạm trực tiếp vào màn hình để gõ lệnh hoặc chạy TUI (claude, htop...).</span>',
+              ''
+            ],
+            draftInput: ''
+          };
+          terminalSessions.push(newSession);
+          switchSession(newSession.id);
+          closeSessionHub();
+          showToast(`Đã tạo cửa sổ "${finalName}"!`, 'success');
+        });
+      }
+
+      function renameSession(id) {
+        const session = terminalSessions.find(s => s.id === id);
+        if (!session) return;
+        showPromptModal('Đổi Tên Cửa Sổ Terminal', session.name, (newName) => {
+          if (!newName || newName.trim() === session.name) return;
+          session.name = newName.trim();
+          renderTerminalScreen();
+          showToast(`Đã đổi tên cửa sổ thành "${session.name}"`, 'success');
+        });
+      }
+
+      function closeSession(id) {
+        if (terminalSessions.length <= 1) {
+          showToast('Không thể đóng cửa sổ duy nhất!', 'warning');
+          return;
+        }
+        const session = terminalSessions.find(s => s.id === id);
+        if (!confirm(`Bạn có chắc muốn đóng cửa sổ "${session ? session.name : id}" không?`)) return;
+
+        const isCurrent = activeSessionId === id;
+        terminalSessions = terminalSessions.filter(s => s.id !== id);
+
+        if (isCurrent) {
+          activeSessionId = terminalSessions[0].id;
+        }
+        renderTerminalScreen();
+        showToast('Đã đóng cửa sổ terminal', 'info');
+      }
+
+      function openSessionHub() {
+        renderSessionHubCards();
+        sessionHubModal.classList.remove('hidden');
+      }
+
+      function closeSessionHub() {
+        sessionHubModal.classList.add('hidden');
+      }
+
+      btnOpenSessionHub.addEventListener('click', openSessionHub);
+      btnCloseSessionHub.addEventListener('click', closeSessionHub);
+      btnAddTerm.addEventListener('click', promptNewSession);
+      btnHubCreateTerm.addEventListener('click', promptNewSession);
+
+      function printTermLine(text, type = '') {
+        const session = getActiveSession();
+        session.lines.push(text);
+
+        if (termHistoryOutput) {
+          const div = document.createElement('div');
+          div.className = `term-line ${type}`;
+          div.innerHTML = text;
+          termHistoryOutput.appendChild(div);
+        }
+        terminalBody.scrollTop = terminalBody.scrollHeight;
+      }
+
+      function initTerminalOutput() {
+        const session = getActiveSession();
+        const curServer = getCurrentServer();
+        session.isClaudeMode = false;
+        session.lines = [
+          '<span style="color:#60a5fa; font-weight:bold;"><i class="ri-terminal-box-line"></i> HugCode Terminal Session</span>',
+          `<span style="color:#94a3b8;">Cửa sổ: <b>${escapeHtml(session.name)}</b> (${escapeHtml(curServer.name)} PID 1024 /bin/bash)</span>`,
+          '<span style="color:#94a3b8;">Nhập <b>help</b> để xem các lệnh, hoặc gõ <b>claude</b> để chạy Claude CLI TUI.</span>',
+          ''
+        ];
+        if (termHiddenCapture) termHiddenCapture.value = '';
+        session.draftInput = '';
+        renderTerminalScreen();
+      }
+
+      function executeCommand(rawCmd) {
+        const session = getActiveSession();
+        const curServer = getCurrentServer();
+        const cmd = rawCmd.trim();
+
+        // 1. TUI MODE: CLAUDE CODE CLI
+        if (session.isClaudeMode) {
+          if (!cmd) return;
+          session.history.push(cmd);
+          session.historyIndex = session.history.length;
+
+          // In dòng người dùng nhập vào Claude TUI
+          printTermLine(`<span style="color:#d97706; font-weight:bold;">claude</span> <span style="color:#38bdf8;">❯</span> <span style="color:#fff;">${escapeHtml(cmd)}</span>`);
+
+          if (cmd === '/exit' || cmd === 'exit' || cmd === 'quit') {
+            session.isClaudeMode = false;
+            printTermLine('<span style="color:#94a3b8;">Session terminated. Returning to bash shell...</span>');
+          } else if (cmd === '/help' || cmd === 'help') {
+            printTermLine(`
+<span style="color:#f59e0b; font-weight:bold;">Claude Code Interactive Commands:</span>
+  • <b>/exit</b> : Thoát khỏi Claude Code TUI về shell bash
+  • <b>/clear</b> : Xóa màn hình hội thoại
+  • <b>/cost</b> : Xem chi phí token ước tính
+  • Nhập bất kỳ yêu cầu lập trình nào để Claude sinh mã trực tiếp!
+            `);
+          } else {
+            // Giả lập Claude Agent TUI thinking & response
+            printTermLine(`
+<div style="background:#0f172a; border-left:3px solid #d97706; padding:8px 10px; margin:6px 0; border-radius:0 6px 6px 0;">
+  <div style="color:#d97706; font-weight:bold; font-size:12px; margin-bottom:4px;"><i class="ri-sparkling-fill"></i> Claude (Sonnet 3.7):</div>
+  <div style="color:#cbd5e1; font-size:12.5px; line-height:1.5;">Đã phân tích yêu cầu <i>"${escapeHtml(cmd)}"</i> trên server <b>${escapeHtml(curServer.name)}</b>.<br>
+  Đang kiểm tra tệp tin workspace tại <code>${escapeHtml(session.cwd)}</code> và sẵn sàng thực thi tác vụ.</div>
+</div>
+            `);
+          }
+
+          if (termHiddenCapture) termHiddenCapture.value = '';
+          session.draftInput = '';
+          renderActiveTerminalLine();
+          terminalBody.scrollTop = terminalBody.scrollHeight;
+          return;
+        }
+
+        // 2. STANDARD SHELL COMMAND EXECUTION
+        if (!cmd) return;
+
+        session.history.push(cmd);
+        session.historyIndex = session.history.length;
+
+        // In dòng lệnh đã gõ vào history
+        printTermLine(`<span class="term-prompt">${escapeHtml(curServer.user)}@${escapeHtml(curServer.name)}:</span><span class="term-path">${escapeHtml(session.cwd)}</span>$ ${escapeHtml(cmd)}`);
+
+        const parts = cmd.split(' ').filter(Boolean);
+        const action = parts[0].toLowerCase();
+        const arg = parts[1];
+
+        switch (action) {
+          case 'claude':
+            session.isClaudeMode = true;
+            printTermLine(`
+<div style="color:#f59e0b; font-weight:bold; margin-top:4px;">╭────────────────────────────────────────────────────────╮</div>
+<div style="color:#f59e0b; font-weight:bold;">│  Claude Code (v1.0.14)                                 │</div>
+<div style="color:#f59e0b; font-weight:bold;">│  Anthropic CLI • Sonnet 3.7 • Full TUI Interactive     │</div>
+<div style="color:#f59e0b; font-weight:bold;">╰────────────────────────────────────────────────────────╯</div>
+<div style="color:#94a3b8; font-size:12px; margin-bottom:6px;">Chế độ TUI kích hoạt. Nhập câu hỏi hoặc gõ <b>/exit</b> / nhấn <b>^C</b> để thoát.</div>
+            `);
+            break;
+
+          case 'help':
+            printTermLine(`
+<span style="color:#38bdf8;">Danh sách các lệnh tương tác mô phỏng:</span>
+  • <b>claude</b>       : Khởi chạy Claude Code CLI (Chế độ TUI)
+  • <b>ls / ls -la</b>  : Liệt kê files/thư mục
+  • <b>pwd</b>         : Xem đường dẫn hiện tại
+  • <b>cd &lt;dir&gt;</b>     : Chuyển thư mục (vd: cd src, cd ..)
+  • <b>cat &lt;file&gt;</b>   : Đọc nội dung file (vd: cat package.json)
+  • <b>mkdir &lt;dir&gt;</b>  : Tạo thư mục mới
+  • <b>touch &lt;file&gt;</b> : Tạo file mới
+  • <b>git status</b>  : Xem trạng thái git
+  • <b>node server.js</b>: Chạy thử server mẫu
+  • <b>clear</b>       : Xóa sạch màn hình terminal
+            `);
+            break;
+
+          case 'ls':
+            const currentDir = getCurrentDirNode();
+            const items = Object.entries(currentDir.children || {});
+            if (parts[1] === '-la' || parts[1] === '-l') {
+              let out = `<span style="color:#94a3b8;">total ${items.length * 4}</span><br>`;
+              items.forEach(([name, it]) => {
+                const isD = it.type === 'dir';
+                const color = isD ? '#60a5fa' : '#f1f5f9';
+                out += `<span style="color:#94a3b8;">drwxr-xr-x 1 admin admin ${isD ? '4096' : (it.size || '1024')} Oct 06 </span><span style="color:${color}">${name}${isD ? '/' : ''}</span><br>`;
+              });
+              printTermLine(out);
+            } else {
+              let out = '';
+              items.forEach(([name, it]) => {
+                const color = it.type === 'dir' ? '#60a5fa; font-weight:bold;' : '#f1f5f9;';
+                out += `<span style="color:${color}; margin-right:16px;">${name}${it.type === 'dir' ? '/' : ''}</span>`;
+              });
+              printTermLine(out || '<span style="color:#94a3b8;">(empty)</span>');
+            }
+            break;
+
+          case 'pwd':
+            printTermLine(`/home/${curServer.user}/${session.pathStack.length ? session.pathStack.join('/') : curServer.name}`);
+            break;
+
+          case 'cd':
+            if (!arg || arg === '~' || arg === '/') {
+              session.pathStack = [];
+              session.cwd = curServer.workspace;
+            } else if (arg === '..') {
+              if (session.pathStack.length > 0) session.pathStack.pop();
+              session.cwd = `${curServer.workspace}${session.pathStack.length ? '/' + session.pathStack.join('/') : ''}`;
+            } else {
+              const cur = getCurrentDirNode();
+              if (cur.children && cur.children[arg] && cur.children[arg].type === 'dir') {
+                session.pathStack.push(arg);
+                session.cwd = `${curServer.workspace}/${session.pathStack.join('/')}`;
+              } else {
+                printTermLine(`<span style="color:var(--danger)">bash: cd: ${arg}: No such file or directory</span>`);
+              }
+            }
+            currentPathStack = [...session.pathStack];
+            renderFileExplorer();
+            break;
+
+          case 'cat':
+            if (!arg) {
+              printTermLine('<span style="color:var(--danger)">cat: missing file operand</span>');
+              break;
+            }
+            const cur = getCurrentDirNode();
+            if (cur.children && cur.children[arg] && cur.children[arg].type === 'file') {
+              printTermLine(`<pre style="color:#e2e8f0; font-family:var(--font-mono); font-size:12px;">${escapeHtml(cur.children[arg].content)}</pre>`);
+            } else {
+              printTermLine(`<span style="color:var(--danger)">cat: ${arg}: No such file or directory</span>`);
+            }
+            break;
+
+          case 'mkdir':
+            if (!arg) {
+              printTermLine('<span style="color:var(--danger)">mkdir: missing operand</span>');
+            } else {
+              const curDir = getCurrentDirNode();
+              curDir.children[arg] = { type: 'dir', children: {} };
+              renderFileExplorer();
+              printTermLine(`<span style="color:var(--accent)">Created directory: ${arg}</span>`);
+            }
+            break;
+
+          case 'touch':
+            if (!arg) {
+              printTermLine('<span style="color:var(--danger)">touch: missing file operand</span>');
+            } else {
+              const curDir = getCurrentDirNode();
+              curDir.children[arg] = { type: 'file', size: '0 B', modified: 'Vừa xong', content: '' };
+              renderFileExplorer();
+              printTermLine(`<span style="color:var(--accent)">Created file: ${arg}</span>`);
+            }
+            break;
+
+          case 'git':
+            if (arg === 'status') {
+              printTermLine(`
+On branch <span style="color:#34d399">main</span>
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  <span style="color:#ef4444;">modified:   docs/README.md</span>
+
+no changes added to commit (use "git add" to stage)
+              `);
+            } else if (arg === 'log') {
+              printTermLine(`
+<span style="color:#fbbf24">commit 8f9b2d1 (HEAD -> main)</span>
+Author: Duy Hung &lt;hung@hugtech.com&gt;
+Date:   Tue Oct 6 16:15:00 2026 +0700
+
+    feat: Mobile-first compact prototype for HugCode with code-server style terminal
+              `);
+            } else {
+              printTermLine('<span style="color:#94a3b8;">git: try `git status` or `git log`</span>');
+            }
+            break;
+
+          case 'node':
+            printTermLine('<span style="color:#34d399;"><i class="ri-server-line"></i> [HugCode Server] Listening on http://0.0.0.0:8099</span>');
+            printTermLine(`<span style="color:#94a3b8;">PTY Session [${escapeHtml(session.name)}] PID 1024 /bin/bash</span>`);
+            break;
+
+          case 'clear':
+            initTerminalOutput();
+            return;
+
+          default:
+            printTermLine(`<span style="color:var(--danger)">bash: ${escapeHtml(action)}: command not found (gõ <b>help</b> để xem các lệnh hỗ trợ)</span>`);
+            break;
+        }
+
+        if (termHiddenCapture) termHiddenCapture.value = '';
+        session.draftInput = '';
+        renderActiveTerminalLine();
+        terminalBody.scrollTop = terminalBody.scrollHeight;
+      }
+// --- TOUCH BAR HANDLERS & EXPANDABLE DRAWER (IN-TERMINAL INTERACTION) ---
+      const tbCtrl = document.getElementById('tb-ctrl');
+      const tbAlt = document.getElementById('tb-alt');
+      const tbExpandBtn = document.getElementById('tb-expand-btn');
+      const tbExpandedDrawer = document.getElementById('tb-expanded-drawer');
+      const editorExpandBtn = document.getElementById('editor-expand-btn');
+      const editorExpandedDrawer = document.getElementById('editor-expanded-drawer');
+
+      // Expand / Collapse Drawer Toggle
+      if (tbExpandBtn && tbExpandedDrawer) {
+        tbExpandBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isShow = tbExpandedDrawer.classList.toggle('show');
+          tbExpandBtn.classList.toggle('active', isShow);
+          if (isShow) {
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+          }
+        });
+      }
+
+      if (editorExpandBtn && editorExpandedDrawer) {
+        editorExpandBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isShow = editorExpandedDrawer.classList.toggle('show');
+          editorExpandBtn.classList.toggle('active', isShow);
+        });
+      }
+
+      if (tbCtrl) {
+        tbCtrl.addEventListener('click', () => {
+          ctrlActive = !ctrlActive;
+          tbCtrl.classList.toggle('active', ctrlActive);
+          showToast(ctrlActive ? 'CTRL: ON' : 'CTRL: OFF', 'info');
+        });
+      }
+
+      if (tbAlt) {
+        tbAlt.addEventListener('click', () => {
+          altActive = !altActive;
+          tbAlt.classList.toggle('active', altActive);
+          showToast(altActive ? 'ALT: ON' : 'ALT: OFF', 'info');
+        });
+      }
+
+      // Tap on Terminal Screen anywhere -> focus hidden capture to pop mobile keyboard!
+      if (terminalBody && termHiddenCapture) {
+        terminalBody.addEventListener('click', () => {
+          termHiddenCapture.focus();
+          renderActiveTerminalLine();
+        });
+      }
+
+      if (termHiddenCapture) {
+        termHiddenCapture.addEventListener('input', () => {
+          getActiveSession().draftInput = termHiddenCapture.value;
+          renderActiveTerminalLine();
+          terminalBody.scrollTop = terminalBody.scrollHeight;
+        });
+
+        termHiddenCapture.addEventListener('keydown', (e) => {
+          const session = getActiveSession();
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            executeCommand(termHiddenCapture.value);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            handleTerminalKey('UP');
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            handleTerminalKey('DOWN');
+          } else if (e.key === 'ArrowLeft') {
+            setTimeout(renderActiveTerminalLine, 10);
+          } else if (e.key === 'ArrowRight') {
+            setTimeout(renderActiveTerminalLine, 10);
+          }
+        });
+      }
+
+      function handleTerminalKey(key) {
+        const sess = getActiveSession();
+        const curServer = getCurrentServer();
+        const start = termHiddenCapture ? (termHiddenCapture.selectionStart || 0) : 0;
+        const end = termHiddenCapture ? (termHiddenCapture.selectionEnd || 0) : 0;
+        const val = termHiddenCapture ? termHiddenCapture.value : '';
+
+        if (key === 'ENTER') {
+          executeCommand(termHiddenCapture ? termHiddenCapture.value : '');
+          return;
+        } else if (key === 'CTRL_C') {
+          if (sess.isClaudeMode) {
+            sess.isClaudeMode = false;
+            printTermLine('^C <span style="color:#94a3b8;">[Cancelled Claude Code • Back to bash]</span>');
+          } else {
+            printTermLine(`<span class="term-prompt">${escapeHtml(curServer.user)}@${escapeHtml(curServer.name)}:</span><span class="term-path">${sess.cwd}</span>$ ${val}^C`);
+          }
+          if (termHiddenCapture) termHiddenCapture.value = '';
+          sess.draftInput = '';
+          renderActiveTerminalLine();
+          terminalBody.scrollTop = terminalBody.scrollHeight;
+          return;
+        } else if (key === 'CTRL_D') {
+          if (sess.isClaudeMode) {
+            sess.isClaudeMode = false;
+            printTermLine('<span style="color:#94a3b8;">[Claude Code EOF exit]</span>');
+          } else {
+            printTermLine(`<span class="term-prompt">${escapeHtml(curServer.user)}@${escapeHtml(curServer.name)}:</span><span class="term-path">${sess.cwd}</span>$ exit`);
+            printTermLine('<span style="color:var(--text-muted)">[Session logout / EOF]</span>');
+          }
+          if (termHiddenCapture) termHiddenCapture.value = '';
+          sess.draftInput = '';
+          renderActiveTerminalLine();
+          return;
+        } else if (key === 'CTRL_Z') {
+          printTermLine(`<span class="term-prompt">${escapeHtml(curServer.user)}@${escapeHtml(curServer.name)}:</span><span class="term-path">${sess.cwd}</span>$ ${val}^Z`);
+          printTermLine('<span style="color:#fbbf24;">[1]+ Stopped</span>');
+          if (termHiddenCapture) termHiddenCapture.value = '';
+          sess.draftInput = '';
+          renderActiveTerminalLine();
+          return;
+        } else if (key === 'CTRL_L') {
+          initTerminalOutput();
+          return;
+        } else if (key === 'CTRL_A' || key === 'HOME') {
+          if (termHiddenCapture) termHiddenCapture.setSelectionRange(0, 0);
+        } else if (key === 'CTRL_E' || key === 'END') {
+          if (termHiddenCapture) termHiddenCapture.setSelectionRange(val.length, val.length);
+        } else if (key === 'CTRL_U') {
+          if (termHiddenCapture) {
+            termHiddenCapture.value = val.substring(end);
+            termHiddenCapture.setSelectionRange(0, 0);
+          }
+        } else if (key === 'CTRL_K') {
+          if (termHiddenCapture) {
+            termHiddenCapture.value = val.substring(0, start);
+            termHiddenCapture.setSelectionRange(start, start);
+          }
+        } else if (key === 'CTRL_W') {
+          if (termHiddenCapture) {
+            const leftPart = val.substring(0, start).trimEnd();
+            const lastSpace = leftPart.lastIndexOf(' ');
+            const newLeft = lastSpace === -1 ? '' : leftPart.substring(0, lastSpace + 1);
+            termHiddenCapture.value = newLeft + val.substring(end);
+            const newPos = newLeft.length;
+            termHiddenCapture.setSelectionRange(newPos, newPos);
+          }
+        } else if (key === 'CTRL_R') {
+          showToast('Tìm kiếm lịch sử lệnh (b history)', 'info');
+          if (sess.history.length && termHiddenCapture) {
+            termHiddenCapture.value = sess.history[sess.history.length - 1];
+          }
+        } else if (key === 'PGUP') {
+          terminalBody.scrollTop -= 200;
+          return;
+        } else if (key === 'PGDN') {
+          terminalBody.scrollTop += 200;
+          return;
+        } else if (key === 'UP') {
+          if (sess.historyIndex > 0 && termHiddenCapture) {
+            sess.historyIndex--;
+            termHiddenCapture.value = sess.history[sess.historyIndex] || '';
+          }
+        } else if (key === 'DOWN') {
+          if (termHiddenCapture) {
+            if (sess.historyIndex < sess.history.length - 1) {
+              sess.historyIndex++;
+              termHiddenCapture.value = sess.history[sess.historyIndex] || '';
+            } else {
+              sess.historyIndex = sess.history.length;
+              termHiddenCapture.value = '';
+            }
+          }
+        } else if (key === 'LEFT') {
+          if (termHiddenCapture) {
+            const pos = Math.max(0, start - 1);
+            termHiddenCapture.setSelectionRange(pos, pos);
+          }
+        } else if (key === 'RIGHT') {
+          if (termHiddenCapture) {
+            const pos = Math.min(val.length, end + 1);
+            termHiddenCapture.setSelectionRange(pos, pos);
+          }
+        } else if (key === 'ESC') {
+          if (termHiddenCapture) termHiddenCapture.value = '';
+        } else if (key === 'TAB') {
+          if (sess.isClaudeMode) {
+            showToast('Claude Code Auto-complete', 'info');
+          } else {
+            const cur = getCurrentDirNode();
+            const names = Object.keys(cur.children || {});
+            const tval = termHiddenCapture ? termHiddenCapture.value.trim() : '';
+            const parts = tval.split(' ');
+            const lastWord = parts[parts.length - 1];
+            const match = names.find(n => n.startsWith(lastWord));
+            if (match && termHiddenCapture) {
+              parts[parts.length - 1] = match;
+              termHiddenCapture.value = parts.join(' ');
+              showToast(`Auto-completed: ${match}`, 'info');
+            }
+          }
+        }
+
+        sess.draftInput = termHiddenCapture ? termHiddenCapture.value : '';
+        renderActiveTerminalLine();
+        if (termHiddenCapture) termHiddenCapture.focus();
+        terminalBody.scrollTop = terminalBody.scrollHeight;
+      }
+
+      function insertTerminalChar(str) {
+        if (!termHiddenCapture) return;
+        const start = termHiddenCapture.selectionStart || termHiddenCapture.value.length;
+        const end = termHiddenCapture.selectionEnd || termHiddenCapture.value.length;
+        const val = termHiddenCapture.value;
+        termHiddenCapture.value = val.substring(0, start) + str + val.substring(end);
+        const newPos = start + str.length;
+        termHiddenCapture.setSelectionRange(newPos, newPos);
+        getActiveSession().draftInput = termHiddenCapture.value;
+        renderActiveTerminalLine();
+        termHiddenCapture.focus();
+        terminalBody.scrollTop = terminalBody.scrollHeight;
+      }
+
+      // Quick bar & Drawer click listeners in Terminal
+      document.querySelectorAll('#terminal-touch-bar-container [data-key]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleTerminalKey(btn.getAttribute('data-key'));
+        });
+      });
+
+      document.querySelectorAll('#terminal-touch-bar-container [data-char]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          insertTerminalChar(btn.getAttribute('data-char'));
+        });
+      });
+
+      document.querySelectorAll('#terminal-touch-bar-container [data-cmd]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const cmd = btn.getAttribute('data-cmd');
+          if (termHiddenCapture) termHiddenCapture.value = cmd;
+          executeCommand(cmd);
+        });
+      });
+
+      // Drawer click listeners in Editor
+      document.querySelectorAll('#editor-expanded-drawer [data-char]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!activeOpenedFile) return;
+          const char = btn.getAttribute('data-char');
+          const ta = editorTextarea;
+          const start = ta.selectionStart;
+          const end = ta.selectionEnd;
+          ta.setRangeText(char, start, end, 'end');
+          ta.focus();
+          setDirty(ta.value !== activeOpenedFile.originalContent);
+          updateGutter();
+        });
+      });
+// --- MODAL PROMPT ---
+      function showPromptModal(title, placeholder, onConfirm) {
+        modalTitle.textContent = title;
+        modalInput.placeholder = placeholder || '';
+        modalInput.value = '';
+        modalResolve = onConfirm;
+        modal.classList.remove('hidden');
+        setTimeout(() => modalInput.focus(), 80);
+      }
+
+      function hideModal() {
+        modal.classList.add('hidden');
+        modalInput.value = '';
+        modalResolve = null;
+      }
+
+      modalCancel.addEventListener('click', hideModal);
+      modalConfirm.addEventListener('click', () => {
+        const val = modalInput.value.trim();
+        if (modalResolve) modalResolve(val);
+        hideModal();
+      });
+      modalInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const val = modalInput.value.trim();
+          if (modalResolve) modalResolve(val);
+          hideModal();
+        } else if (e.key === 'Escape') {
+          hideModal();
+        }
+      });
+
+      function escapeHtml(str) {
+        return (str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]);
+      }
+
+      // --- DYNAMIC MOBILE VIEWPORT HEIGHT SYNC (Tránh tràn bot menu trên mobile) ---
+      function syncAppViewport() {
+        if (window.visualViewport) {
+          const appEl = document.getElementById('app');
+          if (appEl) {
+            appEl.style.height = `${window.visualViewport.height}px`;
+            appEl.style.top = `${window.visualViewport.offsetTop}px`;
+          }
+        }
+      }
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncAppViewport);
+        window.visualViewport.addEventListener('scroll', syncAppViewport);
+        syncAppViewport();
+      }
+      window.addEventListener('resize', syncAppViewport);
+
+      // --- STARTUP ---
+      renderFileExplorer();
+      renderTerminalScreen();
+    })();
+</script>
+</body>
+</html>

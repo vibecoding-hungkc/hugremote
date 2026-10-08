@@ -1,0 +1,18 @@
+services:
+  hugcode:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hugcode-app
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8099:8099"
+    volumes:
+      - /home/hermes-admin/projects:/workspace
+      - /home/hermes-admin/.ssh:/root/.ssh:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=8099
+      - HOST=0.0.0.0
+      - WORKSPACE_ROOT=/workspace
+      - ALLOWED_ROOT=/

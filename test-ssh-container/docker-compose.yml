@@ -1,0 +1,9 @@
+services:
+  test-ssh-box:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hugcode-test-ssh-box
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:2222:22"

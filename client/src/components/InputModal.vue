@@ -3,7 +3,7 @@
     <div class="modal-sheet">
       <div class="modal-header">
         <div class="modal-title">
-          <i :class="icon"></i> {{ title }}
+          <i :class="icon"></i> {{ title.includes('.') ? t(title) : title }}
         </div>
         <button class="btn-close" @click="handleCancel">
           <i class="ri-close-line"></i>
@@ -33,10 +33,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" @click="handleCancel">Hủy</button>
+        <button class="btn-secondary" @click="handleCancel">{{ t('inputModal.cancel') }}</button>
         <button class="btn-primary" :disabled="isBusy" @click="handleConfirm">
           <i v-if="isBusy" class="ri-loader-4-line spin"></i>
-          {{ confirmLabel }}
+          {{ confirmLabel.includes('.') ? t(confirmLabel) : confirmLabel }}
         </button>
       </div>
     </div>
@@ -45,6 +45,9 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
+import { useI18n } from '../composables/useI18n.js';
+
+const { t } = useI18n();
 
 const props = withDefaults(defineProps<{
   isOpen: boolean;
@@ -55,12 +58,12 @@ const props = withDefaults(defineProps<{
   initialValue?: string;
   confirmLabel?: string;
 }>(), {
-  title: 'Nhập thông tin',
+  title: 'inputModal.defaultTitle',
   icon: 'ri-edit-line',
   description: '',
   placeholder: '',
   initialValue: '',
-  confirmLabel: 'Xác nhận',
+  confirmLabel: 'common.confirm',
 });
 
 const emit = defineEmits<{

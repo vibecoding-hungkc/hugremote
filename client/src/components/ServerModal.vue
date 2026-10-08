@@ -3,7 +3,7 @@
     <div class="modal-sheet">
       <div class="modal-header">
         <div class="modal-title">
-          <i class="ri-server-line"></i> Quản lý Server &amp; SSH
+          <i class="ri-server-line"></i> {{ t('serverModal.title') }}
         </div>
         <button class="btn-close" @click="$emit('close')">
           <i class="ri-close-line"></i>
@@ -11,11 +11,11 @@
       </div>
 
       <div class="modal-subbar">
-        <span class="source-hint">Đồng bộ: <code>~/.ssh/config</code></span>
+        <span class="source-hint">{{ t('serverModal.sync') }}: <code>~/.ssh/config</code></span>
         <!-- Fixed: Bỏ dấu + thừa trong text nút -->
         <button class="btn-add-host" @click="showAddForm = !showAddForm">
           <i :class="showAddForm ? 'ri-close-line' : 'ri-add-line'"></i>
-          {{ showAddForm ? 'Hủy' : 'Thêm Server' }}
+          {{ showAddForm ? t('serverModal.cancel') : t('serverModal.add') }}
         </button>
       </div>
 
@@ -29,34 +29,34 @@
       <!-- Add SSH Host Form with Auth Options -->
       <div v-if="showAddForm" class="add-host-form">
         <div class="form-title">
-          <i class="ri-shield-keyhole-line"></i> Thêm Cấu Hình Server Mới
+          <i class="ri-shield-keyhole-line"></i> {{ t('serverModal.addConfig') }}
         </div>
 
         <div class="form-grid-2">
           <div class="field-item">
-            <label class="field-label">Tên Server (Host)</label>
+            <label class="field-label">{{ t('serverModal.hostName') }}</label>
             <input v-model="newHost.name" placeholder="vd: prod-vps" class="input-text" />
           </div>
           <div class="field-item">
-            <label class="field-label">Địa chỉ Host / IP</label>
+            <label class="field-label">{{ t('serverModal.hostAddress') }}</label>
             <input v-model="newHost.host" placeholder="vd: 103.145.2.10" class="input-text" />
           </div>
         </div>
 
         <div class="form-grid-2">
           <div class="field-item">
-            <label class="field-label">Tài khoản (User)</label>
+            <label class="field-label">{{ t('serverModal.user') }}</label>
             <input v-model="newHost.user" placeholder="vd: devops / root" class="input-text" />
           </div>
           <div class="field-item">
-            <label class="field-label">Cổng SSH (Port)</label>
+            <label class="field-label">{{ t('serverModal.port') }}</label>
             <input v-model.number="newHost.port" placeholder="22" type="number" class="input-text" />
           </div>
         </div>
 
         <!-- Authentication Mode Tabs -->
         <div class="field-item">
-          <label class="field-label">Phương thức xác thực</label>
+          <label class="field-label">{{ t('serverModal.authMethod') }}</label>
           <div class="auth-toggle-bar">
             <button
               type="button"
@@ -72,7 +72,7 @@
               :class="{ active: newHost.authType === 'password' }"
               @click="newHost.authType = 'password'"
             >
-              <i class="ri-lock-password-line"></i> Mật khẩu
+              <i class="ri-lock-password-line"></i> {{ t('serverModal.password') }}
             </button>
           </div>
         </div>
@@ -86,7 +86,7 @@
             class="input-text"
           />
           <div v-if="serverStore.availableKeys.length > 0" class="key-suggestions">
-            <span class="sugg-label">Key có sẵn:</span>
+            <span class="sugg-label">{{ t('serverModal.availableKeys') }}</span>
             <button
               v-for="k in serverStore.availableKeys"
               :key="k"
@@ -101,12 +101,12 @@
 
         <!-- Password Input if Auth Mode is Password -->
         <div v-else class="field-item">
-          <label class="field-label">Mật khẩu SSH</label>
+          <label class="field-label">{{ t('serverModal.sshPassword') }}</label>
           <div class="password-input-wrap">
             <input
               v-model="newHost.password"
               :type="showPasswordText ? 'text' : 'password'"
-              placeholder="Nhập mật khẩu SSH"
+              :placeholder="t('serverModal.sshPasswordPlaceholder')"
               class="input-text"
             />
             <button
@@ -121,7 +121,7 @@
 
         <!-- Default Starting Folder -->
         <div class="field-item">
-          <label class="field-label">Thư mục khởi chạy</label>
+          <label class="field-label">{{ t('serverModal.workspace') }}</label>
           <input
             v-model="newHost.workspace"
             placeholder="vd: /home/devops/workspace hoặc ~"
@@ -130,9 +130,9 @@
         </div>
 
         <div class="form-submit-row">
-          <button class="btn-cancel" @click="showAddForm = false">Hủy</button>
+          <button class="btn-cancel" @click="showAddForm = false">{{ t('serverModal.cancel') }}</button>
           <button class="btn-submit" @click="handleAddServer">
-            <i class="ri-save-line"></i> Lưu vào ~/.ssh/config &amp; Thêm
+            <i class="ri-save-line"></i> {{ t('serverModal.saveAdd') }}
           </button>
         </div>
       </div>
@@ -157,7 +157,7 @@
                     remote: server.id !== serverStore.currentServerId && server.isConnected,
                     idle: !server.isConnected && server.id !== serverStore.currentServerId
                   }"
-                  :title="server.id === serverStore.currentServerId ? 'Đang chọn' : (server.isConnected ? 'Kết nối nền' : 'Chưa kết nối')"
+                  :title="server.id === serverStore.currentServerId ? t('serverModal.selected') : (server.isConnected ? t('serverModal.connected') : t('serverModal.disconnected'))"
                 ></span>
                 <i :class="server.type === 'local' ? 'ri-computer-line' : 'ri-shield-keyhole-line'" class="type-icon"></i>
                 <span class="server-name-text">{{ server.name }}</span>
@@ -173,7 +173,7 @@
                 v-if="server.isConnected && server.type !== 'local'"
                 class="btn-mini-disconnect"
                 @click="serverStore.disconnectServer(server.id)"
-                title="Ngắt kết nối SSH"
+                :title="t('serverModal.disconnect')"
               >
                 <i class="ri-shut-down-line"></i>
               </button>
@@ -181,7 +181,7 @@
               <i
                 v-if="server.id === serverStore.currentServerId"
                 class="ri-check-line active-check-icon"
-                title="Đang chọn"
+                :title="t('serverModal.selected')"
               ></i>
             </div>
           </div>
@@ -195,16 +195,16 @@
               class="ws-input-compact"
               placeholder="vd: /home/devops hoặc ~"
               @change="handleSaveWorkspace(server)"
-              title="Chỉnh thư mục khởi chạy"
+              :title="t('serverModal.editWorkspace')"
             />
             <span v-if="savedSuccessServerId === server.id" class="ws-saved-badge">
-              <i class="ri-check-line"></i> Đã lưu
+              <i class="ri-check-line"></i> {{ t('serverModal.saved') }}
             </span>
             <button
               type="button"
               class="ws-mini-btn"
               @click="setServerFolder(server, '~')"
-              title="Về Home (~)"
+              :title="t('serverModal.home')"
             >
               <i class="ri-home-4-line"></i>
             </button>
@@ -212,7 +212,7 @@
               type="button"
               class="ws-mini-btn"
               @click="openTreePicker(server)"
-              title="Duyệt cây thư mục"
+              :title="t('serverModal.browseTree')"
             >
               <i class="ri-folder-open-line"></i>
             </button>
@@ -240,11 +240,13 @@ import { useServerStore, ServerItem } from '../stores/serverStore.js';
 import { useFileStore } from '../stores/fileStore.js';
 import { useTerminalStore } from '../stores/terminalStore.js';
 import FolderTreePicker from './FolderTreePicker.vue';
+import { useI18n } from '../composables/useI18n.js';
 
 defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void }>();
 
 const serverStore = useServerStore();
+const { t } = useI18n();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
 

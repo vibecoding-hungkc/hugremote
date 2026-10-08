@@ -5,7 +5,7 @@
 
     <!-- Reconnect Banner if WS disconnected -->
     <div v-if="isDisconnected" class="reconnect-banner">
-      <i class="ri-wifi-off-line"></i> Đang tự động kết nối lại WebSocket...
+      <i class="ri-wifi-off-line"></i> {{ t('terminal.reconnecting') }}
     </div>
 
     <!-- Expandable Touch Bar Container -->
@@ -17,7 +17,7 @@
           class="tb-expand-btn"
           :class="{ active: isDrawerOpen }"
           @click="toggleDrawer"
-          title="Mở rộng bảng phím tắt"
+          :title="t('terminal.expandKeys')"
         >
           <i :class="isDrawerOpen ? 'ri-keyboard-fill' : 'ri-keyboard-line'"></i>
           <i :class="isDrawerOpen ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'" style="font-size:10px;"></i>
@@ -39,8 +39,8 @@
           <button class="tb-btn" @click="sendKey('|')">|</button>
           <div class="tb-divider"></div>
           <button class="tb-btn" @click="changeFontSize(-1)" title="Thu nhỏ chữ">A-</button>
-          <button class="tb-btn" @click="changeFontSize(1)" title="Phóng to chữ">A+</button>
-          <button class="tb-btn tb-paste" @click="handlePaste" title="Dán (Bracketed Paste)">
+          <button class="tb-btn" @click="changeFontSize(1)" :title="t('terminal.fontUp')">A+</button>
+          <button class="tb-btn tb-paste" @click="handlePaste" :title="t('terminal.paste')">
             <i class="ri-clipboard-line"></i>
           </button>
         </div>
@@ -52,17 +52,17 @@
         <div class="drawer-group">
           <span class="drawer-group-title">Ctrl Shortcuts</span>
           <div class="drawer-keys-row">
-            <button class="tb-btn tb-danger" @click="sendKey('\x03')">Ctrl C Hủy</button>
+            <button class="tb-btn tb-danger" @click="sendKey('\x03')">{{ t('terminal.ctrlCancel') }}</button>
             <button class="tb-btn" @click="sendKey('\x04')">Ctrl D EOF</button>
-            <button class="tb-btn" @click="sendKey('\x1a')">Ctrl Z Stop</button>
-            <button class="tb-btn" @click="sendKey('\x0c')">Ctrl L Clear</button>
-            <button class="tb-btn" @click="sendKey('\x01')">Ctrl A Đầu dòng</button>
-            <button class="tb-btn" @click="sendKey('\x05')">Ctrl E Cuối dòng</button>
-            <button class="tb-btn" @click="sendKey('\x17')">Ctrl W Xóa từ</button>
-            <button class="tb-btn" @click="sendKey('\x15')">Ctrl U Xóa dòng</button>
-            <button class="tb-btn" @click="sendKey('\x12')">Ctrl R Tìm lệnh</button>
-            <button class="tb-btn" @click="sendKey('\x0b')">Ctrl K Xóa đến cuối</button>
-            <button class="tb-btn" @click="sendKey('\x19')">Ctrl Y Dán (yank)</button>
+            <button class="tb-btn" @click="sendKey('\x1a')">Ctrl Z {{ t('terminal.stop') }}</button>
+            <button class="tb-btn" @click="sendKey('\x0c')">Ctrl L {{ t('terminal.clear') }}</button>
+            <button class="tb-btn" @click="sendKey('\x01')">{{ t('terminal.ctrlA') }}</button>
+            <button class="tb-btn" @click="sendKey('\x05')">{{ t('terminal.ctrlE') }}</button>
+            <button class="tb-btn" @click="sendKey('\x17')">{{ t('terminal.ctrlW') }}</button>
+            <button class="tb-btn" @click="sendKey('\x15')">{{ t('terminal.ctrlU') }}</button>
+            <button class="tb-btn" @click="sendKey('\x12')">{{ t('terminal.ctrlR') }}</button>
+            <button class="tb-btn" @click="sendKey('\x0b')">{{ t('terminal.ctrlK') }}</button>
+            <button class="tb-btn" @click="sendKey('\x19')">{{ t('terminal.ctrlY') }}</button>
             <button class="tb-btn" @click="sendKey('\x18')">Ctrl X</button>
           </div>
         </div>
@@ -71,9 +71,9 @@
         <div class="drawer-group">
           <span class="drawer-group-title">Alt / Di Chuyển Theo Từ</span>
           <div class="drawer-keys-row">
-            <button class="tb-btn" @click="sendKey('\x1bb')">Alt+◄ Từ trước</button>
-            <button class="tb-btn" @click="sendKey('\x1bf')">Alt+► Từ sau</button>
-            <button class="tb-btn" @click="sendKey('\x1bd')">Alt+D Xóa từ sau</button>
+            <button class="tb-btn" @click="sendKey('\x1bb')">Alt+◄ {{ t('terminal.previousWord') }}</button>
+            <button class="tb-btn" @click="sendKey('\x1bf')">Alt+► {{ t('terminal.nextWord') }}</button>
+            <button class="tb-btn" @click="sendKey('\x1bd')">Alt+D {{ t('terminal.deleteNextWord') }}</button>
             <button class="tb-btn" @click="sendKey('\x7f')">⌫ Backspace</button>
             <button class="tb-btn" @click="sendKey('\x1b[3~')">Del</button>
             <button class="tb-btn" @click="sendKey('\x1b.')">Alt+. (Arg cuối)</button>
@@ -82,7 +82,7 @@
 
         <!-- Navigation / Paging Group -->
         <div class="drawer-group">
-          <span class="drawer-group-title">Điều Hướng Trang</span>
+          <span class="drawer-group-title">{{ t('terminal.navigation') }}</span>
           <div class="drawer-keys-row">
             <button class="tb-btn" @click="sendKey('\x1b[H')">Home</button>
             <button class="tb-btn" @click="sendKey('\x1b[F')">End</button>
@@ -96,7 +96,7 @@
 
         <!-- Git Shortcuts -->
         <div class="drawer-group">
-          <span class="drawer-group-title">Git Nhanh</span>
+          <span class="drawer-group-title">{{ t('terminal.gitQuick') }}</span>
           <div class="drawer-keys-row">
             <button class="tb-btn tb-cmd" @click="sendKey('git status\r')">git status</button>
             <button class="tb-btn tb-cmd" @click="sendKey('git add .\r')">git add .</button>
@@ -111,7 +111,7 @@
 
         <!-- Quick 1-Touch Commands -->
         <div class="drawer-group">
-          <span class="drawer-group-title">Lệnh Nhanh 1 Chạm</span>
+          <span class="drawer-group-title">{{ t('terminal.quickCommands') }}</span>
           <div class="drawer-keys-row">
             <button class="tb-btn tb-accent" @click="sendKey('claude\r')">claude ↵</button>
             <button class="tb-btn tb-cmd" @click="sendKey('ls -la\r')">ls -la</button>
@@ -130,10 +130,10 @@
     <!-- Manual Paste Modal (Fallback when navigator.clipboard is unavailable) -->
     <InputModal
       :is-open="isPasteModalOpen"
-      title="Dán Nội Dung Vào Terminal"
+      :title="t('terminal.pasteTitle')"
       icon="ri-clipboard-line"
-      placeholder="Nhập hoặc dán nội dung vào đây..."
-      confirm-label="Dán Ngay"
+      :placeholder="t('terminal.pastePlaceholder')"
+      :confirm-label="t('terminal.pasteNow')"
       @close="isPasteModalOpen = false"
       @confirm="executeManualPaste"
     />
@@ -149,8 +149,10 @@ import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { wsUrl as buildWsUrl } from '../utils/api.js';
 import InputModal from './InputModal.vue';
+import { useI18n } from '../composables/useI18n.js';
 
 const terminalStore = useTerminalStore();
+const { t } = useI18n();
 const serverStore = useServerStore();
 
 const terminalRef = ref<HTMLDivElement | null>(null);

@@ -4,7 +4,7 @@
       <div class="modal-header">
         <div class="modal-title">
           <i class="ri-sparkling-fill" style="color: #d97757;"></i>
-          {{ isEditMode ? 'Chỉnh sửa Phiên Claude' : 'Khởi chạy Phiên Claude Mới' }}
+          {{ isEditMode ? t('claudeModal.editTitle') : t('claudeModal.createTitle') }}
         </div>
         <button class="btn-close" @click="$emit('close')">
           <i class="ri-close-line"></i>
@@ -14,7 +14,7 @@
       <div class="modal-body">
         <!-- Thư mục làm việc -->
         <div class="form-group">
-          <label class="form-label">Thư mục làm việc (Working Directory)</label>
+          <label class="form-label">{{ t('claudeModal.workingDir') }}</label>
           <div class="input-with-icons">
             <input
               type="text"
@@ -28,7 +28,7 @@
                 type="button"
                 class="btn-icon-inside"
                 @click="resetToHome"
-                title="Về thư mục mặc định"
+                :title="t('claudeModal.defaultFolder')"
               >
                 <i class="ri-home-4-line"></i>
               </button>
@@ -36,7 +36,7 @@
                 type="button"
                 class="btn-icon-inside primary"
                 @click="isTreePickerOpen = true"
-                title="Chọn thư mục dạng cây"
+                :title="t('claudeModal.pickFolder')"
               >
                 <i class="ri-folder-open-line"></i>
               </button>
@@ -46,12 +46,12 @@
 
         <!-- Tên phiên -->
         <div class="form-group">
-          <label class="form-label">Tên phiên Claude</label>
+          <label class="form-label">{{ t('claudeModal.sessionName') }}</label>
           <input
             type="text"
             class="form-input"
             v-model="nameInput"
-            placeholder="Gợi ý tự động theo thư mục"
+            :placeholder="t('claudeModal.autoNamePlaceholder')"
           />
         </div>
 
@@ -89,27 +89,27 @@
           </span>
           <span class="permission-copy">
             <strong>Bypass permissions</strong>
-            <small>Cho phép Claude chạy công cụ mà không yêu cầu xác nhận trong phiên này.</small>
+            <small>{{ t('claudeModal.bypassHint') }}</small>
           </span>
         </label>
 
         <!-- Lời nhắc ban đầu: create only, not mutable session metadata -->
         <div v-if="!isEditMode" class="form-group">
-          <label class="form-label">Yêu cầu ban đầu (Prompt khởi động - Tùy chọn)</label>
+          <label class="form-label">{{ t('claudeModal.initialPrompt') }}</label>
           <textarea
             class="form-textarea"
             v-model="initialPrompt"
-            placeholder="Ví dụ: Đọc file package.json và tóm tắt cấu trúc dự án..."
+            :placeholder="t('claudeModal.promptPlaceholder')"
             rows="2"
           ></textarea>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" @click="$emit('close')">Hủy</button>
+        <button class="btn-secondary" @click="$emit('close')">{{ t('claudeModal.cancel') }}</button>
         <button class="btn-confirm" @click="handleSubmit">
           <i :class="isEditMode ? 'ri-save-line' : 'ri-sparkling-line'"></i>
-          {{ isEditMode ? 'Lưu thay đổi' : 'Khởi chạy Claude' }}
+          {{ isEditMode ? t('claudeModal.saveChanges') : t('claudeModal.launch') }}
         </button>
       </div>
     </div>
@@ -135,6 +135,7 @@ import { ref, watch, computed } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useClaudeStore } from '../stores/claudeStore.js';
 import FolderTreePicker from './FolderTreePicker.vue';
+import { useI18n } from '../composables/useI18n.js';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -151,6 +152,7 @@ const isEditMode = computed(() => Boolean(props.session?.id));
 
 const serverStore = useServerStore();
 const claudeStore = useClaudeStore();
+const { t } = useI18n();
 
 const cwdInput = ref('');
 const nameInput = ref('');

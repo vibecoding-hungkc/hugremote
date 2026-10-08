@@ -4,7 +4,7 @@
       <div class="modal-header">
         <div class="modal-title">
           <i class="ri-terminal-box-line"></i>
-          {{ isEditMode ? 'Chỉnh sửa Cửa Sổ Terminal' : 'Tạo Cửa Sổ Terminal Mới' }}
+          {{ isEditMode ? t('terminalModal.editTitle') : t('terminalModal.createTitle') }}
         </div>
         <button class="btn-close" @click="$emit('close')">
           <i class="ri-close-line"></i>
@@ -26,7 +26,7 @@
         <!-- Target Directory with Home and Folder icon buttons at end of input -->
         <div class="form-group">
           <label class="form-label">
-            <i class="ri-folder-open-line"></i> Thư mục khởi chạy (Target Directory)
+            <i class="ri-folder-open-line"></i> {{ t('terminalModal.targetDir') }}
           </label>
           <div class="input-with-actions">
             <input
@@ -76,10 +76,10 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" @click="$emit('close')">Hủy</button>
+        <button class="btn-secondary" @click="$emit('close')">{{ t('terminalModal.cancel') }}</button>
         <button class="btn-primary" @click="handleSubmit">
           <i :class="isEditMode ? 'ri-save-line' : 'ri-add-line'"></i>
-          {{ isEditMode ? 'Lưu thay đổi' : 'Tạo Cửa Sổ' }}
+          {{ isEditMode ? t('terminalModal.saveChanges') : t('terminalModal.createWindow') }}
         </button>
       </div>
     </div>
@@ -104,6 +104,9 @@ import { useFileStore } from '../stores/fileStore.js';
 import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
 import { apiUrl } from '../utils/api.js';
 import FolderTreePicker from './FolderTreePicker.vue';
+import { useI18n } from '../composables/useI18n.js';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   isOpen: boolean;

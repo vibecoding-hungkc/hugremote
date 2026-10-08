@@ -52,7 +52,7 @@
                   <i :class="msg.isThinkingExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'"></i>
                 </button>
                 <div v-if="msg.isThinkingExpanded" class="claude-thinking-content">
-                  {{ msg.thinking || 'Đang phân tích yêu cầu và codebase...' }}
+                  {{ msg.thinking || t('claudeView.thinkingFallback') }}
                 </div>
               </div>
 
@@ -175,7 +175,7 @@
             ref="inputRef"
             v-model="inputText"
             class="claude-ext-textarea"
-            placeholder="Nhập yêu cầu cho Claude..."
+            :placeholder="t('claudeView.placeholder')"
             rows="1"
             @focus="isInputFocused = true"
             @blur="isInputFocused = false"
@@ -271,7 +271,7 @@
         <span>Ctrl C</span>
         <small>Copy</small>
       </button>
-      <button type="button" class="claude-shortcut-key" title="Dán từ clipboard" @click="pasteClipboard">
+      <button type="button" class="claude-shortcut-key" :title="t('claudeView.pasteTitle')" @click="pasteClipboard">
         <span>Ctrl V</span>
         <small>Paste</small>
       </button>
@@ -284,12 +284,14 @@ import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import { useClaudeStore } from '../stores/claudeStore.js';
 import ModelSelectorPopup from './ModelSelectorPopup.vue';
 import ClaudeLimitsPopup from './ClaudeLimitsPopup.vue';
+import { useI18n } from '../composables/useI18n.js';
 
 const emit = defineEmits<{
   (e: 'open-tree-picker'): void;
 }>();
 
 const claudeStore = useClaudeStore();
+const { t } = useI18n();
 const streamRef = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
@@ -329,7 +331,7 @@ const currentLiveTask = computed(() => {
   const latest = running || tools[tools.length - 1];
 
   if (latest) {
-    const cleanTitle = latest.title.replace(/^(Chạy lệnh|Đọc file|Chỉnh sửa):\s*/i, '');
+    const cleanTitle = latest.title.replace(new RegExp(`^(${t('claudeView.stripRun')}|${t('claudeView.stripRead')}|${t('claudeView.stripEdit')}):\\s*`, 'i'), '');
     let label = 'Running';
     let phase = 'Running';
     if (latest.type === 'read') {

@@ -29,7 +29,7 @@
 
     <div v-if="node.isDirectory && node.expanded" class="tree-children">
       <div v-if="node.loading" class="tree-loading" :style="{ paddingLeft: ((depth + 1) * 16 + 6) + 'px' }">
-        <i class="ri-loader-4-line spin"></i> Đang tải...
+        <i class="ri-loader-4-line spin"></i> {{ t('folderTree.loading') }}
       </div>
       <div v-else-if="node.children && node.children.length === 0" class="tree-empty" :style="{ paddingLeft: ((depth + 1) * 16 + 6) + 'px' }">
         (trống)
@@ -62,6 +62,8 @@ interface TreeNode {
   expanded: boolean;
   loading: boolean;
 }
+
+const { t } = useI18n();
 
 const props = defineProps<{
   node: TreeNode;

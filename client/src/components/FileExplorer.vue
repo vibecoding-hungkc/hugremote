@@ -3,12 +3,12 @@
     <!-- Parent Directory Navigation Button -->
     <div v-if="fileStore.currentRel" class="parent-nav-row" @click="handleGoParent">
       <i class="ri-arrow-up-line"></i>
-      <span>.. (Lên thư mục cha)</span>
+      <span>.. (Parent folder)</span>
     </div>
 
     <!-- Loading / Error States -->
     <div v-if="fileStore.loading" class="state-box">
-      <i class="ri-loader-4-line spin"></i> Đang tải danh sách...
+      <i class="ri-loader-4-line spin"></i> {{ t('fileExplorer.loading') }}
     </div>
     <div v-else-if="fileStore.error" class="state-box error">
       <i class="ri-error-warning-line"></i> {{ fileStore.error }}
@@ -16,7 +16,7 @@
 
     <!-- Empty State -->
     <div v-else-if="fileStore.entries.length === 0" class="state-box">
-      <i class="ri-folder-open-line"></i> Thư mục trống
+      <i class="ri-folder-open-line"></i> {{ t('fileExplorer.empty') }}
     </div>
 
     <!-- File List -->
@@ -35,16 +35,16 @@
           <div class="item-details">
             <span class="item-name">{{ item.name }}</span>
             <span class="item-meta">
-              {{ item.isDirectory ? 'Thư mục' : formatSize(item.size) }}
+              {{ item.isDirectory ? t('fileExplorer.folder') : formatSize(item.size) }}
             </span>
           </div>
         </div>
 
         <div class="file-actions" @click.stop>
-          <button class="btn-action-icon" @click="openRename(item)" title="Đổi tên">
+          <button class="btn-action-icon" @click="openRename(item)" :title="t('common.edit')">
             <i class="ri-edit-line"></i>
           </button>
-          <button class="btn-action-icon danger" @click="openDelete(item)" title="Xóa">
+          <button class="btn-action-icon danger" @click="openDelete(item)" :title="t('common.delete')">
             <i class="ri-delete-bin-line"></i>
           </button>
         </div>
@@ -55,12 +55,12 @@
     <InputModal
       ref="renameModalRef"
       :is-open="isRenameModalOpen"
-      title="Đổi Tên Tệp / Thư Mục"
+      :title="t('common.edit')"
       icon="ri-edit-line"
-      :description="`Đổi tên cho: ${targetItem?.name || ''}`"
-      placeholder="Nhập tên mới"
+      :description="t('fileExplorer.renameDescription', { name: targetItem?.name || '' })"
+      :placeholder="t('fileExplorer.renamePlaceholder')"
       :initial-value="targetItem?.name || ''"
-      confirm-label="Lưu Thay Đổi"
+      :confirm-label="t('fileExplorer.saveChanges')"
       @close="isRenameModalOpen = false"
       @confirm="executeRename"
     />
@@ -69,10 +69,10 @@
     <ConfirmModal
       ref="deleteModalRef"
       :is-open="isDeleteModalOpen"
-      title="Xác Nhận Xóa"
+      :title="t('fileExplorer.deleteTitle')"
       icon="ri-delete-bin-line"
-      :message="`Bạn có chắc chắn muốn xóa ${targetItem?.isDirectory ? 'thư mục' : 'tệp tin'} &quot;${targetItem?.name || ''}&quot;?\nHành động này không thể hoàn tác.`"
-      confirm-label="Xóa Ngay"
+      :message="t('fileExplorer.deleteMessage', { type: targetItem?.isDirectory ? t('fileExplorer.folder').toLowerCase() : t('fileExplorer.file'), name: targetItem?.name || '' })"
+      :confirm-label="t('fileExplorer.deleteNow')"
       :is-danger="true"
       @close="isDeleteModalOpen = false"
       @confirm="executeDelete"
@@ -85,9 +85,11 @@ import { ref } from 'vue';
 import { useFileStore, FileEntry } from '../stores/fileStore.js';
 import InputModal from './InputModal.vue';
 import ConfirmModal from './ConfirmModal.vue';
+import { useI18n } from '../composables/useI18n.js';
 
 const emit = defineEmits<{ (e: 'open-file', relPath: string): void }>();
 const fileStore = useFileStore();
+const { t } = useI18n();
 
 const targetItem = ref<FileEntry | null>(null);
 const isRenameModalOpen = ref(false);

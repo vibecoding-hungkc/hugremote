@@ -33,7 +33,7 @@
             </div>
             <div class="limit-card-bottom">
               <span class="limit-sub-info" :class="{ warning: fiveHourPercent >= 80 }">
-                Còn {{ Math.max(0, 100 - fiveHourPercent) }}% hạn mức
+                {{ t('limits.remaining', { percent: Math.max(0, 100 - fiveHourPercent) }) }}
               </span>
               <span class="limit-reset-time">
                 <i class="ri-time-line"></i> resets in {{ fiveHourReset }}
@@ -61,7 +61,7 @@
             </div>
             <div class="limit-card-bottom">
               <span class="limit-sub-info" :class="{ warning: weeklyPercent >= 80 }">
-                Còn {{ Math.max(0, 100 - weeklyPercent) }}% hạn mức
+                {{ t('limits.remaining', { percent: Math.max(0, 100 - weeklyPercent) }) }}
               </span>
               <span class="limit-reset-time">
                 <i class="ri-time-line"></i> resets in {{ weeklyReset }}
@@ -74,7 +74,7 @@
             <div class="limit-card-top">
               <div class="limit-name">
                 <i class="ri-cpu-line"></i>
-                <span>Phiên hiện tại (Context Window)</span>
+                <span>{{ t('limits.contextWindow') }}</span>
               </div>
               <div class="limit-pct-val">{{ contextPercent }}%</div>
             </div>
@@ -95,6 +95,7 @@
 <script setup lang="ts">
 import { computed, watch, onMounted, onUnmounted } from 'vue';
 import { useClaudeStore } from '../stores/claudeStore.js';
+import { useI18n } from '../composables/useI18n.js';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -105,6 +106,7 @@ defineEmits<{
 }>();
 
 const claudeStore = useClaudeStore();
+const { t } = useI18n();
 
 const fiveHourPercent = computed(() => claudeStore.limits.fiveHour.usedPercent);
 const fiveHourReset = computed(() => claudeStore.limits.fiveHour.resetIn);

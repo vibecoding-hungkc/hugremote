@@ -4,7 +4,7 @@
       <div class="modal-header">
         <div class="modal-title">
           <i :class="itemType === 'dir' ? 'ri-folder-add-line' : 'ri-file-add-line'"></i>
-          {{ itemType === 'dir' ? 'Tạo Thư Mục Mới' : 'Tạo Tệp Tin Mới' }}
+          {{ itemType === 'dir' ? t('createItem.folderTitle') : t('createItem.fileTitle') }}
         </div>
         <button class="btn-close" @click="$emit('close')">
           <i class="ri-close-line"></i>
@@ -19,7 +19,7 @@
           :class="{ active: itemType === 'dir' }"
           @click="itemType = 'dir'"
         >
-          <i class="ri-folder-fill"></i> Thư mục
+          <i class="ri-folder-fill"></i> {{ t('createItem.folder') }}
         </button>
         <button
           type="button"
@@ -27,13 +27,13 @@
           :class="{ active: itemType === 'file' }"
           @click="itemType = 'file'"
         >
-          <i class="ri-file-text-fill"></i> Tệp tin
+          <i class="ri-file-text-fill"></i> {{ t('fileExplorer.file') }}
         </button>
       </div>
 
       <div class="target-location" v-if="currentPath">
         <i class="ri-folder-2-line"></i>
-        <span>Vị trí: <code>{{ currentPath }}</code></span>
+        <span>{{ t('common.location') }}: <code>{{ currentPath }}</code></span>
       </div>
 
       <div class="input-group">
@@ -42,7 +42,7 @@
           v-model="itemName"
           type="text"
           class="modal-input"
-          :placeholder="itemType === 'dir' ? 'Tên thư mục (ví dụ: components)' : 'Tên tệp tin (ví dụ: index.ts)'"
+          :placeholder="itemType === 'dir' ? 'Folder name (e.g. components)' : 'File name (e.g. index.ts)'"
           enterkeyhint="done"
           autocomplete="off"
           autocapitalize="off"
@@ -57,11 +57,11 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn-secondary" @click="$emit('close')">Hủy</button>
+        <button class="btn-secondary" @click="$emit('close')">{{ t('createItem.cancel') }}</button>
         <button class="btn-primary" :disabled="isBusy" @click="handleCreate">
           <i v-if="isBusy" class="ri-loader-4-line spin"></i>
           <i v-else class="ri-add-line"></i>
-          Tạo Mới
+          {{ t('createItem.create') }}
         </button>
       </div>
     </div>
@@ -70,6 +70,9 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
+import { useI18n } from '../composables/useI18n.js';
+
+const { t } = useI18n();
 
 const props = defineProps<{
   isOpen: boolean;
@@ -103,11 +106,11 @@ watch(() => props.isOpen, (open) => {
 async function handleCreate() {
   const name = itemName.value.trim();
   if (!name) {
-    errorMsg.value = 'Vui lòng nhập tên.';
+    errorMsg.value = 'Please enter a name.';
     return;
   }
   if (name.includes('/') || name.includes('\\')) {
-    errorMsg.value = 'Tên không được chứa dấu gạch chéo.';
+    errorMsg.value = 'Name cannot contain slashes.';
     return;
   }
   isBusy.value = true;

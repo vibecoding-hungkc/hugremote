@@ -4,10 +4,10 @@
       <div class="sheet-handle"></div>
       <div class="sheet-header">
         <div class="sheet-title">
-          <i class="ri-sparkling-fill" style="color: #d97757;"></i> Quản lý Phiên Claude
+          <i class="ri-sparkling-fill" style="color: #d97757;"></i> {{ t('claudeHub.title') }}
         </div>
         <div class="sheet-actions">
-          <button class="btn-action-icon" @click="$emit('open-new-modal')" title="Tạo phiên mới">
+          <button class="btn-action-icon" @click="$emit('open-new-modal')" :title="t('claudeHub.new')">
             <i class="ri-add-line"></i>
           </button>
           <button class="btn-close-sheet" @click="$emit('close')"><i class="ri-close-line"></i></button>
@@ -16,7 +16,7 @@
 
       <div class="sessions-list">
         <div v-if="!claudeStore.currentServerSessions.length" class="empty-sessions">
-          Chưa có phiên Claude nào. Nhấn "+ Tạo mới" để bắt đầu.
+          {{ t('claudeHub.empty') }}
         </div>
 
         <div
@@ -35,15 +35,15 @@
               <i class="ri-folder-line"></i> {{ s.cwd }}
             </div>
             <div class="session-stats">
-              {{ s.messages.length }} tin nhắn • Context: {{ s.messages.length === 0 ? '0' : (s.contextTokens || '0') }}/1000k
+              {{ s.messages.length }} {{ t('claudeHub.messages') }} • {{ t('claudeHub.context') }}: {{ s.messages.length === 0 ? '0' : (s.contextTokens || '0') }}/1000k
             </div>
           </div>
 
           <div class="session-actions" @click.stop>
-            <button class="btn-action-icon" @click="$emit('edit-session', s)" title="Chỉnh sửa đầy đủ">
+            <button class="btn-action-icon" @click="$emit('edit-session', s)" :title="t('claudeHub.edit')">
               <i class="ri-edit-line"></i>
             </button>
-            <button class="btn-action-icon danger" @click="$emit('delete-session', s)" title="Xóa">
+            <button class="btn-action-icon danger" @click="$emit('delete-session', s)" :title="t('claudeHub.delete')">
               <i class="ri-delete-bin-line"></i>
             </button>
           </div>
@@ -55,6 +55,7 @@
 
 <script setup lang="ts">
 import { useClaudeStore } from '../stores/claudeStore.js';
+import { useI18n } from '../composables/useI18n.js';
 
 defineProps<{
   isOpen: boolean;
@@ -68,6 +69,7 @@ const emit = defineEmits<{
 }>();
 
 const claudeStore = useClaudeStore();
+const { t } = useI18n();
 
 function selectSession(id: string) {
   claudeStore.switchSession(id);

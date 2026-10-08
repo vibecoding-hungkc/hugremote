@@ -3,7 +3,7 @@
     <div class="tree-modal-sheet">
       <div class="tree-modal-header">
         <div class="tree-modal-title">
-          <i class="ri-folder-open-line"></i> Chọn Thư Mục
+          <i class="ri-folder-open-line"></i> {{ t('claudeModal.pickFolder') }}
         </div>
         <button class="btn-close" @click="$emit('close')">
           <i class="ri-close-line"></i>
@@ -16,7 +16,7 @@
       </div>
 
       <div v-if="isNavigating" class="tree-nav-loading">
-        <i class="ri-loader-4-line spin"></i> Đang mở đến thư mục đã chọn...
+        <i class="ri-loader-4-line spin"></i> {{ t('folderTree.navigating') }}
       </div>
 
       <div class="tree-scroll-container" ref="scrollContainerRef">
@@ -32,9 +32,9 @@
       </div>
 
       <div class="tree-modal-footer">
-        <button class="btn-cancel" @click="$emit('close')">Hủy</button>
+        <button class="btn-cancel" @click="$emit('close')">{{ t('folderTree.cancel') }}</button>
         <button class="btn-confirm" @click="handleConfirm">
-          <i class="ri-check-line"></i> Chọn thư mục này
+          <i class="ri-check-line"></i> {{ t('claudeModal.pickFolder') }}
         </button>
       </div>
     </div>
@@ -45,6 +45,9 @@
 import { ref, watch, nextTick } from 'vue';
 import FolderTreeNode from './FolderTreeNode.vue';
 import { apiUrl } from '../utils/api.js';
+import { useI18n } from '../composables/useI18n.js';
+
+const { t } = useI18n();
 
 interface TreeNode {
   name: string;

@@ -160,7 +160,9 @@ prompt_user_input() {
 
   if [ -t 0 ]; then
     read -r -p "$prompt_text" user_val
-  elif [ -e /dev/tty ] && read -r -p "$prompt_text" user_val </dev/tty 2>/dev/null; then
+  elif ( : </dev/tty ) 2>/dev/null; then
+    read -r -p "$prompt_text" user_val </dev/tty 2>/dev/null || user_val="$default_val"
+  elif read -t 1 -r user_val 2>/dev/null; then
     :
   else
     user_val="$default_val"

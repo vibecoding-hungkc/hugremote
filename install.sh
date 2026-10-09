@@ -169,6 +169,7 @@ prompt_user_input() {
     user_val="$default_val"
   fi
 
+  user_val="$(echo "$user_val" | tr -d '\r' | xargs 2>/dev/null || echo "$user_val")"
   if [ -z "$user_val" ]; then
     eval "$var_name=\"$default_val\""
   else
@@ -261,7 +262,9 @@ echo -e "${C_BOLD}│ 3. 🔌 CỔNG KẾT NỐI (HTTP & WEBSOCKET PORT)        
 echo -e "${C_BOLD}└────────────────────────────────────────────────────────────────────────┘${C_RESET}"
 PORT_CHOICE=""
 prompt_user_input "👉 Nhập cổng muốn sử dụng (Mặc định: 8099): " "8099" PORT_CHOICE
-SELECTED_PORT="$PORT_CHOICE"
+SELECTED_PORT="${PORT_CHOICE:-8099}"
+SELECTED_HOST="${SELECTED_HOST:-127.0.0.1}"
+SELECTED_AUTH_MODE="${SELECTED_AUTH_MODE:-password}"
 echo -e "✓ Đã chọn Port: ${C_GREEN}$SELECTED_PORT${C_RESET}"
 echo ""
 

@@ -115,18 +115,16 @@
     </div>
 
     <!-- Cây thư mục lồng bên trong -->
-    <Teleport to="body">
-      <FolderTreePicker
-        :is-open="isTreePickerOpen"
-        :initial-path="cwdInput || serverStore.currentServer.workspace || '~'"
-        :server-id="serverStore.currentServer.id"
-        :server-type="serverStore.currentServer.type"
-        :server-workspace="serverStore.currentServer.workspace"
-        @close="isTreePickerOpen = false"
-        @confirm="onFolderSelected"
-        @selected="onFolderSelected"
-      />
-    </Teleport>
+    <FolderTreePicker
+      :is-open="isTreePickerOpen"
+      :initial-path="cwdInput || serverStore.currentServer.workspace || '~'"
+      :server-id="serverStore.currentServer.id"
+      :server-type="serverStore.currentServer.type"
+      :server-workspace="serverStore.currentServer.workspace"
+      @close="isTreePickerOpen = false"
+      @confirm="onFolderSelected"
+      @selected="onFolderSelected"
+    />
   </div>
 </template>
 
@@ -197,7 +195,7 @@ watch(
       return;
     }
 
-    const defaultWs = serverStore.currentServer.workspace || '~/projects/hugcode';
+    const defaultWs = serverStore.currentServer.workspace || '/home/hermes-admin/projects';
     cwdInput.value = defaultWs;
     suggestName(defaultWs);
     initialPrompt.value = '';
@@ -210,14 +208,14 @@ watch(
 );
 
 function suggestName(pathStr: string) {
-  let clean = pathStr.replace(/\/+$/, '').trim();
-  clean = clean.replace(/^\/home\/[^\/]+\//, '~/');
-  if (clean.startsWith('~/')) {
-    clean = clean.slice(2);
+  const clean = (pathStr || '').replace(/\/+$/, '').trim();
+  if (!clean) {
+    nameInput.value = 'chat';
+    return;
   }
   const parts = clean.split('/').filter(Boolean);
-  const lastParts = parts.slice(-3);
-  nameInput.value = lastParts.join('/') || 'chat';
+  const dirName = parts[parts.length - 1];
+  nameInput.value = dirName || 'chat';
 }
 
 function onCwdChange() {

@@ -32,7 +32,7 @@
         <i class="ri-loader-4-line spin"></i> {{ t('folderTree.loading') }}
       </div>
       <div v-else-if="node.children && node.children.length === 0" class="tree-empty" :style="{ paddingLeft: ((depth + 1) * 16 + 6) + 'px' }">
-        (trống)
+        {{ t('fileList.empty') }}
       </div>
       <FolderTreeNode
         v-for="child in node.children"
@@ -50,8 +50,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { apiUrl } from '../utils/api.js';
+import { useI18n } from '../composables/useI18n.js';
+
+defineOptions({
+  name: 'FolderTreeNode',
+});
 
 interface TreeNode {
   name: string;
@@ -88,7 +93,7 @@ async function loadChildren() {
   props.node.loading = true;
   try {
     const res = await fetch(
-      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId)}&path=${encodeURIComponent(props.node.apiPath)}`)
+      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId || 'server-local')}&path=${encodeURIComponent(props.node.apiPath || '')}`)
     );
     if (!res.ok) throw new Error('Failed to list directory');
     const data = await res.json();
@@ -144,6 +149,15 @@ onMounted(() => {
     loadChildren();
   }
 });
+
+watch(
+  () => props.node.expanded,
+  (expanded) => {
+    if (expanded && props.node.children === null) {
+      loadChildren();
+    }
+  }
+);
 </script>
 
 <style scoped>

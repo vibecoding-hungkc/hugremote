@@ -74,10 +74,12 @@ const emit = defineEmits<{
 }>();
 
 function makeRootNode(): TreeNode {
+  const ws = props.serverWorkspace || '~';
+  const name = ws.replace(/\/+$/, '').split('/').filter(Boolean).pop() || ws;
   return {
-    name: props.serverWorkspace || '~',
+    name,
     apiPath: '',
-    fullPath: props.serverWorkspace || '~',
+    fullPath: ws,
     isDirectory: true,
     children: null,
     expanded: true,
@@ -109,12 +111,16 @@ function joinPath(base: string, rel: string): string {
 async function fetchDirEntries(apiPath: string): Promise<any[]> {
   try {
     const res = await fetch(
-      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId)}&path=${encodeURIComponent(apiPath)}`)
+      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId || 'server-local')}&path=${encodeURIComponent(apiPath || '')}`)
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.warn('Failed to fetch dir entries for path:', apiPath, res.status);
+      return [];
+    }
     const data = await res.json();
     return (data.entries || []).filter((e: any) => e.isDirectory);
-  } catch (_) {
+  } catch (err) {
+    console.warn('Error fetching dir entries for path:', apiPath, err);
     return [];
   }
 }
@@ -145,12 +151,16 @@ async function expandToSavedPath(targetPath: string) {
   const workspace = (props.serverWorkspace || '~').replace(/\/$/, '');
   const cleanTarget = (targetPath || '').replace(/\/$/, '');
 
-  // Không có gì để mở rộng nếu target trùng workspace hoặc rỗng
-  if (!cleanTarget || cleanTarget === workspace) {
+  // Tải danh sách con cho root trước
+  if (rootNode.value.children === null) {
     rootNode.value.loading = true;
     const entries = await fetchDirEntries(rootNode.value.apiPath);
     rootNode.value.children = entries.map(buildChildNode);
     rootNode.value.loading = false;
+  }
+
+  // Không có gì để mở rộng sâu nếu target trùng workspace hoặc rỗng
+  if (!cleanTarget || cleanTarget === workspace) {
     return;
   }
 
@@ -162,11 +172,7 @@ async function expandToSavedPath(targetPath: string) {
     // target đã là dạng tương đối
     relativeRemainder = cleanTarget;
   } else {
-    // target nằm ngoài workspace (vd: root server khác) -> chỉ tải cấp gốc
-    rootNode.value.loading = true;
-    const entries = await fetchDirEntries(rootNode.value.apiPath);
-    rootNode.value.children = entries.map(buildChildNode);
-    rootNode.value.loading = false;
+    // target nằm ngoài workspace (vd: root server khác)
     return;
   }
 
@@ -176,10 +182,12 @@ async function expandToSavedPath(targetPath: string) {
   currentNode.expanded = true;
 
   for (const segment of segments) {
-    currentNode.loading = true;
-    const entries = await fetchDirEntries(currentNode.apiPath);
-    currentNode.children = entries.map(buildChildNode);
-    currentNode.loading = false;
+    if (currentNode.children === null) {
+      currentNode.loading = true;
+      const entries = await fetchDirEntries(currentNode.apiPath);
+      currentNode.children = entries.map(buildChildNode);
+      currentNode.loading = false;
+    }
 
     const match = currentNode.children.find((c) => c.name === segment);
     if (!match) {
@@ -209,19 +217,23 @@ async function scrollToSelected() {
 }
 
 watch(
-  () => props.isOpen,
-  async (open) => {
+  () => [props.isOpen, props.serverWorkspace, props.serverId] as const,
+  async ([open]) => {
     if (open) {
       rootNode.value = makeRootNode();
       selectedPath.value = props.initialPath || props.serverWorkspace || '~';
 
       isNavigating.value = true;
-      await expandToSavedPath(selectedPath.value);
-      isNavigating.value = false;
+      try {
+        await expandToSavedPath(selectedPath.value);
+      } finally {
+        isNavigating.value = false;
+      }
 
       await scrollToSelected();
     }
-  }
+  },
+  { immediate: true }
 );
 </script>
 
@@ -306,6 +318,8 @@ watch(
 
 .tree-scroll-container {
   flex: 1;
+  min-height: 240px;
+  max-height: 50vh;
   overflow-y: auto;
   background: #0b1120;
   border: 1px solid #1e293b;

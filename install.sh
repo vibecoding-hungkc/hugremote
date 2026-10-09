@@ -178,99 +178,153 @@ prompt_user_input() {
   fi
 }
 
-echo ""
-echo -e "${C_BLUE}========================================================================${C_RESET}"
-echo -e "${C_BOLD} ⚙️  THIẾT LẬP CẤU HÌNH BAN ĐẦU CHO HUGREMOTE${C_RESET}"
-echo -e "${C_BLUE}========================================================================${C_RESET}"
-echo ""
+CONFIG_DIR="$HOME/.config/hugremote"
+ENV_FILE="$CONFIG_DIR/.env"
 
-# [1] Chọn Host (Bind Address)
-echo -e "${C_BOLD}┌────────────────────────────────────────────────────────────────────────┐${C_RESET}"
-echo -e "${C_BOLD}│ 1. 🌐 ĐỊA CHỈ LẮNG NGHE (HOST / BIND ADDRESS)                         │${C_RESET}"
-echo -e "${C_BOLD}├────────────────────────────────────────────────────────────────────────┤${C_RESET}"
-echo -e "│  ${C_GREEN}[1] 127.0.0.1${C_RESET}  (Khuyên dùng)                                          │"
-echo -e "│      Chỉ cho phép truy cập cục bộ và qua Cloudflare Tunnel / Nginx.    │"
-echo -e "│      Đảm bảo an toàn Zero-Trust tuyệt đối, không lộ port ra ngoài.     │"
-echo -e "│                                                                        │"
-echo -e "│  ${C_YELLOW}[2] 0.0.0.0${C_RESET}                                                           │"
-echo -e "│      Lắng nghe trên mọi card mạng IPv4 (truy cập từ thiết bị cùng LAN).│"
-echo -e "│                                                                        │"
-echo -e "│  ${C_YELLOW}[3] ::${C_RESET}                                                                │"
-echo -e "│      Lắng nghe trên tất cả địa chỉ cả IPv4 và IPv6.                    │"
-echo -e "${C_BOLD}└────────────────────────────────────────────────────────────────────────┘${C_RESET}"
-
-HOST_CHOICE=""
-prompt_user_input "👉 Chọn Host [1-3] (Mặc định: 1 [127.0.0.1]): " "1" HOST_CHOICE
-
-case "$HOST_CHOICE" in
-  2) SELECTED_HOST="0.0.0.0" ;;
-  3) SELECTED_HOST="::" ;;
-  *) SELECTED_HOST="127.0.0.1" ;;
-esac
-echo -e "✓ Đã chọn Host: ${C_GREEN}$SELECTED_HOST${C_RESET}"
-echo ""
-
-# [2] Chọn Auth Mode
-echo -e "${C_BOLD}┌────────────────────────────────────────────────────────────────────────┐${C_RESET}"
-echo -e "${C_BOLD}│ 2. 🔐 PHƯƠNG THỨC XÁC THỰC (AUTHENTICATION MODE)                      │${C_RESET}"
-echo -e "${C_BOLD}├────────────────────────────────────────────────────────────────────────┤${C_RESET}"
-echo -e "│  ${C_GREEN}[1] password${C_RESET}   (Khuyên dùng khi public ra Internet)                   │"
-echo -e "│      • Không lưu mật khẩu thô trong cấu hình.                          │"
-echo -e "│      • Mật khẩu khởi tạo ban đầu: 123456                               │"
-echo -e "│      • Bắt buộc đổi mật khẩu mới ngay lần đăng nhập đầu tiên.          │"
-echo -e "│      • Mật khẩu mới được băm PBKDF2-SHA512 lưu an toàn trên đĩa.       │"
-echo -e "│                                                                        │"
-echo -e "│  ${C_YELLOW}[2] none${C_RESET}       (Không mật khẩu)                                       │"
-echo -e "│      Chỉ phù hợp khi chạy thử nghiệm localhost hoặc đã có              │"
-echo -e "│      Cloudflare Access / Zero Trust bảo vệ ở tầng ngoài.               │"
-echo -e "│                                                                        │"
-echo -e "│  ${C_YELLOW}[3] google${C_RESET}     (Đăng nhập tài khoản Google OAuth 2.0)                 │"
-echo -e "│      Chỉ các email được cấp quyền mới có thể đăng nhập.                │"
-echo -e "${C_BOLD}└────────────────────────────────────────────────────────────────────────┘${C_RESET}"
-
-AUTH_CHOICE=""
-prompt_user_input "👉 Chọn chế độ Auth [1-3] (Mặc định: 1 [password]): " "1" AUTH_CHOICE
-
+RECONFIGURE=false
+SELECTED_HOST="127.0.0.1"
+SELECTED_PORT="8099"
+SELECTED_AUTH_MODE="password"
 SELECTED_APP_URL="http://localhost:8099"
 SELECTED_GOOGLE_CLIENT_ID=""
 SELECTED_GOOGLE_CLIENT_SECRET=""
 SELECTED_GOOGLE_ALLOWED_EMAILS=""
+SELECTED_SESSION_SECRET=""
 
-case "$AUTH_CHOICE" in
-  2)
-    SELECTED_AUTH_MODE="none"
-    echo -e "✓ Đã chọn: ${C_YELLOW}Không xác thực (none)${C_RESET}"
-    ;;
-  3)
-    SELECTED_AUTH_MODE="google"
-    echo -e "✓ Đã chọn: ${C_BLUE}Google OAuth (google)${C_RESET}"
+if [ -f "$ENV_FILE" ]; then
+  # Tải cấu hình đã khởi tạo từ trước
+  EXISTING_HOST=$(grep -E '^HOST=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_PORT=$(grep -E '^PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_AUTH_MODE=$(grep -E '^AUTH_MODE=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_SECRET=$(grep -E '^SESSION_SECRET=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_APP_URL=$(grep -E '^APP_URL=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_GOOGLE_CLIENT_ID=$(grep -E '^GOOGLE_CLIENT_ID=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_GOOGLE_CLIENT_SECRET=$(grep -E '^GOOGLE_CLIENT_SECRET=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_GOOGLE_ALLOWED_EMAILS=$(grep -E '^GOOGLE_ALLOWED_EMAILS=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+
+  if [ -n "$EXISTING_PORT" ] || [ -n "$EXISTING_AUTH_MODE" ]; then
     echo ""
-    prompt_user_input "👉 Nhập Public App URL (ví dụ: https://hugremote.domain.com): " "http://localhost:8099" SELECTED_APP_URL
-    prompt_user_input "👉 Nhập Google Client ID: " "" SELECTED_GOOGLE_CLIENT_ID
-    prompt_user_input "👉 Nhập Google Client Secret: " "" SELECTED_GOOGLE_CLIENT_SECRET
-    prompt_user_input "👉 Nhập Google Allowed Emails (cách nhau bởi dấu phẩy): " "" SELECTED_GOOGLE_ALLOWED_EMAILS
-    ;;
-  *)
-    SELECTED_AUTH_MODE="password"
-    echo -e "✓ Đã chọn: ${C_GREEN}Mật khẩu (Khởi tạo: 123456, bắt buộc đổi lần đầu)${C_RESET}"
-    ;;
-esac
-echo ""
+    echo -e "${C_BLUE}========================================================================${C_RESET}"
+    echo -e "${C_BOLD} ⚙️  PHÁT HIỆN CẤU HÌNH ĐÃ KHỞI TẠO TỪ LẦN CÀI ĐẶT TRƯỚC${C_RESET}"
+    echo -e "${C_BLUE}========================================================================${C_RESET}"
+    echo -e "  • File cấu hình:       ${C_GREEN}$ENV_FILE${C_RESET}"
+    echo -e "  • Host (Bind IP)       : ${C_GREEN}${EXISTING_HOST:-127.0.0.1}${C_RESET}"
+    echo -e "  • Cổng kết nối (Port)  : ${C_GREEN}${EXISTING_PORT:-8099}${C_RESET}"
+    echo -e "  • Chế độ xác thực      : ${C_GREEN}${EXISTING_AUTH_MODE:-password}${C_RESET}"
+    echo -e "  • Thư mục Workspace    : ${C_GREEN}$HOME/projects${C_RESET}"
+    echo -e "${C_BLUE}========================================================================${C_RESET}"
+    echo ""
 
-# [3] Chọn Port
-echo -e "${C_BOLD}┌────────────────────────────────────────────────────────────────────────┐${C_RESET}"
-echo -e "${C_BOLD}│ 3. 🔌 CỔNG KẾT NỐI (HTTP & WEBSOCKET PORT)                            │${C_RESET}"
-echo -e "${C_BOLD}└────────────────────────────────────────────────────────────────────────┘${C_RESET}"
-PORT_CHOICE=""
-prompt_user_input "👉 Nhập cổng muốn sử dụng (Mặc định: 8099): " "8099" PORT_CHOICE
-SELECTED_PORT="${PORT_CHOICE:-8099}"
-SELECTED_HOST="${SELECTED_HOST:-127.0.0.1}"
-SELECTED_AUTH_MODE="${SELECTED_AUTH_MODE:-password}"
-echo -e "✓ Đã chọn Port: ${C_GREEN}$SELECTED_PORT${C_RESET}"
-echo ""
+    KEEP_CHOICE=""
+    prompt_user_input "👉 Giữ nguyên cấu hình trên để cập nhật nhanh? [Y/n] (Mặc định: Y): " "Y" KEEP_CHOICE
+    if [[ "$KEEP_CHOICE" =~ ^[Yy]$ || -z "$KEEP_CHOICE" ]]; then
+      SELECTED_HOST="${EXISTING_HOST:-127.0.0.1}"
+      SELECTED_PORT="${EXISTING_PORT:-8099}"
+      SELECTED_AUTH_MODE="${EXISTING_AUTH_MODE:-password}"
+      SELECTED_SESSION_SECRET="${EXISTING_SECRET}"
+      SELECTED_APP_URL="${EXISTING_APP_URL:-http://localhost:8099}"
+      SELECTED_GOOGLE_CLIENT_ID="${EXISTING_GOOGLE_CLIENT_ID}"
+      SELECTED_GOOGLE_CLIENT_SECRET="${EXISTING_GOOGLE_CLIENT_SECRET}"
+      SELECTED_GOOGLE_ALLOWED_EMAILS="${EXISTING_GOOGLE_ALLOWED_EMAILS}"
+      echo -e "✓ ${C_GREEN}Đã giữ nguyên cấu hình đã có. Bỏ qua các câu hỏi thiết lập.${C_RESET}"
+    else
+      RECONFIGURE=true
+    fi
+  fi
+fi
 
-# Tạo chuỗi bí mật session secret 32-byte ngẫu nhiên
-SELECTED_SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" 2>/dev/null || openssl rand -hex 32 2>/dev/null || echo "hugremote_secret_$(date +%s)")
+if [ ! -f "$ENV_FILE" ] || [ "$RECONFIGURE" = true ]; then
+  echo ""
+  echo -e "${C_BLUE}========================================================================${C_RESET}"
+  echo -e "${C_BOLD} ⚙️  THIẾT LẬP CẤU HÌNH CHO HUGREMOTE${C_RESET}"
+  echo -e "${C_BLUE}========================================================================${C_RESET}"
+  echo ""
+
+  # [1] Chọn Host (Bind Address)
+  echo -e "${C_BOLD}┌────────────────────────────────────────────────────────────────────────┐${C_RESET}"
+  echo -e "${C_BOLD}│ 1. 🌐 ĐỊA CHỈ LẮNG NGHE (HOST / BIND ADDRESS)                         │${C_RESET}"
+  echo -e "${C_BOLD}├────────────────────────────────────────────────────────────────────────┤${C_RESET}"
+  echo -e "│  ${C_GREEN}[1] 127.0.0.1${C_RESET}  (Khuyên dùng)                                          │"
+  echo -e "│      Chỉ cho phép truy cập cục bộ và qua Cloudflare Tunnel / Nginx.    │"
+  echo -e "│      Đảm bảo an toàn Zero-Trust tuyệt đối, không lộ port ra ngoài.     │"
+  echo -e "│                                                                        │"
+  echo -e "│  ${C_YELLOW}[2] 0.0.0.0${C_RESET}                                                           │"
+  echo -e "│      Lắng nghe trên mọi card mạng IPv4 (truy cập từ thiết bị cùng LAN).│"
+  echo -e "│                                                                        │"
+  echo -e "│  ${C_YELLOW}[3] ::${C_RESET}                                                                │"
+  echo -e "│      Lắng nghe trên tất cả địa chỉ cả IPv4 và IPv6.                    │"
+  echo -e "${C_BOLD}└────────────────────────────────────────────────────────────────────────┘${C_RESET}"
+
+  HOST_CHOICE=""
+  prompt_user_input "👉 Chọn Host [1-3] (Mặc định: 1 [127.0.0.1]): " "1" HOST_CHOICE
+
+  case "$HOST_CHOICE" in
+    2) SELECTED_HOST="0.0.0.0" ;;
+    3) SELECTED_HOST="::" ;;
+    *) SELECTED_HOST="127.0.0.1" ;;
+  esac
+  echo -e "✓ Đã chọn Host: ${C_GREEN}$SELECTED_HOST${C_RESET}"
+  echo ""
+
+  # [2] Chọn Auth Mode
+  echo -e "${C_BOLD}┌────────────────────────────────────────────────────────────────────────┐${C_RESET}"
+  echo -e "${C_BOLD}│ 2. 🔐 PHƯƠNG THỨC XÁC THỰC (AUTHENTICATION MODE)                      │${C_RESET}"
+  echo -e "${C_BOLD}├────────────────────────────────────────────────────────────────────────┤${C_RESET}"
+  echo -e "│  ${C_GREEN}[1] password${C_RESET}   (Khuyên dùng khi public ra Internet)                   │"
+  echo -e "│      • Không lưu mật khẩu thô trong cấu hình.                          │"
+  echo -e "│      • Mật khẩu khởi tạo ban đầu: 123456                               │"
+  echo -e "│      • Bắt buộc đổi mật khẩu mới ngay lần đăng nhập đầu tiên.          │"
+  echo -e "│      • Mật khẩu mới được băm PBKDF2-SHA512 lưu an toàn trên đĩa.       │"
+  echo -e "│                                                                        │"
+  echo -e "│  ${C_YELLOW}[2] none${C_RESET}       (Không mật khẩu)                                       │"
+  echo -e "│      Chỉ phù hợp khi chạy thử nghiệm localhost hoặc đã có              │"
+  echo -e "│      Cloudflare Access / Zero Trust bảo vệ ở tầng ngoài.               │"
+  echo -e "│                                                                        │"
+  echo -e "│  ${C_YELLOW}[3] google${C_RESET}     (Đăng nhập tài khoản Google OAuth 2.0)                 │"
+  echo -e "│      Chỉ các email được cấp quyền mới có thể đăng nhập.                │"
+  echo -e "${C_BOLD}└────────────────────────────────────────────────────────────────────────┘${C_RESET}"
+
+  AUTH_CHOICE=""
+  prompt_user_input "👉 Chọn chế độ Auth [1-3] (Mặc định: 1 [password]): " "1" AUTH_CHOICE
+
+  case "$AUTH_CHOICE" in
+    2)
+      SELECTED_AUTH_MODE="none"
+      echo -e "✓ Đã chọn: ${C_YELLOW}Không xác thực (none)${C_RESET}"
+      ;;
+    3)
+      SELECTED_AUTH_MODE="google"
+      echo -e "✓ Đã chọn: ${C_BLUE}Google OAuth (google)${C_RESET}"
+      echo ""
+      prompt_user_input "👉 Nhập Public App URL (ví dụ: https://hugremote.domain.com): " "http://localhost:8099" SELECTED_APP_URL
+      prompt_user_input "👉 Nhập Google Client ID: " "" SELECTED_GOOGLE_CLIENT_ID
+      prompt_user_input "👉 Nhập Google Client Secret: " "" SELECTED_GOOGLE_CLIENT_SECRET
+      prompt_user_input "👉 Nhập Google Allowed Emails (cách nhau bởi dấu phẩy): " "" SELECTED_GOOGLE_ALLOWED_EMAILS
+      ;;
+    *)
+      SELECTED_AUTH_MODE="password"
+      echo -e "✓ Đã chọn: ${C_GREEN}Mật khẩu (Khởi tạo: 123456, bắt buộc đổi lần đầu)${C_RESET}"
+      ;;
+  esac
+  echo ""
+
+  # [3] Chọn Port
+  echo -e "${C_BOLD}┌────────────────────────────────────────────────────────────────────────┐${C_RESET}"
+  echo -e "${C_BOLD}│ 3. 🔌 CỔNG KẾT NỐI (HTTP & WEBSOCKET PORT)                            │${C_RESET}"
+  echo -e "${C_BOLD}└────────────────────────────────────────────────────────────────────────┘${C_RESET}"
+  PORT_CHOICE=""
+  prompt_user_input "👉 Nhập cổng muốn sử dụng (Mặc định: 8099): " "8099" PORT_CHOICE
+  SELECTED_PORT="${PORT_CHOICE:-8099}"
+  SELECTED_HOST="${SELECTED_HOST:-127.0.0.1}"
+  SELECTED_AUTH_MODE="${SELECTED_AUTH_MODE:-password}"
+  echo -e "✓ Đã chọn Port: ${C_GREEN}$SELECTED_PORT${C_RESET}"
+  echo ""
+fi
+
+# Tạo chuỗi bí mật session secret 32-byte ngẫu nhiên nếu chưa có
+if [ -z "$SELECTED_SESSION_SECRET" ]; then
+  SELECTED_SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" 2>/dev/null || openssl rand -hex 32 2>/dev/null || echo "hugremote_secret_$(date +%s)")
+fi
 
 # Bảng xác nhận
 echo -e "${C_BLUE}========================================================================${C_RESET}"

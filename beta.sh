@@ -203,6 +203,7 @@ if [ -f "$ENV_FILE" ]; then
   EXISTING_GOOGLE_CLIENT_ID=$(grep -E '^GOOGLE_CLIENT_ID=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
   EXISTING_GOOGLE_CLIENT_SECRET=$(grep -E '^GOOGLE_CLIENT_SECRET=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
   EXISTING_GOOGLE_ALLOWED_EMAILS=$(grep -E '^GOOGLE_ALLOWED_EMAILS=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_WORKSPACE=$(grep -E '^WORKSPACE_ROOT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
 
   if [ -n "$EXISTING_PORT" ] || [ -n "$EXISTING_AUTH_MODE" ]; then
     echo ""
@@ -213,7 +214,7 @@ if [ -f "$ENV_FILE" ]; then
     echo -e "  • Host (Bind IP)       : ${C_GREEN}${EXISTING_HOST:-127.0.0.1}${C_RESET}"
     echo -e "  • Cổng kết nối (Port)  : ${C_GREEN}${EXISTING_PORT:-8099}${C_RESET}"
     echo -e "  • Chế độ xác thực      : ${C_GREEN}${EXISTING_AUTH_MODE:-password}${C_RESET}"
-    echo -e "  • Thư mục Workspace    : ${C_GREEN}$HOME/projects${C_RESET}"
+    echo -e "  • Thư mục Workspace    : ${C_GREEN}${EXISTING_WORKSPACE:-~ (Mặc định: Thư mục người dùng)}${C_RESET}"
     echo -e "${C_BLUE}========================================================================${C_RESET}"
     echo ""
 
@@ -228,6 +229,7 @@ if [ -f "$ENV_FILE" ]; then
       SELECTED_GOOGLE_CLIENT_ID="${EXISTING_GOOGLE_CLIENT_ID}"
       SELECTED_GOOGLE_CLIENT_SECRET="${EXISTING_GOOGLE_CLIENT_SECRET}"
       SELECTED_GOOGLE_ALLOWED_EMAILS="${EXISTING_GOOGLE_ALLOWED_EMAILS}"
+      SELECTED_WORKSPACE="${EXISTING_WORKSPACE}"
       echo -e "✓ ${C_GREEN}Đã giữ nguyên cấu hình đã có. Bỏ qua các câu hỏi thiết lập.${C_RESET}"
     else
       RECONFIGURE=true
@@ -338,14 +340,13 @@ echo -e "  • Chế độ xác thực      : ${C_GREEN}$SELECTED_AUTH_MODE${C_R
 if [ "$SELECTED_AUTH_MODE" = "password" ]; then
   echo -e "  • Mật khẩu ban đầu     : ${C_YELLOW}123456${C_RESET} (Bắt buộc đổi ở lần đầu đăng nhập)"
 fi
-echo -e "  • Thư mục Workspace    : ${C_GREEN}$HOME/projects${C_RESET}"
+echo -e "  • Thư mục Workspace    : ${C_GREEN}${SELECTED_WORKSPACE:-~ (Mặc định: Thư mục người dùng)}${C_RESET}"
 echo -e "${C_BLUE}========================================================================${C_RESET}"
 echo ""
 
 # Lưu file .env dự phòng
 CONFIG_DIR="$HOME/.config/hugremote"
 mkdir -p "$CONFIG_DIR"
-mkdir -p "$HOME/projects"
 ENV_FILE="$CONFIG_DIR/.env"
 cat > "$ENV_FILE" <<EOF
 HOST=$SELECTED_HOST
@@ -356,7 +357,7 @@ APP_URL=$SELECTED_APP_URL
 GOOGLE_CLIENT_ID=$SELECTED_GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET=$SELECTED_GOOGLE_CLIENT_SECRET
 GOOGLE_ALLOWED_EMAILS=$SELECTED_GOOGLE_ALLOWED_EMAILS
-WORKSPACE_ROOT=$HOME/projects
+WORKSPACE_ROOT=$SELECTED_WORKSPACE
 ALLOWED_ROOT=$HOME
 EOF
 chmod 600 "$ENV_FILE" 2>/dev/null || true
@@ -380,7 +381,7 @@ WorkingDirectory=$INSTALL_DIR
 Environment=PORT=$SELECTED_PORT
 Environment=HOST=$SELECTED_HOST
 Environment=BASE_PATH=
-Environment=WORKSPACE_ROOT=$HOME/projects
+Environment=WORKSPACE_ROOT=$SELECTED_WORKSPACE
 Environment=ALLOWED_ROOT=$HOME
 Environment=AUTH_MODE=$SELECTED_AUTH_MODE
 Environment=SESSION_SECRET=$SELECTED_SESSION_SECRET

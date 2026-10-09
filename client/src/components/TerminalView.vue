@@ -284,6 +284,8 @@ function initTerminal() {
     convertEol: true,
     scrollback: 10000,
     allowTransparency: true,
+    macOptionIsMeta: true,
+    macOptionClickForcesSelection: true,
   });
 
   fitAddon = new FitAddon();

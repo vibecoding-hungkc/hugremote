@@ -30,7 +30,7 @@ Tùy chọn:
   -p, --port <number>        Cổng lắng nghe HTTP/WS (mặc định: 8099 hoặc $PORT)
   -h, --host <ip>            Địa chỉ IP lắng nghe (mặc định: '::' hoặc $HOST)
   -b, --base-path <path>     Tiền tố đường dẫn subpath (vd: /remote hoặc $BASE_PATH)
-  -w, --workspace <dir>      Thư mục workspace mặc định (mặc định: ~/projects hoặc $WORKSPACE_ROOT)
+  -w, --workspace <dir>      Thư mục workspace mặc định (mặc định: ~ hoặc $WORKSPACE_ROOT)
   -a, --allowed-root <dir>   Thư mục giới hạn tối đa duyệt file (mặc định: ~ hoặc $ALLOWED_ROOT)
   --auth <mode>              Auth mode: none, password, google (mặc định: none hoặc $AUTH_MODE)
   --password <pass>          Mật khẩu ban đầu (mặc định: 123456 và bắt buộc đổi lần đầu)
@@ -88,7 +88,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 // Ensure workspace directory exists
-const targetWs = process.env.WORKSPACE_ROOT || path.join(os.homedir(), 'projects');
+const targetWs = process.env.WORKSPACE_ROOT || os.homedir();
 if (!fs.existsSync(targetWs)) {
   try {
     fs.mkdirSync(targetWs, { recursive: true });

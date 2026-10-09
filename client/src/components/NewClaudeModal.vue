@@ -195,7 +195,7 @@ watch(
       return;
     }
 
-    const defaultWs = serverStore.currentServer?.workspace || '';
+    const defaultWs = serverStore.currentServer?.workspace || '~';
     cwdInput.value = defaultWs;
     suggestName(defaultWs);
     initialPrompt.value = '';

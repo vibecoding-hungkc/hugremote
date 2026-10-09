@@ -26,12 +26,7 @@ export const BASE_PATH = process.env.BASE_PATH
   ? ('/' + process.env.BASE_PATH.trim().replace(/^\/+|\/+$/g, ''))
   : '';
 
-export const LOCAL_WORKSPACE = process.env.WORKSPACE_ROOT || path.join(os.homedir(), 'projects');
-if (!fs.existsSync(LOCAL_WORKSPACE)) {
-  try {
-    fs.mkdirSync(LOCAL_WORKSPACE, { recursive: true });
-  } catch (_) {}
-}
+export const LOCAL_WORKSPACE = process.env.WORKSPACE_ROOT || os.homedir();
 export const ALLOWED_ROOT = process.env.ALLOWED_ROOT || os.homedir();
 
 // Quy đổi đường dẫn kiểu "~" hoặc "~/sub/dir" thành đường dẫn tuyệt đối thật,

@@ -53,19 +53,37 @@ class PasswordLimiter {
   }
 
   private matches(password: string): boolean {
-    return (
-      password.length === authConfig.password.length &&
-      crypto.timingSafeEqual(Buffer.from(password), Buffer.from(authConfig.password))
-    );
+    const inputHash = crypto.createHash('sha256').update(password).digest();
+    const expectedHash = crypto.createHash('sha256').update(authConfig.password).digest();
+    return crypto.timingSafeEqual(inputHash, expectedHash);
   }
 
   private getClientIp(req: FastifyRequest): string {
+    // Cloudflare Tunnel sets cf-connecting-ip directly from client socket
+    const cfIp = req.headers['cf-connecting-ip'];
+    if (typeof cfIp === 'string' && cfIp.trim()) {
+      return cfIp.trim();
+    }
+    const xRealIp = req.headers['x-real-ip'];
+    if (typeof xRealIp === 'string' && xRealIp.trim()) {
+      return xRealIp.trim();
+    }
     if ((process.env.TRUST_PROXY || '').toLowerCase() === 'true') {
       const xff = req.headers['x-forwarded-for'];
       const first = Array.isArray(xff) ? xff[0] : xff;
       if (first) return first.split(',')[0].trim();
     }
     return req.ip || req.socket.remoteAddress || 'unknown';
+  }
+
+  private cleanupExpired(now: number) {
+    if (this.attempts.size > 1000) {
+      for (const [ip, state] of this.attempts.entries()) {
+        if (state.lockedUntil > 0 && state.lockedUntil < now) {
+          this.attempts.delete(ip);
+        }
+      }
+    }
   }
 }
 

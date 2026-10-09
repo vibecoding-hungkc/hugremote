@@ -1,0 +1,24 @@
+services:
+  hugremote-security-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hugremote-pentest-container
+    ports:
+      - "127.0.0.1:8199:8099"
+    volumes:
+      - /home/hermes-admin/projects:/workspace
+    environment:
+      - NODE_ENV=production
+      - PORT=8099
+      - HOST=0.0.0.0
+      - AUTH_MODE=password
+      - AUTH_PASSWORD=PenTest_Password_2026!
+      - AUTH_MAX_ATTEMPTS=5
+      - AUTH_LOCK_MINUTES=15
+      - BASE_PATH=/remote
+      - APP_URL=https://hugtech.buaanvuive.com/remote
+      - SESSION_SECRET=pentest_super_secret_session_key_32_bytes_long_123
+      - TRUST_PROXY=true
+      - WORKSPACE_ROOT=/workspace
+      - ALLOWED_ROOT=/workspace

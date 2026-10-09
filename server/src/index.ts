@@ -23,7 +23,31 @@ async function main() {
   validateAuthConfig();
 
   await fastify.register(cors, {
-    origin: true,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (mobile apps, curl, same-origin)
+      if (!origin) return cb(null, true);
+      try {
+        const u = new URL(origin);
+        if (['localhost', '127.0.0.1', '::1'].includes(u.hostname.toLowerCase())) {
+          return cb(null, true);
+        }
+        if (process.env.APP_URL) {
+          const appUrl = new URL(process.env.APP_URL);
+          if (u.origin.toLowerCase() === appUrl.origin.toLowerCase()) {
+            return cb(null, true);
+          }
+        }
+      } catch (_) {}
+      return cb(null, false);
+    },
+    credentials: true,
+  });
+
+  // Global Security Headers
+  fastify.addHook('onSend', async (_req, reply) => {
+    reply.header('X-Content-Type-Options', 'nosniff');
+    reply.header('X-Frame-Options', 'SAMEORIGIN');
+    reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   });
 
   await fastify.register(fastifyWs);

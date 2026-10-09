@@ -4,8 +4,46 @@ import { parseSshConfig } from '../config.js';
 import { requireAuthForWs } from '../auth.js';
 import { sessionManager } from '../services/sessionManager.js';
 
+function isValidWsOrigin(req: any): boolean {
+  const origin = req.headers.origin;
+  if (!origin) return true; // Direct non-browser clients (CLI tools / scripts)
+
+  try {
+    const originUrl = new URL(origin);
+    const hostHeader = (req.headers.host || '').toString();
+    const [hostName] = hostHeader.split(':');
+
+    // Allow same host
+    if (hostName && originUrl.hostname.toLowerCase() === hostName.toLowerCase()) {
+      return true;
+    }
+
+    // Allow configured APP_URL
+    if (process.env.APP_URL) {
+      const appUrl = new URL(process.env.APP_URL);
+      if (originUrl.origin.toLowerCase() === appUrl.origin.toLowerCase()) {
+        return true;
+      }
+    }
+
+    // Allow local development loopback
+    if (['localhost', '127.0.0.1', '::1'].includes(originUrl.hostname.toLowerCase())) {
+      return true;
+    }
+  } catch (_) {
+    return false;
+  }
+
+  return false;
+}
+
 export const wsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.get('/ws/terminal', { websocket: true }, async (socket: WebSocket, req) => {
+    if (!isValidWsOrigin(req)) {
+      socket.close(1008, 'Forbidden: Invalid Origin');
+      return;
+    }
+
     if (!requireAuthForWs(req)) {
       socket.close(1008, 'Unauthorized');
       return;

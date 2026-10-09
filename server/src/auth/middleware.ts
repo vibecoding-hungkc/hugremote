@@ -12,10 +12,14 @@ export function requireAuthForWs(req: FastifyRequest): boolean {
 
 function isPublicPath(pathname: string): boolean {
   const p = stripBasePath(pathname);
+  if (p.startsWith('/api/')) {
+    return (
+      p === '/api/auth/me' ||
+      p === '/api/auth/password' ||
+      p === '/api/auth/logout'
+    );
+  }
   return (
-    p === '/api/auth/me' ||
-    p === '/api/auth/password' ||
-    p === '/api/auth/logout' ||
     p === '/login' ||
     p === '/auth/google' ||
     p === '/auth/google/callback' ||

@@ -24,6 +24,21 @@ Mobile-first UI crafted for phones with touch-optimized controls, mobile shortcu
   <img src="docs/screenshots/mobile-files.png" alt="HugRemote Mobile Files" width="31%" />
 </p>
 
+### 🤖 Claude Code Features & Tool Flow
+Rich developer experience tailored specifically for Claude Code:
+
+<p align="center">
+  <img src="docs/screenshots/claude-conversation-detail.png" alt="Claude Code Markdown & Conversation" width="49%" />
+  &nbsp;
+  <img src="docs/screenshots/claude-tool-calls.png" alt="Claude Code Tool Execution Cards" width="49%" />
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/claude-limits-dashboard.png" alt="Claude Code Usage & Limits Dashboard" width="49%" />
+  &nbsp;
+  <img src="docs/screenshots/claude-session-hub.png" alt="Claude Multi-Session Hub" width="49%" />
+</p>
+
 ---
 
 ## ⚡ Quick Install

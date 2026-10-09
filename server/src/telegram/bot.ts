@@ -50,6 +50,27 @@ export async function startTelegramBot(): Promise<void> {
     // 2. Register all commands and message handlers
     registerTelegramCommands(bot);
 
+    // Auto-register command list with Telegram for menu button and autocomplete
+    try {
+      await bot.api.setMyCommands([
+        { command: 'start', description: 'Khởi động và xem hướng dẫn' },
+        { command: 'new', description: 'Tạo phiên Claude mới (gán vào topic)' },
+        { command: 'resume', description: 'Tiếp tục hoặc liên kết phiên cũ' },
+        { command: 'compact', description: 'Nén ngữ cảnh hội thoại hiện tại' },
+        { command: 'clear', description: 'Xóa sạch lịch sử tin nhắn của phiên' },
+        { command: 'stop', description: 'Dừng tác vụ Claude đang chạy' },
+        { command: 'status', description: 'Xem trạng thái phiên & quota Claude' },
+        { command: 'sessions', description: 'Danh sách các phiên làm việc' },
+        { command: 'terminal', description: 'Chạy lệnh Bash tại thư mục hiện tại' },
+        { command: 'cd', description: 'Đổi thư mục làm việc của phiên' },
+        { command: 'pwd', description: 'Xem thư mục làm việc hiện tại' },
+        { command: 'topic', description: 'Quản lý chế độ Topic Mode' },
+        { command: 'help', description: 'Xem bảng hướng dẫn chi tiết' },
+      ]);
+    } catch (cmdErr) {
+      console.warn('[TelegramBot] Không thể cập nhật danh sách lệnh setMyCommands:', cmdErr);
+    }
+
     // 3. Global error handler
     bot.catch((err) => {
       console.error('[TelegramBot] Uncaught error in bot update handler:', err.error);

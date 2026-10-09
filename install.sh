@@ -86,7 +86,7 @@ else
   INSTALL_DIR="${HUGREMOTE_DIR:-$HOME/.hugremote}"
   echo -e "✓ Thư mục đích: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 
-  TARGET_REF="${HUGREMOTE_REF:-v1.0.0}"
+  TARGET_REF="${HUGREMOTE_REF:-v1.0.1}"
   if [ -d "$INSTALL_DIR/.git" ]; then
     echo "  Đã tồn tại repo, đang cập nhật mã nguồn ($TARGET_REF)..."
     cd "$INSTALL_DIR"

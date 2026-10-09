@@ -43,7 +43,7 @@ Rich developer experience tailored specifically for Claude Code:
 
 ## ⚡ Quick Install
 
-**Stable Release (v1.0.0):**
+**Stable Release (v1.0.1):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
 ```

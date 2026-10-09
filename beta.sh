@@ -90,8 +90,10 @@ else
   if [ -d "$INSTALL_DIR/.git" ]; then
     echo "  Đã tồn tại repo, đang cập nhật mã nguồn mới nhất (nhánh: $TARGET_REF - Beta)..."
     cd "$INSTALL_DIR"
-    git fetch origin "$TARGET_REF"
-    git checkout "$TARGET_REF" 2>/dev/null || git checkout -B "$TARGET_REF" "origin/$TARGET_REF"
+    git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null || true
+    git fetch origin "$TARGET_REF" || git fetch origin
+    git checkout -B "$TARGET_REF" FETCH_HEAD 2>/dev/null || git checkout "$TARGET_REF" 2>/dev/null || git reset --hard FETCH_HEAD
+    git reset --hard FETCH_HEAD 2>/dev/null || true
     git pull origin "$TARGET_REF" 2>/dev/null || true
   else
     echo "  Đang tải mã nguồn HugRemote mới nhất (nhánh: $TARGET_REF - Beta)..."

@@ -95,6 +95,8 @@ export function registerTelegramCommands(bot: Bot) {
 
     if (sessionCwd.startsWith('~')) {
       sessionCwd = path.join(os.homedir(), sessionCwd.slice(1));
+    } else if (!path.isAbsolute(sessionCwd)) {
+      sessionCwd = path.resolve(config.defaultCwd, sessionCwd);
     }
     if (!fs.existsSync(sessionCwd)) {
       try {

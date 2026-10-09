@@ -56,9 +56,10 @@ export const useFileStore = defineStore('file', () => {
 
   async function openFile(relPath: string) {
     loading.value = true;
+    error.value = null;
     try {
       const serverId = serverStore.currentServerId;
-      const res = await fetch(apiUrl(`/api/file?serverId=${encodeURIComponent(serverId)}&path=${encodeURIComponent(relPath)}`));
+      const res = await fetch(apiUrl(`/api/fs/read?serverId=${encodeURIComponent(serverId)}&path=${encodeURIComponent(relPath)}`));
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to read file');
@@ -72,7 +73,8 @@ export const useFileStore = defineStore('file', () => {
         isDirty: false,
       };
 
-      if (data.name.endsWith('.md')) {
+      const lowerName = data.name.toLowerCase();
+      if (lowerName.endsWith('.md') || lowerName.endsWith('.markdown')) {
         fileMode.value = 'preview';
       } else {
         fileMode.value = 'code';
@@ -89,7 +91,7 @@ export const useFileStore = defineStore('file', () => {
     if (!activeFile.value) return;
     try {
       const serverId = serverStore.currentServerId;
-      const res = await fetch(apiUrl('/api/file'), {
+      const res = await fetch(apiUrl('/api/fs/save'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

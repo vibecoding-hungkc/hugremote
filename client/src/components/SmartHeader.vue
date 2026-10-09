@@ -86,7 +86,7 @@
       <!-- Actions: Editor -->
       <template v-else-if="activeTab === 'editor'">
         <button
-          v-if="fileStore.activeFile?.name.endsWith('.md')"
+          v-if="isMarkdownFile"
           class="btn-icon-action"
           @click="fileStore.fileMode = fileStore.fileMode === 'code' ? 'preview' : 'code'"
           :title="fileStore.fileMode === 'code' ? t('header.preview') : t('header.editCode')"
@@ -146,6 +146,11 @@ const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
 const { t } = useI18n();
+
+const isMarkdownFile = computed(() => {
+  const name = fileStore.activeFile?.name?.toLowerCase() || '';
+  return name.endsWith('.md') || name.endsWith('.markdown');
+});
 
 interface BreadcrumbPart {
   name: string;

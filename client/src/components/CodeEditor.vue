@@ -2,13 +2,14 @@
   <div class="code-editor-container">
     <!-- View 1: Markdown Preview Mode -->
     <div
-      v-if="fileStore.fileMode === 'preview' && fileStore.activeFile?.name.endsWith('.md')"
+      v-if="fileStore.fileMode === 'preview' && isMarkdown"
       class="markdown-preview-box"
       v-html="renderedMarkdown"
+      @click="handlePreviewClick"
     ></div>
 
     <!-- View 2: CodeMirror 6 Editor -->
-    <div v-show="fileStore.fileMode === 'code' || !fileStore.activeFile?.name.endsWith('.md')" class="cm-wrapper" ref="editorContainer"></div>
+    <div v-show="fileStore.fileMode === 'code' || !isMarkdown" class="cm-wrapper" ref="editorContainer"></div>
 
     <!-- Quick Programming Accessory Keybar -->
     <div class="editor-keybar">
@@ -49,17 +50,31 @@ const fileStore = useFileStore();
 const editorContainer = ref<HTMLDivElement | null>(null);
 let view: EditorView | null = null;
 
+const isMarkdown = computed(() => {
+  const name = fileStore.activeFile?.name?.toLowerCase() || '';
+  return name.endsWith('.md') || name.endsWith('.markdown');
+});
+
 const renderedMarkdown = computed(() => {
   if (!fileStore.activeFile?.content) return '';
   return marked.parse(fileStore.activeFile.content);
 });
 
+function handlePreviewClick(e: MouseEvent) {
+  const target = (e.target as HTMLElement)?.closest('a');
+  if (target && target.href) {
+    e.preventDefault();
+    window.open(target.href, '_blank', 'noopener,noreferrer');
+  }
+}
+
 function getLanguageExtension(filename: string) {
-  if (filename.endsWith('.js') || filename.endsWith('.ts')) return javascript();
-  if (filename.endsWith('.json')) return json();
-  if (filename.endsWith('.md')) return markdown();
-  if (filename.endsWith('.py')) return python();
-  if (filename.endsWith('.html') || filename.endsWith('.vue')) return html();
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.js') || lower.endsWith('.ts')) return javascript();
+  if (lower.endsWith('.json')) return json();
+  if (lower.endsWith('.md') || lower.endsWith('.markdown')) return markdown();
+  if (lower.endsWith('.py')) return python();
+  if (lower.endsWith('.html') || lower.endsWith('.vue')) return html();
   return [];
 }
 

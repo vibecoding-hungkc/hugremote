@@ -103,7 +103,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     }
   });
 
-  fastify.get<{ Querystring: { serverId?: string; path: string } }>('/api/file', async (request, reply) => {
+  const handleReadFile = async (request: any, reply: any) => {
     const serverId = request.query.serverId || 'server-local';
     const filePath = request.query.path;
     if (!filePath) return reply.status(400).send({ error: 'path is required' });
@@ -127,9 +127,13 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         return reply.status(500).send({ error: err.message });
       }
     }
-  });
+  };
 
-  fastify.post<{ Body: { serverId?: string; path: string; content: string } }>('/api/file', async (request, reply) => {
+  // Support both /api/fs/read and legacy /api/file
+  fastify.get<{ Querystring: { serverId?: string; path: string } }>('/api/fs/read', handleReadFile);
+  fastify.get<{ Querystring: { serverId?: string; path: string } }>('/api/file', handleReadFile);
+
+  const handleSaveFile = async (request: any, reply: any) => {
     const { serverId = 'server-local', path: filePath, content } = request.body || {};
     if (!filePath) return reply.status(400).send({ error: 'path is required' });
 
@@ -154,7 +158,11 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         return reply.status(500).send({ error: err.message });
       }
     }
-  });
+  };
+
+  // Support both /api/fs/save and legacy /api/file
+  fastify.post<{ Body: { serverId?: string; path: string; content: string } }>('/api/fs/save', handleSaveFile);
+  fastify.post<{ Body: { serverId?: string; path: string; content: string } }>('/api/file', handleSaveFile);
 
   fastify.post<{
     Body: {

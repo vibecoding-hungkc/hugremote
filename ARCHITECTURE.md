@@ -28,6 +28,7 @@ HugRemote is a mobile-first web IDE and terminal with a Claude Code chat interfa
 │       ├── auth/                    # Auth config, sessions, middleware, routes
 │       ├── routes/                  # Fastify HTTP and WebSocket routes
 │       ├── services/                # PTY, SSH, filesystem, Claude CLI services
+│       ├── telegram/                # Telegram bot, topic manager, streaming bridge
 │       ├── auth.ts                  # Auth barrel exports
 │       ├── config.ts                # Runtime config and SSH server discovery
 │       └── index.ts                 # Fastify bootstrap
@@ -239,6 +240,28 @@ All file actions go through backend APIs and `fsService.ts`:
 - Save edited content.
 
 The server enforces `ALLOWED_ROOT` to prevent browsing outside the allowed filesystem boundary.
+
+## Telegram Bot Integration Architecture
+
+HugRemote includes an optional Telegram Bot integration (`server/src/telegram/`) that allows users to interact with Claude Code and execute terminal commands from any Telegram client.
+
+### Core Modules
+- `config.ts`: Loads `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USERS`, `TELEGRAM_TOPIC_MODE`, and `TELEGRAM_DEFAULT_CWD`.
+- `bot.ts`: Initializes the `grammy` Bot instance, installs zero-trust authorization middleware, and manages the long-polling lifecycle linked to Fastify server startup/shutdown.
+- `topicManager.ts`: Manages multi-session topic mode (Threaded Mode / Forum Topics), persists bindings between `(chatId, threadId)` and Claude `sessionId` to `~/.config/hugremote/telegram_topics.json`, and handles automatic topic renaming.
+- `claudeBridge.ts`: Streams Claude Code CLI JSON events into Telegram messages in real time with debounced edits (1200ms) to respect Telegram API rate limits, formats tool execution cards, and uploads long responses (> 3800 chars) to the file server with clickable links.
+- `terminalRunner.ts`: Executes direct shell commands (`/terminal <cmd>`), capturing execution time, exit codes, and output with file server offloading for large outputs.
+- `commands.ts`: Registers bot commands:
+  - `/new [name] [cwd]`: Creates a new session and binds to the active topic.
+  - `/resume [id]`: Connects to an existing session or lists available sessions.
+  - `/compact`: Triggers context compression/compaction.
+  - `/clear`: Clears message history of the current session.
+  - `/stop` / `/abort`: Cancels in-flight Claude CLI process.
+  - `/status`: Displays active session metrics and Claude quota limits.
+  - `/sessions`: Lists all available sessions.
+  - `/terminal <cmd>`: Runs shell command in workspace.
+  - `/cd <path>` and `/pwd`: Changes and inspects working directory.
+  - `/topic [on|off|<session_id>]`: Configures topic mode and topic bindings.
 
 ## Deployment Modes
 

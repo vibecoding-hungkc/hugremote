@@ -9,6 +9,7 @@ import { PORT, HOST, BASE_PATH } from './config.js';
 import { apiRoutes } from './routes/api.js';
 import { wsRoutes } from './routes/ws.js';
 import { authGuard, authRoutes, validateAuthConfig } from './auth.js';
+import { startTelegramBot, stopTelegramBot } from './telegram/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,10 +130,17 @@ async function main() {
     });
   }
 
+  fastify.addHook('onClose', async () => {
+    await stopTelegramBot();
+  });
+
   try {
     await fastify.listen({ port: PORT, host: HOST });
     const baseMsg = BASE_PATH ? ` (Base path prefix: ${BASE_PATH})` : ' (No prefix)';
     console.log(`🚀 HugRemote Server running at http://${HOST}:${PORT}${baseMsg}`);
+
+    // Kích hoạt Telegram Bot nếu có cấu hình TELEGRAM_BOT_TOKEN
+    await startTelegramBot();
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

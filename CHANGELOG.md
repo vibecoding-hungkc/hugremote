@@ -1,5 +1,24 @@
 # 📋 Changelog — HugRemote
 
+## [Unreleased] - feature/telegram
+
+### 🤖 Tính năng mới: Tích hợp Telegram Bot
+- **Giao tiếp Claude Code qua Telegram**: Cho phép gửi prompt, nhận phản hồi trực tiếp, theo dõi tiến trình suy nghĩ (thinking) và các thẻ gọi công cụ (tool call cards: Bash, Read, Edit) thời gian thực trên điện thoại.
+- **Chế độ Topic (Forum / Threaded Mode)**: Hỗ trợ chia nhánh phiên làm việc theo Topic Telegram — mỗi Topic là một phiên Claude độc lập với ngữ cảnh và thư mục riêng. Root chat đóng vai trò là Control Lobby.
+- **Bộ lệnh quản lý phiên đầy đủ**:
+  - `/new`: Tạo phiên làm việc mới và tự động gán vào Topic.
+  - `/resume`: Khôi phục hoặc chuyển đổi sang phiên làm việc cũ.
+  - `/compact`: Nén và tóm tắt ngữ cảnh cuộc hội thoại để tiết kiệm token.
+  - `/clear`: Xóa sạch lịch sử tin nhắn của phiên, giữ nguyên thư mục làm việc.
+  - `/stop` (alias `/abort`): Huỷ ngay tiến trình Claude đang chạy dở.
+  - `/status` (alias `/limits`): Xem thông tin phiên hiện tại và hạn mức quota 5 giờ/tuần của Claude.
+  - `/sessions`: Xem danh sách tất cả các phiên làm việc.
+- **Thực thi Terminal trực tiếp (`/terminal`)**: Cho phép chạy lệnh Bash trực tiếp trên máy chủ tại thư mục làm việc hiện tại, trả về mã thoát và thời gian thực thi.
+- **Tự động lưu log & link File Server**: Nếu output terminal hoặc câu trả lời dài vượt quá giới hạn Telegram (4096 ký tự), bot tự động lưu file log và cung cấp link xem toàn văn qua File Server nội bộ `http://hugtech.buaanvuive.com/file/...`.
+- **Bảo mật Zero-Trust**: Whitelist `TELEGRAM_ALLOWED_USERS` chặn đứng người lạ, không tốn tài nguyên khi chưa có token (`TELEGRAM_BOT_TOKEN`).
+
+---
+
 ## [v1.0.1] - 2026-10-09
 
 ### 🐛 Sửa lỗi (Bug Fixes)

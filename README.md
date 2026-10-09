@@ -4,6 +4,28 @@
 
 ---
 
+## 📸 Screenshots & Preview
+
+### 💻 Desktop Experience
+Full-featured desktop workspace with multi-tab terminal, file explorer, and Claude Code assistant:
+
+<p align="center">
+  <img src="docs/screenshots/desktop-claude.png" alt="HugRemote Desktop Claude Assistant" width="100%" />
+</p>
+
+### 📱 Mobile Experience
+Mobile-first UI crafted for phones with touch-optimized controls, mobile shortcut bar, bottom-sheet modals, and Claude Code integration:
+
+<p align="center">
+  <img src="docs/screenshots/mobile-claude.png" alt="HugRemote Mobile Claude Assistant" width="31%" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobile-terminal.png" alt="HugRemote Mobile Terminal" width="31%" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobile-files.png" alt="HugRemote Mobile Files" width="31%" />
+</p>
+
+---
+
 ## ⚡ Quick Install
 
 ```bash
@@ -123,12 +145,12 @@ https://hugtech.buaanvuive.com/remote/auth/google/callback
 
 ## 📱 Key Features
 
-- Mobile-first PWA layout with iOS safe-area support.
-- Real PTY terminal over WebSocket for local and SSH-backed sessions.
-- Mobile terminal shortcut bar and expanded quick-key drawer.
-- Claude Code UI connected to the real Claude CLI with streaming thinking/tool cards.
-- Claude stop button sends `SIGINT` instead of generating fake output.
-- File explorer, Markdown preview, syntax-highlighted code viewer.
+- **Mobile-First PWA**: Scoped CSS, dark theme, iOS safe-area support, and touch-first ergonomics.
+- **Claude Code Mobile UI**: Real Claude CLI process integration with streaming thinking, tool invocation cards (Bash, Read, Edit), compact task mode, token & usage telemetry popup, and stop button (`SIGINT`).
+- **Real PTY Terminal**: Full-featured xterm.js over WebSocket with mobile shortcut bar (`Esc`, `Tab`, `Ctrl+C`, `Ctrl+D`) and expandable quick-drawer.
+- **File Explorer**: Browse directories, search, create/rename/delete items, folder tree picker modal, and syntax-highlighted code viewer.
+- **Multi-Language (i18n)**: Instant switching between English (🇺🇸) and Vietnamese (🇻🇳).
+- **Flexible Auth**: Zero-configuration `none`, password-only with brute-force lockout, or Google OAuth 2.0 with email whitelist.
 
 ---
 

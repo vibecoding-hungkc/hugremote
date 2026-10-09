@@ -18,9 +18,38 @@ export class FsService {
     const target = requestedPath
       ? path.resolve(base, requestedPath)
       : base;
-    if (!target.startsWith(ALLOWED_ROOT)) {
-      throw new Error('Access denied: Path is outside permitted root');
+
+    const canonicalRoot = fs.existsSync(ALLOWED_ROOT)
+      ? fs.realpathSync(ALLOWED_ROOT)
+      : path.resolve(ALLOWED_ROOT);
+
+    const rootWithSep = canonicalRoot.endsWith(path.sep) ? canonicalRoot : canonicalRoot + path.sep;
+
+    // If target exists, dereference symlinks to inspect real destination
+    if (fs.existsSync(target)) {
+      const canonicalTarget = fs.realpathSync(target);
+      const isAllowed = canonicalTarget === canonicalRoot || canonicalTarget.startsWith(rootWithSep);
+      if (!isAllowed) {
+        throw new Error('Access denied: Path resolves outside permitted root (symlink escape detected)');
+      }
+      return canonicalTarget;
     }
+
+    // If target does not exist yet (e.g. creating a new file/dir), verify parent directory
+    const parentDir = path.dirname(target);
+    if (fs.existsSync(parentDir)) {
+      const canonicalParent = fs.realpathSync(parentDir);
+      const isAllowed = canonicalParent === canonicalRoot || canonicalParent.startsWith(rootWithSep);
+      if (!isAllowed) {
+        throw new Error('Access denied: Parent directory resolves outside permitted root');
+      }
+    } else {
+      const isAllowed = target === canonicalRoot || target.startsWith(rootWithSep);
+      if (!isAllowed) {
+        throw new Error('Access denied: Path is outside permitted root');
+      }
+    }
+
     return target;
   }
 

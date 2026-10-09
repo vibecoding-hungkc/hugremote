@@ -36,8 +36,11 @@ export function decodeSigned(value: string | undefined): string | null {
   const raw = value.slice(0, idx);
   const sig = value.slice(idx + 1);
   const expected = sign(raw);
+  const sigBuf = Buffer.from(sig);
+  const expBuf = Buffer.from(expected);
+  if (sigBuf.length !== expBuf.length) return null;
   try {
-    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+    if (!crypto.timingSafeEqual(sigBuf, expBuf)) return null;
   } catch (_) {
     return null;
   }

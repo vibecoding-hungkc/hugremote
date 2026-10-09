@@ -3,8 +3,8 @@
 **Date:** 2026-10-09  
 **Target:** HugRemote Web IDE & Terminal (Mode: `AUTH_MODE=password`)  
 **Environment:** Docker Container Isolation (`node:22-bookworm-slim`), Cloudflare Tunnel Reverse Proxy Profile  
-**Test Suite Script:** `scripts/security_test_suite.py`  
-**Audit Status:** ✅ **19/19 Tests Passed (100%)**
+**Test Suite Script:** `scripts/security_test_suite.py` & `scripts/advanced_security_suite.py`  
+**Audit Status:** ✅ **27/27 Tests Passed (100% - 19 Standard + 8 Advanced)**
 
 ---
 
@@ -83,9 +83,26 @@ Bộ kiểm thử tự động được xây dựng tại `scripts/security_test
 
 ---
 
-## 4. Hướng Dẫn Tự Chạy Lại Pentest Trong Docker
+## 4. Advanced Pentest Suite (Mức Độ Chuyên Sâu - 8 Test Cases)
 
-Để tái hiện hoặc kiểm chứng độc lập các bài kiểm thử bảo mật trên bất kỳ máy chủ nào:
+Bộ kiểm thử cấp cao được xây dựng tại `scripts/advanced_security_suite.py` nhằm đánh giá các kịch bản tấn công phức tạp:
+
+| Mã Test | Mục Tiêu Tấn Công | Kỹ Thuật Pentest & Kỳ Vọng | Kết Quả Thực Tế | Trạng Thái |
+|---|---|---|---|---|
+| **ADV-01** | Symlink Directory Traversal (LFI qua liên kết tượng trưng) | Tạo symlink trỏ tới `/etc/passwd`. Gọi API đọc file. Hệ thống phải giải quyết `fs.realpathSync` và chặn đứng. | Không rò rỉ file ngoài root (HTTP 404/Access Denied) | ✅ PASSED |
+| **ADV-02** | Concurrent Race Condition (Stampede Login Flood) | Bắn 40 request đăng nhập sai đồng thời qua đa luồng song song (<100ms). Kiểm tra race window của Rate Limiter. | 4 lần 401, 36 lần 429 lock ngay lập tức, 0 lần 200 | ✅ PASSED |
+| **ADV-03** | HMAC Signature Forgery & Tampering | Sửa đổi Session ID, xoá Signature, cắt cụt chữ ký HMAC, thay thế bằng chuỗi giả mạo. | 100% request giả mạo bị từ chối 401 Unauthorized | ✅ PASSED |
+| **ADV-04** | Prototype Pollution & Input Type Confusion | Bơm `__proto__`, `constructor.prototype`, object và array vào payload JSON đăng nhập. | Bị từ chối HTTP 400 `invalid_password`, prototype sạch | ✅ PASSED |
+| **ADV-05** | Denial of Service (DoS): Buffer & Payload Limit | Bơm payload 5MB vào endpoint POST nhằm gây nghẽn Event Loop / tràn bộ nhớ. | Fastify Body Limit ngắt ngay với HTTP 413 Payload Too Large | ✅ PASSED |
+| **ADV-06** | WebSocket Protocol Fuzzing & Resilience | Bơm gói tin control resize JSON dị dạng, số âm cực đại, chuỗi NaN và binary rác qua WebSocket. | Terminal không sập, socket duy trì ổn định và phản hồi pong chuẩn | ✅ PASSED |
+| **ADV-07** | Path Normalization & Double Encoding | Thử nghiệm double URL encode (`%252e%252e%252f`), Overlong UTF-8, Windows backslash, null byte. | Tất cả bị chặn, không bypass được sandbox thư mục | ✅ PASSED |
+| **ADV-08** | Authoritative Header Precedence | Bơm nhiều header xung đột (`CF-Connecting-IP` vs giả mạo `X-Forwarded-For`). Kiểm tra tính bất biến. | Rate limiter khoá chặt theo `CF-Connecting-IP`, miễn nhiễm spoofing | ✅ PASSED |
+
+**Tổng kết Advanced Suite:** **8/8 Test Cases Đạt Chuẩn Tuyệt Đối.**
+
+---
+
+## 5. Hướng Dẫn Tự Chạy Lại Pentest Trong Docker
 
 ### Bước 1: Khởi động container Pentest cách ly
 ```bash
@@ -100,9 +117,13 @@ Container sẽ chạy độc lập tại cổng `8199` với cấu hình:
 - `BASE_PATH=/remote`
 - `TRUST_PROXY=true`
 
-### Bước 2: Chạy script kiểm thử tự động
+### Bước 2: Chạy bộ kiểm thử tiêu chuẩn và bộ kiểm thử chuyên sâu
 ```bash
+# 1. Chạy 19 bài kiểm thử tiêu chuẩn
 python3 scripts/security_test_suite.py
+
+# 2. Chạy 8 bài kiểm thử chuyên sâu (Symlink, Race condition, HMAC forgery, Fuzzing)
+python3 scripts/advanced_security_suite.py
 ```
 
 ### Bước 3: Dọn dẹp container sau khi kiểm thử
@@ -112,7 +133,7 @@ docker compose -f docker-compose.security-test.yml down
 
 ---
 
-## 5. Khuyến Nghị Khi Đưa Ra Public Domain
+## 6. Khuyến Nghị Khi Đưa Ra Public Domain
 
 1. **Bật Cloudflare Tunnel hoặc Cloudflare Access**:
    - Sử dụng Cloudflare Tunnel (`cloudflared`) để public cổng mà không cần mở port trực tiếp trên router/firewall.

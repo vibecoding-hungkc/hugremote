@@ -24,7 +24,12 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ success: false, error: 'password_auth_disabled' });
     }
 
-    const result = passwordLimiter.check(req, req.body?.password || '');
+    const rawPassword = req.body?.password;
+    if (typeof rawPassword !== 'string' || rawPassword.length === 0 || rawPassword.length > 256) {
+      return reply.status(400).send({ success: false, error: 'invalid_password' });
+    }
+
+    const result = passwordLimiter.check(req, rawPassword);
     if (result.ok) {
       sessionStore.create(reply, { provider: 'password' });
       return { success: true };

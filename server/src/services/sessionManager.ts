@@ -16,6 +16,7 @@ export interface UnifiedSession {
 
 class SessionManager {
   private sessions = new Map<string, UnifiedSession>();
+  private readonly MAX_SESSIONS = 50;
 
   async getOrCreateSession(
     serverId: string,
@@ -30,6 +31,10 @@ class SessionManager {
     if (existing) {
       existing.lastActive = Date.now();
       return existing;
+    }
+
+    if (this.sessions.size >= this.MAX_SESSIONS) {
+      throw new Error(`Maximum concurrent terminal sessions reached (${this.MAX_SESSIONS})`);
     }
 
     let backend: LocalPtyInstance | RemotePtyInstance;

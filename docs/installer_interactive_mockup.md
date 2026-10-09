@@ -3,7 +3,7 @@
 Tài liệu này mô tả kịch bản và giao diện dòng lệnh (CLI Interactive Mockup) khi người dùng chạy script cài đặt:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/packaged/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
 ```
 
 ---

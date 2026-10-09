@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 #  🐴 HugRemote — Mobile-First Web IDE & Terminal Installer
-#  One-line install: curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/packaged/install.sh | bash
+#  One-line install: curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
 # ==============================================================================
 
 set -e
@@ -86,18 +86,19 @@ else
   INSTALL_DIR="${HUGREMOTE_DIR:-$HOME/.hugremote}"
   echo -e "✓ Thư mục đích: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 
+  TARGET_REF="${HUGREMOTE_REF:-v1.0.0}"
   if [ -d "$INSTALL_DIR/.git" ]; then
-    echo "  Đã tồn tại repo, đang cập nhật mã nguồn mới nhất..."
+    echo "  Đã tồn tại repo, đang cập nhật mã nguồn ($TARGET_REF)..."
     cd "$INSTALL_DIR"
-    git fetch origin
-    git checkout packaged || git checkout main
-    git pull
+    git fetch --tags origin
+    git checkout "tags/$TARGET_REF" 2>/dev/null || git checkout "$TARGET_REF" 2>/dev/null || git checkout main
+    git pull origin main 2>/dev/null || true
   else
-    echo "  Đang tải mã nguồn HugRemote..."
+    echo "  Đang tải mã nguồn HugRemote (phiên bản: $TARGET_REF)..."
     mkdir -p "$INSTALL_DIR"
     REPO_URL="${HUGREMOTE_REPO_URL:-https://github.com/vibecoding-hungkc/hugremote.git}"
     if command -v git >/dev/null 2>&1; then
-      git clone -b packaged "$REPO_URL" "$INSTALL_DIR" 2>/dev/null || \
+      git clone --branch "$TARGET_REF" --depth 1 "$REPO_URL" "$INSTALL_DIR" 2>/dev/null || \
       git clone "$REPO_URL" "$INSTALL_DIR"
     else
       echo -e "${C_RED}❌ Vui lòng cài đặt git hoặc chạy từ npm: npm install -g hugremote${C_RESET}"

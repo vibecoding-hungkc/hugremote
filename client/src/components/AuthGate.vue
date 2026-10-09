@@ -9,7 +9,48 @@
         </div>
       </div>
 
-      <div v-if="auth.mode === 'password'" class="auth-form" @keyup.enter="submitPassword">
+      <!-- Mandatory first-time password change -->
+      <div v-if="auth.mustChangePassword" class="auth-form" @keyup.enter="submitNewPassword">
+        <div class="must-change-badge">
+          <i class="ri-shield-keyhole-line"></i>
+          <span>{{ t('auth.changePasswordTitle') }}</span>
+        </div>
+        <p class="must-change-desc">{{ t('auth.changePasswordDesc') }}</p>
+
+        <label class="auth-label" for="auth-new-password">{{ t('auth.newPasswordLabel') }}</label>
+        <input
+          id="auth-new-password"
+          ref="newPasswordInput"
+          v-model="newPassword"
+          class="auth-input"
+          type="password"
+          autocomplete="new-password"
+          :placeholder="t('auth.newPasswordPlaceholder')"
+          :disabled="submitting"
+        />
+
+        <label class="auth-label" for="auth-confirm-password">{{ t('auth.confirmPasswordLabel') }}</label>
+        <input
+          id="auth-confirm-password"
+          v-model="confirmPassword"
+          class="auth-input"
+          type="password"
+          autocomplete="new-password"
+          :placeholder="t('auth.confirmPasswordPlaceholder')"
+          :disabled="submitting"
+        />
+
+        <button
+          class="auth-button"
+          :disabled="submitting || !newPassword || !confirmPassword"
+          @click="submitNewPassword"
+        >
+          <span v-if="submitting" class="auth-spinner"></span>
+          <span>{{ submitting ? t('auth.unlocking') : t('auth.saveNewPassword') }}</span>
+        </button>
+      </div>
+
+      <div v-else-if="auth.mode === 'password'" class="auth-form" @keyup.enter="submitPassword">
         <label class="auth-label" for="auth-password">{{ t('auth.passwordLabel') }}</label>
         <input
           id="auth-password"
@@ -59,13 +100,18 @@ import { useI18n } from '../composables/useI18n.js';
 const auth = useAuthStore();
 const { t } = useI18n();
 const password = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+const validationError = ref('');
 const submitting = ref(false);
 const passwordInput = ref<HTMLInputElement | null>(null);
+const newPasswordInput = ref<HTMLInputElement | null>(null);
 let lockTimer: ReturnType<typeof setInterval> | null = null;
 
-const displayError = computed(() => auth.error);
+const displayError = computed(() => validationError.value || auth.error);
 
 async function submitPassword() {
+  validationError.value = '';
   if (!password.value || submitting.value || auth.retryAfterSeconds > 0) return;
   submitting.value = true;
   const ok = await auth.loginPassword(password.value);
@@ -73,11 +119,44 @@ async function submitPassword() {
   if (!ok) {
     password.value = '';
     focusPassword();
+  } else if (auth.mustChangePassword) {
+    nextTick(() => newPasswordInput.value?.focus());
+  }
+}
+
+async function submitNewPassword() {
+  validationError.value = '';
+  if (newPassword.value.length < 6) {
+    validationError.value = t('auth.passwordTooShort');
+    return;
+  }
+  if (newPassword.value === '123456') {
+    validationError.value = t('auth.cannotUseDefault');
+    return;
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    validationError.value = t('auth.passwordMismatch');
+    return;
+  }
+
+  submitting.value = true;
+  const ok = await auth.changePassword(newPassword.value);
+  submitting.value = false;
+  if (!ok) {
+    newPassword.value = '';
+    confirmPassword.value = '';
+    nextTick(() => newPasswordInput.value?.focus());
   }
 }
 
 function focusPassword() {
-  nextTick(() => passwordInput.value?.focus());
+  nextTick(() => {
+    if (auth.mustChangePassword) {
+      newPasswordInput.value?.focus();
+    } else {
+      passwordInput.value?.focus();
+    }
+  });
 }
 
 watch(() => auth.retryAfterSeconds, (seconds) => {
@@ -222,6 +301,27 @@ onUnmounted(() => {
 .auth-button.google {
   background: #f8fafc;
   color: #0f172a;
+}
+
+.must-change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.must-change-desc {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #cbd5e1;
+  margin-bottom: 8px;
 }
 
 .auth-error {

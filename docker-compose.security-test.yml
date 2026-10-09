@@ -13,7 +13,6 @@ services:
       - PORT=8099
       - HOST=0.0.0.0
       - AUTH_MODE=password
-      - AUTH_PASSWORD=PenTest_Password_2026!
       - AUTH_MAX_ATTEMPTS=5
       - AUTH_LOCK_MINUTES=15
       - BASE_PATH=/remote

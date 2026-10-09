@@ -15,7 +15,6 @@ export const authConfig = {
   mode: normalizeMode(process.env.AUTH_MODE),
   appUrl: (process.env.APP_URL || `http://localhost:${process.env.PORT || '8099'}`).replace(/\/+$/, ''),
   sessionSecret: process.env.SESSION_SECRET || ephemeralSecret,
-  password: process.env.AUTH_PASSWORD || '',
   maxAttempts: Math.max(1, parseInt(process.env.AUTH_MAX_ATTEMPTS || '5', 10)),
   lockMinutes: Math.max(1, parseInt(process.env.AUTH_LOCK_MINUTES || '15', 10)),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -32,10 +31,7 @@ export const authConfig = {
 };
 
 export function validateAuthConfig() {
-  if (authConfig.mode === 'password' && !authConfig.password) {
-    throw new Error('AUTH_MODE=password requires AUTH_PASSWORD');
-  }
-
+  // Mode password uses default '123456' on first run and enforces change-password
   if (authConfig.mode === 'google') {
     const missing = [
       !authConfig.googleClientId && 'GOOGLE_CLIENT_ID',

@@ -1,6 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 import crypto from 'crypto';
 import { authConfig } from './config.js';
+import { passwordStore } from './passwordStore.js';
 import type { AttemptRecord } from './types.js';
 
 export type PasswordCheckResult =
@@ -14,6 +15,7 @@ class PasswordLimiter {
   check(req: FastifyRequest, password: string): PasswordCheckResult {
     const ip = this.getClientIp(req);
     const now = Date.now();
+    this.cleanupExpired(now);
     const state = this.attempts.get(ip) || { failedCount: 0, lockedUntil: 0 };
 
     if (state.lockedUntil > now) {
@@ -53,9 +55,7 @@ class PasswordLimiter {
   }
 
   private matches(password: string): boolean {
-    const inputHash = crypto.createHash('sha256').update(password).digest();
-    const expectedHash = crypto.createHash('sha256').update(authConfig.password).digest();
-    return crypto.timingSafeEqual(inputHash, expectedHash);
+    return passwordStore.verify(password);
   }
 
   private getClientIp(req: FastifyRequest): string {

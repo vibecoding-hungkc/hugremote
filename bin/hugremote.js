@@ -33,7 +33,7 @@ Tùy chọn:
   -w, --workspace <dir>      Thư mục workspace mặc định (mặc định: ~/projects hoặc $WORKSPACE_ROOT)
   -a, --allowed-root <dir>   Thư mục giới hạn tối đa duyệt file (mặc định: ~ hoặc $ALLOWED_ROOT)
   --auth <mode>              Auth mode: none, password, google (mặc định: none hoặc $AUTH_MODE)
-  --password <pass>          Plain password cho password mode (hoặc $AUTH_PASSWORD)
+  --password <pass>          Mật khẩu ban đầu (mặc định: 123456 và bắt buộc đổi lần đầu)
   --app-url <url>            Public app URL cho Google OAuth (hoặc $APP_URL)
   -v, --version              Hiển thị phiên bản
   --help                     Hiển thị hướng dẫn này

@@ -5,6 +5,7 @@ export interface AuthUser {
   email?: string;
   name?: string;
   avatar?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface SessionRecord {

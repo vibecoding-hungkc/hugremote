@@ -14,7 +14,12 @@ export interface FileEntry {
 
 export class FsService {
   private resolveLocalPath(requestedPath: string, workspaceOverride?: string): string {
-    const base = workspaceOverride || LOCAL_WORKSPACE;
+    let base = workspaceOverride || LOCAL_WORKSPACE;
+    if (!fs.existsSync(base)) {
+      try {
+        fs.mkdirSync(base, { recursive: true });
+      } catch (_) {}
+    }
     const target = requestedPath
       ? path.resolve(base, requestedPath)
       : base;
@@ -55,10 +60,22 @@ export class FsService {
 
   // --- LOCAL FS ---
   async listLocal(relPath = '', workspaceOverride?: string): Promise<{ currentRel: string; parentRel: string | null; entries: FileEntry[] }> {
-    const base = workspaceOverride || LOCAL_WORKSPACE;
+    let base = workspaceOverride || LOCAL_WORKSPACE;
+    if (!fs.existsSync(base)) {
+      try {
+        fs.mkdirSync(base, { recursive: true });
+      } catch (_) {}
+    }
+
     const targetDir = this.resolveLocalPath(relPath, base);
     if (!fs.existsSync(targetDir)) {
-      throw new Error('Directory does not exist');
+      if (!relPath) {
+        try {
+          fs.mkdirSync(targetDir, { recursive: true });
+        } catch (_) {}
+      } else {
+        throw new Error('Directory does not exist');
+      }
     }
 
     const dirents = fs.readdirSync(targetDir, { withFileTypes: true });

@@ -345,6 +345,7 @@ echo ""
 # Lưu file .env dự phòng
 CONFIG_DIR="$HOME/.config/hugremote"
 mkdir -p "$CONFIG_DIR"
+mkdir -p "$HOME/projects"
 ENV_FILE="$CONFIG_DIR/.env"
 cat > "$ENV_FILE" <<EOF
 HOST=$SELECTED_HOST

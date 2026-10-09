@@ -87,6 +87,14 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
+// Ensure workspace directory exists
+const targetWs = process.env.WORKSPACE_ROOT || path.join(os.homedir(), 'projects');
+if (!fs.existsSync(targetWs)) {
+  try {
+    fs.mkdirSync(targetWs, { recursive: true });
+  } catch (_) {}
+}
+
 // Ensure server dist exists
 const serverEntry = path.resolve(__dirname, '../server/dist/index.js');
 if (!fs.existsSync(serverEntry)) {

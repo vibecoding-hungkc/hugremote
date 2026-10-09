@@ -95,5 +95,24 @@ if (!fs.existsSync(serverEntry)) {
   process.exit(1);
 }
 
+// On macOS (Darwin), ensure node-pty spawn-helper has executable permission
+if (process.platform === 'darwin') {
+  try {
+    const candidates = [
+      path.resolve(__dirname, '../server/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'),
+      path.resolve(__dirname, '../server/node_modules/node-pty/prebuilds/darwin-x64/spawn-helper'),
+      path.resolve(__dirname, '../server/node_modules/node-pty/build/Release/spawn-helper'),
+      path.resolve(__dirname, '../node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'),
+      path.resolve(__dirname, '../node_modules/node-pty/prebuilds/darwin-x64/spawn-helper'),
+      path.resolve(__dirname, '../node_modules/node-pty/build/Release/spawn-helper'),
+    ];
+    for (const f of candidates) {
+      if (fs.existsSync(f)) {
+        try { fs.chmodSync(f, 0o755); } catch (_) {}
+      }
+    }
+  } catch (_) {}
+}
+
 // Start server
 await import(serverEntry);

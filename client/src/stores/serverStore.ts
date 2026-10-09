@@ -22,14 +22,14 @@ export const useServerStore = defineStore('server', () => {
   const servers = ref<ServerItem[]>([
     {
       id: 'server-local',
-      name: 'hungpc',
+      name: 'localhost',
       type: 'local',
       label: 'Máy hiện tại (Local Machine)',
       host: '127.0.0.1',
-      user: 'hermes-admin',
+      user: '',
       port: 22,
-      desc: 'Local Host • WSL2 Linux',
-      workspace: '/home/hermes-admin/projects',
+      desc: 'Local Host',
+      workspace: '',
       isConnected: true,
     },
   ]);

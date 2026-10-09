@@ -32,14 +32,30 @@ export const useTerminalStore = defineStore('terminal', () => {
   const sessions = ref<TerminalSessionItem[]>([
     {
       id: 'term-local-main',
-      name: 'hermes-admin/projects',
+      name: 'terminal',
       serverId: 'server-local',
-      cwd: '/home/hermes-admin/projects',
+      cwd: '',
       isCustomNamed: false,
     },
   ]);
 
   const activeSessionId = ref('term-local-main');
+
+  // Watch server workspace to auto-update the default session path once loaded
+  watch(
+    () => serverStore.currentServer?.workspace,
+    (ws) => {
+      if (!ws) return;
+      const defaultSess = sessions.value.find((s) => s.id === 'term-local-main' && !s.isCustomNamed);
+      if (defaultSess) {
+        if (!defaultSess.cwd || defaultSess.cwd.includes('hermes-admin')) {
+          defaultSess.cwd = ws;
+          defaultSess.name = getDefaultSessionName(ws);
+        }
+      }
+    },
+    { immediate: true }
+  );
 
   const currentServerSessions = computed(() => {
     return sessions.value.filter((s) => s.serverId === serverStore.currentServerId);

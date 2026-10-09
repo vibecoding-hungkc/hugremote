@@ -123,11 +123,14 @@ npm run build
 echo "  [2/2] Cài đặt & Build Backend Server..."
 cd "$INSTALL_DIR/server"
 npm install --silent
+# Khắc phục lỗi node-pty trên macOS (spawn-helper thiếu quyền execute)
+find "$INSTALL_DIR" -type f -name "spawn-helper" -exec chmod +x {} + 2>/dev/null || true
 npm run build
 
 # Root package dependencies
 cd "$INSTALL_DIR"
 npm install --silent
+find "$INSTALL_DIR" -type f -name "spawn-helper" -exec chmod +x {} + 2>/dev/null || true
 
 echo -e "${C_GREEN}✓ Hoàn tất build Frontend và Backend!${C_RESET}"
 

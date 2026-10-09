@@ -195,7 +195,7 @@ watch(
       return;
     }
 
-    const defaultWs = serverStore.currentServer.workspace || '/home/hermes-admin/projects';
+    const defaultWs = serverStore.currentServer?.workspace || '';
     cwdInput.value = defaultWs;
     suggestName(defaultWs);
     initialPrompt.value = '';

@@ -11,6 +11,8 @@ import { fsService } from '../services/fsService.js';
 import { sessionManager } from '../services/sessionManager.js';
 import { sshPool } from '../services/sshPool.js';
 import { claudeService } from '../services/claudeService.js';
+import { projectService } from '../services/projectService.js';
+import { gitService } from '../services/gitService.js';
 
 export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // --- SERVER ROUTES ---
@@ -75,16 +77,62 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     return { success: true };
   });
 
-  // --- FS ROUTES ---
-  fastify.get<{ Querystring: { serverId?: string; path?: string } }>('/api/fs', async (request, reply) => {
+
+  // --- PROJECT ROUTES ---
+  fastify.get<{ Querystring: { serverId?: string } }>('/api/projects', async (request) => {
     const serverId = request.query.serverId || 'server-local';
+    const all = parseSshConfig();
+    const server = all.find((s) => s.id === serverId);
+    const fallbackRoot = server?.workspace || '~';
+    projectService.ensureActiveProject(serverId, fallbackRoot);
+    return projectService.list(serverId);
+  });
+
+  fastify.post<{ Body: { serverId?: string; rootPath: string; name?: string } }>('/api/projects', async (request, reply) => {
+    const { serverId = 'server-local', rootPath, name } = request.body || {};
+    if (!rootPath) return reply.status(400).send({ error: 'rootPath is required' });
+    const project = projectService.openProject(serverId, rootPath, name);
+    return { success: true, project, ...projectService.list(serverId) };
+  });
+
+  fastify.post<{ Body: { serverId?: string } }>('/api/projects/home', async (request) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const project = projectService.openHomeProject(serverId);
+    return { success: true, project, ...projectService.list(serverId) };
+  });
+
+  fastify.post<{ Params: { id: string }; Body: { serverId?: string } }>('/api/projects/:id/select', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const project = projectService.selectProject(serverId, request.params.id);
+    if (!project) return reply.status(404).send({ error: 'Project not found' });
+    return { success: true, project, ...projectService.list(serverId) };
+  });
+
+  fastify.patch<{ Params: { id: string }; Body: { name?: string; rootPath?: string; lastPath?: string } }>('/api/projects/:id', async (request, reply) => {
+    const project = projectService.updateProject(request.params.id, request.body || {});
+    if (!project) return reply.status(404).send({ error: 'Project not found' });
+    return { success: true, project };
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/api/projects/:id', async (request, reply) => {
+    const ok = projectService.deleteProject(request.params.id);
+    if (!ok) return reply.status(404).send({ error: 'Project not found' });
+    return { success: true };
+  });
+
+  // --- FS ROUTES ---
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; path?: string } }>('/api/fs', async (request, reply) => {
+    const serverId = request.query.serverId || 'server-local';
+    const projectId = request.query.projectId;
     const relPath = request.query.path || '';
+    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const projectRoot = project?.rootPath;
 
     if (serverId === 'server-local') {
       try {
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
-        const data = await fsService.listLocal(relPath, localServer?.workspace);
+        const data = await fsService.listLocal(relPath, projectRoot || localServer?.workspace);
         return data;
       } catch (err: any) {
         return reply.status(400).send({ error: err.message });
@@ -95,7 +143,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       if (!target) return reply.status(404).send({ error: 'Server not found' });
 
       try {
-        const data = await fsService.listRemote(target, relPath);
+        const data = await fsService.listRemote(target, relPath, projectRoot);
         return data;
       } catch (err: any) {
         return reply.status(500).send({ error: err.message });
@@ -105,14 +153,17 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
 
   const handleReadFile = async (request: any, reply: any) => {
     const serverId = request.query.serverId || 'server-local';
+    const projectId = request.query.projectId;
     const filePath = request.query.path;
+    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const projectRoot = project?.rootPath;
     if (!filePath) return reply.status(400).send({ error: 'path is required' });
 
     if (serverId === 'server-local') {
       try {
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
-        return await fsService.readLocalFile(filePath, localServer?.workspace);
+        return await fsService.readLocalFile(filePath, projectRoot || localServer?.workspace);
       } catch (err: any) {
         return reply.status(400).send({ error: err.message });
       }
@@ -122,7 +173,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       if (!target) return reply.status(404).send({ error: 'Server not found' });
 
       try {
-        return await fsService.readRemoteFile(target, filePath);
+        return await fsService.readRemoteFile(target, filePath, projectRoot);
       } catch (err: any) {
         return reply.status(500).send({ error: err.message });
       }
@@ -130,18 +181,20 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   };
 
   // Support both /api/fs/read and legacy /api/file
-  fastify.get<{ Querystring: { serverId?: string; path: string } }>('/api/fs/read', handleReadFile);
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; path: string } }>('/api/fs/read', handleReadFile);
   fastify.get<{ Querystring: { serverId?: string; path: string } }>('/api/file', handleReadFile);
 
   const handleSaveFile = async (request: any, reply: any) => {
-    const { serverId = 'server-local', path: filePath, content } = request.body || {};
+    const { serverId = 'server-local', projectId, path: filePath, content } = request.body || {};
+    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const projectRoot = project?.rootPath;
     if (!filePath) return reply.status(400).send({ error: 'path is required' });
 
     if (serverId === 'server-local') {
       try {
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
-        const result = await fsService.writeLocalFile(filePath, content, localServer?.workspace);
+        const result = await fsService.writeLocalFile(filePath, content, projectRoot || localServer?.workspace);
         return { success: true, ...result };
       } catch (err: any) {
         return reply.status(400).send({ error: err.message });
@@ -152,7 +205,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       if (!target) return reply.status(404).send({ error: 'Server not found' });
 
       try {
-        const result = await fsService.writeRemoteFile(target, filePath, content);
+        const result = await fsService.writeRemoteFile(target, filePath, content, projectRoot);
         return { success: true, ...result };
       } catch (err: any) {
         return reply.status(500).send({ error: err.message });
@@ -161,27 +214,30 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   };
 
   // Support both /api/fs/save and legacy /api/file
-  fastify.post<{ Body: { serverId?: string; path: string; content: string } }>('/api/fs/save', handleSaveFile);
+  fastify.post<{ Body: { serverId?: string; projectId?: string; path: string; content: string } }>('/api/fs/save', handleSaveFile);
   fastify.post<{ Body: { serverId?: string; path: string; content: string } }>('/api/file', handleSaveFile);
 
   fastify.post<{
     Body: {
       action: 'create' | 'delete' | 'rename';
       serverId?: string;
+      projectId?: string;
       path?: string;
       type?: 'file' | 'dir';
       oldPath?: string;
       newPath?: string;
     };
   }>('/api/fs/action', async (request, reply) => {
-    const { action, serverId = 'server-local', path: itemPath, type = 'file', oldPath, newPath } =
+    const { action, serverId = 'server-local', projectId, path: itemPath, type = 'file', oldPath, newPath } =
       request.body || {};
+    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const projectRoot = project?.rootPath;
 
     if (serverId === 'server-local') {
       try {
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
-        const ws = localServer?.workspace;
+        const ws = projectRoot || localServer?.workspace;
         if (action === 'create') {
           if (!itemPath) return reply.status(400).send({ error: 'path required' });
           await fsService.createLocal(itemPath, type, ws);
@@ -212,16 +268,18 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   });
 
   // --- CLAUDE SESSIONS & CHAT ---
-  fastify.get<{ Querystring: { serverId?: string; defaultCwd?: string } }>('/api/claude/sessions', async (request) => {
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; defaultCwd?: string } }>('/api/claude/sessions', async (request) => {
     const serverId = request.query.serverId || 'server-local';
+    const projectId = request.query.projectId || '';
     const defaultCwd = request.query.defaultCwd || '';
-    const sessions = claudeService.getSessionsForServer(serverId, defaultCwd);
+    const sessions = claudeService.getSessionsForServer(serverId, defaultCwd, projectId);
     return { sessions };
   });
 
   fastify.post<{
     Body: {
       serverId: string;
+      projectId?: string;
       name?: string;
       cwd?: string;
       model?: string;
@@ -230,12 +288,13 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       bypassPermissions?: boolean;
     };
   }>('/api/claude/sessions', async (request, reply) => {
-    const { serverId, name, cwd, model, mode, initialPrompt, bypassPermissions } = request.body || {};
+    const { serverId, projectId, name, cwd, model, mode, initialPrompt, bypassPermissions } = request.body || {};
     if (!serverId) {
       return reply.status(400).send({ error: 'serverId is required' });
     }
     const session = claudeService.createSession(
       serverId,
+      projectId || '',
       name || 'chat',
       cwd || '',
       model,
@@ -392,6 +451,135 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     return {
       limits: claudeService.getLimits(),
     };
+  });
+
+
+  // --- GIT ---
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/status', async (request, reply) => {
+    const serverId = request.query.serverId || 'server-local';
+    if (serverId !== 'server-local') return reply.status(501).send({ error: 'Remote Git is not supported yet' });
+    const project = request.query.projectId ? projectService.getProject(request.query.projectId) : projectService.getActiveProject(serverId);
+    if (!project) return reply.status(404).send({ error: 'Project not found' });
+    try {
+      return await gitService.getStatus(project.rootPath);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; file?: string } }>('/api/git/diff', async (request, reply) => {
+    const serverId = request.query.serverId || 'server-local';
+    if (serverId !== 'server-local') return reply.status(501).send({ error: 'Remote Git is not supported yet' });
+    const project = request.query.projectId ? projectService.getProject(request.query.projectId) : projectService.getActiveProject(serverId);
+    if (!project) return reply.status(404).send({ error: 'Project not found' });
+    const file = request.query.file || '';
+    if (!file) return reply.status(400).send({ error: 'file is required' });
+    try {
+      return await gitService.getDiff(project.rootPath, file);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  function getLocalGitProject(serverId: string, projectId?: string) {
+    if (serverId !== 'server-local') return { error: 'Remote Git is not supported yet' } as const;
+    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    if (!project) return { error: 'Project not found' } as const;
+    return { project } as const;
+  }
+
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/branches', async (request, reply) => {
+    const serverId = request.query.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.query.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    try {
+      return { branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string; branch?: string } }>('/api/git/checkout', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.body?.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    const branch = request.body?.branch || '';
+    if (!branch.trim()) return reply.status(400).send({ error: 'branch is required' });
+    try {
+      await gitService.checkout(target.project.rootPath, branch);
+      return { success: true, status: await gitService.getStatus(target.project.rootPath), branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string } }>('/api/git/pull', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.body?.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    try {
+      const output = await gitService.pull(target.project.rootPath);
+      return { success: true, output, status: await gitService.getStatus(target.project.rootPath), branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string } }>('/api/git/push', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.body?.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    try {
+      const output = await gitService.push(target.project.rootPath);
+      return { success: true, output, status: await gitService.getStatus(target.project.rootPath), branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string; file?: string } }>('/api/git/stage', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    if (serverId !== 'server-local') return reply.status(501).send({ error: 'Remote Git is not supported yet' });
+    const project = request.body?.projectId ? projectService.getProject(request.body.projectId) : projectService.getActiveProject(serverId);
+    if (!project) return reply.status(404).send({ error: 'Project not found' });
+    const file = request.body?.file || '';
+    if (!file) return reply.status(400).send({ error: 'file is required' });
+    try {
+      await gitService.stage(project.rootPath, file);
+      return { success: true, status: await gitService.getStatus(project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string; file?: string } }>('/api/git/unstage', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    if (serverId !== 'server-local') return reply.status(501).send({ error: 'Remote Git is not supported yet' });
+    const project = request.body?.projectId ? projectService.getProject(request.body.projectId) : projectService.getActiveProject(serverId);
+    if (!project) return reply.status(404).send({ error: 'Project not found' });
+    const file = request.body?.file || '';
+    if (!file) return reply.status(400).send({ error: 'file is required' });
+    try {
+      await gitService.unstage(project.rootPath, file);
+      return { success: true, status: await gitService.getStatus(project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string; message?: string } }>('/api/git/commit', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    if (serverId !== 'server-local') return reply.status(501).send({ error: 'Remote Git is not supported yet' });
+    const project = request.body?.projectId ? projectService.getProject(request.body.projectId) : projectService.getActiveProject(serverId);
+    if (!project) return reply.status(404).send({ error: 'Project not found' });
+    const message = request.body?.message || '';
+    if (!message.trim()) return reply.status(400).send({ error: 'Commit message is required' });
+    try {
+      const output = await gitService.commit(project.rootPath, message);
+      return { success: true, output, status: await gitService.getStatus(project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
   });
 
   fastify.post<{

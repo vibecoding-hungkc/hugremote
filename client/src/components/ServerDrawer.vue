@@ -1,0 +1,84 @@
+<template>
+  <div v-if="isOpen" class="drawer-overlay" @click.self="$emit('close')">
+    <aside class="drawer-panel">
+      <div class="drawer-header">
+        <div>
+          <div class="drawer-title"><i class="ri-server-line"></i> Servers</div>
+          <div class="drawer-subtitle">Chọn môi trường làm việc</div>
+        </div>
+        <button class="drawer-close" @click="$emit('close')"><i class="ri-close-line"></i></button>
+      </div>
+
+      <div class="server-list">
+        <div
+          v-for="server in serverStore.servers"
+          :key="server.id"
+          class="server-row"
+          :class="{ active: server.id === serverStore.currentServerId }"
+          @click="selectServer(server.id)"
+        >
+          <span class="server-dot" :class="server.type === 'local' ? 'local' : (server.isConnected ? 'remote' : 'idle')"></span>
+          <div class="server-main">
+            <div class="server-name">{{ server.name }}</div>
+            <div class="server-meta">{{ server.type === 'local' ? 'Local' : `${server.user}@${server.host}` }} · {{ projectCount(server.id) }} Project</div>
+          </div>
+          <i v-if="server.id === serverStore.currentServerId" class="ri-check-line server-check"></i>
+          <button class="home-btn" title="Home ~" @click.stop="openHome(server.id)"><i class="ri-home-4-line"></i> ~</button>
+        </div>
+      </div>
+
+      <button class="add-server" @click="$emit('open-server-manager')">
+        <i class="ri-add-line"></i> Thêm SSH Server
+      </button>
+    </aside>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useServerStore } from '../stores/serverStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
+
+const props = defineProps<{ isOpen: boolean }>();
+const emit = defineEmits<{ (e: 'close'): void; (e: 'open-server-manager'): void; (e: 'selected'): void }>();
+const serverStore = useServerStore();
+const projectStore = useProjectStore();
+
+function projectCount(serverId: string) {
+  return projectStore.projects.filter((p) => p.serverId === serverId).length || 1;
+}
+
+async function selectServer(serverId: string) {
+  serverStore.selectServer(serverId);
+  await projectStore.fetchProjects(serverId);
+  emit('selected');
+  emit('close');
+}
+
+async function openHome(serverId: string) {
+  serverStore.selectServer(serverId);
+  await projectStore.openHomeProject(serverId);
+  emit('selected');
+  emit('close');
+}
+</script>
+
+<style scoped>
+.drawer-overlay { position: fixed; inset: 0; z-index: 120; background: rgba(2,6,23,.58); display: flex; justify-content: flex-start; }
+.drawer-panel { width: min(320px, 86vw); height: 100%; background: #0f172a; border-right: 1px solid #334155; box-shadow: 18px 0 40px rgba(0,0,0,.36); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.drawer-header { display:flex; align-items:flex-start; justify-content:space-between; }
+.drawer-title { color:#f8fafc; font-weight:800; font-size:14px; display:flex; align-items:center; gap:7px; }
+.drawer-subtitle { color:#64748b; font-size:11px; margin-top:2px; }
+.drawer-close { width:30px; height:30px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; }
+.server-list { display:flex; flex-direction:column; gap:6px; overflow:auto; }
+.server-row { display:grid; grid-template-columns: 10px minmax(0,1fr) 18px auto; gap:8px; align-items:center; min-height:54px; padding:8px; border-bottom:1px solid rgba(51,65,85,.72); color:#cbd5e1; cursor:pointer; }
+.server-row.active { background: rgba(59,130,246,.09); }
+.server-dot { width:8px; height:8px; border-radius:999px; background:#64748b; }
+.server-dot.local { background:#3b82f6; box-shadow:0 0 8px rgba(59,130,246,.7); }
+.server-dot.remote { background:#10b981; box-shadow:0 0 8px rgba(16,185,129,.7); }
+.server-main { min-width:0; }
+.server-name { font-family:monospace; font-size:12.5px; font-weight:800; color:#f1f5f9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.server-meta { font-size:10.5px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+.server-check { color:#60a5fa; }
+.home-btn { height:26px; padding:0 7px; border-radius:6px; border:1px solid rgba(59,130,246,.28); background:rgba(15,23,42,.92); color:#bfdbfe; font-size:11px; font-weight:800; }
+.add-server { margin-top:auto; height:38px; border:1px dashed #334155; border-radius:10px; background:#111827; color:#93c5fd; font-weight:700; }
+</style>

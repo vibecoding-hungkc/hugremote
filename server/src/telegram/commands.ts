@@ -25,6 +25,7 @@ export function resolveSessionForContext(ctx: Context): ClaudeSession | null {
     // Auto-create a session for this new topic
     const newSession = claudeService.createSession(
       'server-local',
+      '',
       `topic-${threadId}`,
       config.defaultCwd,
       'Sonnet 5.5 Medium',
@@ -108,6 +109,7 @@ export function registerTelegramCommands(bot: Bot) {
 
     const session = claudeService.createSession(
       'server-local',
+      '',
       sessionName,
       sessionCwd,
       'Sonnet 5.5 Medium',

@@ -174,9 +174,10 @@ export class FsService {
   }
 
   // --- REMOTE SFTP FS ---
-  async listRemote(server: ServerConfig, dirPath = ''): Promise<{ currentRel: string; parentRel: string | null; entries: FileEntry[] }> {
+  async listRemote(server: ServerConfig, dirPath = '', workspaceOverride?: string): Promise<{ currentRel: string; parentRel: string | null; entries: FileEntry[] }> {
     const sftp = await sshPool.getSftp(server);
-    const targetDir = dirPath || server.workspace || '/root';
+    const base = workspaceOverride || server.workspace || '/root';
+    const targetDir = dirPath ? path.posix.join(base, dirPath) : base;
 
     return new Promise((resolve, reject) => {
       sftp.readdir(targetDir, (err, list) => {
@@ -192,7 +193,7 @@ export class FsService {
               size: e.attrs.size || 0,
               mtime: new Date(e.attrs.mtime * 1000).toISOString(),
               ext: isDir ? '' : path.extname(e.filename).toLowerCase(),
-              relPath: path.posix.join(targetDir, e.filename),
+              relPath: path.posix.relative(base, path.posix.join(targetDir, e.filename)),
             };
           })
           .sort((a, b) => {
@@ -203,7 +204,7 @@ export class FsService {
         const parentRel = targetDir === '/' ? null : path.posix.dirname(targetDir);
 
         resolve({
-          currentRel: targetDir,
+          currentRel: path.posix.relative(base, targetDir),
           parentRel,
           entries,
         });
@@ -211,14 +212,15 @@ export class FsService {
     });
   }
 
-  async readRemoteFile(server: ServerConfig, filePath: string): Promise<{ name: string; size: number; content: string }> {
+  async readRemoteFile(server: ServerConfig, filePath: string, workspaceOverride?: string): Promise<{ name: string; size: number; content: string }> {
     const sftp = await sshPool.getSftp(server);
     return new Promise((resolve, reject) => {
-      sftp.readFile(filePath, (err, data) => {
+      const targetPath = workspaceOverride ? path.posix.join(workspaceOverride, filePath) : filePath;
+      sftp.readFile(targetPath, (err, data) => {
         if (err) return reject(err);
         const content = data.toString('utf8');
         resolve({
-          name: path.posix.basename(filePath),
+          name: path.posix.basename(targetPath),
           size: Buffer.byteLength(content, 'utf8'),
           content,
         });
@@ -226,10 +228,11 @@ export class FsService {
     });
   }
 
-  async writeRemoteFile(server: ServerConfig, filePath: string, content: string): Promise<{ size: number }> {
+  async writeRemoteFile(server: ServerConfig, filePath: string, content: string, workspaceOverride?: string): Promise<{ size: number }> {
     const sftp = await sshPool.getSftp(server);
     return new Promise((resolve, reject) => {
-      sftp.writeFile(filePath, content, 'utf8', (err) => {
+      const targetPath = workspaceOverride ? path.posix.join(workspaceOverride, filePath) : filePath;
+      sftp.writeFile(targetPath, content, 'utf8', (err) => {
         if (err) return reject(err);
         resolve({ size: Buffer.byteLength(content, 'utf8') });
       });

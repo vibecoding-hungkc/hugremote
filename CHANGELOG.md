@@ -1,5 +1,6 @@
 # 📋 Changelog — HugRemote
 
+
 ## [Unreleased] - feature/telegram
 
 ### 🤖 Tính năng mới: Tích hợp Telegram Bot

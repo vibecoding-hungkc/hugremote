@@ -11,6 +11,10 @@
     <!-- View 2: CodeMirror 6 Editor -->
     <div v-show="fileStore.fileMode === 'code' || !isMarkdown" class="cm-wrapper" ref="editorContainer"></div>
 
+    <div v-if="fileStore.saveNotice" class="save-toast">
+      <i class="ri-check-line"></i> {{ fileStore.saveNotice }}
+    </div>
+
     <!-- Quick Programming Accessory Keybar -->
     <div class="editor-keybar">
       <div class="keybar-scroll">
@@ -219,6 +223,24 @@ onBeforeUnmount(() => {
 :deep(.markdown-preview-box a) {
   color: #38bdf8;
   text-decoration: none;
+}
+
+.save-toast {
+  position: absolute;
+  right: 12px;
+  bottom: 48px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 197, 94, .28);
+  background: rgba(6, 78, 59, .94);
+  color: #bbf7d0;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
 }
 
 .editor-keybar {

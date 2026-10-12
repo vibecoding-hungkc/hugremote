@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { apiUrl } from '../utils/api.js';
 import { useServerStore } from './serverStore.js';
+import { useProjectStore } from './projectStore.js';
 
 export interface ClaudeToolCall {
   id?: string;
@@ -40,6 +41,7 @@ export interface ClaudeLimits {
 export interface ClaudeSession {
   id: string;
   serverId: string;
+  projectId?: string;
   name: string;
   cwd: string;
   isCustomNamed: boolean;
@@ -63,9 +65,11 @@ export const useClaudeStore = defineStore('claude', () => {
     weekly: { usedPercent: 94, resetIn: '20h 35m' },
   });
   const serverStore = useServerStore();
+  const projectStore = useProjectStore();
 
   const currentServerSessions = computed(() => {
-    return sessions.value.filter((s) => s.serverId === serverStore.currentServer.id);
+    const projectId = projectStore.currentProject?.id || '';
+    return sessions.value.filter((s) => s.serverId === serverStore.currentServer.id && (!projectId || s.projectId === projectId));
   });
 
   const activeSession = computed(() => {
@@ -77,8 +81,9 @@ export const useClaudeStore = defineStore('claude', () => {
   async function fetchSessions(serverId?: string) {
     const sId = serverId || serverStore.currentServer.id;
     try {
-      const defaultCwd = serverStore.currentServer.workspace || '~/projects/hugcode';
-      const res = await fetch(apiUrl(`/api/claude/sessions?serverId=${encodeURIComponent(sId)}&defaultCwd=${encodeURIComponent(defaultCwd)}`));
+      const projectId = projectStore.currentProject?.id || '';
+      const defaultCwd = projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
+      const res = await fetch(apiUrl(`/api/claude/sessions?serverId=${encodeURIComponent(sId)}&projectId=${encodeURIComponent(projectId)}&defaultCwd=${encodeURIComponent(defaultCwd)}`));
       if (!res.ok) throw new Error('Failed to load claude sessions');
       const data = await res.json();
       if (Array.isArray(data.sessions)) {
@@ -110,7 +115,8 @@ export const useClaudeStore = defineStore('claude', () => {
     const body = {
       serverId: sId,
       name: name || 'chat',
-      cwd: cwd || serverStore.currentServer.workspace || '~/projects/hugcode',
+      projectId: projectStore.currentProject?.id || '',
+      cwd: cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~',
       model: model || 'Sonnet 5.5 Medium',
       mode: mode || 'Auto',
       initialPrompt,

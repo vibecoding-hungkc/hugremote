@@ -113,7 +113,6 @@ export const useGitStore = defineStore('git', () => {
 
   async function unstageFile(file: string) {
     await postGitAction('/api/git/unstage', { file });
-    actionMessage.value = 'Đã unstage file';
   }
 
   async function commit(message: string) {

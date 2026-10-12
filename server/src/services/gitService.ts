@@ -16,6 +16,11 @@ export interface GitStatusResponse {
   files: GitChangedFile[];
 }
 
+export interface GitBranchItem {
+  name: string;
+  current: boolean;
+}
+
 export interface GitDiffLine {
   type: 'context' | 'added' | 'deleted' | 'hunk';
   oldLine?: number;
@@ -115,6 +120,28 @@ export class GitService {
       raw = await this.execGit(cwd, ['diff', '--cached', '--', file]).catch(() => '');
     }
     return { file, lines: parseDiff(raw) };
+  }
+
+  async getBranches(cwd: string): Promise<GitBranchItem[]> {
+    const raw = await this.execGit(cwd, ['branch', '--format=%(HEAD)|%(refname:short)']);
+    return raw.split('\n').filter(Boolean).map((line) => {
+      const [head, name] = line.split('|');
+      return { name, current: head.trim() === '*' };
+    });
+  }
+
+  async checkout(cwd: string, branch: string): Promise<void> {
+    const clean = branch.trim();
+    if (!clean) throw new Error('Branch is required');
+    await this.execGit(cwd, ['checkout', clean]);
+  }
+
+  async pull(cwd: string): Promise<string> {
+    return await this.execGit(cwd, ['pull', '--ff-only']);
+  }
+
+  async push(cwd: string): Promise<string> {
+    return await this.execGit(cwd, ['push']);
   }
 
   async stage(cwd: string, file: string): Promise<void> {

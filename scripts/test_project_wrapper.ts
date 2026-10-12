@@ -73,6 +73,14 @@ async function main() {
   const diff = await gitService.getDiff(repo, 'new.txt');
   assert.ok(diff.lines.some(l => l.type === 'added' && l.content.includes('hello')));
 
+  await gitService.execGit(repo, ['checkout', '-b', 'feature/test-branch']);
+  let branches = await gitService.getBranches(repo);
+  assert.ok(branches.some(b => b.name === 'main' || b.name === 'master'));
+  assert.ok(branches.some(b => b.name === 'feature/test-branch' && b.current));
+  await gitService.checkout(repo, branches.some(b => b.name === 'main') ? 'main' : 'master');
+  branches = await gitService.getBranches(repo);
+  assert.ok(branches.some(b => (b.name === 'main' || b.name === 'master') && b.current));
+
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log('project-wrapper-tests-ok');
 }

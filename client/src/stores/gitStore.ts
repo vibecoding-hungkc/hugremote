@@ -19,6 +19,11 @@ export interface GitDiffLine {
   content: string;
 }
 
+export interface GitBranchItem {
+  name: string;
+  current: boolean;
+}
+
 export const useGitStore = defineStore('git', () => {
   const serverStore = useServerStore();
   const projectStore = useProjectStore();
@@ -27,6 +32,7 @@ export const useGitStore = defineStore('git', () => {
   const ahead = ref(0);
   const behind = ref(0);
   const files = ref<GitChangedFile[]>([]);
+  const branches = ref<GitBranchItem[]>([]);
   const selectedFile = ref<string | null>(null);
   const diffLines = ref<GitDiffLine[]>([]);
   const loading = ref(false);
@@ -52,6 +58,20 @@ export const useGitStore = defineStore('git', () => {
       files.value = [];
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function fetchBranches() {
+    const projectId = projectStore.currentProject?.id;
+    if (!projectId) return;
+    try {
+      const res = await fetch(apiUrl(`/api/git/branches?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`));
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git branches');
+      const data = await res.json();
+      branches.value = data.branches || [];
+    } catch (err: any) {
+      error.value = err.message;
+      branches.value = [];
     }
   }
 
@@ -82,6 +102,11 @@ export const useGitStore = defineStore('git', () => {
     files.value = data.files || [];
   }
 
+  function applyActionData(data: any) {
+    if (data.status) applyStatus(data.status);
+    if (data.branches) branches.value = data.branches;
+  }
+
   async function postGitAction(endpoint: string, body: Record<string, any>) {
     const projectId = projectStore.currentProject?.id;
     if (!projectId) return;
@@ -96,7 +121,7 @@ export const useGitStore = defineStore('git', () => {
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Git action failed');
       const data = await res.json();
-      if (data.status) applyStatus(data.status);
+      applyActionData(data);
       return data;
     } catch (err: any) {
       error.value = err.message;
@@ -104,6 +129,21 @@ export const useGitStore = defineStore('git', () => {
     } finally {
       loading.value = false;
     }
+  }
+
+  async function pull() {
+    await postGitAction('/api/git/pull', {});
+    actionMessage.value = 'Pull complete';
+  }
+
+  async function push() {
+    await postGitAction('/api/git/push', {});
+    actionMessage.value = 'Push complete';
+  }
+
+  async function checkout(branch: string) {
+    await postGitAction('/api/git/checkout', { branch });
+    actionMessage.value = `Đã checkout ${branch}`;
   }
 
   async function stageFile(file: string) {
@@ -125,5 +165,5 @@ export const useGitStore = defineStore('git', () => {
     diffLines.value = [];
   }
 
-  return { branch, repoRoot, ahead, behind, files, selectedFile, diffLines, loading, error, actionMessage, fetchStatus, fetchDiff, stageFile, unstageFile, commit, backToList };
+  return { branch, repoRoot, ahead, behind, files, branches, selectedFile, diffLines, loading, error, actionMessage, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
 });

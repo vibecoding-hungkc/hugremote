@@ -481,6 +481,62 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     }
   });
 
+  function getLocalGitProject(serverId: string, projectId?: string) {
+    if (serverId !== 'server-local') return { error: 'Remote Git is not supported yet' } as const;
+    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    if (!project) return { error: 'Project not found' } as const;
+    return { project } as const;
+  }
+
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/branches', async (request, reply) => {
+    const serverId = request.query.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.query.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    try {
+      return { branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string; branch?: string } }>('/api/git/checkout', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.body?.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    const branch = request.body?.branch || '';
+    if (!branch.trim()) return reply.status(400).send({ error: 'branch is required' });
+    try {
+      await gitService.checkout(target.project.rootPath, branch);
+      return { success: true, status: await gitService.getStatus(target.project.rootPath), branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string } }>('/api/git/pull', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.body?.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    try {
+      const output = await gitService.pull(target.project.rootPath);
+      return { success: true, output, status: await gitService.getStatus(target.project.rootPath), branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string } }>('/api/git/push', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const target = getLocalGitProject(serverId, request.body?.projectId);
+    if ('error' in target) return reply.status((target.error || '').includes('Remote') ? 501 : 404).send({ error: target.error });
+    try {
+      const output = await gitService.push(target.project.rootPath);
+      return { success: true, output, status: await gitService.getStatus(target.project.rootPath), branches: await gitService.getBranches(target.project.rootPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
   fastify.post<{ Body: { serverId?: string; projectId?: string; file?: string } }>('/api/git/stage', async (request, reply) => {
     const serverId = request.body?.serverId || 'server-local';
     if (serverId !== 'server-local') return reply.status(501).send({ error: 'Remote Git is not supported yet' });

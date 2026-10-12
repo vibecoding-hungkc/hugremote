@@ -30,6 +30,11 @@ async function main() {
   assert.equal(same.id, project.id);
   assert.equal(same.name, 'Custom Name');
 
+  assert.equal(projectService.deleteProject(home.id), false, 'Home/root project must not be deletable');
+  const removable = projectService.openProject('server-local', path.join(tmp, 'removable-repo'));
+  assert.equal(projectService.deleteProject(removable.id), true, 'Non-home project must be deletable');
+  assert.equal(projectService.getProject(removable.id), undefined);
+
   const escaped = projectService.resolveProjectPath(project.id, '../outside.txt');
   assert.equal(escaped.ok, false);
   assert.match(escaped.error || '', /outside/i);

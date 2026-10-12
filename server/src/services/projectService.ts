@@ -34,6 +34,10 @@ function basenameForProject(rootPath: string): string {
   return path.posix.basename(clean) || path.basename(clean) || '~';
 }
 
+function isHomeProject(project: ProjectItem): boolean {
+  return project.name === '~' || path.resolve(project.rootPath) === path.resolve(os.homedir());
+}
+
 export class ProjectService {
   private filePath: string;
   private state: ProjectsConfig = { activeProjectByServer: {}, projects: [] };
@@ -149,11 +153,14 @@ export class ProjectService {
   deleteProject(projectId: string): boolean {
     const idx = this.state.projects.findIndex((p) => p.id === projectId);
     if (idx === -1) return false;
+    const target = this.state.projects[idx];
+    if (isHomeProject(target)) return false;
+
     const [removed] = this.state.projects.splice(idx, 1);
     if (this.state.activeProjectByServer[removed.serverId] === projectId) {
-      const next = this.state.projects.find((p) => p.serverId === removed.serverId);
-      if (next) this.state.activeProjectByServer[removed.serverId] = next.id;
-      else delete this.state.activeProjectByServer[removed.serverId];
+      const next = this.state.projects.find((p) => p.serverId === removed.serverId && isHomeProject(p)) ||
+        this.openHomeProject(removed.serverId);
+      this.state.activeProjectByServer[removed.serverId] = next.id;
     }
     this.save();
     return true;

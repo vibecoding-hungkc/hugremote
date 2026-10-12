@@ -10,20 +10,30 @@
       </div>
 
       <div class="project-list">
-        <button
+        <div
           v-for="project in projectStore.currentServerProjects"
           :key="project.id"
           class="project-row"
           :class="{ active: project.id === projectStore.currentProject?.id }"
           @click="select(project.id)"
         >
-          <i class="ri-folder-2-line"></i>
+          <i :class="isHomeProject(project) ? 'ri-home-4-line' : 'ri-folder-2-line'"></i>
           <span class="project-main">
             <strong>{{ project.name }}</strong>
             <small>{{ project.rootPath }}</small>
           </span>
           <i v-if="project.id === projectStore.currentProject?.id" class="ri-check-line"></i>
-        </button>
+          <button
+            v-if="!isHomeProject(project)"
+            type="button"
+            class="btn-project-delete"
+            title="Xoá khỏi danh sách Project"
+            @click.stop="deleteProject(project.id)"
+          >
+            <i class="ri-delete-bin-line"></i>
+          </button>
+          <span v-else class="root-lock" title="Root user không thể xoá"><i class="ri-lock-line"></i></span>
+        </div>
       </div>
 
       <div class="quick-row">
@@ -45,7 +55,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
-import { useProjectStore } from '../stores/projectStore.js';
+import { useProjectStore, ProjectItem } from '../stores/projectStore.js';
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'selected'): void }>();
@@ -60,11 +70,21 @@ watch(() => props.isOpen, (open) => {
   }
 });
 
+function isHomeProject(project: ProjectItem) {
+  return project.name === '~' || project.rootPath === '~';
+}
+
 async function select(id: string) {
   await projectStore.selectProject(id);
   emit('selected');
   emit('close');
 }
+
+async function deleteProject(id: string) {
+  await projectStore.deleteProject(id);
+  emit('selected');
+}
+
 async function openHome() {
   await projectStore.openHomeProject();
   emit('selected');
@@ -92,11 +112,13 @@ async function openPath() {
 .modal-subtitle { color:#64748b; font-size:11px; margin-top:2px; }
 .btn-close { width:30px; height:30px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; }
 .project-list { display:flex; flex-direction:column; gap:6px; overflow:auto; }
-.project-row { display:flex; align-items:center; gap:10px; min-height:52px; border:1px solid #1e293b; background:#111827; border-radius:10px; padding:9px 10px; color:#cbd5e1; text-align:left; }
+.project-row { display:flex; align-items:center; gap:10px; min-height:52px; border:1px solid #1e293b; background:#111827; border-radius:10px; padding:9px 10px; color:#cbd5e1; text-align:left; cursor:pointer; }
 .project-row.active { border-color:#38bdf8; background:rgba(14,165,233,.09); }
 .project-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
 .project-main strong { color:#f1f5f9; font-size:13px; font-family:monospace; }
 .project-main small { color:#64748b; font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.btn-project-delete { width:28px; height:28px; border-radius:7px; border:1px solid rgba(239,68,68,.32); background:rgba(239,68,68,.08); color:#f87171; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.root-lock { width:28px; height:28px; border-radius:7px; color:#64748b; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
 .quick-row { display:flex; gap:8px; }
 .quick-row button { flex:1; height:34px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#bfdbfe; font-weight:700; }
 .open-form { display:flex; flex-direction:column; gap:6px; }

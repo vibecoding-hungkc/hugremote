@@ -1,5 +1,6 @@
 # HugRemote Architecture
 
+
 HugRemote is a mobile-first web IDE and terminal with a Claude Code chat interface. The app is built as a Vue 3 single-page application served by a Fastify backend. The backend owns all privileged capabilities: filesystem access, PTY/SSH terminal sessions, Claude CLI execution, auth, and WebSocket routing.
 
 ## Goals

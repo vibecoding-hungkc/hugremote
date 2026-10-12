@@ -81,6 +81,22 @@ async function main() {
   branches = await gitService.getBranches(repo);
   assert.ok(branches.some(b => (b.name === 'main' || b.name === 'master') && b.current));
 
+  const bare = path.join(tmp, 'remote.git');
+  await gitService.execGit(repo, ['init', '--bare', bare]);
+  await gitService.execGit(repo, ['remote', 'add', 'origin', bare]);
+  const baseBranch = branches.some(b => b.name === 'main') ? 'main' : 'master';
+  await gitService.execGit(repo, ['push', '-u', 'origin', baseBranch]);
+  status = await gitService.getStatus(repo);
+  assert.equal(status.ahead, 0);
+  assert.equal(status.behind, 0);
+  assert.ok(status.hasUpstream, 'branch should track origin after push -u');
+  fs.writeFileSync(path.join(repo, 'ahead.txt'), 'local\n', 'utf8');
+  await gitService.execGit(repo, ['add', 'ahead.txt']);
+  await gitService.execGit(repo, ['commit', '-m', 'local ahead']);
+  status = await gitService.getStatus(repo);
+  assert.equal(status.ahead, 1);
+  assert.equal(status.behind, 0);
+
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log('project-wrapper-tests-ok');
 }

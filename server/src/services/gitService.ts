@@ -11,8 +11,11 @@ export interface GitChangedFile {
 export interface GitStatusResponse {
   repoRoot: string;
   branch: string;
+  upstream: string;
+  hasUpstream: boolean;
   ahead: number;
   behind: number;
+  fetchedAt: string;
   files: GitChangedFile[];
 }
 
@@ -83,18 +86,36 @@ export class GitService {
     });
   }
 
-  async getStatus(cwd: string): Promise<GitStatusResponse> {
-    const [rootRaw, branchRaw, statusRaw, numstatRaw] = await Promise.all([
+  async fetchRemote(cwd: string): Promise<{ fetched: boolean; error?: string }> {
+    try {
+      await this.execGit(cwd, ['fetch', '--prune']);
+      return { fetched: true };
+    } catch (err: any) {
+      return { fetched: false, error: err.message || 'fetch failed' };
+    }
+  }
+
+  private async countAheadBehind(cwd: string): Promise<{ ahead: number; behind: number; hasUpstream: boolean; upstream: string }> {
+    const upstream = await this.execGit(cwd, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}']).then((s) => s.trim()).catch(() => '');
+    if (!upstream) return { ahead: 0, behind: 0, hasUpstream: false, upstream: '' };
+    const counts = await this.execGit(cwd, ['rev-list', '--left-right', '--count', 'HEAD...@{u}']).then((s) => s.trim()).catch(() => '0\t0');
+    const [aheadRaw, behindRaw] = counts.split(/\s+/);
+    return { ahead: Number(aheadRaw || 0), behind: Number(behindRaw || 0), hasUpstream: true, upstream };
+  }
+
+  async getStatus(cwd: string, options: { fetch?: boolean } = {}): Promise<GitStatusResponse> {
+    const fetchedAt = new Date().toISOString();
+    if (options.fetch !== false) {
+      await this.fetchRemote(cwd).catch(() => ({ fetched: false }));
+    }
+    const [rootRaw, branchRaw, statusRaw, numstatRaw, aheadBehind] = await Promise.all([
       this.execGit(cwd, ['rev-parse', '--show-toplevel']),
-      this.execGit(cwd, ['status', '--porcelain=v1', '--branch']),
+      this.execGit(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']),
       this.execGit(cwd, ['status', '--porcelain=v1']),
       this.execGit(cwd, ['diff', '--numstat', 'HEAD']).catch(() => ''),
+      this.countAheadBehind(cwd),
     ]);
     const root = rootRaw.trim();
-    const branchLine = branchRaw.split('\n')[0] || '## main';
-    const branchMatch = branchLine.match(/^##\s+([^\.\s]+)/);
-    const aheadMatch = branchLine.match(/ahead\s+(\d+)/);
-    const behindMatch = branchLine.match(/behind\s+(\d+)/);
     const nums = parseNumstat(numstatRaw);
     const files: GitChangedFile[] = statusRaw.split('\n').filter(Boolean).map((line) => {
       const xyRaw = line.slice(0, 2);
@@ -107,9 +128,12 @@ export class GitService {
     });
     return {
       repoRoot: root,
-      branch: branchMatch?.[1] || 'main',
-      ahead: Number(aheadMatch?.[1] || 0),
-      behind: Number(behindMatch?.[1] || 0),
+      branch: branchRaw.trim() || 'main',
+      upstream: aheadBehind.upstream,
+      hasUpstream: aheadBehind.hasUpstream,
+      ahead: aheadBehind.ahead,
+      behind: aheadBehind.behind,
+      fetchedAt,
       files,
     };
   }
@@ -141,7 +165,13 @@ export class GitService {
   }
 
   async push(cwd: string): Promise<string> {
-    return await this.execGit(cwd, ['push']);
+    try {
+      return await this.execGit(cwd, ['push']);
+    } catch (err) {
+      const branch = await this.execGit(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']).then((s) => s.trim()).catch(() => '');
+      if (!branch) throw err;
+      return await this.execGit(cwd, ['push', '-u', 'origin', branch]);
+    }
   }
 
   async stage(cwd: string, file: string): Promise<void> {

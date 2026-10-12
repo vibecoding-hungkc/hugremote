@@ -28,9 +28,12 @@ export const useGitStore = defineStore('git', () => {
   const serverStore = useServerStore();
   const projectStore = useProjectStore();
   const branch = ref('');
+  const upstream = ref('');
+  const hasUpstream = ref(false);
   const repoRoot = ref('');
   const ahead = ref(0);
   const behind = ref(0);
+  const fetchedAt = ref('');
   const files = ref<GitChangedFile[]>([]);
   const branches = ref<GitBranchItem[]>([]);
   const selectedFile = ref<string | null>(null);
@@ -96,9 +99,12 @@ export const useGitStore = defineStore('git', () => {
 
   function applyStatus(data: any) {
     branch.value = data.branch || '';
+    upstream.value = data.upstream || '';
+    hasUpstream.value = Boolean(data.hasUpstream);
     repoRoot.value = data.repoRoot || '';
     ahead.value = data.ahead || 0;
     behind.value = data.behind || 0;
+    fetchedAt.value = data.fetchedAt || '';
     files.value = data.files || [];
   }
 
@@ -162,5 +168,5 @@ export const useGitStore = defineStore('git', () => {
     diffLines.value = [];
   }
 
-  return { branch, repoRoot, ahead, behind, files, branches, selectedFile, diffLines, loading, error, actionMessage, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
+  return { branch, upstream, hasUpstream, repoRoot, ahead, behind, fetchedAt, files, branches, selectedFile, diffLines, loading, error, actionMessage, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
 });

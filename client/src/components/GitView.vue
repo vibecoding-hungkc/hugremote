@@ -7,8 +7,8 @@
         <i class="ri-arrow-down-s-line"></i>
       </button>
       <div class="git-remote-actions">
-        <button :disabled="gitStore.loading" @click="gitStore.pull()"><i class="ri-download-cloud-2-line"></i> Pull</button>
-        <button :disabled="gitStore.loading" @click="gitStore.push()"><i class="ri-upload-cloud-2-line"></i> Push</button>
+        <button class="remote-btn" :class="{ active: gitStore.behind > 0 }" :disabled="gitStore.loading || !gitStore.hasUpstream || gitStore.behind === 0" :title="gitStore.hasUpstream ? (gitStore.behind > 0 ? `${gitStore.behind} commit cần pull từ ${gitStore.upstream}` : 'Đã đồng bộ với remote') : 'Branch chưa có upstream'" @click="doPull"><i class="ri-download-cloud-2-line"></i> Pull<span v-if="gitStore.hasUpstream && gitStore.behind > 0" class="remote-count">↓{{ gitStore.behind }}</span></button>
+        <button class="remote-btn" :class="{ active: gitStore.ahead > 0 }" :disabled="gitStore.loading || pullBusy || (!gitStore.hasUpstream && gitStore.ahead === 0 && gitStore.files.length === 0)" :title="gitStore.hasUpstream ? (gitStore.ahead > 0 ? `${gitStore.ahead} commit cần push lên ${gitStore.upstream}` : 'Không có commit cần push') : 'Publish branch hiện tại'" @click="doPush"><i class="ri-upload-cloud-2-line"></i> Push<span v-if="gitStore.hasUpstream && gitStore.ahead > 0" class="remote-count">↑{{ gitStore.ahead }}</span></button>
       </div>
     </div>
 
@@ -82,6 +82,7 @@ import { useProjectStore } from '../stores/projectStore.js';
 const gitStore = useGitStore();
 const projectStore = useProjectStore();
 const commitMessage = ref('');
+const pullBusy = ref(false);
 const showBranchSheet = ref(false);
 
 async function refreshGit() {
@@ -95,6 +96,8 @@ const isNoRepo = computed(() => /not a git repository/i.test(gitStore.error || '
 function prefix(type: string) { return type === 'added' ? '+' : type === 'deleted' ? '-' : type === 'hunk' ? '' : ' '; }
 async function toggleStage(file: GitChangedFile) { file.staged ? await gitStore.unstageFile(file.path) : await gitStore.stageFile(file.path); }
 async function doCommit() { const msg = commitMessage.value.trim(); if (!msg) return; await gitStore.commit(msg); commitMessage.value = ''; }
+async function doPull() { pullBusy.value = true; try { await gitStore.pull(); } finally { pullBusy.value = false; } }
+async function doPush() { pullBusy.value = true; try { await gitStore.push(); } finally { pullBusy.value = false; } }
 async function checkout(branch: string) { await gitStore.checkout(branch); showBranchSheet.value = false; }
 </script>
 
@@ -104,8 +107,11 @@ async function checkout(branch: string) { await gitStore.checkout(branch); showB
 .branch-picker { min-width:0; max-width:48%; height:30px; display:flex; align-items:center; gap:5px; border:1px solid rgba(245,158,11,.28); border-radius:8px; background:rgba(245,158,11,.08); color:#fbbf24; padding:0 8px; font-size:12px; font-weight:800; }
 .branch-picker span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .git-remote-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-.git-remote-actions button { height:30px; border:1px solid #334155; border-radius:8px; background:#1e293b; color:#cbd5e1; padding:0 8px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:4px; }
-.git-remote-actions button:disabled { opacity:.45; }
+.remote-btn { height:30px; border:1px solid #334155; border-radius:8px; background:#1e293b; color:#cbd5e1; padding:0 8px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:4px; }
+.remote-btn:disabled { opacity:.45; }
+.remote-btn.active { border-color:rgba(56,189,248,.38); background:rgba(14,165,233,.1); color:#bae6fd; }
+.remote-count { font-family:monospace; font-size:10px; background:rgba(56,189,248,.14); color:#7dd3fc; border-radius:999px; padding:1px 5px; }
+.remote-btn.active .remote-count { background:#0284c7; color:white; }
 .git-toast { position:absolute; right:12px; bottom:54px; z-index:8; padding:8px 10px; border:1px solid rgba(34,197,94,.28); border-radius:10px; background:rgba(6,78,59,.95); color:#bbf7d0; font-size:12px; font-weight:800; display:flex; align-items:center; gap:6px; box-shadow:0 10px 28px rgba(0,0,0,.35); }
 .state { padding:28px; text-align:center; color:#64748b; font-size:13px; }
 .state.compact { padding:14px; }

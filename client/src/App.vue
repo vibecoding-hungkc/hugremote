@@ -238,6 +238,13 @@ watch(
   }
 );
 
+watch(activeTab, async (tab) => {
+  if (tab === 'git') {
+    await gitStore.fetchStatus();
+    await gitStore.fetchBranches();
+  }
+});
+
 async function handleCreateItem({ name, type }: { name: string; type: 'file' | 'dir' }) {
   try {
     await fileStore.createItem(name, type);

@@ -1,0 +1,65 @@
+import assert from 'assert';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { projectService } from '../server/src/services/projectService.js';
+import { gitService } from '../server/src/services/gitService.js';
+
+async function main() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hugcode-project-wrapper-'));
+  process.env.HUGCODE_PROJECTS_FILE = path.join(tmp, 'projects.json');
+
+  projectService.resetForTests(process.env.HUGCODE_PROJECTS_FILE);
+
+  const home = projectService.openHomeProject('server-local');
+  assert.equal(home.serverId, 'server-local');
+  assert.equal(home.name, '~');
+  assert.equal(home.rootPath, os.homedir());
+  assert.equal(projectService.getActiveProject('server-local')?.id, home.id);
+
+  const repo = path.join(tmp, 'demo-repo');
+  fs.mkdirSync(repo, { recursive: true });
+  fs.writeFileSync(path.join(repo, 'README.md'), 'old\n', 'utf8');
+
+  const project = projectService.openProject('server-local', repo);
+  assert.equal(project.name, 'demo-repo');
+  assert.equal(project.rootPath, repo);
+  assert.equal(projectService.getActiveProject('server-local')?.id, project.id);
+
+  const same = projectService.openProject('server-local', repo, 'Custom Name');
+  assert.equal(same.id, project.id);
+  assert.equal(same.name, 'Custom Name');
+
+  const escaped = projectService.resolveProjectPath(project.id, '../outside.txt');
+  assert.equal(escaped.ok, false);
+  assert.match(escaped.error || '', /outside/i);
+
+  const inside = projectService.resolveProjectPath(project.id, 'src/index.ts');
+  assert.equal(inside.ok, true);
+  assert.equal(inside.path, path.join(repo, 'src/index.ts'));
+
+  await gitService.execGit(repo, ['init']);
+  await gitService.execGit(repo, ['config', 'user.email', 'test@example.com']);
+  await gitService.execGit(repo, ['config', 'user.name', 'Test User']);
+  await gitService.execGit(repo, ['add', 'README.md']);
+  await gitService.execGit(repo, ['commit', '-m', 'init']);
+  fs.writeFileSync(path.join(repo, 'README.md'), 'old\nnew\n', 'utf8');
+  fs.writeFileSync(path.join(repo, 'new.txt'), 'hello\n', 'utf8');
+
+  const status = await gitService.getStatus(repo);
+  assert.ok(status.branch.length > 0);
+  assert.ok(status.files.some(f => f.path === 'README.md' && f.status === 'M'));
+  assert.ok(status.files.some(f => f.path === 'new.txt' && f.status === '??'));
+
+  const diff = await gitService.getDiff(repo, 'README.md');
+  assert.ok(diff.lines.some(l => l.type === 'added' && l.content.includes('new')));
+  assert.ok(diff.lines.some(l => l.type === 'context' && l.content.includes('old')));
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+  console.log('project-wrapper-tests-ok');
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

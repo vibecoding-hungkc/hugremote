@@ -41,6 +41,9 @@
         </div>
 
         <div class="file-actions" @click.stop>
+          <button v-if="item.isDirectory" class="btn-action-icon project" @click="emit('open-folder-as-project', item.relPath)" title="Open as Project">
+            <i class="ri-folder-add-line"></i>
+          </button>
           <button class="btn-action-icon" @click="openRename(item)" :title="t('common.edit')">
             <i class="ri-edit-line"></i>
           </button>
@@ -87,7 +90,10 @@ import InputModal from './InputModal.vue';
 import ConfirmModal from './ConfirmModal.vue';
 import { useI18n } from '../composables/useI18n.js';
 
-const emit = defineEmits<{ (e: 'open-file', relPath: string): void }>();
+const emit = defineEmits<{
+  (e: 'open-file', relPath: string): void;
+  (e: 'open-folder-as-project', relPath: string): void;
+}>();
 const fileStore = useFileStore();
 const { t } = useI18n();
 
@@ -311,6 +317,11 @@ function formatSize(bytes: number): string {
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
+}
+.btn-action-icon.project {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
 }
 
 .btn-action-icon.danger:hover {

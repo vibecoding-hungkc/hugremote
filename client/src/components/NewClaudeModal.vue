@@ -132,6 +132,7 @@
 import { ref, watch, computed } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useClaudeStore } from '../stores/claudeStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
 import FolderTreePicker from './FolderTreePicker.vue';
 import { useI18n } from '../composables/useI18n.js';
 
@@ -150,6 +151,7 @@ const isEditMode = computed(() => Boolean(props.session?.id));
 
 const serverStore = useServerStore();
 const claudeStore = useClaudeStore();
+const projectStore = useProjectStore();
 const { t } = useI18n();
 
 const cwdInput = ref('');
@@ -185,7 +187,7 @@ watch(
 
     if (session?.id) {
       const { baseModel, effort } = splitModelAndEffort(session.model);
-      cwdInput.value = session.cwd || serverStore.currentServer.workspace || '~';
+      cwdInput.value = session.cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
       nameInput.value = session.name || 'chat';
       modelInput.value = `${baseModel} Medium`;
       effortInput.value = effort;
@@ -195,7 +197,7 @@ watch(
       return;
     }
 
-    const defaultWs = serverStore.currentServer?.workspace || '~';
+    const defaultWs = projectStore.currentProject?.rootPath || serverStore.currentServer?.workspace || '~';
     cwdInput.value = defaultWs;
     suggestName(defaultWs);
     initialPrompt.value = '';
@@ -223,7 +225,7 @@ function onCwdChange() {
 }
 
 function resetToHome() {
-  const ws = serverStore.currentServer.workspace || '~';
+  const ws = projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
   cwdInput.value = ws;
   if (!isEditMode.value) suggestName(ws);
 }

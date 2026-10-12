@@ -123,6 +123,7 @@ const isEditMode = computed(() => Boolean(props.session?.id));
 const serverStore = useServerStore();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
+const projectStore = useProjectStore();
 
 const targetCwd = ref('');
 const customName = ref('');
@@ -130,7 +131,7 @@ const isTreePickerOpen = ref(false);
 
 function initDefaults() {
   if (props.session?.id) {
-    targetCwd.value = props.session.cwd || serverStore.currentServer.workspace || '~';
+    targetCwd.value = props.session.cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
     customName.value = props.session.isCustomNamed ? (props.session.name || '') : '';
     isTreePickerOpen.value = false;
     return;
@@ -141,11 +142,11 @@ function initDefaults() {
     if (fileStore.currentRel.startsWith('/')) {
       targetCwd.value = fileStore.currentRel;
     } else {
-      const base = curServer.workspace || '';
+      const base = projectStore.currentProject?.rootPath || curServer.workspace || '';
       targetCwd.value = base ? `${base}/${fileStore.currentRel}` : fileStore.currentRel;
     }
   } else {
-    targetCwd.value = curServer.workspace || '~';
+    targetCwd.value = projectStore.currentProject?.rootPath || curServer.workspace || '~';
   }
   customName.value = '';
   isTreePickerOpen.value = false;
@@ -164,7 +165,7 @@ function setHomeDir() {
 }
 
 const previewDefaultName = computed(() => {
-  return extractLast3Dirs(targetCwd.value || serverStore.currentServer.workspace || '~');
+  return extractLast3Dirs(targetCwd.value || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~');
 });
 
 watch(
@@ -176,7 +177,7 @@ watch(
 );
 
 async function handleSubmit() {
-  const cwd = targetCwd.value.trim() || serverStore.currentServer.workspace || '~';
+  const cwd = targetCwd.value.trim() || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
   const name = customName.value.trim();
 
   if (isEditMode.value && props.session?.id) {

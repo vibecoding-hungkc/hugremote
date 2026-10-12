@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useServerStore } from './serverStore.js';
+import { useProjectStore } from './projectStore.js';
 import { apiUrl } from '../utils/api.js';
 
 export interface FileEntry {
@@ -31,13 +32,15 @@ export const useFileStore = defineStore('file', () => {
   const fileMode = ref<'code' | 'preview'>('code');
 
   const serverStore = useServerStore();
+  const projectStore = useProjectStore();
 
   async function fetchFiles(path = '') {
     loading.value = true;
     error.value = null;
     try {
       const serverId = serverStore.currentServerId;
-      const res = await fetch(apiUrl(`/api/fs?serverId=${encodeURIComponent(serverId)}&path=${encodeURIComponent(path)}`));
+      const projectId = projectStore.currentProject?.id || '';
+      const res = await fetch(apiUrl(`/api/fs?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(path)}`));
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to list directory');
@@ -59,7 +62,8 @@ export const useFileStore = defineStore('file', () => {
     error.value = null;
     try {
       const serverId = serverStore.currentServerId;
-      const res = await fetch(apiUrl(`/api/fs/read?serverId=${encodeURIComponent(serverId)}&path=${encodeURIComponent(relPath)}`));
+      const projectId = projectStore.currentProject?.id || '';
+      const res = await fetch(apiUrl(`/api/fs/read?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(relPath)}`));
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to read file');
@@ -96,6 +100,7 @@ export const useFileStore = defineStore('file', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serverId,
+          projectId: projectStore.currentProject?.id || '',
           path: activeFile.value.relPath,
           content: activeFile.value.content,
         }),
@@ -125,6 +130,7 @@ export const useFileStore = defineStore('file', () => {
       body: JSON.stringify({
         action: 'create',
         serverId,
+        projectId: projectStore.currentProject?.id || '',
         path: targetPath,
         type,
       }),
@@ -144,6 +150,7 @@ export const useFileStore = defineStore('file', () => {
       body: JSON.stringify({
         action: 'delete',
         serverId,
+        projectId: projectStore.currentProject?.id || '',
         path: relPath,
       }),
     });
@@ -162,6 +169,7 @@ export const useFileStore = defineStore('file', () => {
       body: JSON.stringify({
         action: 'rename',
         serverId,
+        projectId: projectStore.currentProject?.id || '',
         oldPath: oldRel,
         newPath: newRel,
       }),

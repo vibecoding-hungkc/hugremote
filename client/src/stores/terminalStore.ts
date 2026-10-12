@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { useServerStore } from './serverStore.js';
+import { useProjectStore } from './projectStore.js';
 
 export interface TerminalSessionItem {
   id: string;
   name: string;
   serverId: string;
+  projectId?: string;
   cwd?: string;
   isCustomNamed?: boolean;
 }
@@ -28,12 +30,14 @@ export function extractLast3Dirs(pathStr: string): string {
 
 export const useTerminalStore = defineStore('terminal', () => {
   const serverStore = useServerStore();
+  const projectStore = useProjectStore();
 
   const sessions = ref<TerminalSessionItem[]>([
     {
       id: 'term-local-main',
       name: 'terminal',
       serverId: 'server-local',
+      projectId: '',
       cwd: '',
       isCustomNamed: false,
     },
@@ -58,7 +62,8 @@ export const useTerminalStore = defineStore('terminal', () => {
   );
 
   const currentServerSessions = computed(() => {
-    return sessions.value.filter((s) => s.serverId === serverStore.currentServerId);
+    const projectId = projectStore.currentProject?.id || '';
+    return sessions.value.filter((s) => s.serverId === serverStore.currentServerId && (!projectId || s.projectId === projectId));
   });
 
   const activeSession = computed(() => {
@@ -78,7 +83,7 @@ export const useTerminalStore = defineStore('terminal', () => {
   function createSession(options?: { name?: string; cwd?: string; isCustomNamed?: boolean }) {
     const curServerId = serverStore.currentServerId;
     const curServer = serverStore.currentServer;
-    const targetCwd = options?.cwd || curServer.workspace || '';
+    const targetCwd = options?.cwd || projectStore.currentProject?.rootPath || curServer.workspace || '';
     const hasCustomName = options?.isCustomNamed ?? Boolean(options?.name && options.name.trim());
     const defaultName = getDefaultSessionName(targetCwd);
     const sessionName = options?.name?.trim() || defaultName;
@@ -87,6 +92,7 @@ export const useTerminalStore = defineStore('terminal', () => {
       id: `term-${curServerId}-${Date.now()}`,
       name: sessionName,
       serverId: curServerId,
+      projectId: projectStore.currentProject?.id || '',
       cwd: targetCwd,
       isCustomNamed: hasCustomName,
     };

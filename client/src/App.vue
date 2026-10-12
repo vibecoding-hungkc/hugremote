@@ -4,7 +4,8 @@
     <!-- 1. Smart Unified Header -->
     <SmartHeader
       :active-tab="activeTab"
-      @open-server-modal="isServerModalOpen = true"
+      @open-server-drawer="isServerDrawerOpen = true"
+      @open-project-modal="isProjectModalOpen = true"
       @open-session-hub="isSessionHubOpen = true"
       @open-new-terminal-modal="openNewTerminalModal"
       @open-claude-hub="isClaudeHubOpen = true"
@@ -19,6 +20,7 @@
       <FileExplorer
         v-if="activeTab === 'files'"
         @open-file="handleOpenFile"
+        @open-folder-as-project="handleOpenFolderAsProject"
       />
 
       <!-- Tab 2: Editor View -->
@@ -36,6 +38,10 @@
         v-show="activeTab === 'claude'"
         @open-tree-picker="isClaudeAttachTreePickerOpen = true"
       />
+
+      <GitView
+        v-show="activeTab === 'git'"
+      />
     </main>
 
     <!-- 3. Compact Bottom Dock -->
@@ -45,9 +51,22 @@
     />
 
     <!-- 4. Modals -->
+    <ServerDrawer
+      :is-open="isServerDrawerOpen"
+      @close="isServerDrawerOpen = false"
+      @open-server-manager="openServerManager"
+      @selected="handleScopeChanged"
+    />
+
     <ServerModal
       :is-open="isServerModalOpen"
       @close="isServerModalOpen = false"
+    />
+
+    <ProjectModal
+      :is-open="isProjectModalOpen"
+      @close="isProjectModalOpen = false"
+      @selected="handleScopeChanged"
     />
 
     <TerminalSessionHubModal
@@ -120,14 +139,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import SmartHeader from './components/SmartHeader.vue';
 import FileExplorer from './components/FileExplorer.vue';
 import CodeEditor from './components/CodeEditor.vue';
 import TerminalView from './components/TerminalView.vue';
 import ClaudeView from './components/ClaudeView.vue';
+import GitView from './components/GitView.vue';
 import BottomDock from './components/BottomDock.vue';
 import ServerModal from './components/ServerModal.vue';
+import ServerDrawer from './components/ServerDrawer.vue';
+import ProjectModal from './components/ProjectModal.vue';
 import NewTerminalModal from './components/NewTerminalModal.vue';
 import TerminalSessionHubModal from './components/TerminalSessionHubModal.vue';
 import ClaudeSessionHubModal from './components/ClaudeSessionHubModal.vue';
@@ -141,6 +163,8 @@ import { useServerStore } from './stores/serverStore.js';
 import { useFileStore } from './stores/fileStore.js';
 import { useTerminalStore } from './stores/terminalStore.js';
 import { useClaudeStore } from './stores/claudeStore.js';
+import { useProjectStore } from './stores/projectStore.js';
+import { useGitStore } from './stores/gitStore.js';
 import { useAppBootstrap } from './composables/useAppBootstrap.js';
 import { useI18n } from './composables/useI18n.js';
 
@@ -149,9 +173,13 @@ const serverStore = useServerStore();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
+const projectStore = useProjectStore();
+const gitStore = useGitStore();
 const { t } = useI18n();
 
-const activeTab = ref<'files' | 'editor' | 'terminal' | 'claude'>('files');
+const activeTab = ref<'files' | 'editor' | 'terminal' | 'claude' | 'git'>('files');
+const isServerDrawerOpen = ref(false);
+const isProjectModalOpen = ref(false);
 const isServerModalOpen = ref(false);
 const isSessionHubOpen = ref(false);
 const isNewTerminalModalOpen = ref(false);
@@ -173,9 +201,42 @@ async function handleOpenFile(relPath: string) {
   activeTab.value = 'editor';
 }
 
+async function handleOpenFolderAsProject(relPath: string) {
+  const root = projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
+  const fullPath = root.endsWith('/') ? `${root}${relPath}` : `${root}/${relPath}`;
+  await projectStore.openProject(fullPath);
+  await handleScopeChanged();
+}
+
 function promptCreateItem() {
   isCreateItemModalOpen.value = true;
 }
+
+
+function openServerManager() {
+  isServerDrawerOpen.value = false;
+  isServerModalOpen.value = true;
+}
+
+async function handleScopeChanged() {
+  fileStore.closeActiveFile();
+  await fileStore.fetchFiles('');
+  terminalStore.ensureServerSession();
+  await claudeStore.fetchSessions();
+  await gitStore.fetchStatus();
+}
+
+onMounted(async () => {
+  await projectStore.fetchProjects(serverStore.currentServerId);
+  await handleScopeChanged();
+});
+
+watch(
+  () => projectStore.currentProject?.id,
+  async (id, oldId) => {
+    if (id && oldId && id !== oldId) await handleScopeChanged();
+  }
+);
 
 async function handleCreateItem({ name, type }: { name: string; type: 'file' | 'dir' }) {
   try {

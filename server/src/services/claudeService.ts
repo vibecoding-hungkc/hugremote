@@ -39,6 +39,7 @@ export interface ClaudeMessage {
 export interface ClaudeSession {
   id: string;
   serverId: string;
+  projectId?: string;
   cliSessionId?: string;
   name: string;
   cwd: string;
@@ -195,8 +196,8 @@ class ClaudeService {
     }
   }
 
-  getSessionsForServer(serverId: string, _defaultCwd: string): ClaudeSession[] {
-    const list = Array.from(this.sessions.values()).filter((s) => s.serverId === serverId);
+  getSessionsForServer(serverId: string, _defaultCwd: string, projectId = ''): ClaudeSession[] {
+    const list = Array.from(this.sessions.values()).filter((s) => s.serverId === serverId && (!projectId || s.projectId === projectId));
     return list.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
@@ -206,13 +207,33 @@ class ClaudeService {
 
   createSession(
     serverId: string,
-    name: string,
-    cwd: string,
-    model = 'Sonnet 5.5 Medium',
-    mode = 'Auto',
-    initialPrompt?: string,
+    projectIdOrName: string,
+    nameOrCwd: string,
+    cwdOrModel: string,
+    modelOrMode = 'Sonnet 5.5 Medium',
+    modeOrInitialPrompt: string | undefined = 'Auto',
+    initialPromptOrBypass?: string | boolean,
     bypassPermissions = false
   ): ClaudeSession {
+    let projectId = projectIdOrName;
+    let name = nameOrCwd;
+    let cwd = cwdOrModel;
+    let model = modelOrMode;
+    let mode = modeOrInitialPrompt || 'Auto';
+    let initialPrompt = typeof initialPromptOrBypass === 'string' ? initialPromptOrBypass : undefined;
+
+    // Backward compatibility for callers using the pre-project signature:
+    // createSession(serverId, name, cwd, model, mode, initialPrompt, bypass)
+    if (typeof initialPromptOrBypass === 'boolean') {
+      projectId = '';
+      name = projectIdOrName;
+      cwd = nameOrCwd;
+      model = cwdOrModel || 'Sonnet 5.5 Medium';
+      mode = modelOrMode || 'Auto';
+      initialPrompt = typeof modeOrInitialPrompt === 'string' && modeOrInitialPrompt !== 'Auto' ? modeOrInitialPrompt : undefined;
+      bypassPermissions = initialPromptOrBypass;
+    }
+
     const id = `claude-${serverId}-${Date.now()}`;
     const normalizedCwd = normalizeWorkspacePath(cwd);
     const now = new Date();
@@ -231,6 +252,7 @@ class ClaudeService {
     const session: ClaudeSession = {
       id,
       serverId,
+      projectId,
       name: name || 'chat',
       cwd: normalizedCwd,
       isCustomNamed: Boolean(name && name !== 'chat' && name !== 'hugcode'),

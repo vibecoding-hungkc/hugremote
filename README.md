@@ -161,6 +161,55 @@ https://hugtech.buaanvuive.com/remote/auth/google/callback
 
 ---
 
+## 🤖 Telegram Bot Integration
+
+HugRemote tích hợp sẵn Telegram Bot (sidecar không ảnh hưởng hiệu năng), cho phép điều khiển **Claude Code CLI** và chạy **Terminal** từ xa trên điện thoại qua ứng dụng Telegram.
+
+### 1. Cấu hình Telegram
+
+Thêm các biến sau vào `~/.config/hugremote/.env` hoặc truyền qua biến môi trường:
+
+```env
+# Token lấy từ @BotFather (Bắt buộc để kích hoạt bot)
+TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+
+# Whitelist User ID hoặc username Telegram được phép dùng (Ngăn người lạ truy cập)
+TELEGRAM_ALLOWED_USERS=123456789,my_username
+
+# Bật chế độ Topic Mode (mỗi Topic là 1 phiên Claude độc lập)
+TELEGRAM_TOPIC_MODE=true
+```
+
+> **Cách lấy User ID**: Gửi tin nhắn bất kỳ cho [@userinfobot](https://t.me/userinfobot) trên Telegram để nhận ID số của bạn.
+
+### 2. Thiết lập Chế độ Topic (Threaded Mode) trong @BotFather
+
+Để mỗi Topic trong bot đóng vai trò là một phiên làm việc độc lập:
+1. Mở [@BotFather](https://t.me/BotFather) → chọn bot của bạn.
+2. Vào **Bot Settings** → **Threads Settings**.
+3. Bật **Threaded Mode: ON**.
+
+### 3. Danh sách câu lệnh Telegram Bot
+
+| Lệnh | Mô tả |
+|---|---|
+| `/new [tên] [cwd]` | Tạo phiên Claude Code mới (tự động gán vào Topic hiện tại). |
+| `/resume [id]` | Khôi phục hoặc chuyển đổi sang phiên làm việc cũ. |
+| `/compact` | Kích hoạt tóm tắt và nén ngữ cảnh hội thoại hiện tại để tiết kiệm token. |
+| `/clear` | Xóa sạch lịch sử tin nhắn trong phiên hiện tại (giữ nguyên thư mục làm việc). |
+| `/stop` (hoặc `/abort`) | Huỷ ngay lệnh Claude hoặc tiến trình đang thực thi. |
+| `/status` (hoặc `/limits`) | Xem thông tin chi tiết phiên và hạn mức Claude (5-giờ, tuần). |
+| `/sessions` (hoặc `/ls`) | Liệt kê danh sách các phiên làm việc đang có. |
+| `/terminal <lệnh>` | Chạy lệnh Bash trực tiếp trên máy chủ tại thư mục làm việc hiện tại. |
+| `/cd <đường_dẫn>` | Đổi thư mục làm việc của phiên hiện tại. |
+| `/pwd` | Xem thư mục làm việc hiện tại. |
+| `/topic [on\|off]` | Bật/tắt chế độ Topic Mode cho cuộc trò chuyện. |
+| `/help` | Xem danh sách hướng dẫn và phím tắt. |
+
+*(Tin nhắn văn bản thông thường gửi vào Topic sẽ được chuyển tiếp trực tiếp thành prompt cho Claude Code với streaming trực tiếp)*
+
+---
+
 ## 📱 Key Features
 
 - **Mobile-First PWA**: Scoped CSS, dark theme, iOS safe-area support, and touch-first ergonomics.

@@ -143,12 +143,10 @@ export const useGitStore = defineStore('git', () => {
 
   async function checkout(branch: string) {
     await postGitAction('/api/git/checkout', { branch });
-    actionMessage.value = `Đã checkout ${branch}`;
   }
 
   async function stageFile(file: string) {
     await postGitAction('/api/git/stage', { file });
-    actionMessage.value = 'Đã stage file';
   }
 
   async function unstageFile(file: string) {
@@ -157,7 +155,6 @@ export const useGitStore = defineStore('git', () => {
 
   async function commit(message: string) {
     await postGitAction('/api/git/commit', { message });
-    actionMessage.value = 'Đã commit thay đổi';
   }
 
   function backToList() {

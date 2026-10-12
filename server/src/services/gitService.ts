@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 export interface GitChangedFile {
   path: string;
   status: 'M' | 'A' | 'D' | 'R' | '??';
+  staged: boolean;
   additions: number;
   deletions: number;
 }
@@ -91,11 +92,13 @@ export class GitService {
     const behindMatch = branchLine.match(/behind\s+(\d+)/);
     const nums = parseNumstat(numstatRaw);
     const files: GitChangedFile[] = statusRaw.split('\n').filter(Boolean).map((line) => {
-      const xy = line.slice(0, 2).trim() || 'M';
+      const xyRaw = line.slice(0, 2);
+      const xy = xyRaw.trim() || 'M';
+      const staged = xyRaw[0] !== ' ' && xyRaw[0] !== '?';
       const filePath = line.slice(3).replace(/^.* -> /, '');
       const stat = nums.get(filePath) || { additions: 0, deletions: 0 };
       const status = (xy === '??' ? '??' : xy.includes('A') ? 'A' : xy.includes('D') ? 'D' : xy.includes('R') ? 'R' : 'M') as GitChangedFile['status'];
-      return { path: filePath, status, additions: stat.additions, deletions: stat.deletions };
+      return { path: filePath, status, staged, additions: stat.additions, deletions: stat.deletions };
     });
     return {
       repoRoot: root,
@@ -112,6 +115,20 @@ export class GitService {
       raw = await this.execGit(cwd, ['diff', '--cached', '--', file]).catch(() => '');
     }
     return { file, lines: parseDiff(raw) };
+  }
+
+  async stage(cwd: string, file: string): Promise<void> {
+    await this.execGit(cwd, ['add', '--', file]);
+  }
+
+  async unstage(cwd: string, file: string): Promise<void> {
+    await this.execGit(cwd, ['restore', '--staged', '--', file]);
+  }
+
+  async commit(cwd: string, message: string): Promise<string> {
+    const clean = message.trim();
+    if (!clean) throw new Error('Commit message is required');
+    return await this.execGit(cwd, ['commit', '-m', clean]);
   }
 }
 

@@ -7,6 +7,7 @@ import { useProjectStore } from './projectStore.js';
 export interface GitChangedFile {
   path: string;
   status: 'M' | 'A' | 'D' | 'R' | '??';
+  staged: boolean;
   additions: number;
   deletions: number;
 }
@@ -30,6 +31,7 @@ export const useGitStore = defineStore('git', () => {
   const diffLines = ref<GitDiffLine[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const actionMessage = ref<string | null>(null);
 
   async function fetchStatus() {
     const projectId = projectStore.currentProject?.id;
@@ -72,10 +74,57 @@ export const useGitStore = defineStore('git', () => {
     }
   }
 
+  function applyStatus(data: any) {
+    branch.value = data.branch || '';
+    repoRoot.value = data.repoRoot || '';
+    ahead.value = data.ahead || 0;
+    behind.value = data.behind || 0;
+    files.value = data.files || [];
+  }
+
+  async function postGitAction(endpoint: string, body: Record<string, any>) {
+    const projectId = projectStore.currentProject?.id;
+    if (!projectId) return;
+    loading.value = true;
+    error.value = null;
+    actionMessage.value = null;
+    try {
+      const res = await fetch(apiUrl(endpoint), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serverId: serverStore.currentServerId, projectId, ...body }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Git action failed');
+      const data = await res.json();
+      if (data.status) applyStatus(data.status);
+      return data;
+    } catch (err: any) {
+      error.value = err.message;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function stageFile(file: string) {
+    await postGitAction('/api/git/stage', { file });
+    actionMessage.value = 'Đã stage file';
+  }
+
+  async function unstageFile(file: string) {
+    await postGitAction('/api/git/unstage', { file });
+    actionMessage.value = 'Đã unstage file';
+  }
+
+  async function commit(message: string) {
+    await postGitAction('/api/git/commit', { message });
+    actionMessage.value = 'Đã commit thay đổi';
+  }
+
   function backToList() {
     selectedFile.value = null;
     diffLines.value = [];
   }
 
-  return { branch, repoRoot, ahead, behind, files, selectedFile, diffLines, loading, error, fetchStatus, fetchDiff, backToList };
+  return { branch, repoRoot, ahead, behind, files, selectedFile, diffLines, loading, error, actionMessage, fetchStatus, fetchDiff, stageFile, unstageFile, commit, backToList };
 });

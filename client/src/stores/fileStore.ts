@@ -27,6 +27,8 @@ export const useFileStore = defineStore('file', () => {
   const entries = ref<FileEntry[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const saveNotice = ref('');
+  let saveNoticeTimer: ReturnType<typeof setTimeout> | null = null;
 
   const activeFile = ref<ActiveFile | null>(null);
   const fileMode = ref<'code' | 'preview'>('code');
@@ -111,6 +113,9 @@ export const useFileStore = defineStore('file', () => {
       }
       activeFile.value.originalContent = activeFile.value.content;
       activeFile.value.isDirty = false;
+      saveNotice.value = `Đã lưu ${activeFile.value.name}`;
+      if (saveNoticeTimer) clearTimeout(saveNoticeTimer);
+      saveNoticeTimer = setTimeout(() => { saveNotice.value = ''; }, 2400);
     } catch (err: any) {
       error.value = `Lỗi lưu file: ${err.message}`;
       throw err;
@@ -187,6 +192,7 @@ export const useFileStore = defineStore('file', () => {
     entries,
     loading,
     error,
+    saveNotice,
     activeFile,
     fileMode,
     fetchFiles,

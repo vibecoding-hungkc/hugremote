@@ -51,14 +51,27 @@ async function main() {
   fs.writeFileSync(path.join(repo, 'README.md'), 'old\nnew\n', 'utf8');
   fs.writeFileSync(path.join(repo, 'new.txt'), 'hello\n', 'utf8');
 
-  const status = await gitService.getStatus(repo);
+  let status = await gitService.getStatus(repo);
   assert.ok(status.branch.length > 0);
-  assert.ok(status.files.some(f => f.path === 'README.md' && f.status === 'M'));
-  assert.ok(status.files.some(f => f.path === 'new.txt' && f.status === '??'));
+  assert.ok(status.files.some(f => f.path === 'README.md' && f.status === 'M' && !f.staged));
+  assert.ok(status.files.some(f => f.path === 'new.txt' && f.status === '??' && !f.staged));
 
-  const diff = await gitService.getDiff(repo, 'README.md');
-  assert.ok(diff.lines.some(l => l.type === 'added' && l.content.includes('new')));
-  assert.ok(diff.lines.some(l => l.type === 'context' && l.content.includes('old')));
+  await gitService.stage(repo, 'README.md');
+  status = await gitService.getStatus(repo);
+  assert.ok(status.files.some(f => f.path === 'README.md' && f.staged));
+
+  await gitService.unstage(repo, 'README.md');
+  status = await gitService.getStatus(repo);
+  assert.ok(status.files.some(f => f.path === 'README.md' && !f.staged));
+
+  await gitService.stage(repo, 'README.md');
+  await gitService.commit(repo, 'test: update readme');
+  status = await gitService.getStatus(repo);
+  assert.ok(!status.files.some(f => f.path === 'README.md'), 'committed file should leave changed list');
+
+  await gitService.stage(repo, 'new.txt');
+  const diff = await gitService.getDiff(repo, 'new.txt');
+  assert.ok(diff.lines.some(l => l.type === 'added' && l.content.includes('hello')));
 
   fs.rmSync(tmp, { recursive: true, force: true });
   console.log('project-wrapper-tests-ok');

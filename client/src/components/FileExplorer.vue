@@ -191,6 +191,29 @@ function formatSize(bytes: number): string {
   flex-direction: column;
   overflow-y: auto;
   background: #090d16;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #090d16;
+  scrollbar-gutter: stable;
+}
+
+.file-explorer-container::-webkit-scrollbar {
+  width: 7px;
+}
+
+.file-explorer-container::-webkit-scrollbar-track {
+  background: #090d16;
+  border-radius: 999px;
+}
+
+.file-explorer-container::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 999px;
+  border: 1px solid #090d16;
+}
+
+.file-explorer-container::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .parent-nav-row {

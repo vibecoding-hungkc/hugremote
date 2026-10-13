@@ -168,6 +168,29 @@ onBeforeUnmount(() => {
 :deep(.cm-scroller) {
   overflow: auto;
   font-family: monospace;
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #0a0f1d;
+  scrollbar-gutter: stable;
+}
+
+:deep(.cm-scroller::-webkit-scrollbar) {
+  width: 7px;
+  height: 7px;
+}
+
+:deep(.cm-scroller::-webkit-scrollbar-track) {
+  background: #0a0f1d;
+  border-radius: 999px;
+}
+
+:deep(.cm-scroller::-webkit-scrollbar-thumb) {
+  background: #475569;
+  border-radius: 999px;
+  border: 1px solid #0a0f1d;
+}
+
+:deep(.cm-scroller::-webkit-scrollbar-thumb:hover) {
+  background: #64748b;
 }
 
 :deep(.cm-gutters) {
@@ -179,12 +202,35 @@ onBeforeUnmount(() => {
 .markdown-preview-box {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #0b1120;
+  scrollbar-gutter: stable;
   padding: 16px 20px;
   background: #0b1120;
   color: #e2e8f0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;
   font-size: 14px;
+}
+
+.markdown-preview-box::-webkit-scrollbar {
+  width: 7px;
+}
+
+.markdown-preview-box::-webkit-scrollbar-track {
+  background: #0b1120;
+  border-radius: 999px;
+}
+
+.markdown-preview-box::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 999px;
+  border: 1px solid #0b1120;
+}
+
+.markdown-preview-box::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 :deep(.markdown-preview-box h1) {

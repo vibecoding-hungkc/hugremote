@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <div v-if="gitStore.actionMessage" class="git-toast"><i class="ri-check-line"></i> {{ gitStore.actionMessage }}</div>
+    <div v-if="gitStore.actionMessage" class="git-toast" :class="gitStore.actionMessageType"><i :class="gitStore.actionMessageType === 'error' ? 'ri-error-warning-line' : 'ri-check-line'"></i> {{ gitStore.actionMessage }}</div>
 
     <div v-if="gitStore.error" class="state" :class="{ error: !isNoRepo }">
       <i :class="isNoRepo ? 'ri-git-repository-line' : 'ri-error-warning-line'"></i>
@@ -148,6 +148,7 @@ async function selectRepo(repo: string) { gitStore.selectRepository(repo); showR
 .remote-count { font-family:monospace; font-size:10px; background:rgba(56,189,248,.14); color:#7dd3fc; border-radius:999px; padding:1px 5px; }
 .remote-btn.active .remote-count { background:#0284c7; color:white; }
 .git-toast { position:absolute; right:12px; bottom:54px; z-index:8; padding:8px 10px; border:1px solid rgba(34,197,94,.28); border-radius:10px; background:rgba(6,78,59,.95); color:#bbf7d0; font-size:12px; font-weight:800; display:flex; align-items:center; gap:6px; box-shadow:0 10px 28px rgba(0,0,0,.35); }
+.git-toast.error { border-color:rgba(248,113,113,.35); background:rgba(127,29,29,.95); color:#fecaca; }
 .state { padding:28px; text-align:center; color:#64748b; font-size:13px; }
 .state.compact { padding:14px; }
 .state.error { color:#f87171; }

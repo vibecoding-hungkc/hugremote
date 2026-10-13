@@ -51,6 +51,12 @@ export const useGitStore = defineStore('git', () => {
   const loading = ref(false);
   const error = ref<string | null>(null);
   const actionMessage = ref<string | null>(null);
+  const actionMessageType = ref<'success' | 'error'>('success');
+
+  function showActionMessage(message: string, type: 'success' | 'error' = 'success') {
+    actionMessageType.value = type;
+    actionMessage.value = message;
+  }
 
   const repoParam = () => encodeURIComponent(selectedRepo.value || '');
 
@@ -168,10 +174,15 @@ export const useGitStore = defineStore('git', () => {
     }
   }
 
-  async function refreshAll() {
+  async function refreshAll(options: { notify?: boolean } = {}) {
+    actionMessage.value = null;
     await fetchRepositories();
     await fetchStatus();
     await fetchBranches();
+    if (options.notify) {
+      if (error.value) showActionMessage(`Git sync failed: ${error.value}`, 'error');
+      else showActionMessage('Git synced');
+    }
   }
 
   async function pull() {
@@ -205,5 +216,5 @@ export const useGitStore = defineStore('git', () => {
     diffLines.value = [];
   }
 
-  return { repositories, selectedRepo, branch, upstream, hasUpstream, repoRoot, ahead, behind, fetchedAt, files, branches, selectedFile, diffLines, loading, error, actionMessage, fetchRepositories, selectRepository, refreshAll, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
+  return { repositories, selectedRepo, branch, upstream, hasUpstream, repoRoot, ahead, behind, fetchedAt, files, branches, selectedFile, diffLines, loading, error, actionMessage, actionMessageType, fetchRepositories, selectRepository, refreshAll, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
 });

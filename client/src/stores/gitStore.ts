@@ -24,9 +24,19 @@ export interface GitBranchItem {
   current: boolean;
 }
 
+export interface GitRepositoryItem {
+  rootPath: string;
+  relativePath: string;
+  name: string;
+  depth: number;
+  current?: boolean;
+}
+
 export const useGitStore = defineStore('git', () => {
   const serverStore = useServerStore();
   const projectStore = useProjectStore();
+  const repositories = ref<GitRepositoryItem[]>([]);
+  const selectedRepo = ref('');
   const branch = ref('');
   const upstream = ref('');
   const hasUpstream = ref(false);
@@ -42,20 +52,41 @@ export const useGitStore = defineStore('git', () => {
   const error = ref<string | null>(null);
   const actionMessage = ref<string | null>(null);
 
+  const repoParam = () => encodeURIComponent(selectedRepo.value || '');
+
+  async function fetchRepositories() {
+    const projectId = projectStore.currentProject?.id;
+    if (!projectId) return;
+    try {
+      const res = await fetch(apiUrl(`/api/git/repositories?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`));
+      if (!res.ok) throw new Error((await res.json()).error || 'Failed to scan repositories');
+      const data = await res.json();
+      repositories.value = data.repositories || [];
+      if (!repositories.value.some((r) => r.relativePath === selectedRepo.value)) {
+        selectedRepo.value = repositories.value[0]?.relativePath || '';
+      }
+    } catch (err: any) {
+      error.value = err.message;
+      repositories.value = [];
+    }
+  }
+
+  function selectRepository(repo: string) {
+    selectedRepo.value = repo;
+    selectedFile.value = null;
+    diffLines.value = [];
+  }
+
   async function fetchStatus() {
     const projectId = projectStore.currentProject?.id;
     if (!projectId) return;
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(apiUrl(`/api/git/status?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`));
+      const res = await fetch(apiUrl(`/api/git/status?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}&repo=${repoParam()}`));
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git status');
       const data = await res.json();
-      branch.value = data.branch || '';
-      repoRoot.value = data.repoRoot || '';
-      ahead.value = data.ahead || 0;
-      behind.value = data.behind || 0;
-      files.value = data.files || [];
+      applyStatus(data);
     } catch (err: any) {
       error.value = err.message;
       files.value = [];
@@ -68,7 +99,7 @@ export const useGitStore = defineStore('git', () => {
     const projectId = projectStore.currentProject?.id;
     if (!projectId) return;
     try {
-      const res = await fetch(apiUrl(`/api/git/branches?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`));
+      const res = await fetch(apiUrl(`/api/git/branches?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}&repo=${repoParam()}`));
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git branches');
       const data = await res.json();
       branches.value = data.branches || [];
@@ -85,7 +116,7 @@ export const useGitStore = defineStore('git', () => {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(apiUrl(`/api/git/diff?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}&file=${encodeURIComponent(file)}`));
+      const res = await fetch(apiUrl(`/api/git/diff?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}&repo=${repoParam()}&file=${encodeURIComponent(file)}`));
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git diff');
       const data = await res.json();
       diffLines.value = data.lines || [];
@@ -123,7 +154,7 @@ export const useGitStore = defineStore('git', () => {
       const res = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serverId: serverStore.currentServerId, projectId, ...body }),
+        body: JSON.stringify({ serverId: serverStore.currentServerId, projectId, repo: selectedRepo.value, ...body }),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Git action failed');
       const data = await res.json();
@@ -135,6 +166,12 @@ export const useGitStore = defineStore('git', () => {
     } finally {
       loading.value = false;
     }
+  }
+
+  async function refreshAll() {
+    await fetchRepositories();
+    await fetchStatus();
+    await fetchBranches();
   }
 
   async function pull() {
@@ -168,5 +205,5 @@ export const useGitStore = defineStore('git', () => {
     diffLines.value = [];
   }
 
-  return { branch, upstream, hasUpstream, repoRoot, ahead, behind, fetchedAt, files, branches, selectedFile, diffLines, loading, error, actionMessage, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
+  return { repositories, selectedRepo, branch, upstream, hasUpstream, repoRoot, ahead, behind, fetchedAt, files, branches, selectedFile, diffLines, loading, error, actionMessage, fetchRepositories, selectRepository, refreshAll, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
 });

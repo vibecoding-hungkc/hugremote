@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { spawn } from 'child_process';
 
 export interface GitChangedFile {
@@ -22,6 +24,14 @@ export interface GitStatusResponse {
 export interface GitBranchItem {
   name: string;
   current: boolean;
+}
+
+export interface GitRepositoryItem {
+  rootPath: string;
+  relativePath: string;
+  name: string;
+  depth: number;
+  current?: boolean;
 }
 
 export interface GitDiffLine {
@@ -71,6 +81,48 @@ function parseDiff(raw: string): GitDiffLine[] {
 }
 
 export class GitService {
+  async scanRepositories(projectRoot: string, maxDepth = 3): Promise<GitRepositoryItem[]> {
+    const root = path.resolve(projectRoot);
+    const repos: GitRepositoryItem[] = [];
+    const skip = new Set(['node_modules', '.cache', 'dist', 'build', '.next', '.nuxt', 'vendor']);
+
+    const walk = (dir: string, depth: number) => {
+      if (depth > maxDepth) return;
+      const gitPath = path.join(dir, '.git');
+      if (fs.existsSync(gitPath)) {
+        const relativePath = path.relative(root, dir).split(path.sep).join('/');
+        repos.push({
+          rootPath: dir,
+          relativePath,
+          name: relativePath ? path.basename(dir) : path.basename(root),
+          depth,
+        });
+      }
+      let entries: fs.Dirent[] = [];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch (_) {
+        return;
+      }
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.startsWith('.') || skip.has(entry.name)) continue;
+        walk(path.join(dir, entry.name), depth + 1);
+      }
+    };
+
+    walk(root, 0);
+    return repos.sort((a, b) => a.depth - b.depth || a.relativePath.localeCompare(b.relativePath));
+  }
+
+  resolveRepositoryPath(projectRoot: string, repoRel?: string): string {
+    const root = path.resolve(projectRoot);
+    const target = path.resolve(root, repoRel || '');
+    const relative = path.relative(root, target);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('Repository path is outside project');
+    return target;
+  }
+
   execGit(cwd: string, args: string[]): Promise<string> {
     return new Promise((resolve, reject) => {
       const child = spawn('git', ['-C', cwd, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });

@@ -1,7 +1,17 @@
 <template>
   <div class="git-view">
+    <div class="repo-strip">
+      <button class="repo-picker" @click="showRepoSheet = true">
+        <i class="ri-git-repository-line"></i>
+        <span>{{ currentRepoLabel }}</span>
+        <small>{{ gitStore.repositories.length }}</small>
+        <i class="ri-arrow-down-s-line"></i>
+      </button>
+      <button class="scan-btn" :disabled="gitStore.loading" @click="refreshGit"><i class="ri-radar-line"></i> Scan</button>
+    </div>
+
     <div class="git-summary">
-      <button class="branch-picker" @click="showBranchSheet = true">
+      <button class="branch-picker" @click="showBranchSheet = true" :disabled="!gitStore.repoRoot">
         <i class="ri-git-branch-line"></i>
         <span>{{ gitStore.branch || 'No repo' }}</span>
         <i class="ri-arrow-down-s-line"></i>
@@ -58,6 +68,21 @@
       </div>
     </template>
 
+    <div v-if="showRepoSheet" class="branch-overlay" @click.self="showRepoSheet = false">
+      <div class="branch-sheet">
+        <div class="branch-sheet-header">
+          <div><i class="ri-git-repository-line"></i> Git repositories · scan 3 levels</div>
+          <button @click="showRepoSheet = false"><i class="ri-close-line"></i></button>
+        </div>
+        <button v-for="repo in gitStore.repositories" :key="repo.relativePath" class="repo-row" :class="{ active: repo.relativePath === gitStore.selectedRepo }" @click="selectRepo(repo.relativePath)">
+          <span>{{ repo.relativePath || projectStore.currentProject?.name || repo.name }}</span>
+          <small>depth {{ repo.depth }}</small>
+          <i v-if="repo.relativePath === gitStore.selectedRepo" class="ri-check-line"></i>
+        </button>
+        <div v-if="!gitStore.repositories.length" class="state compact">Không tìm thấy Git repo trong 3 cấp thư mục</div>
+      </div>
+    </div>
+
     <div v-if="showBranchSheet" class="branch-overlay" @click.self="showBranchSheet = false">
       <div class="branch-sheet">
         <div class="branch-sheet-header">
@@ -84,14 +109,18 @@ const projectStore = useProjectStore();
 const commitMessage = ref('');
 const pullBusy = ref(false);
 const showBranchSheet = ref(false);
+const showRepoSheet = ref(false);
 
-async function refreshGit() {
-  await gitStore.fetchStatus();
-  await gitStore.fetchBranches();
-}
+const currentRepoLabel = computed(() => {
+  const repo = gitStore.repositories.find((r) => r.relativePath === gitStore.selectedRepo);
+  if (!repo) return 'Scan repos';
+  return repo.relativePath || projectStore.currentProject?.name || repo.name;
+});
 
+async function refreshGit() { await gitStore.refreshAll(); }
 onMounted(refreshGit);
 watch(() => projectStore.currentProject?.id, refreshGit);
+watch(() => gitStore.selectedRepo, async () => { await gitStore.fetchStatus(); await gitStore.fetchBranches(); });
 const isNoRepo = computed(() => /not a git repository/i.test(gitStore.error || ''));
 function prefix(type: string) { return type === 'added' ? '+' : type === 'deleted' ? '-' : type === 'hunk' ? '' : ' '; }
 async function toggleStage(file: GitChangedFile) { file.staged ? await gitStore.unstageFile(file.path) : await gitStore.stageFile(file.path); }
@@ -99,10 +128,16 @@ async function doCommit() { const msg = commitMessage.value.trim(); if (!msg) re
 async function doPull() { pullBusy.value = true; try { await gitStore.pull(); } finally { pullBusy.value = false; } }
 async function doPush() { pullBusy.value = true; try { await gitStore.push(); } finally { pullBusy.value = false; } }
 async function checkout(branch: string) { await gitStore.checkout(branch); showBranchSheet.value = false; }
+async function selectRepo(repo: string) { gitStore.selectRepository(repo); showRepoSheet.value = false; }
 </script>
 
 <style scoped>
 .git-view { flex:1; min-height:0; background:#090d16; color:#cbd5e1; display:flex; flex-direction:column; overflow:hidden; }
+.repo-strip { min-height:38px; flex-shrink:0; display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid #172033; background:#0b1120; }
+.repo-picker { flex:1; min-width:0; height:28px; display:flex; align-items:center; gap:5px; border:1px solid rgba(56,189,248,.28); border-radius:8px; background:rgba(14,165,233,.08); color:#bae6fd; padding:0 8px; font-size:11.5px; font-weight:800; }
+.repo-picker span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; }
+.repo-picker small { flex-shrink:0; border-radius:999px; padding:1px 5px; background:rgba(14,165,233,.18); color:#7dd3fc; font-size:9px; }
+.scan-btn { height:28px; flex-shrink:0; border:1px solid #334155; border-radius:8px; background:#1e293b; color:#cbd5e1; padding:0 8px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:4px; }
 .git-summary { min-height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-bottom:1px solid #1e293b; background:#0f172a; }
 .branch-picker { min-width:0; max-width:48%; height:30px; display:flex; align-items:center; gap:5px; border:1px solid rgba(245,158,11,.28); border-radius:8px; background:rgba(245,158,11,.08); color:#fbbf24; padding:0 8px; font-size:12px; font-weight:800; }
 .branch-picker span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -150,7 +185,9 @@ async function checkout(branch: string) { await gitStore.checkout(branch); showB
 .branch-sheet-header { display:flex; align-items:center; justify-content:space-between; color:#f1f5f9; font-size:13px; font-weight:800; margin-bottom:4px; }
 .branch-sheet-header div { display:flex; align-items:center; gap:6px; }
 .branch-sheet-header button { width:30px; height:30px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; }
-.branch-row { min-height:40px; border:1px solid #1e293b; border-radius:9px; background:#111827; color:#cbd5e1; padding:0 10px; display:flex; align-items:center; justify-content:space-between; font-family:monospace; font-size:12px; }
-.branch-row.active { border-color:#f59e0b; background:rgba(245,158,11,.09); color:#fbbf24; }
+.branch-row, .repo-row { min-height:40px; border:1px solid #1e293b; border-radius:9px; background:#111827; color:#cbd5e1; padding:0 10px; display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:8px; font-family:monospace; font-size:12px; text-align:left; }
+.branch-row span, .repo-row span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.repo-row small { color:#64748b; font-size:10px; }
+.branch-row.active, .repo-row.active { border-color:#f59e0b; background:rgba(245,158,11,.09); color:#fbbf24; }
 @media (max-width:390px){ .git-remote-actions button{padding:0 6px;} .branch-picker{max-width:42%;} }
 </style>

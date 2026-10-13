@@ -51,6 +51,18 @@ async function main() {
   fs.writeFileSync(path.join(repo, 'README.md'), 'old\nnew\n', 'utf8');
   fs.writeFileSync(path.join(repo, 'new.txt'), 'hello\n', 'utf8');
 
+  const nestedRoot = path.join(repo, 'packages', 'one', 'nested-repo');
+  fs.mkdirSync(nestedRoot, { recursive: true });
+  await gitService.execGit(nestedRoot, ['init']);
+  fs.writeFileSync(path.join(nestedRoot, 'package.json'), '{"name":"nested"}\n', 'utf8');
+  const tooDeepRoot = path.join(repo, 'a', 'b', 'c', 'too-deep-repo');
+  fs.mkdirSync(tooDeepRoot, { recursive: true });
+  await gitService.execGit(tooDeepRoot, ['init']);
+  const repos = await gitService.scanRepositories(repo, 3);
+  assert.ok(repos.some(r => r.relativePath === '' && r.name === 'demo-repo'));
+  assert.ok(repos.some(r => r.relativePath === 'packages/one/nested-repo' && r.depth === 3));
+  assert.ok(!repos.some(r => r.relativePath.includes('too-deep-repo')), 'scan must stop at 3 directory levels');
+
   let status = await gitService.getStatus(repo);
   assert.ok(status.branch.length > 0);
   assert.ok(status.files.some(f => f.path === 'README.md' && f.status === 'M' && !f.staged));

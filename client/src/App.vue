@@ -240,8 +240,7 @@ watch(
 
 watch(activeTab, async (tab) => {
   if (tab === 'git') {
-    await gitStore.fetchStatus();
-    await gitStore.fetchBranches();
+    await gitStore.refreshAll();
   }
 });
 

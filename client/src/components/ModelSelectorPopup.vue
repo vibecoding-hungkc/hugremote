@@ -36,11 +36,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
+import { useClaudeModelStore, type ClaudeModelOption } from '../stores/claudeModelStore.js';
 
 const props = defineProps<{
   isOpen: boolean;
-  modelValue: string; // e.g. "Sonnet 5.5 Medium"
+  modelValue: string; // e.g. "Default Medium"
 }>();
 
 const emit = defineEmits<{
@@ -48,45 +49,11 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-interface ModelItem {
-  id: string;
-  title: string;
-  desc: string;
-  prefix: string;
-}
+const modelStore = useClaudeModelStore();
+const models = computed(() => modelStore.models);
 
-const models: ModelItem[] = [
-  {
-    id: 'default',
-    title: 'Default (recommended)',
-    desc: 'Opus 5.5 · Best for everyday, complex tasks',
-    prefix: 'Default (Opus)',
-  },
-  {
-    id: 'opus',
-    title: 'Opus',
-    desc: 'Opus 5.5 · Best for everyday, complex tasks · ~2× usage vs Sonnet',
-    prefix: 'Opus 5.5',
-  },
-  {
-    id: 'fable',
-    title: 'Fable',
-    desc: 'Fable 5.1 · Most capable for your hardest and longest-running tasks · Requires usage credits',
-    prefix: 'Fable 5.1',
-  },
-  {
-    id: 'sonnet',
-    title: 'Sonnet',
-    desc: 'Sonnet 5.5 · Efficient for routine tasks',
-    prefix: 'Sonnet 5.5',
-  },
-  {
-    id: 'haiku',
-    title: 'Haiku',
-    desc: 'Haiku 4.5 · Fastest for quick answers',
-    prefix: 'Haiku 4.5',
-  },
-];
+onMounted(() => modelStore.fetchModels());
+watch(() => props.isOpen, (open) => { if (open) modelStore.fetchModels(); });
 
 const effortSteps = ['Low', 'Medium', 'High', 'Max'] as const;
 type EffortLevel = typeof effortSteps[number];
@@ -123,7 +90,7 @@ const thumbLeft = computed(() => {
   }
 });
 
-function selectModel(item: ModelItem) {
+function selectModel(item: ClaudeModelOption) {
   const newName = `${item.prefix} ${currentEffort.value}`;
   emit('update:modelValue', newName);
   emit('close');

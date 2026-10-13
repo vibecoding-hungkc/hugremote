@@ -229,7 +229,7 @@
               <span class="ctx-max">/1000k</span>
             </span>
 
-            <!-- Model selector badge: Sonnet 5.5 Medium -->
+            <!-- Model selector badge: Default Medium -->
             <button
               type="button"
               class="claude-model-badge"
@@ -317,7 +317,7 @@ function openLimits() {
 }
 
 const activeSession = computed(() => claudeStore.activeSession);
-const currentModel = computed(() => activeSession.value?.model || 'Sonnet 5.5 Medium');
+const currentModel = computed(() => activeSession.value?.model || 'Default Medium');
 const currentMode = computed(() => activeSession.value?.mode || 'Auto');
 const currentContextTokens = computed(() => {
   const s = activeSession.value;

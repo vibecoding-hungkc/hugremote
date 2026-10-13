@@ -120,7 +120,7 @@ const currentTokens = computed(() => {
   if (!s.contextTokens || s.contextTokens === '0' || s.contextTokens === '0k') return '0';
   return s.contextTokens;
 });
-const currentModel = computed(() => activeSession.value?.model || 'Sonnet 5.5 Medium');
+const currentModel = computed(() => activeSession.value?.model || 'Default Medium');
 
 const contextPercent = computed(() => {
   const t = currentTokens.value;

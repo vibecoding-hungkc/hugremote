@@ -53,6 +53,15 @@ export interface ClaudeSession {
   updatedAt: number;
 }
 
+export interface ClaudeModelOption {
+  id: string;
+  title: string;
+  desc: string;
+  prefix: string;
+  cliModel: string;
+  isDefault?: boolean;
+}
+
 export type ClaudeStreamEvent =
   | { type: 'thinking_start' }
   | { type: 'thinking'; text: string }
@@ -73,6 +82,22 @@ function parseResetInToTimestamp(resetIn: string): number {
   if (mMatch) ms += parseInt(mMatch[1], 10) * 60 * 1000;
   if (ms === 0) ms = 3.5 * 3600 * 1000;
   return Date.now() + ms;
+}
+
+function readClaudeSettingsEnv(): Record<string, string> {
+  const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+  if (!fs.existsSync(settingsPath)) return {};
+  try {
+    const rawSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    return rawSettings && typeof rawSettings.env === 'object' ? rawSettings.env : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function claudeModelEnv(name: string, fallback: string): string {
+  const settingsEnv = readClaudeSettingsEnv();
+  return process.env[name] || settingsEnv[name] || fallback;
 }
 
 function formatMsToResetIn(msLeft: number): string {
@@ -201,6 +226,29 @@ class ClaudeService {
     return list.sort((a, b) => b.updatedAt - a.updatedAt);
   }
 
+  getModelOptions(): ClaudeModelOption[] {
+    const raw = [
+      { id: 'default', title: 'Default', cliModel: claudeModelEnv('ANTHROPIC_DEFAULT_SONNET_MODEL', 'sonnet'), desc: 'Use Claude Code default/router model' },
+      { id: 'opus', title: 'Opus', cliModel: claudeModelEnv('ANTHROPIC_DEFAULT_OPUS_MODEL', 'opus'), desc: 'Most capable model alias available to Claude Code' },
+      { id: 'sonnet', title: 'Sonnet', cliModel: claudeModelEnv('ANTHROPIC_DEFAULT_SONNET_MODEL', 'sonnet'), desc: 'Balanced model alias available to Claude Code' },
+      { id: 'haiku', title: 'Haiku', cliModel: claudeModelEnv('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'haiku'), desc: 'Fast model alias available to Claude Code' },
+    ];
+    const seen = new Set<string>();
+    return raw.filter((m) => {
+      const key = `${m.id}:${m.cliModel}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).map((m, index) => ({
+      id: m.id,
+      title: m.title,
+      desc: `${m.desc} · --model ${m.cliModel}`,
+      prefix: m.title,
+      cliModel: m.cliModel,
+      isDefault: index === 0,
+    }));
+  }
+
   getSession(id: string): ClaudeSession | undefined {
     return this.sessions.get(id);
   }
@@ -210,7 +258,7 @@ class ClaudeService {
     projectIdOrName: string,
     nameOrCwd: string,
     cwdOrModel: string,
-    modelOrMode = 'Sonnet 5.5 Medium',
+    modelOrMode = 'Default Medium',
     modeOrInitialPrompt: string | undefined = 'Auto',
     initialPromptOrBypass?: string | boolean,
     bypassPermissions = false
@@ -228,7 +276,7 @@ class ClaudeService {
       projectId = '';
       name = projectIdOrName;
       cwd = nameOrCwd;
-      model = cwdOrModel || 'Sonnet 5.5 Medium';
+      model = cwdOrModel || 'Default Medium';
       mode = modelOrMode || 'Auto';
       initialPrompt = typeof modeOrInitialPrompt === 'string' && modeOrInitialPrompt !== 'Auto' ? modeOrInitialPrompt : undefined;
       bypassPermissions = initialPromptOrBypass;
@@ -429,13 +477,13 @@ class ClaudeService {
       } catch (_) {}
     }
 
-    // Map model
-    let modelArg = 'sonet';
+    // Map model display text to Claude Code CLI aliases/full names.
+    let modelArg = 'sonnet';
     const mLower = (session.model || '').toLowerCase();
-    if (mLower.includes('opus')) modelArg = 'opus';
-    else if (mLower.includes('haiku')) modelArg = 'haiku';
-    else if (mLower.includes('fable')) modelArg = 'fable';
-    else if (mLower.includes('sonnet') || mLower.includes('sonet')) modelArg = 'sonet';
+    if (mLower.includes('opus')) modelArg = claudeModelEnv('ANTHROPIC_DEFAULT_OPUS_MODEL', 'opus');
+    else if (mLower.includes('haiku')) modelArg = claudeModelEnv('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'haiku');
+    else if (mLower.includes('sonnet')) modelArg = claudeModelEnv('ANTHROPIC_DEFAULT_SONNET_MODEL', 'sonnet');
+    else if (mLower.includes('default')) modelArg = claudeModelEnv('ANTHROPIC_DEFAULT_SONNET_MODEL', 'sonnet');
 
     return new Promise((resolve) => {
       let lineBuffer = '';

@@ -59,11 +59,9 @@
         <div class="form-group">
           <label class="form-label">Model</label>
           <select v-model="modelInput" class="form-input form-select">
-            <option value="Default 5.5 Medium">Default 5.5</option>
-            <option value="Opus 5.5 Medium">Opus 5.5</option>
-            <option value="Fable 5.1 Medium">Fable 5.1</option>
-            <option value="Sonnet 5.5 Medium">Sonnet 5.5</option>
-            <option value="Haiku 4.5 Medium">Haiku 4.5</option>
+            <option v-for="model in modelStore.models" :key="model.id" :value="model.prefix + ' ' + effortInput">
+              {{ model.title }}
+            </option>
           </select>
         </div>
 
@@ -129,10 +127,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useClaudeStore } from '../stores/claudeStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
+import { useClaudeModelStore } from '../stores/claudeModelStore.js';
 import FolderTreePicker from './FolderTreePicker.vue';
 import { useI18n } from '../composables/useI18n.js';
 
@@ -152,12 +151,13 @@ const isEditMode = computed(() => Boolean(props.session?.id));
 const serverStore = useServerStore();
 const claudeStore = useClaudeStore();
 const projectStore = useProjectStore();
+const modelStore = useClaudeModelStore();
 const { t } = useI18n();
 
 const cwdInput = ref('');
 const nameInput = ref('');
 const initialPrompt = ref('');
-const modelInput = ref('Sonnet 5.5 Medium');
+const modelInput = ref('Default Medium');
 const effortInput = ref('Medium');
 const modeInput = ref('Auto');
 const bypassPermissions = ref(false);
@@ -169,7 +169,7 @@ function splitModelAndEffort(value: string) {
   const effort = match
     ? match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase()
     : 'Medium';
-  const baseModel = (value || 'Sonnet 5.5 Medium')
+  const baseModel = (value || modelStore.defaultModelName)
     .replace(/\s+\b(Low|Medium|High|Max)\b/i, '')
     .trim();
   return { baseModel, effort };
@@ -179,6 +179,13 @@ function composeModel() {
   const base = modelInput.value.replace(/\s+\b(Low|Medium|High|Max)\b/i, '').trim();
   return `${base} ${effortInput.value}`;
 }
+
+onMounted(() => modelStore.fetchModels());
+
+watch(
+  () => props.isOpen,
+  (open) => { if (open) modelStore.fetchModels(); }
+);
 
 watch(
   () => [props.isOpen, props.session] as const,
@@ -201,7 +208,7 @@ watch(
     cwdInput.value = defaultWs;
     suggestName(defaultWs);
     initialPrompt.value = '';
-    modelInput.value = 'Sonnet 5.5 Medium';
+    modelInput.value = modelStore.defaultModelName;
     effortInput.value = 'Medium';
     modeInput.value = 'Auto';
     bypassPermissions.value = false;

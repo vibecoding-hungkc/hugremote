@@ -117,7 +117,7 @@ export const useClaudeStore = defineStore('claude', () => {
       name: name || 'chat',
       projectId: projectStore.currentProject?.id || '',
       cwd: cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~',
-      model: model || 'Sonnet 5.5 Medium',
+      model: model || 'Default Medium',
       mode: mode || 'Auto',
       initialPrompt,
       bypassPermissions,

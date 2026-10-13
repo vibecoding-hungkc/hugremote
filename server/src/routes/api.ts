@@ -268,6 +268,10 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   });
 
   // --- CLAUDE SESSIONS & CHAT ---
+  fastify.get('/api/claude/models', async () => {
+    return { success: true, models: claudeService.getModelOptions(), defaultModel: 'Default Medium' };
+  });
+
   fastify.get<{ Querystring: { serverId?: string; projectId?: string; defaultCwd?: string } }>('/api/claude/sessions', async (request) => {
     const serverId = request.query.serverId || 'server-local';
     const projectId = request.query.projectId || '';

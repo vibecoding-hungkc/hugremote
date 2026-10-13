@@ -28,7 +28,7 @@ export function resolveSessionForContext(ctx: Context): ClaudeSession | null {
       '',
       `topic-${threadId}`,
       config.defaultCwd,
-      'Sonnet 5.5 Medium',
+      'Default Medium',
       'Auto',
       undefined,
       true
@@ -112,7 +112,7 @@ export function registerTelegramCommands(bot: Bot) {
       '',
       sessionName,
       sessionCwd,
-      'Sonnet 5.5 Medium',
+      'Default Medium',
       'Auto',
       undefined,
       true

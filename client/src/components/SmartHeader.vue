@@ -13,6 +13,7 @@
       <button class="project-selector-btn" @click="$emit('open-project-modal')" title="Project">
         <i class="ri-folder-2-line"></i>
         <span>{{ projectStore.currentProject?.name || '~' }}</span>
+        <i class="ri-arrow-down-s-line project-down"></i>
       </button>
 
       <div class="smart-header-center">
@@ -98,6 +99,7 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 .server-menu-btn, .btn-icon-action, .crumb-home-btn { width:28px; height:28px; border-radius:7px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
 .project-selector-btn { height:28px; max-width:96px; display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(56,189,248,.28); background:rgba(14,165,233,.09); color:#bae6fd; border-radius:7px; padding:0 7px; font-family:monospace; font-size:11.5px; font-weight:800; flex-shrink:0; }
 .project-selector-btn span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.project-selector-btn .project-down { flex-shrink:0; color:#7dd3fc; font-size:13px; margin-left:-2px; }
 .smart-header-center { flex:1; min-width:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
 .ctx-header-item { flex:1; min-width:0; max-width:100%; display:flex; align-items:center; justify-content:flex-start; }
 .breadcrumb-bar { display:flex; align-items:center; gap:4px; min-width:0; color:#94a3b8; font-family:monospace; font-size:11.5px; }

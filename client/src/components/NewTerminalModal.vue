@@ -67,10 +67,10 @@
             v-model="customName"
             type="text"
             class="input-field"
-            :placeholder="`Để trống sẽ lấy 3 cấp cuối (${previewDefaultName})`"
+            :placeholder="previewDefaultName"
           />
           <span class="hint-text">
-            * Nếu để trống, tên sẽ tự động cập nhật theo <b>3 cấp thư mục cuối của pwd</b> khi bạn chạy lệnh hoặc <code>cd</code>.
+            * Tên mặc định lấy theo <b>thư mục cấp cuối cùng</b> của đường dẫn làm việc.
           </span>
         </div>
       </div>
@@ -102,7 +102,7 @@ import { ref, computed, watch } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useFileStore } from '../stores/fileStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
-import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
+import { useTerminalStore } from '../stores/terminalStore.js';
 import { apiUrl } from '../utils/api.js';
 import FolderTreePicker from './FolderTreePicker.vue';
 import { useI18n } from '../composables/useI18n.js';
@@ -130,10 +130,17 @@ const targetCwd = ref('');
 const customName = ref('');
 const isTreePickerOpen = ref(false);
 
+function leafFolderName(pathStr: string) {
+  const clean = (pathStr || '~').replace(/\\+/g, '/').replace(/\/+$/, '').trim();
+  if (!clean || clean === '~') return '~';
+  const parts = clean.split('/').filter(Boolean);
+  return parts[parts.length - 1] || clean;
+}
+
 function initDefaults() {
   if (props.session?.id) {
     targetCwd.value = props.session.cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
-    customName.value = props.session.isCustomNamed ? (props.session.name || '') : '';
+    customName.value = props.session.isCustomNamed ? (props.session.name || '') : leafFolderName(targetCwd.value);
     isTreePickerOpen.value = false;
     return;
   }
@@ -149,7 +156,7 @@ function initDefaults() {
   } else {
     targetCwd.value = projectStore.currentProject?.rootPath || curServer.workspace || '~';
   }
-  customName.value = '';
+  customName.value = leafFolderName(targetCwd.value);
   isTreePickerOpen.value = false;
 }
 
@@ -159,14 +166,16 @@ function openTreePicker() {
 
 function handleTreeConfirm(path: string) {
   targetCwd.value = path;
+  customName.value = leafFolderName(path);
 }
 
 function setHomeDir() {
   targetCwd.value = '~';
+  customName.value = '~';
 }
 
 const previewDefaultName = computed(() => {
-  return extractLast3Dirs(targetCwd.value || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~');
+  return leafFolderName(targetCwd.value || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~');
 });
 
 watch(

@@ -31,27 +31,29 @@
     <div v-else-if="gitStore.loading && !gitStore.files.length" class="state"><i class="ri-loader-4-line spin"></i> Loading Git...</div>
 
     <template v-else-if="!gitStore.selectedFile">
-      <div class="commit-box">
-        <input v-model="commitMessage" placeholder="Commit message" @keydown.enter="doCommit" />
-        <button :disabled="!commitMessage.trim() || gitStore.loading" @click="doCommit">
-          <i class="ri-git-commit-line"></i> Commit
-        </button>
-      </div>
+      <div class="git-scroll-area">
+        <div class="commit-box">
+          <input v-model="commitMessage" placeholder="Commit message" @keydown.enter="doCommit" />
+          <button :disabled="!commitMessage.trim() || gitStore.loading" @click="doCommit">
+            <i class="ri-git-commit-line"></i> Commit
+          </button>
+        </div>
 
-      <div class="git-section-title">Changed files · {{ gitStore.files.length }}</div>
-      <div v-for="file in gitStore.files" :key="file.path" class="file-row">
-        <button class="stage-toggle" :class="{ staged: file.staged }" :title="file.staged ? 'Unstage' : 'Stage'" @click.stop="toggleStage(file)">
-          <i :class="file.staged ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
-        </button>
-        <button class="file-open" @click="gitStore.fetchDiff(file.path)">
-          <span class="status" :class="file.status">{{ file.status }}</span>
-          <span class="file-path">{{ file.path }}</span>
-          <span class="stage-label" :class="{ staged: file.staged }">{{ file.staged ? 'staged' : 'unstaged' }}</span>
-          <span class="stat plus">+{{ file.additions }}</span>
-          <span class="stat minus">-{{ file.deletions }}</span>
-        </button>
+        <div class="git-section-title">Changed files · {{ gitStore.files.length }}</div>
+        <div v-for="file in gitStore.files" :key="file.path" class="file-row">
+          <button class="stage-toggle" :class="{ staged: file.staged }" :title="file.staged ? 'Unstage' : 'Stage'" @click.stop="toggleStage(file)">
+            <i :class="file.staged ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
+          </button>
+          <button class="file-open" @click="gitStore.fetchDiff(file.path)">
+            <span class="status" :class="file.status">{{ file.status }}</span>
+            <span class="file-path">{{ file.path }}</span>
+            <span class="stage-label" :class="{ staged: file.staged }">{{ file.staged ? 'staged' : 'unstaged' }}</span>
+            <span class="stat plus">+{{ file.additions }}</span>
+            <span class="stat minus">-{{ file.deletions }}</span>
+          </button>
+        </div>
+        <div v-if="!gitStore.files.length" class="state">Working tree clean</div>
       </div>
-      <div v-if="!gitStore.files.length" class="state">Working tree clean</div>
     </template>
 
     <template v-else>
@@ -152,7 +154,8 @@ async function selectRepo(repo: string) { gitStore.selectRepository(repo); showR
 .state { padding:28px; text-align:center; color:#64748b; font-size:13px; }
 .state.compact { padding:14px; }
 .state.error { color:#f87171; }
-.commit-box { display:flex; gap:8px; padding:10px; border-bottom:1px solid #172033; background:#0b1120; }
+.git-scroll-area { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+.commit-box { position:sticky; top:0; z-index:2; display:flex; gap:8px; padding:10px; border-bottom:1px solid #172033; background:#0b1120; }
 .commit-box input { flex:1; min-width:0; height:34px; border:1px solid #334155; border-radius:8px; background:#020617; color:#f1f5f9; padding:0 10px; font-size:12px; }
 .commit-box button { height:34px; border:0; border-radius:8px; background:#2563eb; color:white; padding:0 10px; font-size:12px; font-weight:800; display:flex; align-items:center; gap:5px; }
 .commit-box button:disabled { opacity:.45; }

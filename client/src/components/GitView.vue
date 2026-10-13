@@ -154,7 +154,11 @@ async function selectRepo(repo: string) { gitStore.selectRepository(repo); showR
 .state { padding:28px; text-align:center; color:#64748b; font-size:13px; }
 .state.compact { padding:14px; }
 .state.error { color:#f87171; }
-.git-scroll-area { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+.git-scroll-area { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin; scrollbar-color:#475569 #0b1120; scrollbar-gutter:stable; }
+.git-scroll-area::-webkit-scrollbar, .diff-body::-webkit-scrollbar { width:7px; height:7px; }
+.git-scroll-area::-webkit-scrollbar-track, .diff-body::-webkit-scrollbar-track { background:#0b1120; border-radius:999px; }
+.git-scroll-area::-webkit-scrollbar-thumb, .diff-body::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; border:1px solid #0b1120; }
+.git-scroll-area::-webkit-scrollbar-thumb:hover, .diff-body::-webkit-scrollbar-thumb:hover { background:#64748b; }
 .commit-box { position:sticky; top:0; z-index:2; display:flex; gap:8px; padding:10px; border-bottom:1px solid #172033; background:#0b1120; }
 .commit-box input { flex:1; min-width:0; height:34px; border:1px solid #334155; border-radius:8px; background:#020617; color:#f1f5f9; padding:0 10px; font-size:12px; }
 .commit-box button { height:34px; border:0; border-radius:8px; background:#2563eb; color:white; padding:0 10px; font-size:12px; font-weight:800; display:flex; align-items:center; gap:5px; }
@@ -175,7 +179,7 @@ async function selectRepo(repo: string) { gitStore.selectRepository(repo); showR
 .diff-header { height:40px; flex-shrink:0; display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid #1e293b; background:#0f172a; }
 .diff-header button { width:28px; height:28px; border-radius:7px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; }
 .diff-header span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; font-size:12px; color:#f1f5f9; }
-.diff-body { flex:1; overflow:auto; font-family:monospace; font-size:11.5px; }
+.diff-body { flex:1; overflow:auto; font-family:monospace; font-size:11.5px; scrollbar-width:thin; scrollbar-color:#475569 #0b1120; scrollbar-gutter:stable; }
 .diff-line { display:grid; grid-template-columns: 36px 36px minmax(max-content,1fr); min-height:22px; align-items:center; }
 .diff-line.added { background:rgba(34,197,94,.16); }
 .diff-line.deleted { background:rgba(239,68,68,.16); }

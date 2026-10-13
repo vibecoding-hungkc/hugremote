@@ -627,11 +627,33 @@ function showUsageToast() {
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #5b6472 #1e1e24;
+  scrollbar-gutter: stable;
   padding: 16px 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 14px;
   box-sizing: border-box;
+}
+
+.claude-ext-stream::-webkit-scrollbar {
+  width: 7px;
+}
+
+.claude-ext-stream::-webkit-scrollbar-track {
+  background: #1e1e24;
+  border-radius: 999px;
+}
+
+.claude-ext-stream::-webkit-scrollbar-thumb {
+  background: #5b6472;
+  border-radius: 999px;
+  border: 1px solid #1e1e24;
+}
+
+.claude-ext-stream::-webkit-scrollbar-thumb:hover {
+  background: #737d8c;
 }
 
 /* User Message Card */

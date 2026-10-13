@@ -101,6 +101,7 @@
 import { ref, computed, watch } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useFileStore } from '../stores/fileStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
 import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
 import { apiUrl } from '../utils/api.js';
 import FolderTreePicker from './FolderTreePicker.vue';

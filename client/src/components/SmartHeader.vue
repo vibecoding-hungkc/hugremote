@@ -104,7 +104,7 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 .crumb-segment, .crumb-more { max-width:72px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#cbd5e1; } .crumb-segment.current { color:#38bdf8; font-weight:800; } .crumb-sep { color:#475569; }
 .smart-header-right { display:flex; align-items:center; gap:5px; flex-shrink:0; }
 .term-session-pill, .claude-session-pill { flex:1; min-width:0; width:100%; height:26px; border-radius:14px; padding:0 8px; display:flex; align-items:center; gap:5px; border:1px solid rgba(168,85,247,.28); background:rgba(88,28,135,.18); color:#e9d5ff; font-family:monospace; font-size:11px; font-weight:800; overflow:hidden; }
-.term-session-pill .pill-name, .claude-session-pill .pill-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.term-session-pill .pill-name, .claude-session-pill .pill-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left; unicode-bidi:plaintext; }
 .claude-session-pill { border-color:rgba(217,119,87,.34); background:#2a201c; color:#fed7aa; } .claude-session-pill i:first-child { color:#d97757; }
 .badge-count { background:#6366f1; color:white; border-radius:8px; padding:1px 5px; font-size:9px; } .claude-badge { background:#d97757; }
 .editor-title, .git-title { gap:5px; color:#cbd5e1; font-size:12px; font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

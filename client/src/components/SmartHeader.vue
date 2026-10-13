@@ -36,12 +36,12 @@
         </div>
         <div v-else-if="activeTab === 'terminal'" class="ctx-header-item">
           <button class="term-session-pill" @click="$emit('open-session-hub')">
-            <i class="ri-terminal-box-line"></i><span class="pill-name">{{ terminalStore.activeSession?.name || 'terminal' }}</span><span class="badge-count">{{ terminalStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
+            <span class="pill-name">{{ terminalStore.activeSession?.name || 'terminal' }}</span><span v-if="terminalStore.currentServerSessions.length > 1" class="badge-count">{{ terminalStore.currentServerSessions.length }}</span>
           </button>
         </div>
         <div v-else-if="activeTab === 'claude'" class="ctx-header-item">
           <button class="claude-session-pill" @click="$emit('open-claude-hub')">
-            <i class="ri-sparkling-fill"></i><span class="pill-name">{{ claudeStore.activeSession?.name || 'claude' }}</span><span class="badge-count claude-badge">{{ claudeStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
+            <span class="pill-name">{{ claudeStore.activeSession?.name || 'claude' }}</span><span v-if="claudeStore.currentServerSessions.length > 1" class="badge-count claude-badge">{{ claudeStore.currentServerSessions.length }}</span>
           </button>
         </div>
         <div v-else-if="activeTab === 'git'" class="ctx-header-item git-title">
@@ -106,9 +106,9 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 .term-session-pill, .claude-session-pill { flex:1; min-width:0; width:100%; height:26px; border-radius:14px; padding:0 8px; display:flex; align-items:center; gap:5px; border:1px solid rgba(168,85,247,.28); background:rgba(88,28,135,.18); color:#e9d5ff; font-family:monospace; font-size:11px; font-weight:800; overflow:hidden; }
 .term-session-pill .pill-name, .claude-session-pill .pill-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left; unicode-bidi:plaintext; }
 .claude-session-pill { border-color:rgba(217,119,87,.34); background:#2a201c; color:#fed7aa; } .claude-session-pill i:first-child { color:#d97757; }
-.badge-count { background:#6366f1; color:white; border-radius:8px; padding:1px 5px; font-size:9px; } .claude-badge { background:#d97757; }
+.badge-count { flex-shrink:0; min-width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; background:rgba(99,102,241,.85); color:white; border-radius:999px; padding:0 4px; font-size:9px; line-height:1; } .claude-badge { background:rgba(217,119,87,.9); }
 .editor-title, .git-title { gap:5px; color:#cbd5e1; font-size:12px; font-weight:800; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .git-title { color:#fbbf24; }
 @media (max-width:390px){ .project-selector-btn{max-width:82px;padding:0 6px;} .term-session-pill,.claude-session-pill{width:100%;} .crumb-segment,.crumb-more{max-width:54px;} }
-.term-session-pill .badge-count, .claude-session-pill .badge-count, .term-session-pill i:last-child, .claude-session-pill i:last-child { flex-shrink:0; }
+
 </style>

@@ -84,6 +84,20 @@ class SshConnectionPool {
     });
   }
 
+  async executeCommand(
+    server: ServerConfig,
+    command: string,
+    options?: { env?: Record<string, string> }
+  ): Promise<ClientChannel> {
+    const client = await this.getClient(server);
+    return new Promise((resolve, reject) => {
+      client.exec(command, options || {}, (err, stream) => {
+        if (err) return reject(err);
+        resolve(stream);
+      });
+    });
+  }
+
   async createShell(
     sessionInfo: { id: string; name: string; serverId: string; cols?: number; rows?: number; cwd?: string },
     server: ServerConfig

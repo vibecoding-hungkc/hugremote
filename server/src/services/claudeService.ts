@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn, ChildProcess } from 'child_process';
-import { normalizeWorkspacePath } from '../config.js';
+import { normalizeWorkspacePath, parseSshConfig, ServerConfig } from '../config.js';
+import { sshPool } from './sshPool.js';
 
 export interface ClaudeLimitsInfo {
   fiveHour: {
@@ -100,9 +101,23 @@ function getClaudeBinaryPath(): string {
   return 'claude';
 }
 
+function shellEscape(arg: string): string {
+  if (arg === '') return "''";
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
+export interface ClaudeProcessHandle {
+  stdout: NodeJS.ReadableStream;
+  stderr: NodeJS.ReadableStream;
+  on(event: 'error', cb: (err: Error) => void): this | void;
+  on(event: 'close', cb: (code: number | null, signal: string | null) => void): this | void;
+  kill(signal?: string): void;
+  readonly killed?: boolean;
+}
+
 class ClaudeService {
   private sessions: Map<string, ClaudeSession> = new Map();
-  private activeProcesses: Map<string, ChildProcess> = new Map();
+  private activeProcesses: Map<string, ClaudeProcessHandle> = new Map();
   private cancelledSessions: Set<string> = new Set();
   private limits: {
     fiveHour: { usedPercent: number; resetsAt: number };
@@ -120,9 +135,17 @@ class ClaudeService {
     updatedAt: Date.now(),
   };
 
+  public serverConfigResolver: (serverId: string) => ServerConfig | undefined = (id: string) => {
+    return parseSshConfig().find((s) => s.id === id);
+  };
+
   constructor() {
     this.loadSessions();
     this.loadLimits();
+  }
+
+  setServerConfigResolver(fn: (serverId: string) => ServerConfig | undefined) {
+    this.serverConfigResolver = fn;
   }
 
   private loadLimits() {
@@ -235,7 +258,11 @@ class ClaudeService {
     }
 
     const id = `claude-${serverId}-${Date.now()}`;
-    const normalizedCwd = normalizeWorkspacePath(cwd);
+    const server = this.serverConfigResolver(serverId);
+    const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
+    const normalizedCwd = isRemote
+      ? ((cwd || '').trim() || server?.workspace || '~')
+      : normalizeWorkspacePath(cwd);
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -278,7 +305,13 @@ class ClaudeService {
       session.name = updates.name.trim();
       session.isCustomNamed = true;
     }
-    if (updates.cwd !== undefined) session.cwd = normalizeWorkspacePath(updates.cwd);
+    if (updates.cwd !== undefined) {
+      const server = this.serverConfigResolver(session.serverId);
+      const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
+      session.cwd = isRemote
+        ? ((updates.cwd || '').trim() || server?.workspace || '~')
+        : normalizeWorkspacePath(updates.cwd);
+    }
     if (updates.model !== undefined) session.model = updates.model;
     if (updates.mode !== undefined) session.mode = updates.mode;
     if (updates.bypassPermissions !== undefined) session.bypassPermissions = Boolean(updates.bypassPermissions);
@@ -410,23 +443,116 @@ class ClaudeService {
     }
   }
 
+  private spawnLocalClaude(
+    session: ClaudeSession,
+    args: string[],
+    claudeSettingsEnv: Record<string, string>
+  ): ClaudeProcessHandle {
+    const bin = getClaudeBinaryPath();
+    const child = spawn(bin, args, {
+      cwd: session.cwd || process.cwd(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        ...claudeSettingsEnv,
+        PATH: `${path.join(os.homedir(), '.local', 'bin')}:${process.env.PATH}`,
+      },
+    });
+
+    return {
+      stdout: child.stdout,
+      stderr: child.stderr,
+      on: (event: string, cb: any) => {
+        child.on(event as any, cb);
+      },
+      kill: (signal?: string) => {
+        child.kill((signal as any) || 'SIGINT');
+      },
+      get killed() {
+        return child.killed;
+      },
+    };
+  }
+
+  private async spawnRemoteClaude(
+    server: ServerConfig,
+    session: ClaudeSession,
+    args: string[]
+  ): Promise<ClaudeProcessHandle> {
+    const escapedArgs = args.map(shellEscape).join(' ');
+    const targetCwd = (session.cwd || server.workspace || '').trim();
+    let cdCmd = '';
+    if (targetCwd === '~' || targetCwd === '') {
+      cdCmd = 'cd -- "$HOME" && ';
+    } else if (targetCwd.startsWith('~/')) {
+      const sub = targetCwd.slice(2);
+      cdCmd = `cd -- "$HOME"/${shellEscape(sub)} && `;
+    } else {
+      cdCmd = `cd -- ${shellEscape(targetCwd)} && `;
+    }
+    const remoteCmd = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; ${cdCmd}claude ${escapedArgs}`;
+
+    const stream = await sshPool.executeCommand(server, remoteCmd);
+    let exitCode: number | null = null;
+    let exitSignal: string | null = null;
+    let killed = false;
+
+    stream.on('exit', (code: any, sig: any) => {
+      exitCode = typeof code === 'number' ? code : null;
+      exitSignal = sig || null;
+    });
+
+    return {
+      stdout: stream,
+      stderr: stream.stderr,
+      on: (event: string, cb: any) => {
+        if (event === 'close') {
+          stream.on('close', () => cb(exitCode, exitSignal));
+        } else {
+          stream.on(event as any, cb);
+        }
+      },
+      kill: (signal?: string) => {
+        killed = true;
+        try {
+          stream.signal((signal === 'SIGTERM' ? 'TERM' : 'INT') as any);
+        } catch (_) {}
+        try {
+          stream.close();
+        } catch (_) {}
+      },
+      get killed() {
+        return killed;
+      },
+    };
+  }
+
   async streamClaudePrompt(
     session: ClaudeSession,
     userPrompt: string,
     onEvent: (event: ClaudeStreamEvent) => void
   ): Promise<{ text: string; thinking?: string; tools?: ClaudeToolCall[] }> {
-    const bin = getClaudeBinaryPath();
+    const server = session.serverId ? this.serverConfigResolver(session.serverId) : undefined;
+    const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
+
+    if (session.serverId && session.serverId !== 'server-local' && !server) {
+      const errorText = `Không tìm thấy thông tin cấu hình máy chủ "${session.serverId}" trong SSH config.`;
+      onEvent({ type: 'error', error: errorText });
+      return { text: errorText };
+    }
 
     // Load custom env from ~/.claude/settings.json if present
     let claudeSettingsEnv: Record<string, string> = {};
-    const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
-    if (fs.existsSync(settingsPath)) {
-      try {
-        const rawSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        if (rawSettings && typeof rawSettings.env === 'object') {
-          claudeSettingsEnv = rawSettings.env;
-        }
-      } catch (_) {}
+    if (!isRemote) {
+      const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+      if (fs.existsSync(settingsPath)) {
+        try {
+          const rawSettings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+          if (rawSettings && typeof rawSettings.env === 'object') {
+            claudeSettingsEnv = rawSettings.env;
+          }
+        } catch (_) {}
+      }
     }
 
     // Map model
@@ -437,7 +563,66 @@ class ClaudeService {
     else if (mLower.includes('fable')) modelArg = 'fable';
     else if (mLower.includes('sonnet') || mLower.includes('sonet')) modelArg = 'sonet';
 
+    const effortMatch = (session.model || '').match(/\b(Low|Medium|High|Max)\b/i);
+    const effortArg = (effortMatch?.[1] || 'Medium').toLowerCase();
+
+    const modeKey = (session.mode || 'Auto').toLowerCase().replace(/[^a-z]/g, '');
+    const permissionModeMap: Record<string, string> = {
+      auto: 'auto',
+      plan: 'plan',
+      manual: 'manual',
+      acceptedits: 'acceptEdits',
+    };
+    const permissionModeArg = session.bypassPermissions
+      ? 'bypassPermissions'
+      : (permissionModeMap[modeKey] || 'auto');
+
+    const args = [
+      '-p',
+      userPrompt,
+      '--model',
+      modelArg,
+      '--effort',
+      effortArg,
+      '--permission-mode',
+      permissionModeArg,
+      '--output-format',
+      'stream-json',
+      '--verbose',
+    ];
+    if (session.bypassPermissions) {
+      args.push('--dangerously-skip-permissions');
+    }
+    if (session.cliSessionId) {
+      args.push('--resume', session.cliSessionId);
+    }
+
+    let handle: ClaudeProcessHandle;
+    try {
+      if (isRemote && server) {
+        handle = await this.spawnRemoteClaude(server, session, args);
+      } else {
+        handle = this.spawnLocalClaude(session, args, claudeSettingsEnv);
+      }
+    } catch (err: any) {
+      this.cancelledSessions.delete(session.id);
+      const targetLabel = isRemote && server ? `máy chủ remote "${server.label || server.name}"` : 'máy chủ nội bộ';
+      const errorText = `Không thể khởi chạy Claude Code trên ${targetLabel}: ${err.message || err}`;
+      onEvent({ type: 'error', error: errorText });
+      return { text: errorText };
+    }
+
+    this.cancelledSessions.delete(session.id);
+    this.activeProcesses.set(session.id, handle);
+
     return new Promise((resolve) => {
+      let isSettled = false;
+      const settle = (result: { text: string; thinking?: string; tools?: ClaudeToolCall[] }) => {
+        if (isSettled) return;
+        isSettled = true;
+        resolve(result);
+      };
+
       let lineBuffer = '';
       let fullStdout = '';
       let fullStderr = '';
@@ -445,53 +630,7 @@ class ClaudeService {
       let fullText = '';
       const tools: ClaudeToolCall[] = [];
 
-      const effortMatch = (session.model || '').match(/\b(Low|Medium|High|Max)\b/i);
-      const effortArg = (effortMatch?.[1] || 'Medium').toLowerCase();
-
-      const modeKey = (session.mode || 'Auto').toLowerCase().replace(/[^a-z]/g, '');
-      const permissionModeMap: Record<string, string> = {
-        auto: 'auto',
-        plan: 'plan',
-        manual: 'manual',
-        acceptedits: 'acceptEdits',
-      };
-      const permissionModeArg = session.bypassPermissions
-        ? 'bypassPermissions'
-        : (permissionModeMap[modeKey] || 'auto');
-
-      const args = [
-        '-p',
-        userPrompt,
-        '--model',
-        modelArg,
-        '--effort',
-        effortArg,
-        '--permission-mode',
-        permissionModeArg,
-        '--output-format',
-        'stream-json',
-        '--verbose',
-      ];
-      if (session.bypassPermissions) {
-        args.push('--dangerously-skip-permissions');
-      }
-      if (session.cliSessionId) {
-        args.push('--resume', session.cliSessionId);
-      }
-
-      const child = spawn(bin, args, {
-        cwd: session.cwd || process.cwd(),
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          ...claudeSettingsEnv,
-          PATH: `${path.join(os.homedir(), '.local', 'bin')}:${process.env.PATH}`,
-        },
-      });
-      this.cancelledSessions.delete(session.id);
-      this.activeProcesses.set(session.id, child);
-
-      child.stdout.on('data', (d) => {
+      handle.stdout.on('data', (d: any) => {
         const chunk = d.toString('utf8');
         fullStdout += chunk;
         lineBuffer += chunk;
@@ -619,28 +758,32 @@ class ClaudeService {
         }
       });
 
-      child.stderr.on('data', (d) => {
+      handle.stderr.on('data', (d: any) => {
         fullStderr += d.toString('utf8');
       });
 
-      child.on('error', (err) => {
+      handle.on('error', (err: any) => {
         this.activeProcesses.delete(session.id);
         this.cancelledSessions.delete(session.id);
-        const errorText = `Không thể khởi chạy Claude Code: ${err.message}`;
+        if (isSettled) return;
+        const targetLabel = isRemote && server ? `máy chủ remote "${server.label || server.name}"` : 'máy chủ nội bộ';
+        const errorText = `Không thể khởi chạy Claude Code trên ${targetLabel}: ${err.message || err}`;
         onEvent({ type: 'error', error: errorText });
-        resolve({ text: errorText });
+        settle({ text: errorText });
       });
 
-      child.on('close', (code, signal) => {
+      handle.on('close', (code: any, signal: any) => {
         this.activeProcesses.delete(session.id);
         const wasCancelled = this.cancelledSessions.delete(session.id);
+        if (isSettled) return;
+
         if (wasCancelled || signal === 'SIGINT' || signal === 'SIGTERM') {
           const cancelledText = 'Đã dừng yêu cầu.';
           tools.forEach((tool) => {
             if (!tool.status || tool.status === 'running') tool.status = 'error';
           });
           onEvent({ type: 'done', text: cancelledText, contextTokens: session.contextTokens });
-          return resolve({
+          return settle({
             text: cancelledText,
             thinking: thinkingText || undefined,
             tools: tools.length ? tools : undefined,
@@ -658,7 +801,7 @@ class ClaudeService {
         }
 
         if (fullText) {
-          return resolve({
+          return settle({
             text: fullText,
             thinking: thinkingText || undefined,
             tools: tools.length ? tools : undefined,
@@ -666,9 +809,18 @@ class ClaudeService {
         }
 
         const cliError = fullStderr.trim() || fullStdout.trim() || `Claude Code exited with code ${code ?? 'unknown'}`;
-        const errorText = `Claude Code không trả về kết quả: ${cliError.slice(0, 500)}`;
+        let errorText = `Claude Code không trả về kết quả: ${cliError.slice(0, 500)}`;
+        if (
+          isRemote &&
+          server &&
+          (cliError.includes('claude: not found') ||
+            cliError.includes('claude: command not found') ||
+            code === 127)
+        ) {
+          errorText = `Không tìm thấy lệnh "claude" trên máy chủ remote "${server.label || server.name}". Vui lòng cài đặt Claude Code trên máy chủ đó (ví dụ: npm install -g @anthropic-ai/claude-code hoặc curl -fsSL https://claude.ai/install.sh) và đảm bảo đã đăng nhập.`;
+        }
         onEvent({ type: 'error', error: errorText });
-        resolve({ text: errorText });
+        settle({ text: errorText });
       });
     });
   }

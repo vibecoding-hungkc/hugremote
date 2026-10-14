@@ -76,6 +76,64 @@ fi
 echo -e "✓ Node.js: ${C_GREEN}$(node -v)${C_RESET} (thỏa mãn >= 18)"
 echo -e "✓ npm:     ${C_GREEN}$(npm -v)${C_RESET}"
 
+# 2b. Native dependencies (node-pty/node-gyp). Keep this block in sync in both installers.
+check_build_tools() {
+  MISSING_BUILD_TOOLS=()
+  local tool
+  local tools=(python3 make gcc g++)
+  if [ "$PLATFORM" = macos ]; then
+    tools=(python3 make clang clang++)
+  fi
+  for tool in "${tools[@]}"; do
+    if ! command -v "$tool" >/dev/null 2>&1 || ! "$tool" --version >/dev/null 2>&1; then
+      MISSING_BUILD_TOOLS+=("$tool")
+    fi
+  done
+}
+
+build_tools_help() {
+  if [ "$PLATFORM" = macos ]; then
+    echo "Cài Xcode Command Line Tools: xcode-select --install" >&2
+    echo "Nếu thiếu Python 3: brew install python (cần Homebrew)." >&2
+  else
+    echo "Ubuntu/Debian/WSL: sudo apt update && sudo apt install -y build-essential python3" >&2
+    echo "Hệ Linux khác: cài Python 3, make và trình biên dịch C/C++ bằng package manager của hệ thống." >&2
+  fi
+  echo "Sau khi cài đủ công cụ, chạy lại installer." >&2
+}
+
+check_build_tools
+if [ "${#MISSING_BUILD_TOOLS[@]}" -gt 0 ]; then
+  echo "⚠️ Thiếu công cụ build: ${MISSING_BUILD_TOOLS[*]}" >&2
+  if [ "$PLATFORM" = linux ] && command -v apt-get >/dev/null 2>&1; then
+    BUILD_SUDO=()
+    if [ "$(id -u)" -ne 0 ]; then
+      if ! command -v sudo >/dev/null 2>&1; then
+        echo "❌ Cần quyền root hoặc sudo để cài công cụ build." >&2
+        build_tools_help
+        exit 1
+      fi
+      BUILD_SUDO=(sudo)
+    fi
+    echo "📦 Đang cài build-essential và python3 (có thể yêu cầu mật khẩu sudo)..."
+    if ! "${BUILD_SUDO[@]}" apt-get update || ! "${BUILD_SUDO[@]}" apt-get install -y build-essential python3; then
+      echo "❌ Không cài được công cụ build. Kiểm tra lỗi quyền hoặc mạng ở trên." >&2
+      build_tools_help
+      exit 1
+    fi
+    check_build_tools
+    if [ "${#MISSING_BUILD_TOOLS[@]}" -gt 0 ]; then
+      echo "❌ Vẫn thiếu công cụ build: ${MISSING_BUILD_TOOLS[*]}" >&2
+      build_tools_help
+      exit 1
+    fi
+  else
+    build_tools_help
+    exit 1
+  fi
+fi
+echo "✓ Công cụ build native đã sẵn sàng."
+
 # 3. Xác định thư mục cài đặt
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
 if [ -f "$SCRIPT_DIR/package.json" ] && [ -d "$SCRIPT_DIR/client" ] && [ -d "$SCRIPT_DIR/server" ]; then
@@ -118,20 +176,20 @@ echo -e "${C_BOLD}📦 Đang cài đặt thư viện và build gói...${C_RESET}
 # Build client
 echo "  [1/2] Cài đặt & Build Frontend Client..."
 cd "$INSTALL_DIR/client"
-npm install --silent
+npm install --foreground-scripts
 npm run build
 
 # Build server
 echo "  [2/2] Cài đặt & Build Backend Server..."
 cd "$INSTALL_DIR/server"
-npm install --silent
+npm install --foreground-scripts
 # Khắc phục lỗi node-pty trên macOS (spawn-helper thiếu quyền execute)
 find "$INSTALL_DIR" -type f -name "spawn-helper" -exec chmod +x {} + 2>/dev/null || true
 npm run build
 
 # Root package dependencies
 cd "$INSTALL_DIR"
-npm install --silent
+npm install --foreground-scripts
 find "$INSTALL_DIR" -type f -name "spawn-helper" -exec chmod +x {} + 2>/dev/null || true
 
 echo -e "${C_GREEN}✓ Hoàn tất build Frontend và Backend!${C_RESET}"

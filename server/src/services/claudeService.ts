@@ -556,12 +556,26 @@ class ClaudeService {
     }
 
     // Map model
-    let modelArg = 'sonet';
-    const mLower = (session.model || '').toLowerCase();
-    if (mLower.includes('opus')) modelArg = 'opus';
-    else if (mLower.includes('haiku')) modelArg = 'haiku';
-    else if (mLower.includes('fable')) modelArg = 'fable';
-    else if (mLower.includes('sonnet') || mLower.includes('sonet')) modelArg = 'sonet';
+    let modelArg: string | null = null;
+    const mLower = (session.model || '').toLowerCase().trim();
+
+    if (!mLower || mLower.startsWith('default')) {
+      // "Default" or unspecified: allow Claude Code to use its configured default model
+      modelArg = null;
+    } else if (mLower.startsWith('claude-')) {
+      // Explicit full model identifier
+      modelArg = mLower.split(/\s+/)[0];
+    } else if (mLower.includes('opus')) {
+      modelArg = 'opus';
+    } else if (mLower.includes('haiku')) {
+      modelArg = 'haiku';
+    } else if (mLower.includes('fable')) {
+      modelArg = 'fable';
+    } else if (mLower.includes('sonnet') || mLower.includes('sonet')) {
+      modelArg = 'sonnet';
+    } else {
+      modelArg = mLower.split(/\s+/)[0];
+    }
 
     const effortMatch = (session.model || '').match(/\b(Low|Medium|High|Max)\b/i);
     const effortArg = (effortMatch?.[1] || 'Medium').toLowerCase();
@@ -580,8 +594,7 @@ class ClaudeService {
     const args = [
       '-p',
       userPrompt,
-      '--model',
-      modelArg,
+      ...(modelArg ? ['--model', modelArg] : []),
       '--effort',
       effortArg,
       '--permission-mode',

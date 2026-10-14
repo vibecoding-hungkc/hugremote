@@ -59,32 +59,26 @@ const models: ModelItem[] = [
   {
     id: 'default',
     title: 'Default (recommended)',
-    desc: 'Opus 5.5 · Best for everyday, complex tasks',
-    prefix: 'Default (Opus)',
-  },
-  {
-    id: 'opus',
-    title: 'Opus',
-    desc: 'Opus 5.5 · Best for everyday, complex tasks · ~2× usage vs Sonnet',
-    prefix: 'Opus 5.5',
-  },
-  {
-    id: 'fable',
-    title: 'Fable',
-    desc: 'Fable 5.1 · Most capable for your hardest and longest-running tasks · Requires usage credits',
-    prefix: 'Fable 5.1',
+    desc: 'Claude Code default model · Uses your active CLI configuration',
+    prefix: 'Default',
   },
   {
     id: 'sonnet',
     title: 'Sonnet',
-    desc: 'Sonnet 5.5 · Efficient for routine tasks',
-    prefix: 'Sonnet 5.5',
+    desc: 'Sonnet · Standard model for daily coding & agentic tasks',
+    prefix: 'Sonnet',
+  },
+  {
+    id: 'opus',
+    title: 'Opus',
+    desc: 'Opus · Frontier model for complex reasoning and architecture',
+    prefix: 'Opus',
   },
   {
     id: 'haiku',
     title: 'Haiku',
-    desc: 'Haiku 4.5 · Fastest for quick answers',
-    prefix: 'Haiku 4.5',
+    desc: 'Haiku · Fastest model for lightweight queries & quick answers',
+    prefix: 'Haiku',
   },
 ];
 
@@ -95,7 +89,6 @@ const currentModelId = computed(() => {
   const val = props.modelValue || '';
   if (val.includes('Default')) return 'default';
   if (val.includes('Opus')) return 'opus';
-  if (val.includes('Fable')) return 'fable';
   if (val.includes('Haiku')) return 'haiku';
   return 'sonnet';
 });
@@ -130,7 +123,7 @@ function selectModel(item: ModelItem) {
 }
 
 function setEffort(step: EffortLevel) {
-  const item = models.find((m) => m.id === currentModelId.value) || models[3];
+  const item = models.find((m) => m.id === currentModelId.value) || models.find((m) => m.id === 'sonnet') || models[0];
   const newName = `${item.prefix} ${step}`;
   emit('update:modelValue', newName);
 }

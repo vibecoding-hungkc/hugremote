@@ -59,10 +59,9 @@
         <div class="form-group">
           <label class="form-label">Model</label>
           <select v-model="modelInput" class="form-input form-select">
-            <option value="Default 5.5 Medium">Default 5.5</option>
-            <option value="Opus 5.5 Medium">Opus 5.5</option>
-            <option value="Fable 5.1 Medium">Fable 5.1</option>
+            <option value="Default Medium">Default (recommended)</option>
             <option value="Sonnet 5.5 Medium">Sonnet 5.5</option>
+            <option value="Opus 5.5 Medium">Opus 5.5</option>
             <option value="Haiku 4.5 Medium">Haiku 4.5</option>
           </select>
         </div>

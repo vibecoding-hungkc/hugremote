@@ -71,9 +71,94 @@ test('remote SSH session executes claude remotely via sshPool and streams events
   assert.ok(executed, 'sshPool.executeCommand should be called');
   assert.equal(executed.server.id, 'server-ssh-prod');
   assert.match(executed.command, /claude/);
+  assert.match(executed.command, /'--model'\s+'sonnet'/);
+  assert.doesNotMatch(executed.command, /'--model'\s+'sonet'/);
   assert.match(executed.command, /'--output-format'\s+'stream-json'/);
   assert.match(executed.command, /cd -- '\/home\/remoteuser\/project'/);
   assert.ok(events.some((e) => e.type === 'text_delta' && e.text === 'Hello from remote Claude'));
+});
+
+test('claudeService correctly maps model aliases and preserves Default without forcing invalid sonet', async (t) => {
+  const origResolver = claudeService.serverConfigResolver;
+  const origExec = (sshPool as any).executeCommand;
+
+  const remoteServer = {
+    id: 'server-ssh-prod',
+    name: 'prod',
+    type: 'ssh' as const,
+    label: 'Prod Server',
+    host: '192.168.1.100',
+    user: 'remoteuser',
+    port: 22,
+    workspace: '/remote',
+  };
+
+  claudeService.setServerConfigResolver((id) => (id === 'server-ssh-prod' ? remoteServer : undefined));
+
+  let captured = '';
+  (sshPool as any).executeCommand = async (_server: any, command: string) => {
+    captured = command;
+    const stream = new EventEmitter() as any;
+    stream.stderr = new EventEmitter();
+    stream.signal = () => {};
+    stream.close = () => { stream.emit('close', 0); };
+    setImmediate(() => {
+      const done = JSON.stringify({ type: 'result', result: 'OK' });
+      stream.emit('data', Buffer.from(`${done}\n`));
+      stream.emit('close', 0);
+    });
+    return stream;
+  };
+
+  t.after(() => {
+    claudeService.setServerConfigResolver(origResolver);
+    (sshPool as any).executeCommand = origExec;
+  });
+
+  const baseSession: ClaudeSession = {
+    id: 'test-model-session',
+    serverId: 'server-ssh-prod',
+    name: 'model-chat',
+    cwd: '/remote',
+    isCustomNamed: true,
+    model: 'Sonnet 5.5 Medium',
+    mode: 'Auto',
+    timer: '60m',
+    contextTokens: '0',
+    messages: [],
+    updatedAt: Date.now(),
+  };
+
+  // 1. Sonnet -> '--model' 'sonnet' (NOT 'sonet')
+  await claudeService.streamClaudePrompt({ ...baseSession, model: 'Sonnet 5.5 Medium' }, 'test', () => {});
+  assert.match(captured, /'--model'\s+'sonnet'/);
+  assert.doesNotMatch(captured, /'--model'\s+'sonet'/);
+
+  // 2. Default -> omits --model flag entirely
+  await claudeService.streamClaudePrompt({ ...baseSession, model: 'Default' }, 'test', () => {});
+  assert.doesNotMatch(captured, /--model/);
+
+  await claudeService.streamClaudePrompt({ ...baseSession, model: 'Default (recommended)' }, 'test', () => {});
+  assert.doesNotMatch(captured, /--model/);
+
+  // 3. Opus -> '--model' 'opus'
+  await claudeService.streamClaudePrompt({ ...baseSession, model: 'Opus 5.5 High' }, 'test', () => {});
+  assert.match(captured, /'--model'\s+'opus'/);
+
+  // 4. Haiku -> '--model' 'haiku'
+  await claudeService.streamClaudePrompt({ ...baseSession, model: 'Haiku 4.5 Low' }, 'test', () => {});
+  assert.match(captured, /'--model'\s+'haiku'/);
+
+  // 5. Explicit model id -> passes explicit id
+  await claudeService.streamClaudePrompt({ ...baseSession, model: 'claude-3-7-sonnet-20250219 Medium' }, 'test', () => {});
+  assert.match(captured, /'--model'\s+'claude-3-7-sonnet-20250219'/);
+
+  // 6. Empty or undefined model -> omits --model flag entirely
+  await claudeService.streamClaudePrompt({ ...baseSession, model: '' }, 'test', () => {});
+  assert.doesNotMatch(captured, /--model/);
+
+  await claudeService.streamClaudePrompt({ ...baseSession, model: undefined as any }, 'test', () => {});
+  assert.doesNotMatch(captured, /--model/);
 });
 
 test('remote SSH session safely escapes dangerous shell prompts and arguments', async (t) => {

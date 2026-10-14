@@ -85,6 +85,32 @@ GOOGLE_ALLOWED_EMAILS=user@gmail.com,admin@domain.com \
 hugremote
 ```
 
+### Persistent configuration (`.env`)
+
+Sau khi cài bằng installer, HugRemote tạo file cấu hình có chú thích tại:
+
+```bash
+~/.config/hugremote/.env
+```
+
+File này chứa các biến có thể chỉnh như `HOST`, `PORT`, `BASE_PATH`, `AUTH_MODE`,
+`APP_URL`, Google OAuth, và phạm vi filesystem. Ví dụ dùng đường dẫn public
+`https://domain.com/remote/`:
+
+```env
+BASE_PATH=/remote
+```
+
+`BASE_PATH` chỉ là đường dẫn, không nhập cả URL; để trống cho domain root.
+Sau khi sửa, áp dụng cho service bằng:
+
+```bash
+systemctl --user restart hugremote
+```
+
+Khi chạy thủ công, file này cũng được nạp. Ưu tiên cấu hình là: cờ CLI > biến
+môi trường hiện có > `~/.config/hugremote/.env`.
+
 ### CLI Options
 
 | Option | Description | Default |

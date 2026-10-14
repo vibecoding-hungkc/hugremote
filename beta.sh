@@ -223,19 +223,15 @@ prompt_user_input() {
   local user_val=""
 
   if [ -t 0 ]; then
-    read -r -p "$prompt_text" user_val
+    read -r -p "$prompt_text" user_val || user_val="$default_val"
   elif ( : </dev/tty ) 2>/dev/null; then
-    read -r -p "$prompt_text" user_val </dev/tty 2>/dev/null || user_val="$default_val"
+    read -r -p "$prompt_text" user_val </dev/tty || user_val="$default_val"
   else
     user_val="$default_val"
   fi
 
-  user_val="$(echo "$user_val" | tr -d '\r' | xargs 2>/dev/null || echo "$user_val")"
-  if [ -z "$user_val" ]; then
-    eval "$var_name=\"$default_val\""
-  else
-    eval "$var_name=\"$user_val\""
-  fi
+  user_val="${user_val//$'\r'/}"
+  printf -v "$var_name" '%s' "${user_val:-$default_val}"
 }
 
 CONFIG_DIR="$HOME/.config/hugremote"
@@ -244,6 +240,7 @@ ENV_FILE="$CONFIG_DIR/.env"
 RECONFIGURE=false
 SELECTED_HOST="127.0.0.1"
 SELECTED_PORT="8099"
+SELECTED_BASE_PATH=""
 SELECTED_AUTH_MODE="password"
 SELECTED_APP_URL="http://localhost:8099"
 SELECTED_GOOGLE_CLIENT_ID=""
@@ -254,6 +251,7 @@ SELECTED_SESSION_SECRET=""
 if [ -f "$ENV_FILE" ]; then
   # Tải cấu hình đã khởi tạo từ trước
   EXISTING_HOST=$(grep -E '^HOST=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
+  EXISTING_BASE_PATH=$(grep -E '^BASE_PATH=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
   EXISTING_PORT=$(grep -E '^PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
   EXISTING_AUTH_MODE=$(grep -E '^AUTH_MODE=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
   EXISTING_SECRET=$(grep -E '^SESSION_SECRET=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"'\''\r' || echo "")
@@ -271,6 +269,7 @@ if [ -f "$ENV_FILE" ]; then
     echo -e "  • File cấu hình:       ${C_GREEN}$ENV_FILE${C_RESET}"
     echo -e "  • Host (Bind IP)       : ${C_GREEN}${EXISTING_HOST:-127.0.0.1}${C_RESET}"
     echo -e "  • Cổng kết nối (Port)  : ${C_GREEN}${EXISTING_PORT:-8099}${C_RESET}"
+    echo -e "  • Base path            : ${C_GREEN}${EXISTING_BASE_PATH:-/ (domain root)}${C_RESET}"
     echo -e "  • Chế độ xác thực      : ${C_GREEN}${EXISTING_AUTH_MODE:-password}${C_RESET}"
     echo -e "  • Thư mục Workspace    : ${C_GREEN}${EXISTING_WORKSPACE:-~ (Mặc định: Thư mục người dùng)}${C_RESET}"
     echo -e "${C_BLUE}========================================================================${C_RESET}"
@@ -281,6 +280,7 @@ if [ -f "$ENV_FILE" ]; then
     if [[ "$KEEP_CHOICE" =~ ^[Yy]$ || -z "$KEEP_CHOICE" ]]; then
       SELECTED_HOST="${EXISTING_HOST:-127.0.0.1}"
       SELECTED_PORT="${EXISTING_PORT:-8099}"
+      SELECTED_BASE_PATH="$EXISTING_BASE_PATH"
       SELECTED_AUTH_MODE="${EXISTING_AUTH_MODE:-password}"
       SELECTED_SESSION_SECRET="${EXISTING_SECRET}"
       SELECTED_APP_URL="${EXISTING_APP_URL:-http://localhost:8099}"
@@ -394,6 +394,7 @@ echo -e "${C_BOLD} 📋 XÁC NHẬN CẤU HÌNH ĐÃ THIẾT LẬP${C_RESET}"
 echo -e "${C_BLUE}========================================================================${C_RESET}"
 echo -e "  • Host (Bind IP)       : ${C_GREEN}$SELECTED_HOST${C_RESET}"
 echo -e "  • Cổng kết nối (Port)  : ${C_GREEN}$SELECTED_PORT${C_RESET}"
+echo -e "  • Base path            : ${C_GREEN}${SELECTED_BASE_PATH:-/ (domain root)}${C_RESET}"
 echo -e "  • Chế độ xác thực      : ${C_GREEN}$SELECTED_AUTH_MODE${C_RESET}"
 if [ "$SELECTED_AUTH_MODE" = "password" ]; then
   echo -e "  • Mật khẩu ban đầu     : ${C_YELLOW}123456${C_RESET} (Bắt buộc đổi ở lần đầu đăng nhập)"
@@ -402,24 +403,47 @@ echo -e "  • Thư mục Workspace    : ${C_GREEN}${SELECTED_WORKSPACE:-~ (Mặ
 echo -e "${C_BLUE}========================================================================${C_RESET}"
 echo ""
 
-# Lưu file .env dự phòng
-CONFIG_DIR="$HOME/.config/hugremote"
-mkdir -p "$CONFIG_DIR"
-ENV_FILE="$CONFIG_DIR/.env"
+# Keep an existing editable configuration untouched during a quick update.
+# Choose "n" at the existing-config prompt to regenerate the documented template.
+if [ ! -f "$ENV_FILE" ] || [ "$RECONFIGURE" = true ]; then
+  # Lưu cấu hình dùng chung cho CLI và service (CLI tự đọc file này)
+  CONFIG_DIR="$HOME/.config/hugremote"
+  mkdir -p "$CONFIG_DIR"
+  ENV_FILE="$CONFIG_DIR/.env"
 cat > "$ENV_FILE" <<EOF
+# HugRemote configuration. Edit this file, then restart the service:
+#   systemctl --user restart hugremote
+# CLI flags and environment variables override these values when running manually.
+#
+# Network
 HOST=$SELECTED_HOST
 PORT=$SELECTED_PORT
-AUTH_MODE=$SELECTED_AUTH_MODE
-SESSION_SECRET=$SELECTED_SESSION_SECRET
+# Public subpath only, not a full URL. Leave empty for https://domain.com/;
+# use /remote for https://domain.com/remote/.
+BASE_PATH=$SELECTED_BASE_PATH
+# Public URL, required for Google OAuth callback. Include BASE_PATH when used.
 APP_URL=$SELECTED_APP_URL
+#
+# Authentication: password (recommended), none (only behind trusted access), or google
+AUTH_MODE=$SELECTED_AUTH_MODE
+# Keep this secret private. Change it only if you want to invalidate all sessions.
+SESSION_SECRET=$SELECTED_SESSION_SECRET
+# Google OAuth: required only when AUTH_MODE=google
 GOOGLE_CLIENT_ID=$SELECTED_GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET=$SELECTED_GOOGLE_CLIENT_SECRET
+# Comma-separated approved addresses; required when AUTH_MODE=google
 GOOGLE_ALLOWED_EMAILS=$SELECTED_GOOGLE_ALLOWED_EMAILS
+#
+# Filesystem access. Empty WORKSPACE_ROOT defaults to your home directory.
 WORKSPACE_ROOT=$SELECTED_WORKSPACE
 ALLOWED_ROOT=$HOME
 EOF
-chmod 600 "$ENV_FILE" 2>/dev/null || true
-echo -e "✓ Đã lưu file cấu hình: ${C_GREEN}$ENV_FILE${C_RESET}"
+  chmod 600 "$ENV_FILE" 2>/dev/null || true
+  echo -e "✓ Đã lưu file cấu hình: ${C_GREEN}$ENV_FILE${C_RESET}"
+
+else
+  echo -e "✓ Giữ nguyên file cấu hình hiện có: ${C_GREEN}$ENV_FILE${C_RESET}"
+fi
 
 # 7. Thiết lập Systemd User Service (nếu trên Linux có systemd)
 SETUP_SERVICE=false
@@ -436,17 +460,6 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=$INSTALL_DIR
-Environment=PORT=$SELECTED_PORT
-Environment=HOST=$SELECTED_HOST
-Environment=BASE_PATH=
-Environment=WORKSPACE_ROOT=$SELECTED_WORKSPACE
-Environment=ALLOWED_ROOT=$HOME
-Environment=AUTH_MODE=$SELECTED_AUTH_MODE
-Environment=SESSION_SECRET=$SELECTED_SESSION_SECRET
-Environment=APP_URL=$SELECTED_APP_URL
-Environment=GOOGLE_CLIENT_ID=$SELECTED_GOOGLE_CLIENT_ID
-Environment=GOOGLE_CLIENT_SECRET=$SELECTED_GOOGLE_CLIENT_SECRET
-Environment=GOOGLE_ALLOWED_EMAILS=$SELECTED_GOOGLE_ALLOWED_EMAILS
 Environment=PATH=$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:\$PATH
 ExecStart=$TARGET_BIN_DIR/hugremote
 Restart=always
@@ -490,5 +503,5 @@ fi
 echo -e "  3. Hoặc chạy trực tiếp không cần cài:"
 echo -e "     ${C_BLUE}npx hugremote${C_RESET}"
 echo ""
-echo -e "${C_CORAL}Truy cập giao diện Web: ${C_BOLD}http://localhost:8099/${C_RESET}"
+echo -e "${C_CORAL}Truy cập giao diện Web: ${C_BOLD}http://localhost:$SELECTED_PORT$SELECTED_BASE_PATH/${C_RESET}"
 echo ""

@@ -4,6 +4,14 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { loadUserConfig } from './config-env.js';
+
+try {
+  loadUserConfig();
+} catch (error) {
+  console.error(`HugRemote: ${error.message}`);
+  process.exit(1);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

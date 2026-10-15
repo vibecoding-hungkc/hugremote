@@ -17,6 +17,32 @@ export interface UnifiedSession {
 class SessionManager {
   private sessions = new Map<string, UnifiedSession>();
   private readonly MAX_SESSIONS = 50;
+  private readonly IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 phút tự terminate session idle
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
+  constructor() {
+    // Quét dọn các session không có client kết nối và idle quá 30 phút mỗi phút một lần
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupIdleSessions();
+    }, 60 * 1000);
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
+    }
+  }
+
+  private cleanupIdleSessions() {
+    const now = Date.now();
+    for (const [id, session] of Array.from(this.sessions.entries())) {
+      // Nếu session không còn client nào kết nối và không hoạt động trong 30 phút
+      const hasActiveClients = Array.from(session.clients).some(
+        (c) => c.readyState === WebSocket.OPEN
+      );
+      if (!hasActiveClients && now - session.lastActive > this.IDLE_TIMEOUT_MS) {
+        console.log(`[SessionManager] Terminating idle session (idle > 30m): ${id}`);
+        this.close(id);
+      }
+    }
+  }
 
   async getOrCreateSession(
     serverId: string,
@@ -33,8 +59,22 @@ class SessionManager {
       return existing;
     }
 
+    // Trước khi kiểm tra giới hạn MAX_SESSIONS, chủ động dọn dẹp các session idle
+    this.cleanupIdleSessions();
+
     if (this.sessions.size >= this.MAX_SESSIONS) {
-      throw new Error(`Maximum concurrent terminal sessions reached (${this.MAX_SESSIONS})`);
+      // Nếu vẫn đầy, tìm session cũ nhất không có active client để giải phóng
+      const idleSessions = Array.from(this.sessions.values())
+        .filter((s) => !Array.from(s.clients).some((c) => c.readyState === WebSocket.OPEN))
+        .sort((a, b) => a.lastActive - b.lastActive);
+
+      if (idleSessions.length > 0) {
+        const victim = idleSessions[0];
+        console.log(`[SessionManager] Releasing least recently active session to make room: ${victim.id}`);
+        this.close(victim.id);
+      } else {
+        throw new Error(`Maximum concurrent terminal sessions reached (${this.MAX_SESSIONS})`);
+      }
     }
 
     let backend: LocalPtyInstance | RemotePtyInstance;

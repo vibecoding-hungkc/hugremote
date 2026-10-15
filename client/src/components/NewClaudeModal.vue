@@ -159,7 +159,7 @@ const { t } = useI18n();
 const cwdInput = ref('');
 const nameInput = ref('');
 const initialPrompt = ref('');
-const modelInput = ref('Sonnet 5.5 Medium');
+const modelInput = ref('Default Medium');
 const effortInput = ref('Medium');
 const modeInput = ref('Auto');
 const bypassPermissions = ref(false);
@@ -215,7 +215,7 @@ function splitModelAndEffort(value: string) {
   const effort = match
     ? match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase()
     : 'Medium';
-  const baseModel = (value || 'Sonnet 5.5 Medium')
+  const baseModel = (value || 'Default Medium')
     .replace(/\s+\b(Low|Medium|High|Max)\b/i, '')
     .trim();
   return { baseModel, effort };
@@ -248,7 +248,7 @@ watch(
     cwdInput.value = defaultWs;
     suggestName(defaultWs);
     initialPrompt.value = '';
-    modelInput.value = 'Sonnet 5.5 Medium';
+    modelInput.value = 'Default Medium';
     effortInput.value = 'Medium';
     modeInput.value = 'Auto';
     bypassPermissions.value = false;

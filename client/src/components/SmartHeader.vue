@@ -16,6 +16,7 @@
       <button class="project-selector-btn" @click="$emit('open-project-modal')" title="Project">
         <i class="ri-folder-2-line"></i>
         <span>{{ projectStore.currentProject?.name || '~' }}</span>
+        <i class="ri-arrow-down-s-line proj-arrow"></i>
       </button>
     </div>
 
@@ -129,7 +130,7 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
   align-items: center;
   gap: 6px;
   min-width: 0;
-  max-width: calc(100% - 150px);
+  flex-shrink: 0;
 }
 
 .server-proj-sep {
@@ -209,7 +210,8 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 
 .project-selector-btn {
   height: 22px;
-  max-width: 130px;
+  max-width: calc(100% - 130px);
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -221,13 +223,18 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
   font-family: monospace;
   font-size: 11px;
   font-weight: 700;
-  flex-shrink: 0;
   cursor: pointer;
 }
 .project-selector-btn span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.project-selector-btn .proj-arrow {
+  font-size: 12px;
+  color: #7dd3fc;
+  flex-shrink: 0;
+  margin-left: 1px;
 }
 
 .smart-header-center {

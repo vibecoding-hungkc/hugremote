@@ -13,6 +13,21 @@ export default defineConfig({
   build: {
     outDir: '../server/public',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'pinia'],
+          xterm: ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-web-links'],
+          editor: [
+            '@codemirror/state',
+            '@codemirror/view',
+            '@codemirror/commands',
+            '@codemirror/language',
+            '@codemirror/theme-one-dark',
+          ],
+        },
+      },
+    },
   },
   server: {
     port: 5173,

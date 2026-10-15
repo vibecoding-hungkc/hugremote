@@ -174,16 +174,92 @@ export class FsService {
   }
 
   // --- REMOTE SFTP FS ---
+  private resolveRemotePath(server: ServerConfig, requestedPath = '', workspaceOverride?: string): string {
+    const home = server.user && server.user !== 'root' ? `/home/${server.user}` : '/root';
+    const rawBase = workspaceOverride || server.workspace || home;
+    let base = rawBase;
+    if (base === '~') {
+      base = home;
+    } else if (base.startsWith('~/')) {
+      base = path.posix.join(home, base.slice(2));
+    }
+
+    if (!requestedPath || requestedPath === '.') return base;
+    if (path.posix.isAbsolute(requestedPath)) return path.posix.normalize(requestedPath);
+    if (requestedPath.startsWith('~/')) {
+      return path.posix.normalize(path.posix.join(home, requestedPath.slice(2)));
+    }
+    return path.posix.normalize(path.posix.join(base, requestedPath));
+  }
+
+  private async sftpMkdirRecursive(sftp: any, targetDir: string): Promise<void> {
+    const normalized = path.posix.normalize(targetDir);
+    const parts = normalized.split('/').filter(Boolean);
+    let current = normalized.startsWith('/') ? '/' : '';
+    for (const part of parts) {
+      current = path.posix.join(current, part);
+      await new Promise<void>((resolve) => {
+        sftp.stat(current, (err: any, stat: any) => {
+          if (!err && stat) {
+            return resolve();
+          }
+          sftp.mkdir(current, () => {
+            resolve();
+          });
+        });
+      });
+    }
+  }
+
+  private async sftpRmRecursive(sftp: any, targetPath: string): Promise<void> {
+    const stat: any = await new Promise((resolve, reject) => {
+      sftp.lstat(targetPath, (err: any, st: any) => {
+        if (err) return reject(err);
+        resolve(st);
+      });
+    });
+
+    const isDir = (stat.mode & 0o170000) === 0o040000;
+    if (!isDir) {
+      return new Promise((resolve, reject) => {
+        sftp.unlink(targetPath, (err: any) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    }
+
+    const list: any[] = await new Promise((resolve, reject) => {
+      sftp.readdir(targetPath, (err: any, items: any) => {
+        if (err) return reject(err);
+        resolve(items || []);
+      });
+    });
+
+    for (const item of list) {
+      if (item.filename === '.' || item.filename === '..') continue;
+      const childPath = path.posix.join(targetPath, item.filename);
+      await this.sftpRmRecursive(sftp, childPath);
+    }
+
+    return new Promise((resolve, reject) => {
+      sftp.rmdir(targetPath, (err: any) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+  }
+
   async listRemote(server: ServerConfig, dirPath = '', workspaceOverride?: string): Promise<{ currentRel: string; parentRel: string | null; entries: FileEntry[] }> {
     const sftp = await sshPool.getSftp(server);
-    const base = workspaceOverride || server.workspace || '/root';
-    const targetDir = dirPath ? path.posix.join(base, dirPath) : base;
+    const base = this.resolveRemotePath(server, '', workspaceOverride);
+    const targetDir = this.resolveRemotePath(server, dirPath, workspaceOverride);
 
     return new Promise((resolve, reject) => {
       sftp.readdir(targetDir, (err, list) => {
         if (err) return reject(err);
 
-        const entries: FileEntry[] = list
+        const entries: FileEntry[] = (list || [])
           .filter((e) => !e.filename.startsWith('.git') && e.filename !== 'node_modules')
           .map((e) => {
             const isDir = (e.attrs.mode & 0o170000) === 0o040000;
@@ -191,7 +267,7 @@ export class FsService {
               name: e.filename,
               isDirectory: isDir,
               size: e.attrs.size || 0,
-              mtime: new Date(e.attrs.mtime * 1000).toISOString(),
+              mtime: e.attrs.mtime ? new Date(e.attrs.mtime * 1000).toISOString() : null,
               ext: isDir ? '' : path.extname(e.filename).toLowerCase(),
               relPath: path.posix.relative(base, path.posix.join(targetDir, e.filename)),
             };
@@ -201,7 +277,7 @@ export class FsService {
             return a.name.localeCompare(b.name);
           });
 
-        const parentRel = targetDir === '/' ? null : path.posix.dirname(targetDir);
+        const parentRel = targetDir === '/' || targetDir === base ? null : path.posix.relative(base, path.posix.dirname(targetDir));
 
         resolve({
           currentRel: path.posix.relative(base, targetDir),
@@ -214,8 +290,8 @@ export class FsService {
 
   async readRemoteFile(server: ServerConfig, filePath: string, workspaceOverride?: string): Promise<{ name: string; size: number; content: string }> {
     const sftp = await sshPool.getSftp(server);
+    const targetPath = this.resolveRemotePath(server, filePath, workspaceOverride);
     return new Promise((resolve, reject) => {
-      const targetPath = workspaceOverride ? path.posix.join(workspaceOverride, filePath) : filePath;
       sftp.readFile(targetPath, (err, data) => {
         if (err) return reject(err);
         const content = data.toString('utf8');
@@ -230,11 +306,97 @@ export class FsService {
 
   async writeRemoteFile(server: ServerConfig, filePath: string, content: string, workspaceOverride?: string): Promise<{ size: number }> {
     const sftp = await sshPool.getSftp(server);
+    const targetPath = this.resolveRemotePath(server, filePath, workspaceOverride);
+    const parentDir = path.posix.dirname(targetPath);
+    await this.sftpMkdirRecursive(sftp, parentDir);
+
     return new Promise((resolve, reject) => {
-      const targetPath = workspaceOverride ? path.posix.join(workspaceOverride, filePath) : filePath;
-      sftp.writeFile(targetPath, content, 'utf8', (err) => {
+      sftp.writeFile(targetPath, content || '', 'utf8', (err) => {
         if (err) return reject(err);
-        resolve({ size: Buffer.byteLength(content, 'utf8') });
+        resolve({ size: Buffer.byteLength(content || '', 'utf8') });
+      });
+    });
+  }
+
+  async createRemote(server: ServerConfig, relPath: string, type: 'file' | 'dir', workspaceOverride?: string): Promise<void> {
+    const sftp = await sshPool.getSftp(server);
+    const target = this.resolveRemotePath(server, relPath, workspaceOverride);
+
+    // Check if target already exists
+    const exists = await new Promise<boolean>((resolve) => {
+      sftp.stat(target, (err: any) => {
+        resolve(!err);
+      });
+    });
+    if (exists) {
+      throw new Error('Item already exists');
+    }
+
+    if (type === 'dir') {
+      await this.sftpMkdirRecursive(sftp, target);
+    } else {
+      const parentDir = path.posix.dirname(target);
+      await this.sftpMkdirRecursive(sftp, parentDir);
+      await new Promise<void>((resolve, reject) => {
+        sftp.writeFile(target, '', 'utf8', (err: any) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    }
+  }
+
+  async deleteRemote(server: ServerConfig, relPath: string, workspaceOverride?: string): Promise<void> {
+    const sftp = await sshPool.getSftp(server);
+    const base = this.resolveRemotePath(server, '', workspaceOverride);
+    const target = this.resolveRemotePath(server, relPath, workspaceOverride);
+
+    if (target === '/' || target === base) {
+      throw new Error('Cannot delete root workspace');
+    }
+
+    const exists = await new Promise<boolean>((resolve) => {
+      sftp.stat(target, (err: any) => {
+        resolve(!err);
+      });
+    });
+    if (!exists) {
+      throw new Error('Target not found');
+    }
+
+    await this.sftpRmRecursive(sftp, target);
+  }
+
+  async renameRemote(server: ServerConfig, oldRel: string, newRel: string, workspaceOverride?: string): Promise<void> {
+    const sftp = await sshPool.getSftp(server);
+    const oldTarget = this.resolveRemotePath(server, oldRel, workspaceOverride);
+    const newTarget = this.resolveRemotePath(server, newRel, workspaceOverride);
+
+    const oldExists = await new Promise<boolean>((resolve) => {
+      sftp.stat(oldTarget, (err: any) => {
+        resolve(!err);
+      });
+    });
+    if (!oldExists) {
+      throw new Error('Source not found');
+    }
+
+    const newExists = await new Promise<boolean>((resolve) => {
+      sftp.stat(newTarget, (err: any) => {
+        resolve(!err);
+      });
+    });
+    if (newExists) {
+      throw new Error('Destination already exists');
+    }
+
+    const newParent = path.posix.dirname(newTarget);
+    await this.sftpMkdirRecursive(sftp, newParent);
+
+    return new Promise((resolve, reject) => {
+      sftp.rename(oldTarget, newTarget, (err: any) => {
+        if (err) return reject(err);
+        resolve();
       });
     });
   }

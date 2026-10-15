@@ -253,7 +253,27 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         return reply.status(400).send({ error: err.message });
       }
     } else {
-      return reply.status(501).send({ error: 'Remote FS actions not yet supported for remote server' });
+      const all = parseSshConfig();
+      const target = all.find((s) => s.id === serverId);
+      if (!target) return reply.status(404).send({ error: 'Server not found' });
+
+      try {
+        if (action === 'create') {
+          if (!itemPath) return reply.status(400).send({ error: 'path required' });
+          await fsService.createRemote(target, itemPath, type, projectRoot);
+        } else if (action === 'delete') {
+          if (!itemPath) return reply.status(400).send({ error: 'path required' });
+          await fsService.deleteRemote(target, itemPath, projectRoot);
+        } else if (action === 'rename') {
+          if (!oldPath || !newPath) return reply.status(400).send({ error: 'oldPath and newPath required' });
+          await fsService.renameRemote(target, oldPath, newPath, projectRoot);
+        } else {
+          return reply.status(400).send({ error: `Unknown action: ${action}` });
+        }
+        return { success: true };
+      } catch (err: any) {
+        return reply.status(400).send({ error: err.message });
+      }
     }
   });
 

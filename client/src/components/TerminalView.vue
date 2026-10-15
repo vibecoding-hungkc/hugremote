@@ -86,6 +86,8 @@
           <div class="drawer-keys-row">
             <button class="tb-btn" @click="sendKey('\x1b[H')">Home</button>
             <button class="tb-btn" @click="sendKey('\x1b[F')">End</button>
+            <button class="tb-btn" @click="scrollTerminal(-5)"><i class="ri-arrow-up-line"></i> Cuộn Lên</button>
+            <button class="tb-btn" @click="scrollTerminal(5)"><i class="ri-arrow-down-line"></i> Cuộn Xuống</button>
             <button class="tb-btn" @click="sendKey('\x1b[5~')">PgUp</button>
             <button class="tb-btn" @click="sendKey('\x1b[6~')">PgDn</button>
             <button class="tb-btn" @click="sendKey('\x1b[1;5A')">Ctrl+▲</button>
@@ -268,7 +270,7 @@ function setupTouchScrolling() {
   const container = terminalRef.value;
   let startY = 0;
   let accumulatedDelta = 0;
-  const rowHeight = 16; // approximate line height threshold
+  const rowHeight = 18; // approximate line height threshold
 
   const onTouchStart = (e: TouchEvent) => {
     if (e.touches.length === 1) {
@@ -292,12 +294,21 @@ function setupTouchScrolling() {
     }
   };
 
+  const onWheel = (e: WheelEvent) => {
+    if (!term) return;
+    const lines = e.deltaY > 0 ? Math.max(1, Math.round(e.deltaY / 30)) : Math.min(-1, Math.round(e.deltaY / 30));
+    term.scrollLines(lines);
+    e.preventDefault();
+  };
+
   container.addEventListener('touchstart', onTouchStart, { passive: true });
   container.addEventListener('touchmove', onTouchMove, { passive: false });
+  container.addEventListener('wheel', onWheel, { passive: false });
 
   cleanupTouch = () => {
     container.removeEventListener('touchstart', onTouchStart);
     container.removeEventListener('touchmove', onTouchMove);
+    container.removeEventListener('wheel', onWheel);
   };
 }
 
@@ -452,6 +463,13 @@ function handleResize() {
 function focusTerminal() {
   if (term) {
     term.focus();
+  }
+}
+
+function scrollTerminal(lines: number) {
+  hapticFeedback();
+  if (term) {
+    term.scrollLines(lines);
   }
 }
 

@@ -58,7 +58,7 @@
 
       <!-- Row 2: Expandable Drawer Panel -->
       <div v-show="isDrawerOpen" class="touch-bar-drawer">
-        <!-- Ctrl Shortcuts Group -->
+        <!-- 1. Ctrl Shortcuts Group -->
         <div class="drawer-group">
           <span class="drawer-group-title">Ctrl Shortcuts</span>
           <div class="drawer-keys-row">
@@ -77,36 +77,7 @@
           </div>
         </div>
 
-        <!-- Alt / Word Navigation Group -->
-        <div class="drawer-group">
-          <span class="drawer-group-title">Alt / Di Chuyển Theo Từ</span>
-          <div class="drawer-keys-row">
-            <button class="tb-btn" @click="sendKey('\x1bb')">Alt+◄ {{ t('terminal.previousWord') }}</button>
-            <button class="tb-btn" @click="sendKey('\x1bf')">Alt+► {{ t('terminal.nextWord') }}</button>
-            <button class="tb-btn" @click="sendKey('\x1bd')">Alt+D {{ t('terminal.deleteNextWord') }}</button>
-            <button class="tb-btn" @click="sendKey('\x7f')">⌫ Backspace</button>
-            <button class="tb-btn" @click="sendKey('\x1b[3~')">Del</button>
-            <button class="tb-btn" @click="sendKey('\x1b.')">Alt+. (Arg cuối)</button>
-          </div>
-        </div>
-
-        <!-- Navigation / Paging Group -->
-        <div class="drawer-group">
-          <span class="drawer-group-title">{{ t('terminal.navigation') }}</span>
-          <div class="drawer-keys-row">
-            <button class="tb-btn" @click="sendKey('\x1b[H')">Home</button>
-            <button class="tb-btn" @click="sendKey('\x1b[F')">End</button>
-            <button class="tb-btn" @click="scrollTerminal(-5)"><i class="ri-arrow-up-line"></i> Cuộn Lên</button>
-            <button class="tb-btn" @click="scrollTerminal(5)"><i class="ri-arrow-down-line"></i> Cuộn Xuống</button>
-            <button class="tb-btn" @click="sendKey('\x1b[5~')">PgUp</button>
-            <button class="tb-btn" @click="sendKey('\x1b[6~')">PgDn</button>
-            <button class="tb-btn" @click="sendKey('\x1b[1;5A')">Ctrl+▲</button>
-            <button class="tb-btn" @click="sendKey('\x1b[1;5B')">Ctrl+▼</button>
-          </div>
-        </div>
-
-
-        <!-- Git Shortcuts -->
+        <!-- 2. Git Shortcuts (Đưa lên vị trí 2) -->
         <div class="drawer-group">
           <span class="drawer-group-title">{{ t('terminal.gitQuick') }}</span>
           <div class="drawer-keys-row">
@@ -121,7 +92,7 @@
           </div>
         </div>
 
-        <!-- Quick 1-Touch Commands -->
+        <!-- 3. Quick 1-Touch Commands (Đưa lên vị trí 3) -->
         <div class="drawer-group">
           <span class="drawer-group-title">{{ t('terminal.quickCommands') }}</span>
           <div class="drawer-keys-row">
@@ -134,6 +105,34 @@
             <button class="tb-btn tb-cmd" @click="sendKey('history | tail -20\r')">history</button>
             <button class="tb-btn tb-cmd" @click="sendKey('htop\r')">htop</button>
             <button class="tb-btn tb-cmd" @click="sendKey('exit\r')">exit</button>
+          </div>
+        </div>
+
+        <!-- 4. Alt / Word Navigation Group -->
+        <div class="drawer-group">
+          <span class="drawer-group-title">Alt / Di Chuyển Theo Từ</span>
+          <div class="drawer-keys-row">
+            <button class="tb-btn" @click="sendKey('\x1bb')">Alt+◄ {{ t('terminal.previousWord') }}</button>
+            <button class="tb-btn" @click="sendKey('\x1bf')">Alt+► {{ t('terminal.nextWord') }}</button>
+            <button class="tb-btn" @click="sendKey('\x1bd')">Alt+D {{ t('terminal.deleteNextWord') }}</button>
+            <button class="tb-btn" @click="sendKey('\x7f')">⌫ Backspace</button>
+            <button class="tb-btn" @click="sendKey('\x1b[3~')">Del</button>
+            <button class="tb-btn" @click="sendKey('\x1b.')">Alt+. (Arg cuối)</button>
+          </div>
+        </div>
+
+        <!-- 5. Navigation / Paging Group -->
+        <div class="drawer-group">
+          <span class="drawer-group-title">{{ t('terminal.navigation') }}</span>
+          <div class="drawer-keys-row">
+            <button class="tb-btn" @click="sendKey('\x1b[H')">Home</button>
+            <button class="tb-btn" @click="sendKey('\x1b[F')">End</button>
+            <button class="tb-btn" @click="scrollTerminal(-5)"><i class="ri-arrow-up-line"></i> Cuộn Lên</button>
+            <button class="tb-btn" @click="scrollTerminal(5)"><i class="ri-arrow-down-line"></i> Cuộn Xuống</button>
+            <button class="tb-btn" @click="sendKey('\x1b[5~')">PgUp</button>
+            <button class="tb-btn" @click="sendKey('\x1b[6~')">PgDn</button>
+            <button class="tb-btn" @click="sendKey('\x1b[1;5A')">Ctrl+▲</button>
+            <button class="tb-btn" @click="sendKey('\x1b[1;5B')">Ctrl+▼</button>
           </div>
         </div>
       </div>

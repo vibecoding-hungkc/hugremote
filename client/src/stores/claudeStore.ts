@@ -422,6 +422,51 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
+  async function fetchModels(serverId?: string): Promise<{
+    source: string;
+    defaultModel: string;
+    models: Array<{ id: string; title: string; desc: string; prefix: string }>;
+  }> {
+    try {
+      const sId = serverId || serverStore.currentServer?.id || 'server-local';
+      const res = await fetch(apiUrl(`/api/claude/models?serverId=${encodeURIComponent(sId)}`));
+      if (!res.ok) throw new Error('Failed to fetch models');
+      return await res.json();
+    } catch (err) {
+      console.error('fetchModels error:', err);
+      return {
+        source: 'fallback',
+        defaultModel: 'Sonnet 5.5',
+        models: [
+          {
+            id: 'default',
+            title: 'Default (recommended)',
+            desc: 'Claude Code default model · Uses your active CLI configuration',
+            prefix: 'Default',
+          },
+          {
+            id: 'sonnet',
+            title: 'Sonnet',
+            desc: 'Sonnet · Standard model for daily coding & agentic tasks',
+            prefix: 'Sonnet',
+          },
+          {
+            id: 'opus',
+            title: 'Opus',
+            desc: 'Opus · Frontier model for complex reasoning and architecture',
+            prefix: 'Opus',
+          },
+          {
+            id: 'haiku',
+            title: 'Haiku',
+            desc: 'Haiku · Fastest model for lightweight queries & quick answers',
+            prefix: 'Haiku',
+          },
+        ],
+      };
+    }
+  }
+
   return {
     sessions,
     activeSessionId,
@@ -442,5 +487,6 @@ export const useClaudeStore = defineStore('claude', () => {
     clearMessages,
     fetchLimits,
     updateLimits,
+    fetchModels,
   };
 });

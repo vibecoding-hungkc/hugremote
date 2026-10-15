@@ -59,10 +59,13 @@
         <div class="form-group">
           <label class="form-label">Model</label>
           <select v-model="modelInput" class="form-input form-select">
-            <option value="Default Medium">Default (recommended)</option>
-            <option value="Sonnet 5.5 Medium">Sonnet 5.5</option>
-            <option value="Opus 5.5 Medium">Opus 5.5</option>
-            <option value="Haiku 4.5 Medium">Haiku 4.5</option>
+            <option
+              v-for="item in availableModels"
+              :key="item.id"
+              :value="`${item.prefix} Medium`"
+            >
+              {{ item.title }}
+            </option>
           </select>
         </div>
 
@@ -162,6 +165,50 @@ const modeInput = ref('Auto');
 const bypassPermissions = ref(false);
 const isTreePickerOpen = ref(false);
 
+interface ModelItem {
+  id: string;
+  title: string;
+  desc: string;
+  prefix: string;
+}
+
+const availableModels = ref<ModelItem[]>([
+  {
+    id: 'default',
+    title: 'Default (recommended)',
+    desc: 'Claude Code default model',
+    prefix: 'Default',
+  },
+  {
+    id: 'sonnet',
+    title: 'Sonnet',
+    desc: 'Sonnet · Standard model',
+    prefix: 'Sonnet',
+  },
+  {
+    id: 'opus',
+    title: 'Opus',
+    desc: 'Opus · Frontier model',
+    prefix: 'Opus',
+  },
+  {
+    id: 'haiku',
+    title: 'Haiku',
+    desc: 'Haiku · Fastest model',
+    prefix: 'Haiku',
+  },
+]);
+
+async function loadModels() {
+  try {
+    const sId = serverStore.currentServer?.id || 'server-local';
+    const res = await claudeStore.fetchModels(sId);
+    if (res && res.models && res.models.length > 0) {
+      availableModels.value = res.models;
+    }
+  } catch (_) {}
+}
+
 const efforts = ['Low', 'Medium', 'High', 'Max'];
 function splitModelAndEffort(value: string) {
   const match = (value || '').match(/\b(Low|Medium|High|Max)\b/i);
@@ -183,6 +230,7 @@ watch(
   () => [props.isOpen, props.session] as const,
   ([open, session]) => {
     if (!open) return;
+    loadModels();
 
     if (session?.id) {
       const { baseModel, effort } = splitModelAndEffort(session.model);

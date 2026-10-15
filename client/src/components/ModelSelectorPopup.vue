@@ -36,7 +36,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
+import { useClaudeStore } from '../stores/claudeStore';
+import { useServerStore } from '../stores/serverStore';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -48,6 +50,9 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
+const claudeStore = useClaudeStore();
+const serverStore = useServerStore();
+
 interface ModelItem {
   id: string;
   title: string;
@@ -55,7 +60,7 @@ interface ModelItem {
   prefix: string;
 }
 
-const models: ModelItem[] = [
+const defaultFallbackModels: ModelItem[] = [
   {
     id: 'default',
     title: 'Default (recommended)',
@@ -82,15 +87,59 @@ const models: ModelItem[] = [
   },
 ];
 
+const models = ref<ModelItem[]>([...defaultFallbackModels]);
+const modelSource = ref<'settings' | 'cli' | 'fallback'>('fallback');
+const isLoadingModels = ref(false);
+
+async function loadModels() {
+  if (isLoadingModels.value) return;
+  isLoadingModels.value = true;
+  try {
+    const sId = serverStore.currentServer?.id || 'server-local';
+    const res = await claudeStore.fetchModels(sId);
+    if (res && res.models && res.models.length > 0) {
+      models.value = res.models;
+      modelSource.value = (res.source as any) || 'fallback';
+    }
+  } catch (_) {
+  } finally {
+    isLoadingModels.value = false;
+  }
+}
+
+onMounted(() => {
+  loadModels();
+});
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open) {
+      loadModels();
+    }
+  }
+);
+
+watch(
+  () => serverStore.currentServer?.id,
+  () => {
+    loadModels();
+  }
+);
+
 const effortSteps = ['Low', 'Medium', 'High', 'Max'] as const;
 type EffortLevel = typeof effortSteps[number];
 
 const currentModelId = computed(() => {
-  const val = props.modelValue || '';
-  if (val.includes('Default')) return 'default';
-  if (val.includes('Opus')) return 'opus';
-  if (val.includes('Haiku')) return 'haiku';
-  return 'sonnet';
+  const val = (props.modelValue || '').toLowerCase().trim();
+  if (val.includes('default')) return 'default';
+  for (const m of models.value) {
+    if (m.id === 'default') continue;
+    if (val.includes(m.id.toLowerCase()) || val.includes(m.prefix.toLowerCase())) {
+      return m.id;
+    }
+  }
+  return models.value[0]?.id || 'default';
 });
 
 const currentEffort = computed<EffortLevel>(() => {
@@ -123,8 +172,8 @@ function selectModel(item: ModelItem) {
 }
 
 function setEffort(step: EffortLevel) {
-  const item = models.find((m) => m.id === currentModelId.value) || models.find((m) => m.id === 'sonnet') || models[0];
-  const newName = `${item.prefix} ${step}`;
+  const item = models.value.find((m) => m.id === currentModelId.value) || models.value[0];
+  const newName = `${item ? item.prefix : 'Sonnet'} ${step}`;
   emit('update:modelValue', newName);
 }
 

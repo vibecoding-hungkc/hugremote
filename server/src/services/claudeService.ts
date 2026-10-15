@@ -63,6 +63,19 @@ export type ClaudeStreamEvent =
   | { type: 'done'; text: string; usage?: any; contextTokens?: string }
   | { type: 'error'; error: string };
 
+export interface ClaudeModelItem {
+  id: string;
+  title: string;
+  desc: string;
+  prefix: string;
+}
+
+export interface ClaudeModelsResult {
+  source: 'settings' | 'cli' | 'fallback';
+  defaultModel: string;
+  models: ClaudeModelItem[];
+}
+
 const STORAGE_FILE = path.join(os.homedir(), '.ssh', 'hugcode_claude_sessions.json');
 const LIMITS_FILE = path.join(os.homedir(), '.ssh', 'hugcode_claude_limits.json');
 
@@ -426,6 +439,228 @@ class ClaudeService {
     this.limits.updatedAt = Date.now();
     this.saveLimits();
     return this.getLimits();
+  }
+
+  async getAvailableModels(serverId?: string): Promise<ClaudeModelsResult> {
+    const sId = serverId || 'server-local';
+    const server = this.serverConfigResolver(sId);
+    const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
+
+    // 1. Mechanism 1: Check ~/.claude/settings.json
+    try {
+      let rawSettingsContent = '';
+      if (!isRemote) {
+        const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+        if (fs.existsSync(settingsPath)) {
+          rawSettingsContent = fs.readFileSync(settingsPath, 'utf8');
+        }
+      } else if (server) {
+        const stream = await sshPool.executeCommand(
+          server,
+          'cat "$HOME/.claude/settings.json" 2>/dev/null || cat "$HOME/.claude.json" 2>/dev/null || true'
+        );
+        rawSettingsContent = await new Promise<string>((resolve) => {
+          let out = '';
+          stream.on('data', (d: Buffer) => (out += d.toString('utf8')));
+          stream.on('close', () => resolve(out));
+        });
+      }
+
+      if (rawSettingsContent.trim()) {
+        const settings = JSON.parse(rawSettingsContent);
+        const env = (settings && typeof settings === 'object' && (settings.env || settings.aenv)) || {};
+        const baseUrl = env.ANTHROPIC_BASE_URL || env.anthropic_base_url || process.env.ANTHROPIC_BASE_URL;
+        const apiKey = env.ANTHROPIC_AUTH_TOKEN || env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
+
+        // Custom modelPicker options defined directly in settings
+        if (settings.modelPicker && Array.isArray(settings.modelPicker.options) && settings.modelPicker.options.length > 0) {
+          const customModels: ClaudeModelItem[] = settings.modelPicker.options.map((opt: any) => {
+            const id = opt.model || opt.id || 'default';
+            const title = opt.label || opt.title || id;
+            return {
+              id,
+              title,
+              desc: opt.description || `${title} · Custom model`,
+              prefix: title.split(/\s+/)[0] || title,
+            };
+          });
+          return {
+            source: 'settings',
+            defaultModel: customModels[0]?.title || 'Default',
+            models: customModels,
+          };
+        }
+
+        // When ANTHROPIC_BASE_URL is set, extract configured models from env
+        if (baseUrl) {
+          const models: ClaudeModelItem[] = [];
+          const defaultOpus = env.ANTHROPIC_DEFAULT_OPUS_MODEL;
+          const defaultSonnet = env.ANTHROPIC_DEFAULT_SONNET_MODEL;
+          const defaultHaiku = env.ANTHROPIC_DEFAULT_HAIKU_MODEL;
+          const defaultModel = env.ANTHROPIC_MODEL || defaultSonnet || defaultOpus || 'claude-sonnet';
+
+          models.push({
+            id: 'default',
+            title: `Default (${defaultModel})`,
+            desc: `Router default model · ${defaultModel}`,
+            prefix: 'Default',
+          });
+
+          if (defaultSonnet) {
+            models.push({
+              id: 'sonnet',
+              title: 'Sonnet',
+              desc: `Configured: ${defaultSonnet}`,
+              prefix: 'Sonnet',
+            });
+          }
+          if (defaultOpus) {
+            models.push({
+              id: 'opus',
+              title: 'Opus',
+              desc: `Configured: ${defaultOpus}`,
+              prefix: 'Opus',
+            });
+          }
+          if (defaultHaiku) {
+            models.push({
+              id: 'haiku',
+              title: 'Haiku',
+              desc: `Configured: ${defaultHaiku}`,
+              prefix: 'Haiku',
+            });
+          }
+
+          if (Array.isArray(settings.availableModels) && settings.availableModels.length > 0) {
+            for (const am of settings.availableModels) {
+              if (typeof am === 'string' && !models.some((m) => m.id === am)) {
+                models.push({
+                  id: am,
+                  title: am,
+                  desc: `${am} · Available model`,
+                  prefix: am,
+                });
+              }
+            }
+          }
+
+          if (models.length > 0) {
+            return {
+              source: 'settings',
+              defaultModel,
+              models,
+            };
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Mechanism 2: Query Claude CLI directly via /model
+    try {
+      let cliOutput = '';
+      if (!isRemote) {
+        const bin = getClaudeBinaryPath();
+        const proc = spawn(bin, ['-p', '/model', '--output-format', 'json'], {
+          stdio: ['ignore', 'pipe', 'pipe'],
+          env: {
+            ...process.env,
+            PATH: `${path.join(os.homedir(), '.local', 'bin')}:${process.env.PATH}`,
+          },
+        });
+        cliOutput = await new Promise<string>((resolve) => {
+          let out = '';
+          proc.stdout.on('data', (d) => (out += d.toString('utf8')));
+          proc.on('close', () => resolve(out));
+          proc.on('error', () => resolve(''));
+        });
+      } else if (server) {
+        const remoteCmd = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; claude -p '/model' --output-format json`;
+        const stream = await sshPool.executeCommand(server, remoteCmd);
+        cliOutput = await new Promise<string>((resolve) => {
+          let out = '';
+          stream.on('data', (d: Buffer) => (out += d.toString('utf8')));
+          stream.on('close', () => resolve(out));
+        });
+      }
+
+      if (cliOutput.trim()) {
+        const parsed = JSON.parse(cliOutput);
+        const resultText = parsed.result || '';
+        // "Current model: `Sonnet 5 (default)`\nUsage: /model <name>. Available: sonnet, opus, haiku, fable, best, sonnet[1m], opus[1m], fable[1m], opusplan, default, or a full model ID."
+        const currentMatch = resultText.match(/Current model:\s*`([^`]+)`/i);
+        const currentModel = currentMatch ? currentMatch[1].trim() : 'Default';
+
+        const availMatch = resultText.match(/Available:\s*([^.\n]+)/i);
+        if (availMatch) {
+          const rawItems = availMatch[1].split(',').map((s: string) => s.trim());
+          const available: string[] = [];
+          for (const item of rawItems) {
+            const clean = item.replace(/^or\s+/i, '').trim();
+            if (clean && !clean.startsWith('a full') && !clean.startsWith('or ')) {
+              available.push(clean);
+            }
+          }
+
+          const models: ClaudeModelItem[] = [
+            {
+              id: 'default',
+              title: `Default (${currentModel})`,
+              desc: `CLI default model: ${currentModel}`,
+              prefix: 'Default',
+            },
+          ];
+
+          for (const m of available) {
+            if (m === 'default') continue;
+            const title = m.charAt(0).toUpperCase() + m.slice(1);
+            models.push({
+              id: m,
+              title,
+              desc: `${title} model`,
+              prefix: title,
+            });
+          }
+
+          return {
+            source: 'cli',
+            defaultModel: currentModel,
+            models,
+          };
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fallback standard list
+    return {
+      source: 'fallback',
+      defaultModel: 'Sonnet 5.5',
+      models: [
+        {
+          id: 'default',
+          title: 'Default (recommended)',
+          desc: 'Claude Code default model · Uses your active CLI configuration',
+          prefix: 'Default',
+        },
+        {
+          id: 'sonnet',
+          title: 'Sonnet',
+          desc: 'Sonnet · Standard model for daily coding & agentic tasks',
+          prefix: 'Sonnet',
+        },
+        {
+          id: 'opus',
+          title: 'Opus',
+          desc: 'Opus · Frontier model for complex reasoning and architecture',
+          prefix: 'Opus',
+        },
+        {
+          id: 'haiku',
+          title: 'Haiku',
+          desc: 'Haiku · Fastest model for lightweight queries & quick answers',
+          prefix: 'Haiku',
+        },
+      ],
+    };
   }
 
   cancelRun(sessionId: string): boolean {

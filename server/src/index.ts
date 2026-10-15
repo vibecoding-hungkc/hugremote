@@ -18,6 +18,7 @@ const fastify = Fastify({
   logger: {
     level: 'info',
   },
+  bodyLimit: 15 * 1024 * 1024, // 15MB for file sync/uploads
 });
 
 async function main() {

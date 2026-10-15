@@ -453,6 +453,12 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     };
   });
 
+  fastify.get<{ Querystring: { serverId?: string } }>('/api/claude/models', async (request) => {
+    const serverId = request.query.serverId || 'server-local';
+    const result = await claudeService.getAvailableModels(serverId);
+    return result;
+  });
+
 
   // --- GIT ---
   fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/status', async (request, reply) => {

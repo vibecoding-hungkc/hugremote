@@ -43,7 +43,7 @@
         </div>
         <div v-else-if="activeTab === 'terminal'" class="ctx-header-item ctx-header-session">
           <button class="term-session-pill" @click="$emit('open-session-hub')">
-            <i class="ri-terminal-box-line"></i><span>{{ terminalStore.activeSession?.name || 'terminal' }}</span><span class="badge-count">{{ terminalStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
+            <i class="ri-terminal-box-line"></i><span>{{ displaySessionName }}</span><span class="badge-count">{{ terminalStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
           </button>
         </div>
         <div v-else-if="activeTab === 'claude'" class="ctx-header-item ctx-header-session">
@@ -108,6 +108,27 @@ const displayProjectName = computed(() => {
     if (last) return last;
   }
   return '~';
+});
+
+const displaySessionName = computed(() => {
+  const sess = terminalStore.activeSession;
+  if (!sess) return 'terminal';
+  if (sess.name && sess.name.trim() && sess.name !== 'terminal') {
+    const clean = sess.name.trim();
+    // Nếu là đường dẫn thư mục, lấy cấp cuối cùng nếu có
+    if (clean.includes('/')) {
+      const parts = clean.split('/').filter(Boolean);
+      return parts[parts.length - 1] || clean;
+    }
+    return clean;
+  }
+  if (sess.cwd) {
+    const clean = sess.cwd.replace(/[/\\]+$/, '');
+    const parts = clean.split(/[/\\]/).filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last) return last;
+  }
+  return 'terminal';
 });
 </script>
 
@@ -313,7 +334,7 @@ const displayProjectName = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  max-width: 220px;
+  max-width: calc(100% - 20px);
   min-width: 0;
   border: 1px solid rgba(168, 85, 247, 0.28);
   background: rgba(88, 28, 135, 0.18);

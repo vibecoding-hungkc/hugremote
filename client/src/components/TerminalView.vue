@@ -230,9 +230,40 @@ function toggleLaptopKeyboard() {
   // If opening keyboard, close drawer to keep screen compact
   if (isLaptopKeyboardOpen.value) {
     isDrawerOpen.value = false;
+    // Suppress system on-screen keyboard by bluring terminal textarea
+    blurTerminalTextarea();
   }
   setTimeout(handleResize, 50);
 }
+
+function blurTerminalTextarea() {
+  if (terminalRef.value) {
+    const textarea = terminalRef.value.querySelector('textarea');
+    if (textarea) {
+      textarea.blur();
+      textarea.setAttribute('readonly', 'readonly');
+      textarea.setAttribute('inputmode', 'none');
+    }
+  }
+}
+
+function restoreTerminalTextarea() {
+  if (terminalRef.value) {
+    const textarea = terminalRef.value.querySelector('textarea');
+    if (textarea) {
+      textarea.removeAttribute('readonly');
+      textarea.removeAttribute('inputmode');
+    }
+  }
+}
+
+watch(isLaptopKeyboardOpen, (open) => {
+  if (open) {
+    blurTerminalTextarea();
+  } else {
+    restoreTerminalTextarea();
+  }
+});
 
 function resizeTerminal() {
   setTimeout(handleResize, 50);
@@ -495,6 +526,11 @@ function handleResize() {
 }
 
 function focusTerminal() {
+  if (isLaptopKeyboardOpen.value) {
+    // When virtual laptop keyboard is active, do not focus the hidden textarea
+    // to prevent iOS/Android virtual on-screen keyboard from popping up
+    return;
+  }
   if (term) {
     term.focus();
   }

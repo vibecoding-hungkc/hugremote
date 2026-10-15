@@ -41,15 +41,10 @@
           <button class="tb-btn tb-paste" @click="handlePaste" :title="t('terminal.paste')">
             <i class="ri-clipboard-line"></i>
           </button>
-          <button class="tb-btn tb-arrow" @click="sendKey('\x1b[A')"><i class="ri-arrow-up-s-line"></i></button>
-          <button class="tb-btn tb-arrow" @click="sendKey('\x1b[B')"><i class="ri-arrow-down-s-line"></i></button>
-          <button class="tb-btn tb-arrow" @click="sendKey('\x1b[D')"><i class="ri-arrow-left-s-line"></i></button>
-          <button class="tb-btn tb-arrow" @click="sendKey('\x1b[C')"><i class="ri-arrow-right-s-line"></i></button>
           <button class="tb-btn tb-enter" @click="sendKey('\r')"><i class="ri-corner-down-left-line"></i></button>
           <div class="tb-divider"></div>
-          <button class="tb-btn" @click="sendKey('/')">/</button>
-          <button class="tb-btn" @click="sendKey('-')">-</button>
-          <button class="tb-btn" @click="sendKey('|')">|</button>
+          <button class="tb-btn tb-arrow" @click="scrollTerminal(-5)" title="Cuộn lên"><i class="ri-arrow-up-line"></i> Cuộn</button>
+          <button class="tb-btn tb-arrow" @click="scrollTerminal(5)" title="Cuộn xuống"><i class="ri-arrow-down-line"></i></button>
           <div class="tb-divider"></div>
           <button class="tb-btn" @click="changeFontSize(-1)" title="Thu nhỏ chữ">A-</button>
           <button class="tb-btn" @click="changeFontSize(1)" :title="t('terminal.fontUp')">A+</button>

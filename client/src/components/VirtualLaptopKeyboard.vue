@@ -150,7 +150,7 @@ const row1Keys = computed<KeyDef[]>(() => [
 
 // Row 2: Tab q w e r t y u i o p [ ] \
 const row2Keys = computed<KeyDef[]>(() => [
-  { id: 'tab', defaultVal: 'Tab', className: 'vlk-key-tab vlk-key-action', action: 'tab' },
+  { id: 'tab', defaultVal: 'Tab ↹', className: 'vlk-key-tab vlk-key-action', action: 'tab' },
   { id: 'q', defaultVal: 'q', className: 'vlk-key-1u' },
   { id: 'w', defaultVal: 'w', className: 'vlk-key-1u' },
   { id: 'e', defaultVal: 'e', className: 'vlk-key-1u' },
@@ -170,7 +170,7 @@ const row2Keys = computed<KeyDef[]>(() => [
 const row3Keys = computed<KeyDef[]>(() => [
   {
     id: 'caps',
-    defaultVal: 'Caps',
+    defaultVal: 'Caps ⇪',
     className: 'vlk-key-caps vlk-key-action',
     action: 'caps',
     isActive: isCapsLock.value,

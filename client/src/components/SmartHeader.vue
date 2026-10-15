@@ -15,7 +15,7 @@
 
       <button class="project-selector-btn" @click="$emit('open-project-modal')" title="Project">
         <i class="ri-folder-2-line"></i>
-        <span>{{ projectStore.currentProject?.name || '~' }}</span>
+        <span>{{ displayProjectName }}</span>
         <i class="ri-arrow-down-s-line proj-arrow"></i>
       </button>
     </div>
@@ -94,6 +94,21 @@ const serverStore = useServerStore(); const projectStore = useProjectStore(); co
 const isMarkdownFile = computed(() => (fileStore.activeFile?.name?.toLowerCase() || '').endsWith('.md') || (fileStore.activeFile?.name?.toLowerCase() || '').endsWith('.markdown'));
 interface BreadcrumbPart { name: string; path: string; isLast: boolean; }
 const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || '').trim(); if (!rel) return { hasMore:false, parentPath:'', parts: [] as BreadcrumbPart[] }; const all = rel.split('/').filter(Boolean); const items = all.map((name, index) => ({ name, path: all.slice(0,index+1).join('/'), isLast:index===all.length-1 })); return items.length <= 3 ? { hasMore:false, parentPath:'', parts:items } : { hasMore:true, parentPath:items[items.length-4].path, parts:items.slice(-3) }; });
+
+const displayProjectName = computed(() => {
+  const proj = projectStore.currentProject;
+  if (!proj) return '~';
+  if (proj.name && proj.name.trim() && proj.name !== '~') {
+    return proj.name.trim();
+  }
+  if (proj.rootPath) {
+    const clean = proj.rootPath.replace(/[/\\]+$/, '');
+    const parts = clean.split(/[/\\]/);
+    const last = parts[parts.length - 1];
+    if (last) return last;
+  }
+  return '~';
+});
 </script>
 
 <style>
@@ -210,7 +225,8 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 
 .project-selector-btn {
   height: 22px;
-  max-width: 110px;
+  max-width: calc(100% - 130px);
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -222,7 +238,6 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
   font-family: monospace;
   font-size: 11px;
   font-weight: 700;
-  flex-shrink: 0;
   cursor: pointer;
 }
 .project-selector-btn span {

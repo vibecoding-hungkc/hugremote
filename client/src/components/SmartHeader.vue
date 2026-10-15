@@ -1,20 +1,26 @@
 <template>
   <header class="smart-header">
+    <!-- Tầng 1: Nhận diện Môi trường & Dự án (Menu + Server + Project) -->
     <div class="server-title-row">
-      <span class="server-status-dot" :class="serverStore.currentServer.type === 'local' ? 'local' : 'remote'"></span>
-      <span class="server-title">{{ serverStore.currentServer.name }}</span>
-    </div>
-
-    <div class="context-row">
       <button class="server-menu-btn" @click="$emit('open-server-drawer')" :title="t('header.manageServer')">
         <i class="ri-menu-line"></i>
       </button>
+
+      <div class="server-info-badge">
+        <span class="server-status-dot" :class="serverStore.currentServer.type === 'local' ? 'local' : 'remote'"></span>
+        <span class="server-title">{{ serverStore.currentServer.name }}</span>
+      </div>
+
+      <span class="server-proj-sep">/</span>
 
       <button class="project-selector-btn" @click="$emit('open-project-modal')" title="Project">
         <i class="ri-folder-2-line"></i>
         <span>{{ projectStore.currentProject?.name || '~' }}</span>
       </button>
+    </div>
 
+    <!-- Tầng 2: Phiên Làm Việc & Tác Vụ (Session Pill/Breadcrumb chiếm rộng + Lang + Action) -->
+    <div class="context-row">
       <div class="smart-header-center">
         <div v-if="activeTab === 'files'" class="ctx-header-item">
           <div class="breadcrumb-bar">
@@ -105,18 +111,37 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 }
 
 .server-title-row {
-  height: 22px;
+  height: 28px;
+  background: #090e1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
+  padding: 0 10px;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
 }
 
+.server-info-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: calc(100% - 150px);
+}
+
+.server-proj-sep {
+  color: #475569;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 12px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
 .server-title {
-  max-width: 72vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -153,7 +178,22 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
   box-sizing: border-box;
 }
 
-.server-menu-btn, .btn-icon-action, .crumb-home-btn {
+.server-menu-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.btn-icon-action, .crumb-home-btn {
   width: 28px;
   height: 28px;
   border-radius: 7px;
@@ -168,19 +208,19 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 }
 
 .project-selector-btn {
-  height: 28px;
-  max-width: 110px;
+  height: 22px;
+  max-width: 130px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   border: 1px solid rgba(56, 189, 248, 0.28);
   background: rgba(14, 165, 233, 0.09);
   color: #bae6fd;
-  border-radius: 7px;
-  padding: 0 7px;
+  border-radius: 6px;
+  padding: 0 6px;
   font-family: monospace;
-  font-size: 11.5px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 700;
   flex-shrink: 0;
   cursor: pointer;
 }

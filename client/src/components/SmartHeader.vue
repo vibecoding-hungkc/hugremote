@@ -48,7 +48,7 @@
         </div>
         <div v-else-if="activeTab === 'claude'" class="ctx-header-item ctx-header-session">
           <button class="claude-session-pill" @click="$emit('open-claude-hub')">
-            <i class="ri-sparkling-fill"></i><span>{{ claudeStore.activeSession?.name || 'claude' }}</span><span class="badge-count claude-badge">{{ claudeStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
+            <i class="ri-sparkling-fill"></i><span>{{ displayClaudeSessionName }}</span><span class="badge-count claude-badge">{{ claudeStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
           </button>
         </div>
         <div v-else-if="activeTab === 'git'" class="ctx-header-item git-title">
@@ -129,6 +129,25 @@ const displaySessionName = computed(() => {
     if (last) return last;
   }
   return 'terminal';
+});
+const displayClaudeSessionName = computed(() => {
+  const sess = claudeStore.activeSession;
+  if (!sess) return 'claude';
+  if (sess.name && sess.name.trim() && sess.name !== 'claude') {
+    const clean = sess.name.trim();
+    if (clean.includes('/')) {
+      const parts = clean.split('/').filter(Boolean);
+      return parts[parts.length - 1] || clean;
+    }
+    return clean;
+  }
+  if (sess.cwd) {
+    const clean = sess.cwd.replace(/[/\\]+$/, '');
+    const parts = clean.split(/[/\\]/).filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last) return last;
+  }
+  return 'claude';
 });
 </script>
 
@@ -278,7 +297,7 @@ const displaySessionName = computed(() => {
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   overflow: hidden;
   padding: 0 4px;
 }
@@ -292,7 +311,9 @@ const displaySessionName = computed(() => {
 .ctx-header-item.ctx-header-session {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .breadcrumb-bar {
@@ -332,9 +353,9 @@ const displaySessionName = computed(() => {
   padding: 0 10px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
-  max-width: calc(100% - 20px);
+  max-width: 100%;
   min-width: 0;
   border: 1px solid rgba(168, 85, 247, 0.28);
   background: rgba(88, 28, 135, 0.18);
@@ -386,11 +407,11 @@ const displaySessionName = computed(() => {
 
 @media (max-width: 600px) {
   .project-selector-btn {
-    max-width: 76px;
-    padding: 0 5px;
+    max-width: calc(100% - 130px);
+    padding: 0 6px;
   }
   .crumb-segment, .crumb-more {
-    max-width: 60px;
+    max-width: 100px;
   }
 }
 </style>

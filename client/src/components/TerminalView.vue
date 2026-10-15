@@ -167,6 +167,7 @@ let socket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let wakeLock: any = null;
+let cleanupTouch: (() => void) | null = null;
 
 // --- WAKE LOCK API ---
 async function requestWakeLock() {
@@ -231,6 +232,10 @@ function executeManualPaste(text: string) {
 }
 
 function cleanupCurrentTerminal() {
+  if (cleanupTouch) {
+    cleanupTouch();
+    cleanupTouch = null;
+  }
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
@@ -255,6 +260,45 @@ function cleanupCurrentTerminal() {
   if (terminalRef.value) {
     terminalRef.value.innerHTML = '';
   }
+}
+
+function setupTouchScrolling() {
+  if (!terminalRef.value || !term) return;
+
+  const container = terminalRef.value;
+  let startY = 0;
+  let accumulatedDelta = 0;
+  const rowHeight = 16; // approximate line height threshold
+
+  const onTouchStart = (e: TouchEvent) => {
+    if (e.touches.length === 1) {
+      startY = e.touches[0].clientY;
+      accumulatedDelta = 0;
+    }
+  };
+
+  const onTouchMove = (e: TouchEvent) => {
+    if (e.touches.length !== 1 || !term) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = startY - currentY; // swipe up (positive) = scroll down, swipe down (negative) = scroll up
+    accumulatedDelta += deltaY;
+    startY = currentY;
+
+    const linesToScroll = Math.trunc(accumulatedDelta / rowHeight);
+    if (linesToScroll !== 0) {
+      term.scrollLines(linesToScroll);
+      accumulatedDelta -= linesToScroll * rowHeight;
+      e.preventDefault();
+    }
+  };
+
+  container.addEventListener('touchstart', onTouchStart, { passive: true });
+  container.addEventListener('touchmove', onTouchMove, { passive: false });
+
+  cleanupTouch = () => {
+    container.removeEventListener('touchstart', onTouchStart);
+    container.removeEventListener('touchmove', onTouchMove);
+  };
 }
 
 function initTerminal() {
@@ -325,6 +369,9 @@ function initTerminal() {
   });
 
   setTimeout(handleResize, 60);
+
+  // Enable touch scrolling for mobile devices on xterm canvas/screen
+  setupTouchScrolling();
 
   connectWebSocket();
 
@@ -501,6 +548,7 @@ onBeforeUnmount(() => {
   flex: 1;
   overflow: hidden;
   padding: 6px 8px;
+  touch-action: pan-y;
 }
 
 :deep(.xterm) {
@@ -510,6 +558,8 @@ onBeforeUnmount(() => {
 
 :deep(.xterm-viewport) {
   background: #050811 !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .terminal-touch-bar-container {

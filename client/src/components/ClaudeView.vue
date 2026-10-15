@@ -274,6 +274,14 @@
 
     <!-- Mobile Claude shortcut bar: between chat composer and bottom dock -->
     <div class="claude-shortcut-bar">
+      <button type="button" class="claude-shortcut-key" title="Chạy /init để khởi tạo dự án" @click="inputText = '/init'; handleSend()">
+        <span>/init</span>
+        <small>Khởi tạo</small>
+      </button>
+      <button type="button" class="claude-shortcut-key" title="Xem hướng dẫn lệnh Claude" @click="inputText = '/help'; handleSend()">
+        <span>/help</span>
+        <small>Trợ giúp</small>
+      </button>
       <button type="button" class="claude-shortcut-key" :title="t('claudeView.newLine')" @click="insertNewLine">
         <span>⇧ Enter</span>
         <small>{{ t('claudeView.newLineDesc') }}</small>
@@ -553,7 +561,8 @@ function showUsageToast() {
 }
 </script>
 
-<style scoped>
+<style>
+/* ClaudeView: Global styling to protect against hash drift */
 .claude-extension-container {
   display: flex;
   flex-direction: column;

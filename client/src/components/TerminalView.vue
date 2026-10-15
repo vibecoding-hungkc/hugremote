@@ -532,7 +532,8 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
+<style>
+/* TerminalView: Global styling to protect against hash drift */
 .terminal-view-container {
   flex: 1;
   display: flex;
@@ -569,12 +570,12 @@ onBeforeUnmount(() => {
   touch-action: pan-y;
 }
 
-:deep(.xterm) {
+.terminal-view-container .xterm {
   height: 100%;
   padding: 0;
 }
 
-:deep(.xterm-viewport) {
+.terminal-view-container .xterm-viewport {
   background: #050811 !important;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;

@@ -10,7 +10,7 @@ export const localeLabels: Record<Locale, { nativeName: string; shortName: strin
 
 export const messages: Record<Locale, MessageTree> = {
   vi: {
-    common: { retry: 'Thử lại', close: 'Đóng', save: 'Lưu', create: 'Tạo mới', refresh: 'Tải lại', edit: 'Chỉnh sửa', delete: 'Xóa', active: 'Đang chọn', language: 'Ngôn ngữ' },
+    common: { retry: 'Thử lại', close: 'Đóng', save: 'Lưu', create: 'Tạo mới', refresh: 'Tải lại', edit: 'Chỉnh sửa', delete: 'Xóa', active: 'Đang chọn', language: 'Ngôn ngữ', location: 'Vị trí' },
     nav: { files: 'Tệp', terminal: 'Lệnh', claude: 'Trợ lý', editor: 'Soạn thảo' },
     header: { manageServer: 'Quản lý Server & SSH', rootFolder: 'Về thư mục gốc', parentFolder: 'Thư mục cấp trên', terminalSessions: 'Danh sách cửa sổ terminal', claudeSessions: 'Danh sách phiên Claude', newWindow: 'Tạo cửa sổ mới', newClaudeSession: 'Tạo phiên Claude mới', preview: 'Xem Preview', editCode: 'Chỉnh sửa Code', saveFile: 'Lưu (Ctrl+S)', closeFile: 'Đóng file', enableCompactTask: 'Bật chế độ chỉ hiện task hiện tại', disableCompactTask: 'Tắt chế độ chỉ hiện task hiện tại', limits: 'Xem hạn mức 5h & Tuần', dirty: 'Sửa' },
     auth: {
@@ -76,7 +76,7 @@ export const messages: Record<Locale, MessageTree> = {
     confirm: { deleteClaudeTitle: 'Đóng Phiên Claude', deleteClaudeMessage: "Bạn có chắc chắn muốn đóng phiên chat '{name}' không?", deleteClaudeConfirm: 'Đóng Phiên' },
   },
   en: {
-    common: { retry: 'Retry', close: 'Close', save: 'Save', create: 'Create', refresh: 'Refresh', edit: 'Edit', delete: 'Delete', active: 'Selected', language: 'Language' },
+    common: { retry: 'Retry', close: 'Close', save: 'Save', create: 'Create', refresh: 'Refresh', edit: 'Edit', delete: 'Delete', active: 'Active', language: 'Language', location: 'Location' },
     nav: { files: 'Files', terminal: 'Terminal', claude: 'Claude', editor: 'Editor' },
     header: { manageServer: 'Manage Servers & SSH', rootFolder: 'Go to root folder', parentFolder: 'Parent folder', terminalSessions: 'Terminal windows', claudeSessions: 'Claude sessions', newWindow: 'New window', newClaudeSession: 'New Claude session', preview: 'Preview', editCode: 'Edit code', saveFile: 'Save (Ctrl+S)', closeFile: 'Close file', enableCompactTask: 'Show only current task', disableCompactTask: 'Disable current-task-only mode', limits: 'View 5h & weekly limits', dirty: 'Edited' },
     auth: {

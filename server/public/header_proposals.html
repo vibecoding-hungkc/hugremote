@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HugRemote - Đề Xuất 10 Mẫu Thiết Kế Header 2 Tầng Thực Dụng Cho Mobile</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css">
+  <style>
+    :root {
+      --bg: #070b14;
+      --card-bg: #0f172a;
+      --header-bg: #0c1322;
+      --header-row1-bg: #080d1a;
+      --border: #1e293b;
+      --border-focus: #3b82f6;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-green: #10b981;
+      --accent-purple: #a855f7;
+      --accent-amber: #f59e0b;
+      --btn-bg: #151f33;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      padding: 24px 16px 80px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .page-title h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .page-title h1 i { color: var(--accent); }
+    .page-title p {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .grid-models {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+    }
+
+    .model-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .model-badge-top {
+      padding: 12px 14px;
+      background: #111a2e;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .model-number {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+    .model-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      margin-left: 10px;
+    }
+
+    /* Device Preview Frame (Khung mô phỏng màn hình Mobile 375px) */
+    .mobile-simulator-wrap {
+      padding: 14px;
+      background: #030712;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+    }
+
+    .mobile-viewport {
+      width: 100%;
+      max-width: 375px;
+      background: #090e1a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    /* 2-Tier Header Base */
+    .m-header {
+      width: 100%;
+      background: var(--header-bg);
+      display: flex;
+      flex-direction: column;
+      border-bottom: 1px solid #1e293b;
+    }
+    .m-tier-1 {
+      height: 28px;
+      background: var(--header-row1-bg);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      font-size: 11.5px;
+      gap: 6px;
+      min-width: 0;
+    }
+    .m-tier-2 {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    /* Common Components inside Headers */
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-dot.green { background: #10b981; box-shadow: 0 0 6px #10b981; }
+    .status-dot.blue { background: #38bdf8; box-shadow: 0 0 6px #38bdf8; }
+
+    .h-btn {
+      height: 28px;
+      min-width: 28px;
+      padding: 0 6px;
+      border-radius: 7px;
+      background: #151f33;
+      border: 1px solid #24334d;
+      color: #cbd5e1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      gap: 4px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .h-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+    }
+
+    .pill-box {
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 7px;
+      background: #141e33;
+      border: 1px solid #243450;
+      color: #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      font-size: 11.5px;
+      gap: 5px;
+      min-width: 0;
+      flex-shrink: 0;
+    }
+    .truncate {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mock-content {
+      height: 60px;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #475569;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+
+    /* Model Description & Analysis */
+    .model-info {
+      padding: 14px;
+      font-size: 12.5px;
+      color: #cbd5e1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .model-info strong { color: #f8fafc; }
+    .badge-tag {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #1e293b;
+      color: #94a3b8;
+      display: inline-block;
+    }
+    .badge-tag.highlight {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="page-title">
+    <h1><i class="ri-layout-top-line"></i> 10 Mẫu Thiết Kế Header 2 Tầng Thực Dụng Cho Mobile</h1>
+    <p>Giải pháp tận dụng 100% diện tích hàng trên (Server Row) vốn đang bị bỏ trống, tối ưu công năng thao tác trên màn hình điện thoại.</p>
+  </div>
+
+  <div class="grid-models">
+
+    <!-- ================= MẪU 1 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 1</span>
+        <span class="model-name">Phân Tách: Trái Host, Phải Project & Trạng Thái</span>
+        <span class="badge-tag highlight">Cực Kì Thực Dụng</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                <span class="status-dot green"></span>
+                <span class="truncate" style="font-family:monospace; font-weight:700; color:#38bdf8;">hungnd@hungpc</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                <span class="badge-tag" style="background:#1e293b; color:#93c5fd;"><i class="ri-folder-2-line"></i> hugremote</span>
+                <span style="font-size:10px; color:#10b981; font-family:monospace;">● SSH</span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <i class="ri-terminal-box-line" style="color:#38bdf8;"></i>
+                <span class="truncate" style="font-family:monospace; font-weight:600;">terminal #1</span>
+                <span style="background:#0284c7; color:#fff; border-radius:10px; padding:1px 5px; font-size:10px; font-weight:800;">3</span>
+                <i class="ri-arrow-down-s-line" style="color:#64748b;"></i>
+              </div>
+              <div style="display:flex; gap:5px;">
+                <button class="h-btn"><i class="ri-add-line"></i></button>
+                <button class="h-btn" style="font-weight:700; font-size:11px;">VI</button>
+              </div>
+            </div>
+          </div>
+          <div class="mock-content">&gt; Terminal active session: 38 rows x 80 cols</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Đưa cụm <code>[📁 Project]</code> lên góc phải của hàng trên, đứng cùng tên Host.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Giải phóng hàng dưới để nút chọn Session / Breadcrumb có <strong>100% độ rộng thoải mái</strong>, không bị chèn ép co rúm, không bao giờ lo vỡ dòng.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 2 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 2</span>
+        <span class="model-name">Tab Lưới Nhanh (Terminal / Claude Switcher)</span>
+        <span class="badge-tag">Chuyển Phiên 1 Chạm</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:5px; max-width:130px;">
+                <span class="status-dot green"></span>
+                <span class="truncate" style="font-family:monospace; font-weight:700; color:#cbd5e1;">hungpc</span>
+              </div>
+              <!-- Quick mini tabs on top -->
+              <div style="display:flex; gap:4px; overflow-x:auto;">
+                <span class="badge-tag" style="background:#0284c7; color:#fff;"><i class="ri-terminal-line"></i> term1</span>
+                <span class="badge-tag" style="background:#1e293b; color:#94a3b8;"><i class="ri-terminal-line"></i> term2</span>
+                <span class="badge-tag" style="background:#581c87; color:#d8b4fe;"><i class="ri-sparkling-fill"></i> claude</span>
+                <span class="badge-tag" style="background:#1e293b; color:#94a3b8;">+</span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <button class="h-btn" style="max-width:110px;"><i class="ri-folder-2-line"></i> <span class="truncate">hugremote</span></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <span class="truncate" style="font-size:11px;">/server/public/assets</span>
+              </div>
+              <button class="h-btn"><i class="ri-refresh-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; bash-5.2$ git status</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Dành nửa bên phải hàng trên làm dãy nút mini chuyển đổi tức thì các phiên Terminal/Claude đang chạy.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Người dùng có thể nhảy qua lại giữa 2 terminal hoặc sang Claude chỉ với 1 chạm duy nhất, không cần nhấn vào session pill rồi chọn trong modal.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 3 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 3</span>
+        <span class="model-name">Breadcrumb Phân Cấp Liền Mạch (Server &gt; Repo &gt; Path)</span>
+        <span class="badge-tag">Rõ Ràng Tuyệt Đối</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1">
+              <span class="status-dot green"></span>
+              <span style="font-family:monospace; font-weight:700; color:#38bdf8;">hungpc</span>
+              <span style="color:#475569;">/</span>
+              <span style="color:#f59e0b; font-weight:600;"><i class="ri-git-repository-line"></i> hugremote</span>
+              <span style="color:#475569;">/</span>
+              <span class="truncate" style="color:#94a3b8; font-family:monospace;">client/src/components</span>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <div class="pill-box" style="flex:1; justify-content:center; background:#1e293b; border-color:#334155;">
+                <i class="ri-file-code-line" style="color:#38bdf8;"></i>
+                <span class="truncate" style="font-weight:600;">SmartHeader.vue</span>
+                <span style="color:#10b981; font-size:10px;">(saved)</span>
+              </div>
+              <div style="display:flex; gap:5px;">
+                <button class="h-btn"><i class="ri-save-line"></i></button>
+                <button class="h-btn"><i class="ri-close-line"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="mock-content">&gt; Code Editor view: SmartHeader.vue</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Hàng trên dành trọn vẹn cho chuỗi đường dẫn phân cấp: <code>[Server] / [Repo] / [Thư mục]</code>.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Giải quyết triệt để vấn đề breadcrumb bị co cụm hoặc bị che khuất ở hàng dưới; người dùng luôn nắm chắc ngữ cảnh file và repo đang mở.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 4 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 4</span>
+        <span class="model-name">Bảng Đo Tải Tinh Gọn (Telemetry Mini HUD)</span>
+        <span class="badge-tag">Chuẩn Phong Cách DevOps</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:5px;">
+                <span class="status-dot green"></span>
+                <span style="font-family:monospace; font-weight:700; color:#cbd5e1;">hungpc</span>
+              </div>
+              <div style="display:flex; gap:8px; font-family:monospace; font-size:10px; color:#94a3b8;">
+                <span><i class="ri-cpu-line" style="color:#38bdf8;"></i> 14%</span>
+                <span><i class="ri-database-2-line" style="color:#a855f7;"></i> 3.8G</span>
+                <span style="color:#10b981;"><i class="ri-pulse-line"></i> 24ms</span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <button class="h-btn" style="max-width:110px;"><i class="ri-folder-2-line"></i> <span class="truncate">hugremote</span></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <i class="ri-terminal-box-line" style="color:#38bdf8;"></i>
+                <span class="truncate">term (2)</span>
+              </div>
+              <button class="h-btn"><i class="ri-add-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; Monitoring: host reachable, latency 24ms</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Khoảng trống hàng trên hiển thị các chỉ số phần cứng nhẹ: CPU %, RAM đã dùng và Ping (ms).</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Quản trị viên chỉ cần liếc mắt là biết ngay server có đang bị quá tải (high load) hay nghẽn mạng không mà không cần mở terminal gõ `htop`.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 5 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 5</span>
+        <span class="model-name">Đưa Các Nút Tiện Ích Lên Hàng Trên (Action Split)</span>
+        <span class="badge-tag">Gọn Gàng & Cân Đối</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="status-dot green"></span>
+                <span style="font-family:monospace; font-weight:700; color:#38bdf8;">hungnd@hungpc</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:10px; color:#64748b; font-family:monospace;">v1.0.1</span>
+                <span class="badge-tag" style="background:#151f33; color:#cbd5e1; cursor:pointer;"><i class="ri-global-line"></i> VI</span>
+                <span class="badge-tag" style="background:#151f33; color:#cbd5e1; cursor:pointer;"><i class="ri-refresh-line"></i></span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <button class="h-btn" style="max-width:120px;"><i class="ri-folder-2-line"></i> <span class="truncate">hugremote</span></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <i class="ri-sparkling-fill" style="color:#d8b4fe;"></i>
+                <span class="truncate" style="font-weight:600;">claude-task</span>
+                <span style="background:#7e22ce; color:#fff; border-radius:10px; padding:1px 5px; font-size:10px;">1</span>
+              </div>
+              <button class="h-btn"><i class="ri-add-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; Claude view: listening for prompt...</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Chuyển nút Đổi ngôn ngữ (VI/EN) và nút Refresh lên lấp đầy góc phải hàng trên.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Hàng 2 chỉ còn tập trung vào luồng công việc (Menu, Project, Session Pill, Tạo mới), các thao tác chung đưa lên hàng 1.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 6 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 6</span>
+        <span class="model-name">Tích Hợp Nhánh Git Nhanh (Host + Branch Bar)</span>
+        <span class="badge-tag">Tối Ưu Cho Git Workflow</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="status-dot green"></span>
+                <span style="font-family:monospace; font-weight:700; color:#cbd5e1;">hungpc</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:5px;">
+                <span class="badge-tag" style="background:#064e3b; color:#6ee7b7; border:1px solid #047857;">
+                  <i class="ri-git-branch-line"></i> main
+                </span>
+                <span class="badge-tag" style="background:#1e293b; color:#fbbf24;">
+                  <i class="ri-git-commit-line"></i> 2 chg
+                </span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <button class="h-btn" style="max-width:110px;"><i class="ri-folder-2-line"></i> <span class="truncate">hugremote</span></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <i class="ri-terminal-box-line" style="color:#38bdf8;"></i>
+                <span class="truncate">terminal #1</span>
+              </div>
+              <button class="h-btn"><i class="ri-add-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; On branch main: working directory clean</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Đặt badge Nhánh Git hiện tại (`main`) và số lượng file thay đổi lên cạnh tên Host.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Người dùng lập tức biết nhánh code đang đứng khi gõ terminal hay code editor mà không cần nhảy sang tab Git.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 7 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 7</span>
+        <span class="model-name">Hộp Tìm Kiếm Nhanh / Lệnh Ngay (Quick Command Line)</span>
+        <span class="badge-tag">Thao Tác Siêu Tốc</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                <span class="status-dot green"></span>
+                <span style="font-family:monospace; font-weight:700; color:#cbd5e1;">hungpc</span>
+              </div>
+              <!-- Mini Search / Run Box -->
+              <div style="background:#111928; border:1px solid #1f2a3d; border-radius:5px; padding:2px 8px; font-size:10.5px; color:#64748b; display:flex; align-items:center; gap:4px; flex:1; max-width:170px; margin-left:8px;">
+                <i class="ri-search-line"></i>
+                <span class="truncate">Tìm file hoặc lệnh...</span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <button class="h-btn" style="max-width:110px;"><i class="ri-folder-2-line"></i> <span class="truncate">hugremote</span></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <i class="ri-folder-open-line" style="color:#f59e0b;"></i>
+                <span class="truncate">/src/components</span>
+              </div>
+              <button class="h-btn"><i class="ri-add-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; Quick Command Palette ready</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Tận dụng không gian bên phải của hàng trên làm ô tìm kiếm nhanh (Ctrl+P / Quick Open).</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Chạm vào là mở ngay bảng tìm kiếm file trong dự án hoặc chạy lệnh nhanh chóng.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 8 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 8</span>
+        <span class="model-name">Thanh Điều Khiển Máy Chủ Thu Nhỏ (Host + Power / Reload)</span>
+        <span class="badge-tag">Quản Trị Hệ Thống</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="status-dot green"></span>
+                <span style="font-family:monospace; font-weight:700; color:#38bdf8;">hungnd@hungpc</span>
+                <span style="font-size:10.5px; color:#475569;">:22</span>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <span style="font-size:10px; color:#34d399; background:rgba(16,185,129,0.1); padding:1px 5px; border-radius:4px;"><i class="ri-wifi-line"></i> 12ms</span>
+                <span style="font-size:10px; color:#f87171; background:rgba(239,68,68,0.1); padding:1px 5px; border-radius:4px; cursor:pointer;"><i class="ri-shut-down-line"></i></span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <button class="h-btn" style="max-width:110px;"><i class="ri-folder-2-line"></i> <span class="truncate">hugremote</span></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <i class="ri-terminal-box-line" style="color:#38bdf8;"></i>
+                <span class="truncate">terminal (3)</span>
+              </div>
+              <button class="h-btn"><i class="ri-add-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; SSH link healthy, port 22 tunnel active</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Đặt cổng kết nối (Port 22), chỉ số ping và nút ngắt/kết nối lại SSH lên ngay góc phải hàng trên.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Xử lý nhanh các tình huống mất kết nối SSH từ xa một cách trực tiếp mà không cần mở drawer.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 9 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 9</span>
+        <span class="model-name">Phân Khu Cửa Sổ (Window Pills &amp; Multi-View)</span>
+        <span class="badge-tag">Đa Nhiệm Linh Hoạt</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:5px; min-width:0;">
+                <span class="status-dot green"></span>
+                <span class="truncate" style="font-family:monospace; font-weight:700; color:#cbd5e1;">hungpc</span>
+              </div>
+              <!-- View mode pills -->
+              <div style="display:flex; gap:3px;">
+                <span class="badge-tag" style="background:#0284c7; color:#fff; font-size:10px;"><i class="ri-terminal-line"></i> Term</span>
+                <span class="badge-tag" style="background:#151f33; color:#94a3b8; font-size:10px;"><i class="ri-sparkling-fill"></i> Claude</span>
+                <span class="badge-tag" style="background:#151f33; color:#94a3b8; font-size:10px;"><i class="ri-code-line"></i> Edit</span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <button class="h-btn" style="max-width:110px;"><i class="ri-folder-2-line"></i> <span class="truncate">hugremote</span></button>
+              <div class="pill-box" style="flex:1; justify-content:center;">
+                <span class="truncate" style="font-family:monospace;">bash (pid 4102)</span>
+              </div>
+              <button class="h-btn"><i class="ri-add-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; View switcher synced with bottom dock</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Đặt 3 phím tắt chuyển nhanh giữa Terminal, Claude và Code Editor ngay góc phải hàng trên.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Ngón tay cái ở nửa trên màn hình vẫn có thể đổi nhanh chế độ làm việc mà không cần với ngón xuống thanh dock dưới đáy.</div>
+      </div>
+    </div>
+
+    <!-- ================= MẪU 10 ================= -->
+    <div class="model-card">
+      <div class="model-badge-top">
+        <span class="model-number">MẪU 10</span>
+        <span class="model-name">Capsule Kết Hợp Đôi (Host Tag + Project Tag Bên Dưới Là Full Path)</span>
+        <span class="badge-tag highlight">Cân Đối Thẩm Mỹ Cao</span>
+      </div>
+      <div class="mobile-simulator-wrap">
+        <div class="mobile-viewport">
+          <div class="m-header">
+            <!-- Tier 1 -->
+            <div class="m-tier-1" style="justify-content: space-between;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="status-dot green"></span>
+                <span style="font-family:monospace; font-weight:800; color:#f8fafc;">hungnd@hungpc</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:5px;">
+                <span class="badge-tag" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3); font-weight:700;">
+                  <i class="ri-folder-2-line"></i> hugremote
+                </span>
+                <span style="color:#64748b; font-size:10px;"><i class="ri-arrow-down-s-line"></i></span>
+              </div>
+            </div>
+            <!-- Tier 2 -->
+            <div class="m-tier-2">
+              <button class="h-btn"><i class="ri-menu-line"></i></button>
+              <!-- Breadcrumb bar takes almost full width -->
+              <div class="pill-box" style="flex:1; justify-content:flex-start; padding-left:8px;">
+                <i class="ri-folder-open-line" style="color:#f59e0b;"></i>
+                <span class="truncate" style="font-family:monospace; font-size:11.5px; color:#cbd5e1;">/client/src/components/SmartHeader.vue</span>
+              </div>
+              <button class="h-btn"><i class="ri-add-line"></i></button>
+              <button class="h-btn"><i class="ri-more-2-line"></i></button>
+            </div>
+          </div>
+          <div class="mock-content">&gt; Full-width context navigation on Tier 2</div>
+        </div>
+      </div>
+      <div class="model-info">
+        <div><strong>Ý tưởng:</strong> Hàng trên chứa 2 thẻ capsule đại diện cho <strong>Môi trường (Host)</strong> và <strong>Dự án (Project)</strong>. Hàng 2 dành toàn bộ diện tích cho <strong>Đường dẫn chi tiết / Tên file</strong> và các phím thao tác.</div>
+        <div><strong>Lợi ích trên Mobile:</strong> Thiết kế vừa khít, cân đối tuyệt đối giữa 2 hàng, tính thực dụng tối đa và không để lại bất kỳ pixel thừa nào.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 40px; padding: 20px; background: #0c1322; border: 1px solid #1e293b; border-radius: 12px; text-align: center; color: #94a3b8; font-size: 13px;">
+    💡 <em>Bạn có thể mở trực tiếp file này trên trình duyệt điện thoại để kiểm tra tỉ lệ thực tế, sau đó cho tôi biết mẫu bạn ưng ý nhất để tiến hành triển khai chính thức.</em>
+  </div>
+</div>
+
+</body>
+</html>

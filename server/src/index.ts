@@ -122,8 +122,12 @@ async function main() {
         u.startsWith('/ws') ||
         (BASE_PATH && (u.startsWith(`${BASE_PATH}/api`) || u.startsWith(`${BASE_PATH}/ws`)));
 
-      if (isApiOrWs) {
-        reply.status(404).send({ error: 'Endpoint not found' });
+      const isStaticAsset =
+        u.startsWith('/assets/') ||
+        (BASE_PATH && u.startsWith(`${BASE_PATH}/assets/`));
+
+      if (isApiOrWs || isStaticAsset) {
+        reply.status(404).send({ error: 'Endpoint or asset not found' });
       } else {
         reply.type('text/html').send(getIndexHtml());
       }

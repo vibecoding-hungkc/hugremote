@@ -210,8 +210,7 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
 
 .project-selector-btn {
   height: 22px;
-  max-width: calc(100% - 130px);
-  min-width: 0;
+  max-width: 110px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -223,6 +222,7 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
   font-family: monospace;
   font-size: 11px;
   font-weight: 700;
+  flex-shrink: 0;
   cursor: pointer;
 }
 .project-selector-btn span {
@@ -254,8 +254,9 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
   align-items: center;
 }
 .ctx-header-item.ctx-header-session {
-  width: 100%;
-  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .breadcrumb-bar {
@@ -293,12 +294,11 @@ const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || ''
   height: 28px;
   border-radius: 6px;
   padding: 0 10px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  width: 100%;
-  flex: 1;
+  max-width: 220px;
   min-width: 0;
   border: 1px solid rgba(168, 85, 247, 0.28);
   background: rgba(88, 28, 135, 0.18);

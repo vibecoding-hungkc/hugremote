@@ -1,5 +1,5 @@
 <template>
-  <div class="virtual-laptop-keyboard">
+  <div class="virtual-laptop-keyboard" @pointerdown.prevent>
     <!-- Header bar: status & close -->
     <div class="vlk-header">
       <div class="vlk-status">

@@ -9,7 +9,7 @@
     </div>
 
     <!-- Expandable Touch Bar Container -->
-    <div class="terminal-touch-bar-container">
+    <div class="terminal-touch-bar-container" @pointerdown.prevent>
       <!-- Row 1: Quick Bar with Fixed Expand Button at Start -->
       <div class="touch-bar">
         <!-- Fixed Expand Button -->
@@ -542,7 +542,6 @@ function sendKey(data: string) {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.send(data);
   }
-  focusTerminal();
 }
 
 function sendQuote() {

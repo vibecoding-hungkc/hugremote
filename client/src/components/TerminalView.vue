@@ -19,8 +19,18 @@
           @click="toggleDrawer"
           :title="t('terminal.expandKeys')"
         >
-          <i :class="isDrawerOpen ? 'ri-keyboard-fill' : 'ri-keyboard-line'"></i>
+          <i :class="isDrawerOpen ? 'ri-function-line' : 'ri-function-line'"></i>
           <i :class="isDrawerOpen ? 'ri-arrow-down-s-line' : 'ri-arrow-up-s-line'" style="font-size:10px;"></i>
+        </button>
+
+        <!-- Toggle Full Laptop Keyboard Button -->
+        <button
+          class="tb-expand-btn tb-laptop-kbd-btn"
+          :class="{ active: isLaptopKeyboardOpen }"
+          @click="toggleLaptopKeyboard"
+          title="Bật/Tắt Bàn phím ảo Laptop (PC Layout)"
+        >
+          <i class="ri-keyboard-line"></i>
         </button>
 
         <!-- Horizontal Scrollable Keys - Chỉ giữ các phím thiết yếu nhất -->
@@ -28,6 +38,9 @@
           <button class="tb-btn tb-esc" @click="sendKey('\x1b')">ESC</button>
           <button class="tb-btn tb-tab" @click="sendKey('\t')">TAB</button>
           <button class="tb-btn tb-danger" @click="sendKey('\x03')">Ctrl C</button>
+          <button class="tb-btn tb-paste" @click="handlePaste" :title="t('terminal.paste')">
+            <i class="ri-clipboard-line"></i>
+          </button>
           <button class="tb-btn tb-arrow" @click="sendKey('\x1b[A')"><i class="ri-arrow-up-s-line"></i></button>
           <button class="tb-btn tb-arrow" @click="sendKey('\x1b[B')"><i class="ri-arrow-down-s-line"></i></button>
           <button class="tb-btn tb-arrow" @click="sendKey('\x1b[D')"><i class="ri-arrow-left-s-line"></i></button>
@@ -40,9 +53,6 @@
           <div class="tb-divider"></div>
           <button class="tb-btn" @click="changeFontSize(-1)" title="Thu nhỏ chữ">A-</button>
           <button class="tb-btn" @click="changeFontSize(1)" :title="t('terminal.fontUp')">A+</button>
-          <button class="tb-btn tb-paste" @click="handlePaste" :title="t('terminal.paste')">
-            <i class="ri-clipboard-line"></i>
-          </button>
         </div>
       </div>
 
@@ -139,6 +149,14 @@
       @close="isPasteModalOpen = false"
       @confirm="executeManualPaste"
     />
+
+    <!-- Virtual Laptop Keyboard (Custom PC Layout) -->
+    <VirtualLaptopKeyboard
+      v-if="isLaptopKeyboardOpen"
+      @key="sendKey"
+      @paste="handlePaste"
+      @close="isLaptopKeyboardOpen = false; resizeTerminal()"
+    />
   </div>
 </template>
 
@@ -151,14 +169,16 @@ import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { wsUrl as buildWsUrl } from '../utils/api.js';
 import InputModal from './InputModal.vue';
+import VirtualLaptopKeyboard from './VirtualLaptopKeyboard.vue';
 import { useI18n } from '../composables/useI18n.js';
 
 const terminalStore = useTerminalStore();
 const { t } = useI18n();
 const serverStore = useServerStore();
 
-const terminalRef = ref<HTMLDivElement | null>(null);
+const terminalRef = ref<HTMLElement | null>(null);
 const isDrawerOpen = ref(false);
+const isLaptopKeyboardOpen = ref(false);
 const isDisconnected = ref(false);
 const currentFontSize = ref(13);
 const isPasteModalOpen = ref(false);
@@ -201,6 +221,20 @@ function hapticFeedback() {
 function toggleDrawer() {
   hapticFeedback();
   isDrawerOpen.value = !isDrawerOpen.value;
+  setTimeout(handleResize, 50);
+}
+
+function toggleLaptopKeyboard() {
+  hapticFeedback();
+  isLaptopKeyboardOpen.value = !isLaptopKeyboardOpen.value;
+  // If opening keyboard, close drawer to keep screen compact
+  if (isLaptopKeyboardOpen.value) {
+    isDrawerOpen.value = false;
+  }
+  setTimeout(handleResize, 50);
+}
+
+function resizeTerminal() {
   setTimeout(handleResize, 50);
 }
 

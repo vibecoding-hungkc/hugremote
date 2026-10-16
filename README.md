@@ -90,9 +90,18 @@ npx hugremote
 
 ---
 
-## 🚀 CLI Usage & Cấu hình Reverse Proxy
+## 🚀 CLI Usage, Cập nhật & Cấu hình Reverse Proxy
 
 ```bash
+# Xem phiên bản hiện tại
+hugremote --version
+
+# Cập nhật mã nguồn mới nhất & tự động build lại
+hugremote update
+
+# Ép buộc kéo mã nguồn và biên dịch lại ngay cả khi đã ở commit mới nhất
+hugremote update --force
+
 # Mặc định: cổng 8099, không yêu cầu xác thực
 hugremote
 
@@ -134,8 +143,10 @@ systemctl --user restart hugremote
 
 ### Bảng tùy chọn CLI
 
-| Tham số | Mô tả | Mặc định |
+| Tham số / Lệnh | Mô tả | Mặc định |
 |---|---|---|
+| `update` | Cập nhật HugRemote lên commit mới nhất & build lại | |
+| `-v, --version` | Xem phiên bản hiện tại | `1.0.1` |
 | `-p, --port <number>` | Cổng HTTP & WebSocket | `8099` hoặc `$PORT` |
 | `-h, --host <ip>` | Địa chỉ IP lắng nghe | `::` hoặc `$HOST` |
 | `-b, --base-path <path>` | Tiền tố đường dẫn subpath (vd: `/remote`) | `""` hoặc `$BASE_PATH` |
@@ -144,7 +155,6 @@ systemctl --user restart hugremote
 | `--auth <mode>` | Chế độ xác thực: `none`, `password`, `google` | `none` hoặc `$AUTH_MODE` |
 | `--password <pass>` | Mật khẩu ban đầu (mặc định: `123456`, bắt buộc đổi lần đầu) | `123456` |
 | `--app-url <url>` | Public app URL phục vụ callback Google OAuth | `http://localhost:8099` |
-| `-v, --version` | Xem phiên bản | `1.0.1` |
 | `--help` | Xem hướng dẫn câu lệnh | |
 
 ---

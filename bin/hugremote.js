@@ -6,13 +6,6 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { loadUserConfig } from './config-env.js';
 
-try {
-  loadUserConfig();
-} catch (error) {
-  console.error(`HugRemote: ${error.message}`);
-  process.exit(1);
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -24,7 +17,19 @@ try {
   version = pkg.version || '1.0.0';
 } catch (_) {}
 
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+
+// Normalize em-dash (—) and en-dash (–) to standard hyphens (- or --)
+// Common on iOS / macOS / mobile virtual keyboards where -- or - auto-converts to —
+const args = rawArgs.map((arg) => {
+  if (typeof arg === 'string') {
+    if (arg.startsWith('—') || arg.startsWith('–')) {
+      const rest = arg.slice(1);
+      return (rest.length === 1 ? '-' : '--') + rest;
+    }
+  }
+  return arg;
+});
 
 function printHelp() {
   console.log(`
@@ -32,6 +37,8 @@ function printHelp() {
 
 Sử dụng:
   hugremote [options]
+  hugremote update           Cập nhật HugRemote lên phiên bản mới nhất
+  hugremote --version        Hiển thị phiên bản hiện tại
   npx hugremote [options]
 
 Tùy chọn:
@@ -48,19 +55,46 @@ Tùy chọn:
 
 Ví dụ:
   hugremote                    # Khởi chạy cổng 8099
+  hugremote --version          # Xem phiên bản hiện tại
+  hugremote update             # Cập nhật mã nguồn & tự động build
   hugremote -p 3000            # Khởi chạy cổng 3000
   hugremote -p 8099 -b /remote # Khởi chạy với base path /remote (Reverse Proxy/Cloudflare Tunnel)
 `);
   process.exit(0);
 }
 
-if (args.includes('--help') || args.includes('-help')) {
+if (
+  args.includes('-v') ||
+  args.includes('-V') ||
+  args.includes('--v') ||
+  args.includes('--version') ||
+  args.includes('-version') ||
+  args.includes('version')
+) {
+  console.log(`HugRemote v${version}`);
+  process.exit(0);
+}
+
+if (args[0] === 'update' || args[0] === 'upgrade' || args.includes('--update')) {
+  const { runUpdate } = await import('./update.js');
+  await runUpdate(args.slice(1));
+  process.exit(0);
+}
+
+if (
+  args.includes('--help') ||
+  args.includes('-help') ||
+  args.includes('-h') ||
+  args.includes('help')
+) {
   printHelp();
 }
 
-if (args.includes('-v') || args.includes('--version')) {
-  console.log(`HugRemote v${version}`);
-  process.exit(0);
+try {
+  loadUserConfig();
+} catch (error) {
+  console.error(`HugRemote: ${error.message}`);
+  process.exit(1);
 }
 
 // Parse arguments

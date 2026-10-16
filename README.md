@@ -9,23 +9,23 @@
 
 ---
 
-## 📱 Mobile-First Experience (Showcase on Remote Docker Box)
+## 📱 Mobile-First Experience (Showcase on Remote Docker Container)
 
-HugRemote được thiết kế ưu tiên 100% cho màn hình cảm ứng di động, mang lại trải nghiệm lập trình và quản trị máy chủ từ xa mượt mà ngay trên điện thoại:
+HugRemote được thiết kế ưu tiên 100% cho màn hình di động, mang lại trải nghiệm lập trình, biên tập code và quản trị container mượt mà ngay trên điện thoại:
 
 <p align="center">
   <img src="docs/screenshots/mobile-terminal-keyboard.png" alt="HugRemote Mobile Terminal with Virtual Laptop Keyboard" width="31%" />
   &nbsp;&nbsp;
   <img src="docs/screenshots/mobile-files-docker.png" alt="HugRemote Remote Docker Container Files" width="31%" />
   &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-server-drawer.png" alt="HugRemote Mobile Server Drawer" width="31%" />
+  <img src="docs/screenshots/mobile-editor-docker.png" alt="HugRemote Mobile CodeMirror Editor" width="31%" />
 </p>
 
 <p align="center">
-  <em>Hình 1: Terminal với Bàn phím ảo Laptop (trái) · Duyệt file Remote Docker Container qua SFTP (giữa) · Menu quản lý Multi-Server SSH (phải)</em>
+  <em>Hình 1: Terminal với Bàn phím ảo Laptop (trái) · Duyệt file Docker Container qua SFTP (giữa) · Soạn thảo Code trực tiếp trên Mobile (phải)</em>
 </p>
 
-### 🎯 Tính năng nổi bật trên Mobile
+### 🎯 Tính năng cốt lõi trên Mobile
 
 | Tính năng | Chi tiết |
 |---|---|
@@ -37,33 +37,37 @@ HugRemote được thiết kế ưu tiên 100% cho màn hình cảm ứng di đ�
 
 ---
 
-## 🤖 Claude Code & Terminal Workflows
+## 🎛️ Quản lý Đa Server & Đa Phiên trên Mobile
 
 <p align="center">
+  <img src="docs/screenshots/mobile-server-drawer.png" alt="HugRemote Mobile Server Drawer" width="31%" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobile-terminal-hub.png" alt="HugRemote Terminal Multi-Session Hub" width="31%" />
+  &nbsp;&nbsp;
   <img src="docs/screenshots/mobile-terminal-drawer.png" alt="HugRemote Terminal Quick Drawer" width="31%" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-claude.png" alt="HugRemote Claude Code Assistant" width="31%" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-claude-models.png" alt="HugRemote Claude Model Selector" width="31%" />
 </p>
 
 <p align="center">
-  <em>Hình 2: Drawer lệnh Git & 1 Chạm (trái) · Trợ lý Claude Code thời gian thực (giữa) · Popup chọn Model Claude động (phải)</em>
+  <em>Hình 2: Menu chọn Multi-Server SSH & Container (trái) · Hub quản lý đa phiên Terminal (giữa) · Drawer phím tắt lệnh 1 chạm (phải)</em>
+</p>
+
+---
+
+## 🤖 Trợ lý Lập trình Claude Code trên Mobile
+
+<p align="center">
+  <img src="docs/screenshots/mobile-claude.png" alt="HugRemote Claude Code Assistant" width="48%" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobile-claude-models.png" alt="HugRemote Claude Model Selector" width="48%" />
+</p>
+
+<p align="center">
+  <em>Hình 3: Trợ lý Claude Code thời gian thực trên mobile (trái) · Popup chọn Model Claude động theo máy chủ (phải)</em>
 </p>
 
 * **Dynamic Model Discovery:** Tự động phát hiện và nạp danh sách model Claude động từ cấu hình máy chủ hoặc qua CLI (`claude -p /model`).
 * **Tool Invocation Cards:** Hiển thị trực quan các lệnh bash, file read/edit của Claude Code dưới dạng thẻ thao tác gọn gàng.
 * **Theo dõi hạn mức & Token:** Popup kiểm tra hạn mức sử dụng 5 giờ và tuần, tính toán chi phí token trực quan.
-
----
-
-## 💻 Desktop & Tablet Workspace
-
-Ngoài giao diện di động, HugRemote tự động mở rộng thành một Web IDE hoàn chỉnh trên màn hình máy tính và máy tính bảng:
-
-<p align="center">
-  <img src="docs/screenshots/desktop-claude.png" alt="HugRemote Desktop Claude Assistant" width="100%" />
-</p>
 
 ---
 

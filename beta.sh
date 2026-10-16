@@ -168,6 +168,7 @@ else
 fi
 
 cd "$INSTALL_DIR"
+echo "beta" > "$INSTALL_DIR/.channel" 2>/dev/null || true
 
 # 4. Cài đặt dependencies và build
 echo ""

@@ -8,6 +8,112 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
+const REPO_OWNER = 'vibecoding-hungkc';
+const REPO_NAME = 'hugremote';
+
+export function parseSemver(tag) {
+  const match = String(tag || '').trim().match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
+  if (!match) return null;
+  return {
+    raw: tag,
+    major: parseInt(match[1], 10),
+    minor: parseInt(match[2], 10),
+    patch: parseInt(match[3], 10),
+    prerelease: match[4] || null,
+  };
+}
+
+export function compareSemver(a, b) {
+  const vA = parseSemver(a);
+  const vB = parseSemver(b);
+  if (!vA && !vB) return String(a).localeCompare(String(b));
+  if (!vA) return -1;
+  if (!vB) return 1;
+  if (vA.major !== vB.major) return vA.major - vB.major;
+  if (vA.minor !== vB.minor) return vA.minor - vB.minor;
+  if (vA.patch !== vB.patch) return vA.patch - vB.patch;
+  if (!vA.prerelease && vB.prerelease) return 1;
+  if (vA.prerelease && !vB.prerelease) return -1;
+  if (vA.prerelease && vB.prerelease) return vA.prerelease.localeCompare(vB.prerelease);
+  return 0;
+}
+
+export function detectChannel(projectRoot, options = []) {
+  // 1. Explicit CLI flags have highest priority
+  if (
+    options.includes('--beta') ||
+    options.includes('—beta') ||
+    options.includes('–beta') ||
+    options.includes('--main') ||
+    options.includes('—main')
+  ) {
+    return 'beta';
+  }
+  if (
+    options.includes('--stable') ||
+    options.includes('—stable') ||
+    options.includes('–stable') ||
+    options.includes('--release') ||
+    options.includes('—release')
+  ) {
+    return 'stable';
+  }
+
+  // 2. Check process.env.UPDATE_CHANNEL
+  if (process.env.UPDATE_CHANNEL) {
+    const ch = process.env.UPDATE_CHANNEL.toLowerCase().trim();
+    if (ch === 'beta' || ch === 'main') return 'beta';
+    if (ch === 'stable' || ch === 'release') return 'stable';
+  }
+
+  // 3. Check .channel file in projectRoot
+  const channelFile = path.join(projectRoot, '.channel');
+  if (fs.existsSync(channelFile)) {
+    try {
+      const ch = fs.readFileSync(channelFile, 'utf8').trim().toLowerCase();
+      if (ch === 'beta' || ch === 'main') return 'beta';
+      if (ch === 'stable' || ch === 'release') return 'stable';
+    } catch (_) {}
+  }
+
+  // 4. Inferred from git state:
+  // If HEAD is detached or matches an exact tag -> stable
+  try {
+    const isExactTag = execSync('git describe --tags --exact-match 2>/dev/null', {
+      cwd: projectRoot,
+      encoding: 'utf8',
+    }).trim();
+    if (isExactTag) return 'stable';
+  } catch (_) {}
+
+  return 'beta';
+}
+
+export async function fetchLatestGitHubRelease(repo = `${REPO_OWNER}/${REPO_NAME}`) {
+  const url = `https://api.github.com/repos/${repo}/releases/latest`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'HugRemote-Updater',
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.tag_name) {
+        return {
+          tag: data.tag_name,
+          name: data.name || data.tag_name,
+          publishedAt: data.published_at,
+          htmlUrl: data.html_url,
+          body: data.body,
+        };
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
 export async function runUpdate(options = []) {
   if (
     options.includes('--help') ||
@@ -23,8 +129,10 @@ Sử dụng:
   hugremote update [options]
 
 Tùy chọn:
-  -f, --force    Bắt buộc kéo mã nguồn mới và biên dịch lại ngay cả khi đã ở commit mới nhất
-  -h, --help     Hiển thị hướng dẫn này
+  --stable, --release   Cập nhật theo bản Release chính thức mới nhất từ GitHub
+  --beta, --main        Cập nhật theo mã nguồn mới nhất từ nhánh 'main'
+  -f, --force           Bắt buộc tải lại mã nguồn và biên dịch lại toàn bộ
+  -h, --help            Hiển thị hướng dẫn này
 `);
     return;
   }
@@ -34,6 +142,15 @@ Tùy chọn:
     options.includes('-f') ||
     options.includes('—force') ||
     options.includes('–force');
+
+  const channel = detectChannel(rootDir, options);
+
+  // If user explicitly specified channel flag, persist to .channel file
+  if (options.some((o) => ['--beta', '—beta', '--main', '--stable', '—stable', '--release'].includes(o))) {
+    try {
+      fs.writeFileSync(path.join(rootDir, '.channel'), channel, 'utf8');
+    } catch (_) {}
+  }
 
   console.log('\x1b[38;5;209m\x1b[1m');
   console.log('  _    _             _____                      _       ');
@@ -53,15 +170,6 @@ Tùy chọn:
   const isGitRepo = fs.existsSync(gitDir);
 
   if (isGitRepo) {
-    let currentBranch = 'main';
-    try {
-      currentBranch =
-        execSync('git rev-parse --abbrev-ref HEAD', {
-          cwd: rootDir,
-          encoding: 'utf8',
-        }).trim() || 'main';
-    } catch (_) {}
-
     let currentCommit = '';
     try {
       currentCommit = execSync('git rev-parse --short HEAD', {
@@ -78,60 +186,130 @@ Tùy chọn:
       currentVersion = pkg.version || '1.0.1';
     } catch (_) {}
 
-    console.log(
-      `📌 Phiên bản hiện tại : \x1b[32mv${currentVersion}\x1b[0m (${currentCommit || 'local'})`
-    );
-    console.log(`🌿 Nhánh Git          : \x1b[34m${currentBranch}\x1b[0m`);
-    console.log(`📂 Thư mục cài đặt    : ${rootDir}\n`);
-
-    console.log('📡 Đang đồng bộ và kiểm tra commit mới từ GitHub...');
+    let currentTag = '';
     try {
-      execSync(`git fetch origin ${currentBranch}`, {
-        cwd: rootDir,
-        stdio: 'inherit',
-      });
-    } catch (err) {
-      console.warn('⚠️  Không thể kết nối đến GitHub remote, kiểm tra commit cục bộ.');
-    }
-
-    let localHash = '';
-    let remoteHash = '';
-    try {
-      localHash = execSync('git rev-parse HEAD', {
-        cwd: rootDir,
-        encoding: 'utf8',
-      }).trim();
-      remoteHash = execSync(`git rev-parse origin/${currentBranch}`, {
+      currentTag = execSync('git describe --tags --exact-match 2>/dev/null', {
         cwd: rootDir,
         encoding: 'utf8',
       }).trim();
     } catch (_) {}
 
-    if (localHash && remoteHash && localHash === remoteHash && !force) {
-      console.log(
-        `\n\x1b[32m✓ HugRemote đã ở phiên bản mới nhất (v${currentVersion} - ${currentCommit})!\x1b[0m`
-      );
-      console.log(
-        '💡 Dùng \x1b[1mhugremote update --force\x1b[0m nếu bạn muốn ép buộc pull & biên dịch lại.'
-      );
-      restartServiceIfRunning();
-      return;
-    }
+    console.log(`📌 Phiên bản hiện tại : \x1b[32mv${currentVersion}\x1b[0m (${currentTag ? `tag: ${currentTag}` : `commit: ${currentCommit}`})`);
+    console.log(`📡 Kênh cập nhật      : \x1b[35m\x1b[1m${channel === 'stable' ? 'Stable (Bản Release chính thức từ GitHub)' : 'Beta (Nhánh main)'}\x1b[0m`);
+    console.log(`📂 Thư mục cài đặt    : ${rootDir}\n`);
 
-    if (localHash !== remoteHash) {
-      console.log('⬇️  Phát hiện commit mới, đang tải mã nguồn...');
+    if (channel === 'stable') {
+      // STABLE CHANNEL: Check against official GitHub Releases
+      console.log('🔍 Đang kiểm tra bản Release chính thức mới nhất từ GitHub...');
+      const release = await fetchLatestGitHubRelease();
+      if (!release) {
+        console.warn('⚠️  Không thể kết nối tới GitHub Releases API, đang kiểm tra tags git...');
+      }
+
+      // Fetch git tags
       try {
-        execSync(`git pull origin ${currentBranch}`, {
+        execSync('git fetch --tags origin', { cwd: rootDir, stdio: 'inherit' });
+      } catch (err) {
+        console.warn('⚠️  Không thể fetch tags từ remote.');
+      }
+
+      let targetReleaseTag = release ? release.tag : '';
+      if (!targetReleaseTag) {
+        // Fallback: get highest semver tag
+        try {
+          const rawTags = execSync('git tag -l "v*"', { cwd: rootDir, encoding: 'utf8' })
+            .split(/\r?\n/)
+            .filter(Boolean);
+          const sorted = rawTags.sort(compareSemver);
+          targetReleaseTag = sorted[sorted.length - 1];
+        } catch (_) {}
+      }
+
+      if (!targetReleaseTag) {
+        console.error('❌ Không tìm thấy bản Release nào trên GitHub.');
+        process.exit(1);
+      }
+
+      console.log(`🏷️  Bản Release mới nhất : \x1b[32m\x1b[1m${targetReleaseTag}\x1b[0m${release && release.name ? ` (${release.name})` : ''}`);
+
+      let targetCommit = '';
+      try {
+        targetCommit = execSync(`git rev-list -n 1 tags/${targetReleaseTag}`, { cwd: rootDir, encoding: 'utf8' }).trim();
+      } catch (_) {}
+
+      const localHead = execSync('git rev-parse HEAD', { cwd: rootDir, encoding: 'utf8' }).trim();
+      const isAlreadyLatestRelease =
+        currentTag === targetReleaseTag ||
+        ('v' + currentVersion === targetReleaseTag) ||
+        (targetCommit && localHead === targetCommit);
+
+      if (isAlreadyLatestRelease && !force) {
+        console.log(`\n\x1b[32m✓ HugRemote đã ở bản Release mới nhất (${targetReleaseTag})!\x1b[0m`);
+        console.log('💡 Dùng \x1b[1mhugremote update --force\x1b[0m nếu bạn muốn ép buộc tải & biên dịch lại.');
+        restartServiceIfRunning();
+        return;
+      }
+
+      console.log(`\n⬇️  Đang tải và chuyển sang bản Release \x1b[32m${targetReleaseTag}\x1b[0m...`);
+      let stashed = false;
+      const isDirty = execSync('git status --porcelain', { cwd: rootDir, encoding: 'utf8' }).trim();
+      if (isDirty) {
+        try {
+          execSync('git stash', { cwd: rootDir, stdio: 'inherit' });
+          stashed = true;
+        } catch (_) {}
+      }
+
+      try {
+        execSync(`git checkout tags/${targetReleaseTag} 2>/dev/null || git checkout -B release tags/${targetReleaseTag}`, {
           cwd: rootDir,
           stdio: 'inherit',
         });
       } catch (err) {
-        console.error('❌ Lỗi khi git pull:', err.message);
-        console.error('Vui lòng kiểm tra xung đột mã nguồn trong thư mục dự án.');
+        console.error(`❌ Lỗi khi checkout release ${targetReleaseTag}:`, err.message);
         process.exit(1);
+      } finally {
+        if (stashed) {
+          try {
+            execSync('git stash pop', { cwd: rootDir, stdio: 'inherit' });
+          } catch (_) {}
+        }
       }
     } else {
-      console.log('⚡ Chế độ ép buộc (--force): Tiến hành cài đặt dependencies và biên dịch lại...');
+      // BETA CHANNEL: Check against latest main branch
+      console.log('📡 Đang đồng bộ và kiểm tra commit mới nhất từ nhánh main...');
+      try {
+        execSync('git fetch origin main', { cwd: rootDir, stdio: 'inherit' });
+      } catch (err) {
+        console.warn('⚠️  Không thể kết nối đến GitHub remote, kiểm tra commit cục bộ.');
+      }
+
+      let localHash = '';
+      let remoteHash = '';
+      try {
+        localHash = execSync('git rev-parse HEAD', { cwd: rootDir, encoding: 'utf8' }).trim();
+        remoteHash = execSync('git rev-parse origin/main', { cwd: rootDir, encoding: 'utf8' }).trim();
+      } catch (_) {}
+
+      const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: rootDir, encoding: 'utf8' }).trim();
+
+      if (currentBranch === 'main' && localHash && remoteHash && localHash === remoteHash && !force) {
+        console.log(`\n\x1b[32m✓ HugRemote đã ở bản Beta mới nhất trên nhánh main (${currentCommit})!\x1b[0m`);
+        console.log('💡 Dùng \x1b[1mhugremote update --force\x1b[0m nếu bạn muốn ép buộc pull & biên dịch lại.');
+        restartServiceIfRunning();
+        return;
+      }
+
+      console.log('⬇️  Đang tải mã nguồn mới nhất từ nhánh main...');
+      try {
+        if (currentBranch !== 'main') {
+          execSync('git checkout main', { cwd: rootDir, stdio: 'inherit' });
+        }
+        execSync('git pull origin main', { cwd: rootDir, stdio: 'inherit' });
+      } catch (err) {
+        console.error('❌ Lỗi khi git pull:', err.message);
+        process.exit(1);
+      }
     }
 
     // Read updated package.json
@@ -143,13 +321,10 @@ Tùy chọn:
       newVersion = pkg.version || currentVersion;
     } catch (_) {}
 
-    let newCommit = currentCommit;
-    try {
-      newCommit = execSync('git rev-parse --short HEAD', {
-        cwd: rootDir,
-        encoding: 'utf8',
-      }).trim();
-    } catch (_) {}
+    let newCommit = execSync('git rev-parse --short HEAD', {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }).trim();
 
     console.log('\n📦 Đang biên dịch Client & Server (npm run build)...');
     try {
@@ -167,17 +342,20 @@ Tùy chọn:
       '\n\x1b[32m\x1b[1m========================================================\x1b[0m'
     );
     console.log(
-      `\x1b[32m\x1b[1m 🎉 CẬP NHẬT HUGREMOTE THÀNH CÔNG LÊN v${newVersion} (${newCommit})!\x1b[0m`
+      `\x1b[32m\x1b[1m 🎉 CẬP NHẬT HUGREMOTE THÀNH CÔNG LÊN v${newVersion} (${channel === 'stable' ? 'Release' : 'Beta'} - ${newCommit})!\x1b[0m`
     );
     console.log(
       '\x1b[32m\x1b[1m========================================================\x1b[0m\n'
     );
   } else {
     console.log('⚠️  Thư mục cài đặt hiện tại không phải là Git repository.');
-    console.log('⬇️  Đang chạy script cập nhật tự động từ GitHub...');
+    const scriptUrl =
+      channel === 'stable'
+        ? 'https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh'
+        : 'https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/beta.sh';
+    console.log(`⬇️  Đang chạy script cập nhật từ GitHub (${scriptUrl})...`);
     try {
-      const cmd =
-        'curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/beta.sh | bash';
+      const cmd = `curl -fsSL ${scriptUrl} | bash`;
       execSync(cmd, { stdio: 'inherit', shell: '/bin/bash' });
     } catch (err) {
       console.error('❌ Lỗi khi thực thi script cập nhật:', err.message);

@@ -144,18 +144,31 @@ else
   INSTALL_DIR="${HUGREMOTE_DIR:-$HOME/.hugremote}"
   echo -e "✓ Thư mục đích: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 
-  TARGET_REF="${HUGREMOTE_REF:-v1.0.1}"
+  REPO_OWNER="vibecoding-hungkc"
+  REPO_NAME="hugremote"
+  REPO_URL="${HUGREMOTE_REPO_URL:-https://github.com/$REPO_OWNER/$REPO_NAME.git}"
+
+  if [ -z "$HUGREMOTE_REF" ]; then
+    echo "  🔍 Đang kiểm tra bản Release mới nhất từ GitHub..."
+    LATEST_RELEASE_TAG=""
+    if command -v curl >/dev/null 2>&1; then
+      LATEST_RELEASE_TAG=$(curl -fsSL -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" 2>/dev/null | grep -E '"tag_name":' | head -n1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+    fi
+    TARGET_REF="${LATEST_RELEASE_TAG:-v1.0.1}"
+  else
+    TARGET_REF="$HUGREMOTE_REF"
+  fi
+  echo -e "  ✓ Bản Release chính thức: ${C_GREEN}$TARGET_REF${C_RESET}"
+
   if [ -d "$INSTALL_DIR/.git" ]; then
-    echo "  Đã tồn tại repo, đang cập nhật mã nguồn ($TARGET_REF)..."
+    echo "  Đã tồn tại repo, đang cập nhật mã nguồn theo Release ($TARGET_REF)..."
     cd "$INSTALL_DIR"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null || true
     git fetch --tags origin
     git checkout "tags/$TARGET_REF" 2>/dev/null || git checkout -B "$TARGET_REF" FETCH_HEAD 2>/dev/null || git checkout "$TARGET_REF" 2>/dev/null || git checkout main
-    git pull origin main 2>/dev/null || true
   else
-    echo "  Đang tải mã nguồn HugRemote (phiên bản: $TARGET_REF)..."
+    echo "  Đang tải mã nguồn HugRemote bản Release ($TARGET_REF)..."
     mkdir -p "$INSTALL_DIR"
-    REPO_URL="${HUGREMOTE_REPO_URL:-https://github.com/vibecoding-hungkc/hugremote.git}"
     if command -v git >/dev/null 2>&1; then
       git clone --branch "$TARGET_REF" --depth 1 "$REPO_URL" "$INSTALL_DIR" 2>/dev/null || \
       git clone "$REPO_URL" "$INSTALL_DIR"
@@ -167,6 +180,7 @@ else
 fi
 
 cd "$INSTALL_DIR"
+echo "stable" > "$INSTALL_DIR/.channel" 2>/dev/null || true
 
 # 4. Cài đặt dependencies và build
 echo ""

@@ -19,6 +19,7 @@ server/public/assets/
 *.log
 logs/
 *.pid
+.channel
 
 # Editors and OS
 .vscode/

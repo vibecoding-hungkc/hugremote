@@ -5,7 +5,7 @@ import path from 'node:path';
 const CONFIG_KEYS = new Set([
   'HOST', 'PORT', 'BASE_PATH', 'AUTH_MODE', 'SESSION_SECRET', 'APP_URL',
   'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_ALLOWED_EMAILS',
-  'WORKSPACE_ROOT', 'ALLOWED_ROOT',
+  'WORKSPACE_ROOT', 'ALLOWED_ROOT', 'UPDATE_CHANNEL',
 ]);
 
 function configError(key, filename, line, message) {
@@ -15,6 +15,9 @@ function configError(key, filename, line, message) {
 function validateValue(key, value, filename, line) {
   if (key === 'AUTH_MODE' && !['none', 'password', 'google'].includes(value)) {
     configError(key, filename, line, 'expected none, password, or google');
+  }
+  if (key === 'UPDATE_CHANNEL' && value && !['stable', 'beta', 'release', 'main'].includes(value.toLowerCase())) {
+    configError(key, filename, line, 'expected stable, beta, release, or main');
   }
   if (key === 'PORT' && (!/^\d+$/.test(value) || Number(value) < 1 || Number(value) > 65535)) {
     configError(key, filename, line, 'expected a port number from 1 through 65535');

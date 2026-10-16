@@ -45,11 +45,87 @@ fi
 
 echo -e "✓ Phát hiện hệ điều hành: ${C_GREEN}$PLATFORM ($(uname -m))${C_RESET}"
 
-# 2. Kiểm tra Node.js & npm
+print_manual_instructions() {
+  echo "" >&2
+  echo -e "${C_RED}${C_BOLD}========================================================================${C_RESET}" >&2
+  echo -e "${C_BOLD} 📋 HƯỚNG DẪN CÀI ĐẶT THỦ CÔNG CÁC MÔI TRƯỜNG CÒN THIẾU${C_RESET}" >&2
+  echo -e "${C_RED}${C_BOLD}========================================================================${C_RESET}" >&2
+  echo "" >&2
+  echo -e "${C_BOLD}1. Cài đặt Node.js (yêu cầu phiên bản >= 18.x):${C_RESET}" >&2
+  if [ "$PLATFORM" = linux ]; then
+    echo "   • Ubuntu / Debian / WSL (Khuyên dùng):" >&2
+    echo "     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -" >&2
+    echo "     sudo apt-get install -y nodejs" >&2
+    echo "   • RHEL / CentOS / Fedora:" >&2
+    echo "     sudo dnf module install -y nodejs:20" >&2
+    echo "   • Quản lý qua NVM (mọi bản Linux):" >&2
+    echo "     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash" >&2
+    echo "     source ~/.bashrc && nvm install 20 && nvm use 20" >&2
+  elif [ "$PLATFORM" = macos ]; then
+    echo "   • macOS (qua Homebrew):" >&2
+    echo "     brew install node" >&2
+  fi
+  echo "" >&2
+
+  echo -e "${C_BOLD}2. Cài đặt Git:${C_RESET}" >&2
+  if [ "$PLATFORM" = linux ]; then
+    echo "   • Ubuntu / Debian / WSL: sudo apt-get install -y git" >&2
+    echo "   • RHEL / Fedora: sudo dnf install -y git" >&2
+    echo "   • Arch Linux: sudo pacman -S git" >&2
+  elif [ "$PLATFORM" = macos ]; then
+    echo "   • macOS: brew install git (hoặc xcode-select --install)" >&2
+  fi
+  echo "" >&2
+
+  echo -e "${C_BOLD}3. Cài đặt Native Build Tools (make, C/C++ compiler) & Python 3:${C_RESET}" >&2
+  if [ "$PLATFORM" = linux ]; then
+    echo "   • Ubuntu / Debian / WSL:" >&2
+    echo "     sudo apt update && sudo apt install -y build-essential python3" >&2
+    echo "   • RHEL / Fedora:" >&2
+    echo "     sudo dnf groupinstall -y 'Development Tools' && sudo dnf install -y python3" >&2
+    echo "   • Arch Linux:" >&2
+    echo "     sudo pacman -S base-devel python" >&2
+  elif [ "$PLATFORM" = macos ]; then
+    echo "   • Cài đặt Xcode Command Line Tools: xcode-select --install" >&2
+    echo "   • Cài đặt Python 3 qua Homebrew: brew install python" >&2
+  fi
+  echo "" >&2
+  echo -e "${C_BLUE}========================================================================${C_RESET}" >&2
+}
+
+build_tools_help() {
+  print_manual_instructions
+  echo "Sau khi cài đủ công cụ, chạy lại installer." >&2
+}
+
+# 2. Kiểm tra Git
+if ! command -v git >/dev/null 2>&1; then
+  echo -e "${C_YELLOW}⚠️  Chưa cài đặt Git.${C_RESET}"
+  if [ "$PLATFORM" = linux ] && command -v apt-get >/dev/null 2>&1; then
+    BUILD_SUDO=()
+    if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+      BUILD_SUDO=(sudo)
+    fi
+    if [ "$(id -u)" -eq 0 ] || [ "${#BUILD_SUDO[@]}" -gt 0 ]; then
+      echo "📦 Đang tự động cài đặt git qua apt-get..."
+      "${BUILD_SUDO[@]}" apt-get update || true
+      "${BUILD_SUDO[@]}" apt-get install -y git 2>/dev/null || true
+    fi
+  fi
+fi
+
+if ! command -v git >/dev/null 2>&1; then
+  echo -e "${C_RED}❌ Vui lòng cài đặt git để tiếp tục.${C_RESET}" >&2
+  build_tools_help
+  exit 1
+fi
+echo -e "✓ Git:     ${C_GREEN}$(git --version | head -n1)${C_RESET}"
+
+# 2b. Kiểm tra Node.js & npm
 check_node_version() {
   if command -v node >/dev/null 2>&1; then
-    NODE_VER=$(node -v | sed 's/v//')
-    NODE_MAJOR=$(echo "$NODE_VER" | cut -d. -f1)
+    local NODE_VER=$(node -v | sed 's/v//')
+    local NODE_MAJOR=$(echo "$NODE_VER" | cut -d. -f1)
     if [ "$NODE_MAJOR" -ge 18 ]; then
       return 0
     fi
@@ -59,24 +135,34 @@ check_node_version() {
 
 if ! check_node_version; then
   echo -e "${C_YELLOW}⚠️  Yêu cầu Node.js >= 18.x để chạy HugRemote.${C_RESET}"
-  if command -v node >/dev/null 2>&1; then
-    echo -e "   Phiên bản hiện tại: $(node -v) (không đủ điều kiện)"
-  else
-    echo -e "   Node.js chưa được cài đặt."
+  if [ "$PLATFORM" = linux ] && command -v apt-get >/dev/null 2>&1; then
+    BUILD_SUDO=()
+    if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+      BUILD_SUDO=(sudo)
+    fi
+    if [ "$(id -u)" -eq 0 ] || [ "${#BUILD_SUDO[@]}" -gt 0 ]; then
+      echo "📦 Đang tự động cài đặt Node.js 20 LTS từ NodeSource..."
+      curl -fsSL https://deb.nodesource.com/setup_20.x | "${BUILD_SUDO[@]}" bash - 2>/dev/null || true
+      "${BUILD_SUDO[@]}" apt-get install -y nodejs 2>/dev/null || true
+    fi
   fi
-  echo ""
-  echo -e "${C_BOLD}Vui lòng cài đặt hoặc nâng cấp Node.js qua:${C_RESET}"
-  echo "  - NVM:   nvm install 20 && nvm use 20"
-  echo "  - Ubuntu/Debian: curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt-get install -y nodejs"
-  echo "  - macOS: brew install node"
-  echo ""
+fi
+
+if ! check_node_version; then
+  echo -e "${C_YELLOW}⚠️  Yêu cầu Node.js >= 18.x để chạy HugRemote.${C_RESET}" >&2
+  if command -v node >/dev/null 2>&1; then
+    echo -e "   Phiên bản hiện tại: $(node -v) (không đủ điều kiện)" >&2
+  else
+    echo -e "   Node.js chưa được cài đặt." >&2
+  fi
+  build_tools_help
   exit 1
 fi
 
 echo -e "✓ Node.js: ${C_GREEN}$(node -v)${C_RESET} (thỏa mãn >= 18)"
 echo -e "✓ npm:     ${C_GREEN}$(npm -v)${C_RESET}"
 
-# 2b. Native dependencies (node-pty/node-gyp). Keep this block in sync in both installers.
+# 2c. Native dependencies (node-pty/node-gyp). Keep this block in sync in both installers.
 check_build_tools() {
   MISSING_BUILD_TOOLS=()
   local tool
@@ -89,17 +175,6 @@ check_build_tools() {
       MISSING_BUILD_TOOLS+=("$tool")
     fi
   done
-}
-
-build_tools_help() {
-  if [ "$PLATFORM" = macos ]; then
-    echo "Cài Xcode Command Line Tools: xcode-select --install" >&2
-    echo "Nếu thiếu Python 3: brew install python (cần Homebrew)." >&2
-  else
-    echo "Ubuntu/Debian/WSL: sudo apt update && sudo apt install -y build-essential python3" >&2
-    echo "Hệ Linux khác: cài Python 3, make và trình biên dịch C/C++ bằng package manager của hệ thống." >&2
-  fi
-  echo "Sau khi cài đủ công cụ, chạy lại installer." >&2
 }
 
 check_build_tools

@@ -479,6 +479,48 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     return result;
   });
 
+  // --- CLAUDE CODE PROJECT SESSIONS (Real CLI sessions from ~/.claude/projects/) ---
+  fastify.get<{ Querystring: { cwd?: string; serverId?: string } }>(
+    '/api/claude/project-sessions',
+    async (request) => {
+      const cwd = request.query.cwd || '';
+      const serverId = request.query.serverId || 'server-local';
+      const sessions = await claudeService.listProjectSessions(cwd, serverId);
+      return { success: true, sessions };
+    }
+  );
+
+  fastify.get<{ Params: { id: string }; Querystring: { cwd?: string; serverId?: string } }>(
+    '/api/claude/project-sessions/:id',
+    async (request, reply) => {
+      const { id } = request.params;
+      const cwd = request.query.cwd || '';
+      const serverId = request.query.serverId || 'server-local';
+      const session = await claudeService.getProjectSessionDetail(id, cwd, serverId);
+      if (!session) return reply.status(404).send({ error: 'Project session not found' });
+      return { success: true, session };
+    }
+  );
+
+  fastify.post<{
+    Params: { id: string };
+    Body: { cwd?: string; targetSessionId?: string; serverId?: string };
+  }>(
+    '/api/claude/project-sessions/:id/resume',
+    async (request, reply) => {
+      const { id } = request.params;
+      const { cwd, targetSessionId, serverId } = request.body || {};
+      const updated = await claudeService.resumeProjectSession(
+        id,
+        cwd || '',
+        targetSessionId,
+        serverId || 'server-local'
+      );
+      if (!updated) return reply.status(404).send({ error: 'Failed to resume project session' });
+      return { success: true, session: updated };
+    }
+  );
+
 
   // --- GIT ---
   fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/status', async (request, reply) => {

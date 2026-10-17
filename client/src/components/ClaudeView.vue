@@ -796,17 +796,18 @@ async function handleSend() {
   }
   if (text === '/resume') {
     emit('open-session-hub');
-    const sessions = claudeStore.currentServerSessions;
-    const list = sessions.map((s, idx) => {
-      const isCur = s.id === activeSession.value?.id;
-      return `${idx + 1}. **${s.name}** \`${s.id}\` (${s.messages.length} msgs, ${s.model || 'Default'})${isCur ? ' *(hiện tại)*' : ''}`;
+    const projectSessions = await claudeStore.fetchProjectSessions(activeSession.value?.cwd, activeSession.value?.serverId);
+    const list = projectSessions.slice(0, 15).map((s, idx) => {
+      const isCur = s.id === activeSession.value?.cliSessionId;
+      const timeStr = new Date(s.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      return `${idx + 1}. \`${s.id.slice(0, 8)}\` • **"${s.summary}"** (${s.userMsgs} tin nhắn, ${timeStr})${isCur ? ' *(đang kết nối)*' : ''}`;
     }).join('\n');
     addLocalExchange(
       '/resume',
-      `### 📂 Quản lý phiên làm việc (Claude Sessions)\n\n` +
-      `Đã mở trình quản lý phiên làm việc. Danh sách các phiên trên máy chủ này:\n\n` +
-      `${list || '*Chưa có phiên làm việc nào.*'}\n\n` +
-      `*Mẹo: Bạn có thể gõ \`/resume <số thứ tự, tên hoặc ID>\` để chuyển trực tiếp.*`
+      `### 📂 Danh sách phiên làm việc Claude Code (Project Sessions)\n\n` +
+      `📁 **Thư mục dự án:** \`${activeSession.value?.cwd || '~'}\`\n\n` +
+      `${list || '*Chưa tìm thấy phiên Claude CLI nào trong thư mục dự án này.*'}\n\n` +
+      `👉 *Gõ \`/resume <số thứ tự hoặc ID>\` (ví dụ \`/resume 1\` hoặc \`/resume ${projectSessions[0]?.id ? projectSessions[0].id.slice(0, 8) : 'uuid'}\`) để khôi phục phiên.*`
     );
     return;
   }
@@ -816,26 +817,36 @@ async function handleSend() {
       emit('open-session-hub');
       return;
     }
-    const sessions = claudeStore.currentServerSessions;
+    const projectSessions = await claudeStore.fetchProjectSessions(activeSession.value?.cwd, activeSession.value?.serverId);
     const idxNum = parseInt(query, 10);
-    let target = (!isNaN(idxNum) && idxNum >= 1 && idxNum <= sessions.length) ? sessions[idxNum - 1] : null;
+    let target = (!isNaN(idxNum) && idxNum >= 1 && idxNum <= projectSessions.length) ? projectSessions[idxNum - 1] : null;
     if (!target) {
-      target = sessions.find((s) =>
+      target = projectSessions.find((s) =>
         s.id.toLowerCase() === query ||
         s.id.toLowerCase().startsWith(query) ||
-        s.name.toLowerCase().includes(query)
+        s.summary.toLowerCase().includes(query)
       ) || null;
     }
     if (target) {
-      claudeStore.activeSessionId = target.id;
+      const resumed = await claudeStore.resumeProjectSession(
+        target.id,
+        activeSession.value?.cwd,
+        activeSession.value?.id,
+        activeSession.value?.serverId
+      );
+      showActionToast(`✅ Đã khôi phục phiên Claude Code: ${target.id.slice(0, 8)}`);
       addLocalExchange(
         text,
-        `✅ Đã chuyển sang phiên làm việc **"${target.name}"** (\`${target.id}\`).`
+        `✅ **Đã khôi phục phiên Claude Code:** \`${target.id}\`\n\n` +
+        `- **Chủ đề / Prompt:** "${target.summary}"\n` +
+        `- **Số tin nhắn:** ${resumed?.messages.length || target.userMsgs}\n` +
+        `- **Model:** ${resumed?.model || target.model}\n\n` +
+        `Ngữ cảnh đã sẵn sàng. Bạn có thể tiếp tục gửi tin nhắn trong phiên này.`
       );
     } else {
       addLocalExchange(
         text,
-        `❌ Không tìm thấy phiên nào khớp với "${query}". Gõ \`/resume\` để xem danh sách.`
+        `❌ Không tìm thấy phiên Claude CLI nào khớp với "${query}". Gõ \`/resume\` để xem danh sách phiên dự án.`
       );
     }
     return;

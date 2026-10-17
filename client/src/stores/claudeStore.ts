@@ -38,6 +38,20 @@ export interface ClaudeLimits {
   };
 }
 
+export interface ClaudeProjectSessionSummary {
+  id: string;
+  summary: string;
+  firstPrompt?: string;
+  lastPrompt?: string;
+  model: string;
+  branch?: string;
+  userMsgs: number;
+  asstMsgs: number;
+  updatedAt: number;
+  size: number;
+  cwd?: string;
+}
+
 export interface ClaudeSession {
   id: string;
   serverId: string;
@@ -476,11 +490,84 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
+  const projectSessions = ref<ClaudeProjectSessionSummary[]>([]);
+  const isLoadingProjectSessions = ref(false);
+
+  async function fetchProjectSessions(cwd?: string, serverId?: string) {
+    const sId = serverId || serverStore.currentServer.id;
+    const targetCwd = cwd || activeSession.value?.cwd || '';
+    isLoadingProjectSessions.value = true;
+    try {
+      const q = new URLSearchParams({
+        cwd: targetCwd,
+        serverId: sId,
+      });
+      const res = await fetch(apiUrl(`/api/claude/project-sessions?${q.toString()}`));
+      if (!res.ok) return [];
+      const data = await res.json();
+      if (data.sessions) {
+        projectSessions.value = data.sessions;
+        return data.sessions as ClaudeProjectSessionSummary[];
+      }
+      return [];
+    } catch (err) {
+      console.error('fetchProjectSessions error:', err);
+      return [];
+    } finally {
+      isLoadingProjectSessions.value = false;
+    }
+  }
+
+  async function resumeProjectSession(
+    cliSessionId: string,
+    cwd?: string,
+    targetSessionId?: string,
+    serverId?: string
+  ) {
+    const sId = serverId || serverStore.currentServer.id;
+    const targetCwd = cwd || activeSession.value?.cwd || '';
+    const tSessionId = targetSessionId || activeSession.value?.id || '';
+
+    try {
+      const res = await fetch(
+        apiUrl(`/api/claude/project-sessions/${encodeURIComponent(cliSessionId)}/resume`),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cwd: targetCwd,
+            targetSessionId: tSessionId,
+            serverId: sId,
+          }),
+        }
+      );
+      const data = await res.json();
+      if (data.session) {
+        const idx = sessions.value.findIndex((s) => s.id === data.session.id);
+        if (idx !== -1) {
+          sessions.value[idx] = data.session;
+        } else {
+          sessions.value.unshift(data.session);
+        }
+        activeSessionId.value = data.session.id;
+        return data.session as ClaudeSession;
+      }
+      return null;
+    } catch (err) {
+      console.error('resumeProjectSession error:', err);
+      return null;
+    }
+  }
+
   return {
     sessions,
     activeSessionId,
     activeSession,
     currentServerSessions,
+    projectSessions,
+    isLoadingProjectSessions,
+    fetchProjectSessions,
+    resumeProjectSession,
     isGenerating,
     compactTaskMode,
     toggleCompactTaskMode,

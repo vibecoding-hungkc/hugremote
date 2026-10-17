@@ -37,6 +37,24 @@ export interface ClaudeMessage {
   tools?: ClaudeToolCall[];
 }
 
+export interface ClaudeProjectSessionSummary {
+  id: string;
+  summary: string;
+  firstPrompt?: string;
+  lastPrompt?: string;
+  model: string;
+  branch?: string;
+  userMsgs: number;
+  asstMsgs: number;
+  updatedAt: number;
+  size: number;
+  cwd?: string;
+}
+
+export interface ClaudeProjectSessionDetail extends ClaudeProjectSessionSummary {
+  messages: ClaudeMessage[];
+}
+
 export interface ClaudeSession {
   id: string;
   serverId: string;
@@ -128,7 +146,7 @@ export interface ClaudeProcessHandle {
   readonly killed?: boolean;
 }
 
-class ClaudeService {
+export class ClaudeService {
   private sessions: Map<string, ClaudeSession> = new Map();
   private activeProcesses: Map<string, ClaudeProcessHandle> = new Map();
   private cancelledSessions: Set<string> = new Set();
@@ -367,6 +385,399 @@ class ClaudeService {
     session.updatedAt = Date.now();
     this.saveSessions();
     return session;
+  }
+
+  public resolveClaudeProjectDir(cwd: string): string | null {
+    if (!cwd) return null;
+    let normalized = cwd;
+    if (normalized.startsWith('~')) {
+      normalized = path.join(os.homedir(), normalized.slice(1));
+    }
+    normalized = path.resolve(normalized);
+
+    const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
+    if (!fs.existsSync(claudeProjectsDir)) return null;
+
+    // 1. Direct slug match
+    const slug = normalized.replace(/\//g, '-');
+    const direct = path.join(claudeProjectsDir, slug);
+    if (fs.existsSync(direct)) return direct;
+
+    // 2. Parent directory search (e.g. if cwd is a subdirectory)
+    let parent = normalized;
+    while (parent && parent !== '/' && parent !== os.homedir()) {
+      const parentSlug = parent.replace(/\//g, '-');
+      const parentDir = path.join(claudeProjectsDir, parentSlug);
+      if (fs.existsSync(parentDir)) return parentDir;
+      parent = path.dirname(parent);
+    }
+
+    // 3. Scan all project dirs and inspect jsonl files for workingDirectory
+    try {
+      const dirs = fs.readdirSync(claudeProjectsDir);
+      for (const d of dirs) {
+        const fullDir = path.join(claudeProjectsDir, d);
+        if (!fs.statSync(fullDir).isDirectory()) continue;
+        const jsonls = fs.readdirSync(fullDir).filter((f) => f.endsWith('.jsonl'));
+        if (jsonls.length > 0) {
+          try {
+            const sampleFile = path.join(fullDir, jsonls[0]);
+            const sampleContent = fs.readFileSync(sampleFile, 'utf8');
+            const lines = sampleContent.split('\n', 15);
+            for (const l of lines) {
+              if (l.includes('"workingDirectory"')) {
+                const parsed = JSON.parse(l);
+                const wDir = parsed.snapshot?.workingDirectory || parsed.workingDirectory;
+                if (wDir && (normalized === wDir || normalized.startsWith(wDir))) {
+                  return fullDir;
+                }
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  public async listProjectSessions(
+    cwd: string,
+    serverId = 'server-local'
+  ): Promise<ClaudeProjectSessionSummary[]> {
+    const isRemote = serverId !== 'server-local';
+    const server = isRemote ? this.serverConfigResolver(serverId) : undefined;
+
+    if (isRemote && server) {
+      return this.listRemoteProjectSessions(server, cwd);
+    }
+
+    return this.listLocalProjectSessions(cwd);
+  }
+
+  private listLocalProjectSessions(cwd: string): ClaudeProjectSessionSummary[] {
+    const projectDir = this.resolveClaudeProjectDir(cwd);
+    if (!projectDir || !fs.existsSync(projectDir)) {
+      return this.collectRecentLocalProjectSessions();
+    }
+
+    try {
+      const files = fs.readdirSync(projectDir).filter((f) => f.endsWith('.jsonl'));
+      const sessions: ClaudeProjectSessionSummary[] = [];
+
+      for (const f of files) {
+        const fullPath = path.join(projectDir, f);
+        const stat = fs.statSync(fullPath);
+        const sessionId = f.replace('.jsonl', '');
+        const summary = this.parseSessionSummary(fullPath, stat.mtimeMs, stat.size);
+        if (summary) {
+          summary.id = sessionId;
+          summary.cwd = cwd;
+          sessions.push(summary);
+        }
+      }
+
+      sessions.sort((a, b) => b.updatedAt - a.updatedAt);
+      return sessions;
+    } catch (err) {
+      console.error('listLocalProjectSessions error:', err);
+      return [];
+    }
+  }
+
+  private collectRecentLocalProjectSessions(): ClaudeProjectSessionSummary[] {
+    const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
+    if (!fs.existsSync(claudeProjectsDir)) return [];
+
+    try {
+      const dirs = fs.readdirSync(claudeProjectsDir);
+      const all: ClaudeProjectSessionSummary[] = [];
+
+      for (const d of dirs) {
+        const fullDir = path.join(claudeProjectsDir, d);
+        if (!fs.statSync(fullDir).isDirectory()) continue;
+        const files = fs.readdirSync(fullDir).filter((f) => f.endsWith('.jsonl'));
+        for (const f of files) {
+          const fullPath = path.join(fullDir, f);
+          const stat = fs.statSync(fullPath);
+          const summary = this.parseSessionSummary(fullPath, stat.mtimeMs, stat.size);
+          if (summary) {
+            summary.id = f.replace('.jsonl', '');
+            all.push(summary);
+          }
+        }
+      }
+
+      all.sort((a, b) => b.updatedAt - a.updatedAt);
+      return all.slice(0, 20);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  private parseSessionSummary(
+    filePath: string,
+    mtime: number,
+    size: number
+  ): ClaudeProjectSessionSummary | null {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n');
+
+      let firstPrompt = '';
+      let lastPrompt = '';
+      let model = '';
+      let branch = '';
+      let userMsgs = 0;
+      let asstMsgs = 0;
+
+      for (const line of lines) {
+        if (!line.trim().startsWith('{')) continue;
+        try {
+          const d = JSON.parse(line);
+          if (d.type === 'user' && d.message) {
+            userMsgs++;
+            let c = d.message.content;
+            if (Array.isArray(c)) {
+              c = c.map((x: any) => (typeof x === 'string' ? x : x.text || '')).join(' ');
+            }
+            if (typeof c === 'string' && !firstPrompt && !c.startsWith('<local-command')) {
+              firstPrompt = c.trim().slice(0, 120);
+            }
+          } else if (d.type === 'assistant' && d.message) {
+            asstMsgs++;
+          } else if (d.type === 'last-prompt') {
+            const lp = d.lastPrompt;
+            if (lp && typeof lp === 'string' && !lp.startsWith('<local-command')) {
+              lastPrompt = lp.trim().slice(0, 120);
+            }
+          } else if (d.type === 'system' && d.gitBranch) {
+            branch = d.gitBranch;
+          } else if (d.attachment && d.attachment.type === 'model') {
+            model = d.attachment.identity?.modelId || '';
+          }
+        } catch (_) {}
+      }
+
+      let summary = lastPrompt || firstPrompt || 'Phiên chưa đặt tên';
+      summary = summary.replace(/<[^>]+>/g, '').trim() || 'Phiên chưa đặt tên';
+
+      return {
+        id: '',
+        summary,
+        firstPrompt: firstPrompt ? firstPrompt.replace(/<[^>]+>/g, '').trim() : undefined,
+        lastPrompt: lastPrompt ? lastPrompt.replace(/<[^>]+>/g, '').trim() : undefined,
+        model: model || 'sonnet',
+        branch,
+        userMsgs,
+        asstMsgs,
+        updatedAt: mtime,
+        size,
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  public async getProjectSessionDetail(
+    sessionId: string,
+    cwd: string,
+    serverId = 'server-local'
+  ): Promise<ClaudeProjectSessionDetail | null> {
+    const isRemote = serverId !== 'server-local';
+    const server = isRemote ? this.serverConfigResolver(serverId) : undefined;
+
+    if (isRemote && server) {
+      return this.getRemoteProjectSessionDetail(server, sessionId, cwd);
+    }
+
+    return this.getLocalProjectSessionDetail(sessionId, cwd);
+  }
+
+  private getLocalProjectSessionDetail(
+    sessionId: string,
+    cwd: string
+  ): ClaudeProjectSessionDetail | null {
+    const projectDir = this.resolveClaudeProjectDir(cwd);
+    let targetFile = projectDir ? path.join(projectDir, `${sessionId}.jsonl`) : null;
+
+    if (!targetFile || !fs.existsSync(targetFile)) {
+      const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
+      if (fs.existsSync(claudeProjectsDir)) {
+        for (const d of fs.readdirSync(claudeProjectsDir)) {
+          const candidate = path.join(claudeProjectsDir, d, `${sessionId}.jsonl`);
+          if (fs.existsSync(candidate)) {
+            targetFile = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!targetFile || !fs.existsSync(targetFile)) return null;
+
+    const stat = fs.statSync(targetFile);
+    const summary = this.parseSessionSummary(targetFile, stat.mtimeMs, stat.size);
+    if (!summary) return null;
+
+    summary.id = sessionId;
+    summary.cwd = cwd;
+
+    const messages = this.parseSessionMessages(targetFile);
+    return {
+      ...summary,
+      messages,
+    };
+  }
+
+  private parseSessionMessages(filePath: string): ClaudeMessage[] {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n');
+      const messages: ClaudeMessage[] = [];
+
+      for (const line of lines) {
+        if (!line.trim().startsWith('{')) continue;
+        try {
+          const d = JSON.parse(line);
+          const ts = d.timestamp ? new Date(d.timestamp) : new Date();
+          const timeStr = `${String(ts.getHours()).padStart(2, '0')}:${String(ts.getMinutes()).padStart(2, '0')}`;
+
+          if (d.type === 'user' && d.message) {
+            let text = '';
+            let c = d.message.content;
+            if (typeof c === 'string') {
+              text = c;
+            } else if (Array.isArray(c)) {
+              text = c.map((x: any) => (typeof x === 'string' ? x : x.text || '')).filter(Boolean).join('\n');
+            }
+            if (text.includes('<command-name>')) {
+              const match = text.match(/<command-name>([^<]+)<\/command-name>/);
+              if (match) text = match[1];
+            }
+            if (text.startsWith('<local-command-caveat>')) continue;
+
+            if (text.trim()) {
+              messages.push({
+                id: d.uuid || `u-${Date.now()}-${Math.random()}`,
+                sender: 'user',
+                text: text.trim(),
+                time: timeStr,
+              });
+            }
+          } else if (d.type === 'assistant' && d.message) {
+            let text = '';
+            let thinking = '';
+            let c = d.message.content;
+            if (typeof c === 'string') {
+              text = c;
+            } else if (Array.isArray(c)) {
+              for (const b of c) {
+                if (typeof b === 'string') text += b;
+                else if (b.type === 'text' && b.text) text += b.text;
+                else if (b.type === 'thinking' && b.thinking) thinking += b.thinking;
+              }
+            }
+            if (text.trim() || thinking.trim()) {
+              messages.push({
+                id: d.uuid || d.message.id || `a-${Date.now()}-${Math.random()}`,
+                sender: 'assistant',
+                text: text.trim(),
+                thinking: thinking.trim() || undefined,
+                time: timeStr,
+              });
+            }
+          }
+        } catch (_) {}
+      }
+
+      return messages;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  public async resumeProjectSession(
+    cliSessionId: string,
+    cwd: string,
+    targetSessionId?: string,
+    serverId = 'server-local'
+  ): Promise<ClaudeSession | null> {
+    const detail = await this.getProjectSessionDetail(cliSessionId, cwd, serverId);
+    if (!detail) return null;
+
+    let session: ClaudeSession | undefined;
+    if (targetSessionId) {
+      session = this.sessions.get(targetSessionId);
+    }
+    if (!session) {
+      session = Array.from(this.sessions.values()).find(
+        (s) => s.cwd === cwd && s.serverId === serverId
+      );
+    }
+    if (!session) {
+      session = this.createSession(serverId, '', `Claude ${cliSessionId.slice(0, 8)}`, cwd);
+    }
+
+    session.cliSessionId = cliSessionId;
+    session.messages = detail.messages;
+    if (detail.model) session.model = detail.model;
+    session.updatedAt = Date.now();
+
+    const totalChars = session.messages.reduce((acc, m) => acc + (m.text?.length || 0), 0);
+    const estTokens = Math.round(totalChars / 3.5);
+    session.contextTokens = estTokens >= 1000 ? `${(estTokens / 1000).toFixed(1)}k` : `${estTokens}`;
+
+    this.saveSessions();
+    return session;
+  }
+
+  private async listRemoteProjectSessions(
+    server: ServerConfig,
+    cwd: string
+  ): Promise<ClaudeProjectSessionSummary[]> {
+    try {
+      const escapedCwd = shellEscape(cwd || server.workspace || '~');
+      const pyScript = `import os, glob, json; cwd = os.path.expanduser(${escapedCwd}); slug = cwd.replace('/', '-'); pdir = os.path.expanduser('~/.claude/projects/' + slug); files = glob.glob(pdir + '/*.jsonl') if os.path.exists(pdir) else glob.glob(os.path.expanduser('~/.claude/projects/*/*.jsonl')); out = [];\nfor f in sorted(files, key=os.path.getmtime, reverse=True)[:20]:\n  sid = os.path.basename(f).replace('.jsonl', ''); s = ''; fp = '';\n  for l in open(f, errors='ignore'):\n    try:\n      d = json.loads(l)\n      if d.get('type') == 'user' and not fp: fp = str(d['message']['content'])[:80]\n      elif d.get('type') == 'last-prompt': s = str(d['lastPrompt'])[:80]\n    except: pass\n  out.append({'id': sid, 'summary': s or fp or 'Phiên chưa đặt tên', 'model': 'sonnet', 'userMsgs': 1, 'asstMsgs': 1, 'updatedAt': os.path.getmtime(f) * 1000, 'size': os.path.getsize(f)})\nprint(json.dumps(out))`;
+      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null || node -e 'console.log("[]")'`;
+      const stream = await sshPool.executeCommand(server, cmd);
+      let data = '';
+      await new Promise((resolve) => {
+        stream.on('data', (d: any) => {
+          data += d.toString('utf8');
+        });
+        stream.on('close', resolve);
+        stream.on('exit', resolve);
+      });
+      return JSON.parse(data.trim() || '[]');
+    } catch (_) {
+      return [];
+    }
+  }
+
+  private async getRemoteProjectSessionDetail(
+    server: ServerConfig,
+    sessionId: string,
+    cwd: string
+  ): Promise<ClaudeProjectSessionDetail | null> {
+    try {
+      const escapedId = shellEscape(sessionId);
+      const pyScript = `import os, glob, json; files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + ${escapedId} + '.jsonl'));\nif not files: print('null')\nelse:\n  f = files[0]; msgs = []\n  for l in open(f, errors='ignore'):\n    try:\n      d = json.loads(l)\n      if d.get('type') in ['user', 'assistant'] and 'message' in d:\n        c = d['message'].get('content', '')\n        text = c if isinstance(c, str) else ' '.join(x.get('text', '') for x in c if isinstance(x, dict))\n        if text.strip(): msgs.append({'id': d.get('uuid', str(len(msgs))), 'sender': d['type'], 'text': text.strip(), 'time': '12:00'})\n    except: pass\n  print(json.dumps({'id': ${escapedId}, 'summary': 'Phiên Claude', 'model': 'sonnet', 'userMsgs': len(msgs), 'asstMsgs': 0, 'updatedAt': os.path.getmtime(f)*1000, 'size': os.path.getsize(f), 'messages': msgs}))`;
+      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null`;
+      const stream = await sshPool.executeCommand(server, cmd);
+      let data = '';
+      await new Promise((resolve) => {
+        stream.on('data', (d: any) => {
+          data += d.toString('utf8');
+        });
+        stream.on('close', resolve);
+        stream.on('exit', resolve);
+      });
+      const parsed = JSON.parse(data.trim() || 'null');
+      return parsed;
+    } catch (_) {
+      return null;
+    }
   }
 
   getLimits(): ClaudeLimitsInfo {
@@ -816,15 +1227,16 @@ class ClaudeService {
     }
 
     if (trimmedPrompt === '/resume') {
-      const allSessions = this.getSessionsForServer(session.serverId || 'server-local', session.cwd);
-      const list = allSessions.map((s, idx) => {
-        const isCur = s.id === session.id;
-        return `${idx + 1}. **${s.name}** \`${s.id}\` (${s.messages.length} msgs, ${s.model || 'Default'})${isCur ? ' *(hiện tại)*' : ''}`;
+      const projectSessions = await this.listProjectSessions(session.cwd || '', session.serverId || 'server-local');
+      const list = projectSessions.slice(0, 15).map((s, idx) => {
+        const isCur = s.id === session.cliSessionId;
+        const timeStr = new Date(s.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        return `${idx + 1}. \`${s.id.slice(0, 8)}\` • **"${s.summary}"** (${s.userMsgs} tin nhắn, ${timeStr})${isCur ? ' *(đang kết nối)*' : ''}`;
       }).join('\n');
-      const resumeText = `### 📂 Quản lý phiên làm việc (Claude Sessions)\n\n` +
-        `Danh sách các phiên trên máy chủ này:\n\n` +
-        `${list || '*Chưa có phiên làm việc nào.*'}\n\n` +
-        `*Mẹo: Bạn có thể gõ \`/resume <số thứ tự, tên hoặc ID>\` để chuyển trực tiếp.*`;
+      const resumeText = `### 📂 Danh sách phiên làm việc Claude Code (Project Sessions)\n\n` +
+        `📁 **Thư mục dự án:** \`${session.cwd || '~'}\`\n\n` +
+        `${list || '*Chưa tìm thấy phiên Claude CLI nào trong thư mục dự án này.*'}\n\n` +
+        `👉 *Gõ \`/resume <số thứ tự hoặc ID>\` (ví dụ \`/resume 1\` hoặc \`/resume ${projectSessions[0]?.id.slice(0, 8) || 'uuid'}\`) để khôi phục phiên.*`;
       onEvent({ type: 'text_delta', text: resumeText });
       onEvent({ type: 'done', text: resumeText });
       return { text: resumeText };
@@ -832,23 +1244,28 @@ class ClaudeService {
 
     if (trimmedPrompt.startsWith('/resume ')) {
       const query = trimmedPrompt.slice(8).trim().toLowerCase();
-      const allSessions = this.getSessionsForServer(session.serverId || 'server-local', session.cwd);
+      const projectSessions = await this.listProjectSessions(session.cwd || '', session.serverId || 'server-local');
       const idxNum = parseInt(query, 10);
-      let target = (!isNaN(idxNum) && idxNum >= 1 && idxNum <= allSessions.length) ? allSessions[idxNum - 1] : null;
+      let target = (!isNaN(idxNum) && idxNum >= 1 && idxNum <= projectSessions.length) ? projectSessions[idxNum - 1] : null;
       if (!target) {
-        target = allSessions.find((s) =>
+        target = projectSessions.find((s) =>
           s.id.toLowerCase() === query ||
           s.id.toLowerCase().startsWith(query) ||
-          s.name.toLowerCase().includes(query)
+          s.summary.toLowerCase().includes(query)
         ) || null;
       }
       if (target) {
-        const resumeText = `✅ Đã xác định phiên: **"${target.name}"** (\`${target.id}\`). Bạn có thể chuyển sang phiên này trong Claude Hub.`;
+        const resumed = await this.resumeProjectSession(target.id, session.cwd || '', session.id, session.serverId || 'server-local');
+        const resumeText = `✅ **Đã khôi phục phiên Claude Code:** \`${target.id}\`\n\n` +
+          `- **Chủ đề / Prompt:** "${target.summary}"\n` +
+          `- **Số tin nhắn:** ${resumed?.messages.length || target.userMsgs}\n` +
+          `- **Model:** ${resumed?.model || target.model}\n\n` +
+          `Ngữ cảnh đã sẵn sàng. Bạn có thể tiếp tục gửi tin nhắn trong phiên này.`;
         onEvent({ type: 'text_delta', text: resumeText });
         onEvent({ type: 'done', text: resumeText });
         return { text: resumeText };
       } else {
-        const notFoundText = `❌ Không tìm thấy phiên làm việc nào khớp với "${query}". Gõ \`/resume\` để xem danh sách.`;
+        const notFoundText = `❌ Không tìm thấy phiên Claude CLI nào khớp với "${query}". Gõ \`/resume\` để xem danh sách phiên dự án.`;
         onEvent({ type: 'text_delta', text: notFoundText });
         onEvent({ type: 'done', text: notFoundText });
         return { text: notFoundText };

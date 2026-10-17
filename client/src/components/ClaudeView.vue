@@ -183,8 +183,9 @@
             class="claude-slash-item"
             :class="{ active: idx === activeSlashIndex }"
             :data-index="idx"
-            @pointerdown.prevent="selectSlashCommand(cmd)"
-            @click.prevent="selectSlashCommand(cmd)"
+            @mousedown.prevent="selectSlashCommand(cmd)"
+            @touchstart.prevent="selectSlashCommand(cmd)"
+            @click.stop.prevent="selectSlashCommand(cmd)"
             @mouseenter="activeSlashIndex = idx"
           >
             <div class="slash-item-left">
@@ -504,65 +505,14 @@ function showStatusInfo() {
   );
 }
 
-async function selectSlashCommand(cmd: { name: string; arg?: string; action?: 'clear' | 'model' | 'limits' | 'resume' | 'help' | 'status' | 'permissions' }) {
-  if (cmd.action === 'clear') {
-    if (activeSession.value) {
-      claudeStore.clearSession(activeSession.value.id);
-    }
-    inputText.value = '';
-    isSlashMenuDismissed.value = true;
-    autoResize();
-    return;
-  }
-  if (cmd.action === 'model') {
-    isModelPopupOpen.value = true;
-    inputText.value = '';
-    isSlashMenuDismissed.value = true;
-    autoResize();
-    return;
-  }
-  if (cmd.action === 'limits') {
-    claudeStore.isLimitsPopupOpen = true;
-    inputText.value = '';
-    isSlashMenuDismissed.value = true;
-    autoResize();
-    return;
-  }
-  if (cmd.action === 'resume') {
-    emit('open-session-hub');
-    inputText.value = '';
-    isSlashMenuDismissed.value = true;
-    autoResize();
-    return;
-  }
-  if (cmd.action === 'help') {
-    inputText.value = '';
-    isSlashMenuDismissed.value = true;
-    autoResize();
-    showHelpGuide();
-    return;
-  }
-  if (cmd.action === 'status') {
-    inputText.value = '';
-    isSlashMenuDismissed.value = true;
-    autoResize();
-    showStatusInfo();
-    return;
-  }
-  if (cmd.action === 'permissions') {
-    inputText.value = '';
-    isSlashMenuDismissed.value = true;
-    autoResize();
-    await toggleBypassPermissions();
-    return;
-  }
-
-  inputText.value = cmd.name + ' ';
+function selectSlashCommand(cmd: { name: string; arg?: string }) {
+  const completed = cmd.name + ' ';
+  inputText.value = completed;
   isSlashMenuDismissed.value = true;
   nextTick(() => {
     if (inputRef.value) {
       inputRef.value.focus();
-      const pos = inputText.value.length;
+      const pos = completed.length;
       inputRef.value.setSelectionRange(pos, pos);
     }
     autoResize();

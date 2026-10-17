@@ -132,10 +132,17 @@ Tùy chọn:
   --stable, --release   Cập nhật theo bản Release chính thức mới nhất từ GitHub
   --beta, --main        Cập nhật theo mã nguồn mới nhất từ nhánh 'main'
   -f, --force           Bắt buộc tải lại mã nguồn và biên dịch lại toàn bộ
+  -n, --dry-run         Chỉ kiểm tra phiên bản và kênh cập nhật, không sửa đổi file
   -h, --help            Hiển thị hướng dẫn này
 `);
     return;
   }
+
+  const dryRun =
+    options.includes('--dry-run') ||
+    options.includes('—dry-run') ||
+    options.includes('–dry-run') ||
+    options.includes('-n');
 
   const force =
     options.includes('--force') ||
@@ -146,7 +153,7 @@ Tùy chọn:
   const channel = detectChannel(rootDir, options);
 
   // If user explicitly specified channel flag, persist to .channel file
-  if (options.some((o) => ['--beta', '—beta', '--main', '--stable', '—stable', '--release'].includes(o))) {
+  if (!dryRun && options.some((o) => ['--beta', '—beta', '--main', '--stable', '—stable', '--release'].includes(o))) {
     try {
       fs.writeFileSync(path.join(rootDir, '.channel'), channel, 'utf8');
     } catch (_) {}
@@ -178,12 +185,12 @@ Tùy chọn:
       }).trim();
     } catch (_) {}
 
-    let currentVersion = '1.0.1';
+    let currentVersion = '1.1.0';
     try {
       const pkg = JSON.parse(
         fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')
       );
-      currentVersion = pkg.version || '1.0.1';
+      currentVersion = pkg.version || '1.1.0';
     } catch (_) {}
 
     let currentTag = '';
@@ -250,6 +257,11 @@ Tùy chọn:
         return;
       }
 
+      if (dryRun) {
+        console.log(`\n🧪 [Dry-Run] Kênh Stable: Mục tiêu Release ${targetReleaseTag}. Bỏ qua checkout và build.`);
+        return;
+      }
+
       console.log(`\n⬇️  Đang tải và chuyển sang bản Release \x1b[32m${targetReleaseTag}\x1b[0m...`);
       let stashed = false;
       const isDirty = execSync('git status --porcelain', { cwd: rootDir, encoding: 'utf8' }).trim();
@@ -297,6 +309,11 @@ Tùy chọn:
         console.log(`\n\x1b[32m✓ HugRemote đã ở bản Beta mới nhất trên nhánh main (${currentCommit})!\x1b[0m`);
         console.log('💡 Dùng \x1b[1mhugremote update --force\x1b[0m nếu bạn muốn ép buộc pull & biên dịch lại.');
         restartServiceIfRunning();
+        return;
+      }
+
+      if (dryRun) {
+        console.log(`\n🧪 [Dry-Run] Kênh Beta: Nhánh main (remote ${remoteHash.slice(0, 7) || 'N/A'}, local ${localHash.slice(0, 7)}). Bỏ qua checkout và build.`);
         return;
       }
 

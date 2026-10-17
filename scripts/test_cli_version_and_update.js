@@ -53,7 +53,7 @@ test('CLI update --help prints updater help and exits 0', () => {
 });
 
 test('CLI update --stable detects release channel', () => {
-  const res = spawnSync(process.execPath, [cliPath, 'update', '--stable'], {
+  const res = spawnSync(process.execPath, [cliPath, 'update', '--stable', '--dry-run'], {
     encoding: 'utf8',
   });
   assert.equal(res.status, 0);
@@ -61,7 +61,7 @@ test('CLI update --stable detects release channel', () => {
 });
 
 test('CLI update --beta detects main branch channel', () => {
-  const res = spawnSync(process.execPath, [cliPath, 'update', '--beta'], {
+  const res = spawnSync(process.execPath, [cliPath, 'update', '--beta', '--dry-run'], {
     encoding: 'utf8',
   });
   assert.equal(res.status, 0);

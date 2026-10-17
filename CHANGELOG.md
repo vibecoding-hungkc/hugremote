@@ -1,22 +1,29 @@
 # 📋 Changelog — HugRemote
 
 
-## [Unreleased] - feature/telegram
+## [v1.1.0] - 2026-10-17
 
-### 🤖 Tính năng mới: Tích hợp Telegram Bot
-- **Giao tiếp Claude Code qua Telegram**: Cho phép gửi prompt, nhận phản hồi trực tiếp, theo dõi tiến trình suy nghĩ (thinking) và các thẻ gọi công cụ (tool call cards: Bash, Read, Edit) thời gian thực trên điện thoại.
-- **Chế độ Topic (Forum / Threaded Mode)**: Hỗ trợ chia nhánh phiên làm việc theo Topic Telegram — mỗi Topic là một phiên Claude độc lập với ngữ cảnh và thư mục riêng. Root chat đóng vai trò là Control Lobby.
-- **Bộ lệnh quản lý phiên đầy đủ**:
-  - `/new`: Tạo phiên làm việc mới và tự động gán vào Topic.
-  - `/resume`: Khôi phục hoặc chuyển đổi sang phiên làm việc cũ.
-  - `/compact`: Nén và tóm tắt ngữ cảnh cuộc hội thoại để tiết kiệm token.
-  - `/clear`: Xóa sạch lịch sử tin nhắn của phiên, giữ nguyên thư mục làm việc.
-  - `/stop` (alias `/abort`): Huỷ ngay tiến trình Claude đang chạy dở.
-  - `/status` (alias `/limits`): Xem thông tin phiên hiện tại và hạn mức quota 5 giờ/tuần của Claude.
-  - `/sessions`: Xem danh sách tất cả các phiên làm việc.
-- **Thực thi Terminal trực tiếp (`/terminal`)**: Cho phép chạy lệnh Bash trực tiếp trên máy chủ tại thư mục làm việc hiện tại, trả về mã thoát và thời gian thực thi.
-- **Tự động lưu log & link File Server**: Nếu output terminal hoặc câu trả lời dài vượt quá giới hạn Telegram (4096 ký tự), bot tự động lưu file log và cung cấp link xem toàn văn qua File Server nội bộ `http://hugtech.buaanvuive.com/file/...`.
-- **Bảo mật Zero-Trust**: Whitelist `TELEGRAM_ALLOWED_USERS` chặn đứng người lạ, không tốn tài nguyên khi chưa có token (`TELEGRAM_BOT_TOKEN`).
+### 🚀 Tính năng chính mới (Major Features)
+- **Tích hợp Telegram Bot**:
+  - Giao tiếp và điều khiển Claude Code thời gian thực trực tiếp từ Telegram với streaming output, tool call cards, thinking block.
+  - Hỗ trợ chế độ Topic (Forum / Threaded Mode) để quản lý nhiều phiên làm việc Claude độc lập.
+  - Lệnh `/terminal` chạy trực tiếp lệnh Bash trên máy chủ.
+  - Hỗ trợ xem output dài qua File Server nội bộ và bảo mật whitelist người dùng `TELEGRAM_ALLOWED_USERS`.
+- **Hệ thống CLI Cập nhật & Kiểm tra phiên bản (`hugremote update` & `--version`)**:
+  - Lệnh `hugremote update` tự động nhận diện kênh cài đặt (kênh Stable theo GitHub Release chính thức mới nhất, kênh Beta theo nhánh `main`).
+  - Hỗ trợ các cờ chuyển kênh: `--stable`, `--beta`, và `--force`.
+  - Hỗ trợ chuyển đổi thông minh ký tự gạch ngang di động (`—version`, `–version` sang `--version`).
+- **Trình cài đặt 1 lệnh tối ưu (One-Command Installer)**:
+  - Tự động phát hiện và cài đặt các môi trường còn thiếu (`git`, `build-essential`, `python3`, `Node.js 20 LTS`).
+  - Bảng hướng dẫn cài đặt thủ công rõ ràng theo từng hệ điều hành khi chạy trong môi trường không có sudo.
+- **Trình duyệt File từ xa qua SFTP (Remote SFTP File Manager)**:
+  - Quản lý tệp tin và thư mục từ xa trên máy chủ SSH / Docker container: tạo mới, đổi tên, xóa, mở chỉnh sửa trực tiếp.
+- **Bàn phím ảo Laptop 5 hàng tối ưu Mobile**:
+  - Tích hợp bàn phím ảo đầy đủ phím chuyên dụng lập trình (Esc, Tab, Ctrl, Alt, Phím điều hướng, Ký tự đặc biệt) ngay trên màn hình cảm ứng di động.
+- **Layout Header 2 tầng (Proposal 9)**:
+  - Phân tầng hiển thị Server / Project và Session Pill toàn chiều rộng, tối ưu diện tích trên màn hình di động (390px).
+- **Tự động dọn dẹp & giải phóng phiên Terminal (Auto Eviction)**:
+  - Tự động đóng phiên terminal không hoạt động sau 30 phút, cơ chế LRU tối đa 50 kết nối tránh nghẽn tài nguyên.
 
 ---
 

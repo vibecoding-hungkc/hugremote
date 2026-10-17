@@ -185,12 +185,12 @@ Tùy chọn:
       }).trim();
     } catch (_) {}
 
-    let currentVersion = '1.1.0';
+    let currentVersion = '1.1.1';
     try {
       const pkg = JSON.parse(
         fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')
       );
-      currentVersion = pkg.version || '1.1.0';
+      currentVersion = pkg.version || '1.1.1';
     } catch (_) {}
 
     let currentTag = '';

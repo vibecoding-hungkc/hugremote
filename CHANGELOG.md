@@ -1,6 +1,14 @@
 # 📋 Changelog — HugRemote
 
 
+## [v1.1.1] - 2026-10-17
+
+### ⚡ Cải tiến giao diện & Sửa lỗi (Improvements & Fixes)
+- **Tối giản hiển thị Claude Thinking**: Loại bỏ hoàn toàn dòng chữ mô tả thừa `Phân tích yêu cầu và codebase`, chỉ giữ lại biểu tượng loading xoay tròn và nhãn `Thinking…` (hoặc `✳ Thinking…`) tinh gọn trên mobile.
+- **Đồng bộ mã nguồn Release chính thức**: Cập nhật bản phát hành Release mới nhất đồng bộ đầy đủ các commit mới nhất từ nhánh `main`.
+
+---
+
 ## [v1.1.0] - 2026-10-17
 
 ### 🚀 Tính năng chính mới (Major Features)

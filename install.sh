@@ -229,7 +229,7 @@ else
     if command -v curl >/dev/null 2>&1; then
       LATEST_RELEASE_TAG=$(curl -fsSL -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" 2>/dev/null | grep -E '"tag_name":' | head -n1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
     fi
-    TARGET_REF="${LATEST_RELEASE_TAG:-v1.1.0}"
+    TARGET_REF="${LATEST_RELEASE_TAG:-v1.1.1}"
   else
     TARGET_REF="$HUGREMOTE_REF"
   fi

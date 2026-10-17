@@ -1,6 +1,27 @@
 # 📋 Changelog — HugRemote
 
 
+## [v1.2.0] - 2026-10-17
+
+### 🚀 Tính năng mới (Major Features)
+- **Kết nối Claude Code CLI Project Sessions thực tế (`~/.claude/projects/`)**:
+  - Lệnh `/resume` kết nối trực tiếp với danh sách phiên làm việc thật của Claude Code CLI theo project slug.
+  - Tự động bóc tách thông tin phiên từ các file JSONL transcript: ID, tóm tắt prompt, số lượng tin nhắn, model, nhánh git và mốc thời gian.
+  - Giao diện Claude Session Hub mới với 2 tab riêng biệt: Tab "Phiên Claude CLI (Project)" và Tab "Phiên HugRemote", hỗ trợ tìm kiếm và khôi phục nhanh (Resume) ngữ cảnh đầy đủ vào chat.
+- **Thực thi và Autocomplete Slash Commands chuẩn Claude**:
+  - Danh sách gợi ý phẳng 22 slash commands chuẩn Claude CLI / Chat khi nhập `/` ở đầu dòng.
+  - Sửa lỗi autocomplete: tự động điền lệnh kèm khoảng cách `/command ` và đưa con trỏ chuột ra sau.
+  - Hỗ trợ thao tác cảm ứng mobile (`touchstart`), chuột (`mousedown`) và bàn phím (`Enter`, `Tab`).
+  - Lệnh `/clear` hoạt động tức thì trên UI và server, dọn sạch hội thoại kèm Action Toast thông báo.
+
+### 🛠️ Khắc phục sự cố Installer (`install.sh` & `beta.sh`)
+- **Tự động khởi động lại Systemd Service khi cài đặt lại**: Sửa lỗi `install.sh` và `beta.sh` chỉ chạy `enable --now || start` (vốn là no-op khi service đang active), chuyển sang kiểm tra và gọi `systemctl --user restart hugremote` để tải ngay mã nguồn mới.
+- **Tự động nhận diện thư mục cài đặt hiện có**: Nhận diện đường dẫn từ `~/.local/bin/hugremote` hoặc file cấu hình service systemd để cập nhật đúng thư mục mục tiêu.
+- **Bảo đảm Git Checkout không bị xung đột**: Tự động stash các thay đổi cục bộ và thực hiện reset hard về tag/ref mục tiêu.
+- **Fallback Release Tag linh hoạt**: Tự động truy vấn git ls-remote khi GitHub API bị giới hạn tần suất (rate-limit).
+
+---
+
 ## [v1.1.1] - 2026-10-17
 
 ### ⚡ Cải tiến giao diện & Sửa lỗi (Improvements & Fixes)

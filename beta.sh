@@ -216,7 +216,25 @@ if [ -f "$SCRIPT_DIR/package.json" ] && [ -d "$SCRIPT_DIR/client" ] && [ -d "$SC
   INSTALL_DIR="$SCRIPT_DIR"
   echo -e "✓ Cài đặt từ thư mục hiện tại: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 else
-  INSTALL_DIR="${HUGREMOTE_DIR:-$HOME/.hugremote}"
+  # Tự động phát hiện thư mục cài đặt hiện có nếu có
+  DETECTED_DIR=""
+  if [ -z "$HUGREMOTE_DIR" ]; then
+    if [ -L "$HOME/.local/bin/hugremote" ]; then
+      RESOLVED_BIN="$(readlink -f "$HOME/.local/bin/hugremote" 2>/dev/null || true)"
+      CANDIDATE_DIR="$(dirname "$(dirname "$RESOLVED_BIN")" 2>/dev/null || true)"
+      if [ -f "$CANDIDATE_DIR/package.json" ] && [ -d "$CANDIDATE_DIR/.git" ]; then
+        DETECTED_DIR="$CANDIDATE_DIR"
+      fi
+    fi
+    if [ -z "$DETECTED_DIR" ] && [ -f "$HOME/.config/systemd/user/hugremote.service" ]; then
+      CANDIDATE_DIR="$(grep -E '^WorkingDirectory=' "$HOME/.config/systemd/user/hugremote.service" 2>/dev/null | cut -d= -f2- | tr -d ' \r')"
+      if [ -n "$CANDIDATE_DIR" ] && [ -f "$CANDIDATE_DIR/package.json" ] && [ -d "$CANDIDATE_DIR/.git" ]; then
+        DETECTED_DIR="$CANDIDATE_DIR"
+      fi
+    fi
+  fi
+
+  INSTALL_DIR="${HUGREMOTE_DIR:-${DETECTED_DIR:-$HOME/.hugremote}}"
   echo -e "✓ Thư mục đích: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 
   TARGET_REF="${HUGREMOTE_REF:-main}"
@@ -224,9 +242,10 @@ else
     echo "  Đã tồn tại repo, đang cập nhật mã nguồn mới nhất (nhánh: $TARGET_REF - Beta)..."
     cd "$INSTALL_DIR"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null || true
+    git stash 2>/dev/null || true
     git fetch origin "$TARGET_REF" || git fetch origin
-    git checkout -B "$TARGET_REF" FETCH_HEAD 2>/dev/null || git checkout "$TARGET_REF" 2>/dev/null || git reset --hard FETCH_HEAD
-    git reset --hard FETCH_HEAD 2>/dev/null || true
+    git checkout -f "$TARGET_REF" 2>/dev/null || git checkout -f -B "$TARGET_REF" origin/"$TARGET_REF" 2>/dev/null || git checkout -f main
+    git reset --hard origin/"$TARGET_REF" 2>/dev/null || git reset --hard origin/main 2>/dev/null || true
     git pull origin "$TARGET_REF" 2>/dev/null || true
   else
     echo "  Đang tải mã nguồn HugRemote mới nhất (nhánh: $TARGET_REF - Beta)..."
@@ -552,8 +571,13 @@ EOF
   START_CHOICE=""
   prompt_user_input "👉 Bạn có muốn khởi động service 'hugremote' chạy ngầm ngay bây giờ? [Y/n]: " "Y" START_CHOICE
   if [[ "$START_CHOICE" =~ ^[Yy]$ || -z "$START_CHOICE" ]]; then
-    systemctl --user enable --now hugremote 2>/dev/null || systemctl --user start hugremote 2>/dev/null || true
-    echo -e "✓ ${C_GREEN}Đã kích hoạt và khởi chạy service hugremote thành công!${C_RESET}"
+    if systemctl --user is-active --quiet hugremote 2>/dev/null; then
+      systemctl --user restart hugremote 2>/dev/null || true
+      echo -e "✓ ${C_GREEN}Đã khởi động lại service hugremote với phiên bản mới thành công!${C_RESET}"
+    else
+      systemctl --user enable --now hugremote 2>/dev/null || systemctl --user start hugremote 2>/dev/null || true
+      echo -e "✓ ${C_GREEN}Đã kích hoạt và khởi chạy service hugremote thành công!${C_RESET}"
+    fi
   fi
 fi
 

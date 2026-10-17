@@ -216,7 +216,25 @@ if [ -f "$SCRIPT_DIR/package.json" ] && [ -d "$SCRIPT_DIR/client" ] && [ -d "$SC
   INSTALL_DIR="$SCRIPT_DIR"
   echo -e "✓ Cài đặt từ thư mục hiện tại: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 else
-  INSTALL_DIR="${HUGREMOTE_DIR:-$HOME/.hugremote}"
+  # Tự động phát hiện thư mục cài đặt hiện có nếu có
+  DETECTED_DIR=""
+  if [ -z "$HUGREMOTE_DIR" ]; then
+    if [ -L "$HOME/.local/bin/hugremote" ]; then
+      RESOLVED_BIN="$(readlink -f "$HOME/.local/bin/hugremote" 2>/dev/null || true)"
+      CANDIDATE_DIR="$(dirname "$(dirname "$RESOLVED_BIN")" 2>/dev/null || true)"
+      if [ -f "$CANDIDATE_DIR/package.json" ] && [ -d "$CANDIDATE_DIR/.git" ]; then
+        DETECTED_DIR="$CANDIDATE_DIR"
+      fi
+    fi
+    if [ -z "$DETECTED_DIR" ] && [ -f "$HOME/.config/systemd/user/hugremote.service" ]; then
+      CANDIDATE_DIR="$(grep -E '^WorkingDirectory=' "$HOME/.config/systemd/user/hugremote.service" 2>/dev/null | cut -d= -f2- | tr -d ' \r')"
+      if [ -n "$CANDIDATE_DIR" ] && [ -f "$CANDIDATE_DIR/package.json" ] && [ -d "$CANDIDATE_DIR/.git" ]; then
+        DETECTED_DIR="$CANDIDATE_DIR"
+      fi
+    fi
+  fi
+
+  INSTALL_DIR="${HUGREMOTE_DIR:-${DETECTED_DIR:-$HOME/.hugremote}}"
   echo -e "✓ Thư mục đích: ${C_GREEN}$INSTALL_DIR${C_RESET}"
 
   REPO_OWNER="vibecoding-hungkc"
@@ -229,7 +247,10 @@ else
     if command -v curl >/dev/null 2>&1; then
       LATEST_RELEASE_TAG=$(curl -fsSL -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" 2>/dev/null | grep -E '"tag_name":' | head -n1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
     fi
-    TARGET_REF="${LATEST_RELEASE_TAG:-v1.1.1}"
+    if [ -z "$LATEST_RELEASE_TAG" ] && command -v git >/dev/null 2>&1; then
+      LATEST_RELEASE_TAG=$(git ls-remote --tags --refs "$REPO_URL" 2>/dev/null | awk -F'/' '{print $3}' | grep -E '^v[0-9]+' | sort -V | tail -n1)
+    fi
+    TARGET_REF="${LATEST_RELEASE_TAG:-main}"
   else
     TARGET_REF="$HUGREMOTE_REF"
   fi
@@ -239,8 +260,11 @@ else
     echo "  Đã tồn tại repo, đang cập nhật mã nguồn theo Release ($TARGET_REF)..."
     cd "$INSTALL_DIR"
     git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null || true
-    git fetch --tags origin
-    git checkout "tags/$TARGET_REF" 2>/dev/null || git checkout -B "$TARGET_REF" FETCH_HEAD 2>/dev/null || git checkout "$TARGET_REF" 2>/dev/null || git checkout main
+    git stash 2>/dev/null || true
+    git fetch --tags --force origin 2>/dev/null || true
+    git fetch origin "$TARGET_REF" 2>/dev/null || git fetch origin 2>/dev/null || true
+    git checkout -f "tags/$TARGET_REF" 2>/dev/null || git checkout -f "$TARGET_REF" 2>/dev/null || git checkout -f -B "$TARGET_REF" FETCH_HEAD 2>/dev/null || git checkout -f main
+    git reset --hard "tags/$TARGET_REF" 2>/dev/null || git reset --hard "$TARGET_REF" 2>/dev/null || git reset --hard origin/main 2>/dev/null || true
   else
     echo "  Đang tải mã nguồn HugRemote bản Release ($TARGET_REF)..."
     mkdir -p "$INSTALL_DIR"
@@ -564,8 +588,13 @@ EOF
   START_CHOICE=""
   prompt_user_input "👉 Bạn có muốn khởi động service 'hugremote' chạy ngầm ngay bây giờ? [Y/n]: " "Y" START_CHOICE
   if [[ "$START_CHOICE" =~ ^[Yy]$ || -z "$START_CHOICE" ]]; then
-    systemctl --user enable --now hugremote 2>/dev/null || systemctl --user start hugremote 2>/dev/null || true
-    echo -e "✓ ${C_GREEN}Đã kích hoạt và khởi chạy service hugremote thành công!${C_RESET}"
+    if systemctl --user is-active --quiet hugremote 2>/dev/null; then
+      systemctl --user restart hugremote 2>/dev/null || true
+      echo -e "✓ ${C_GREEN}Đã khởi động lại service hugremote với phiên bản mới thành công!${C_RESET}"
+    else
+      systemctl --user enable --now hugremote 2>/dev/null || systemctl --user start hugremote 2>/dev/null || true
+      echo -e "✓ ${C_GREEN}Đã kích hoạt và khởi chạy service hugremote thành công!${C_RESET}"
+    fi
   fi
 fi
 

@@ -776,6 +776,85 @@ class ClaudeService {
       return { text: errorText };
     }
 
+    const trimmedPrompt = userPrompt.trim();
+    if (trimmedPrompt === '/help') {
+      const helpText = `### 💡 Danh sách Slash Commands hỗ trợ trong Claude Chat\n\n` +
+        `- **/clear**: Xoá sạch lịch sử tin nhắn trong phiên hiện tại.\n` +
+        `- **/resume [id]**: Mở trình quản lý phiên (Hub) hoặc chuyển sang phiên khác bằng ID/tên.\n` +
+        `- **/model [name]**: Chọn Model hoặc đổi nhanh (\`sonnet\`, \`opus\`, \`haiku\`).\n` +
+        `- **/usage**: Xem hạn mức sử dụng (quota 5 giờ và theo tuần).\n` +
+        `- **/status**: Xem thông tin trạng thái phiên hiện tại, model và máy chủ.\n` +
+        `- **/context**: Trực quan hoá mức độ chiếm dụng của Context Window.\n` +
+        `- **/cost**: Thống kê số lượng token và chi phí API của phiên làm việc.\n` +
+        `- **/compact [focus]**: Tóm tắt và nén ngữ cảnh hội thoại để tiết kiệm token.\n` +
+        `- **/review**: Yêu cầu Claude review toàn bộ git diff tìm lỗi và cải thiện code.\n` +
+        `- **/security-review**: Quét và phân tích các lỗ hổng bảo mật trong mã nguồn.\n` +
+        `- **/plan [nhiệm vụ]**: Bật chế độ lập kế hoạch giải pháp trước khi code.\n` +
+        `- **/commit**: Phân tích git diff và tự động tạo git commit message.\n` +
+        `- **/init**: Khởi tạo file hướng dẫn \`CLAUDE.md\` cho dự án.\n` +
+        `- **/permissions**: Bật / tắt chế độ bỏ qua hỏi quyền thực thi (Bypass Permissions).\n` +
+        `- **/effort [low|medium|high|max]**: Đặt mức độ tư duy/suy nghĩ cho Claude.\n` +
+        `- **/todos**: Kiểm tra danh sách các đầu việc đang theo dõi trong dự án.`;
+      onEvent({ type: 'text_delta', text: helpText });
+      onEvent({ type: 'done', text: helpText });
+      return { text: helpText };
+    }
+
+    if (trimmedPrompt === '/status') {
+      const srvName = session.serverId || 'server-local';
+      const statusText = `### ℹ️ Trạng thái phiên làm việc Claude\n\n` +
+        `- **Phiên:** ${session.name || 'Không xác định'} (\`${session.id}\`)\n` +
+        `- **Model:** \`${session.model || 'Default Medium'}\`\n` +
+        `- **Chế độ:** \`${session.mode || 'Auto'}\` (Bypass Permissions: **${session.bypassPermissions ? 'Bật' : 'Tắt'}**)\n` +
+        `- **Thư mục (CWD):** \`${session.cwd || 'N/A'}\`\n` +
+        `- **Máy chủ:** \`${srvName}\`\n` +
+        `- **Số tin nhắn:** ${session.messages.length}\n` +
+        `- **CLI Session ID:** \`${session.cliSessionId || 'Chưa khởi tạo'}\``;
+      onEvent({ type: 'text_delta', text: statusText });
+      onEvent({ type: 'done', text: statusText });
+      return { text: statusText };
+    }
+
+    if (trimmedPrompt === '/resume') {
+      const allSessions = this.getSessionsForServer(session.serverId || 'server-local', session.cwd);
+      const list = allSessions.map((s, idx) => {
+        const isCur = s.id === session.id;
+        return `${idx + 1}. **${s.name}** \`${s.id}\` (${s.messages.length} msgs, ${s.model || 'Default'})${isCur ? ' *(hiện tại)*' : ''}`;
+      }).join('\n');
+      const resumeText = `### 📂 Quản lý phiên làm việc (Claude Sessions)\n\n` +
+        `Danh sách các phiên trên máy chủ này:\n\n` +
+        `${list || '*Chưa có phiên làm việc nào.*'}\n\n` +
+        `*Mẹo: Bạn có thể gõ \`/resume <số thứ tự, tên hoặc ID>\` để chuyển trực tiếp.*`;
+      onEvent({ type: 'text_delta', text: resumeText });
+      onEvent({ type: 'done', text: resumeText });
+      return { text: resumeText };
+    }
+
+    if (trimmedPrompt.startsWith('/resume ')) {
+      const query = trimmedPrompt.slice(8).trim().toLowerCase();
+      const allSessions = this.getSessionsForServer(session.serverId || 'server-local', session.cwd);
+      const idxNum = parseInt(query, 10);
+      let target = (!isNaN(idxNum) && idxNum >= 1 && idxNum <= allSessions.length) ? allSessions[idxNum - 1] : null;
+      if (!target) {
+        target = allSessions.find((s) =>
+          s.id.toLowerCase() === query ||
+          s.id.toLowerCase().startsWith(query) ||
+          s.name.toLowerCase().includes(query)
+        ) || null;
+      }
+      if (target) {
+        const resumeText = `✅ Đã xác định phiên: **"${target.name}"** (\`${target.id}\`). Bạn có thể chuyển sang phiên này trong Claude Hub.`;
+        onEvent({ type: 'text_delta', text: resumeText });
+        onEvent({ type: 'done', text: resumeText });
+        return { text: resumeText };
+      } else {
+        const notFoundText = `❌ Không tìm thấy phiên làm việc nào khớp với "${query}". Gõ \`/resume\` để xem danh sách.`;
+        onEvent({ type: 'text_delta', text: notFoundText });
+        onEvent({ type: 'done', text: notFoundText });
+        return { text: notFoundText };
+      }
+    }
+
     // Load custom env from ~/.claude/settings.json if present
     let claudeSettingsEnv: Record<string, string> = {};
     if (!isRemote) {

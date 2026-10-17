@@ -37,6 +37,7 @@
       <ClaudeView
         v-show="activeTab === 'claude'"
         @open-tree-picker="isClaudeAttachTreePickerOpen = true"
+        @open-session-hub="isClaudeHubOpen = true"
       />
 
       <GitView

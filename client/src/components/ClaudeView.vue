@@ -183,7 +183,8 @@
             class="claude-slash-item"
             :class="{ active: idx === activeSlashIndex }"
             :data-index="idx"
-            @click="selectSlashCommand(cmd)"
+            @pointerdown.prevent="selectSlashCommand(cmd)"
+            @click.prevent="selectSlashCommand(cmd)"
             @mouseenter="activeSlashIndex = idx"
           >
             <div class="slash-item-left">
@@ -332,6 +333,7 @@ import { useI18n } from '../composables/useI18n.js';
 
 const emit = defineEmits<{
   (e: 'open-tree-picker'): void;
+  (e: 'open-session-hub'): void;
 }>();
 
 const claudeStore = useClaudeStore();
@@ -349,13 +351,13 @@ interface SlashCommandDef {
   arg?: string;
   descVi: string;
   descEn: string;
-  action?: 'clear' | 'model' | 'limits';
+  action?: 'clear' | 'model' | 'limits' | 'resume' | 'help' | 'status' | 'permissions';
 }
 
 const CLAUDE_SLASH_COMMANDS: SlashCommandDef[] = [
   { name: '/clear', descVi: 'Xóa sạch lịch sử hội thoại hiện tại', descEn: 'Clear conversation history and reset context', action: 'clear' },
   { name: '/compact', arg: '[focus]', descVi: 'Nén ngữ cảnh cuộc trò chuyện để tiết kiệm token', descEn: 'Compact conversation history to save tokens' },
-  { name: '/resume', arg: '[id]', descVi: 'Tiếp tục hoặc chuyển sang phiên làm việc khác', descEn: 'Resume or switch to a different session' },
+  { name: '/resume', arg: '[id]', descVi: 'Mở danh sách phiên làm việc hoặc đổi phiên', descEn: 'Resume or switch to a different session', action: 'resume' },
   { name: '/model', arg: '[name]', descVi: 'Chọn hoặc chuyển đổi model Claude', descEn: 'Select or switch Claude model', action: 'model' },
   { name: '/usage', descVi: 'Xem hạn mức sử dụng (quota 5 giờ và tuần)', descEn: 'View plan limits and rate limit status', action: 'limits' },
   { name: '/cost', descVi: 'Xem chi phí và token đã dùng của phiên', descEn: 'Show token usage and cost for this session' },
@@ -369,11 +371,11 @@ const CLAUDE_SLASH_COMMANDS: SlashCommandDef[] = [
   { name: '/effort', arg: '[level]', descVi: 'Đặt mức độ tư duy/suy nghĩ (low, medium, high, max)', descEn: 'Set reasoning effort (low, medium, high, max)' },
   { name: '/rewind', descVi: 'Quay lui về checkpoint trước của code hoặc chat', descEn: 'Revert to a previous checkpoint' },
   { name: '/todos', descVi: 'Xem danh sách các việc cần làm đang theo dõi', descEn: 'List tracked action items' },
-  { name: '/permissions', descVi: 'Xem và thay đổi quyền thực thi công cụ', descEn: 'View or update tool permissions' },
+  { name: '/permissions', descVi: 'Bật/tắt chế độ bỏ qua hỏi quyền thực thi', descEn: 'Toggle bypass tool permissions', action: 'permissions' },
   { name: '/mcp', descVi: 'Quản lý các kết nối MCP server', descEn: 'Manage Model Context Protocol (MCP) servers' },
-  { name: '/status', descVi: 'Xem thông tin phiên, kết nối mạng và hệ thống', descEn: 'Show version, connectivity, and session info' },
+  { name: '/status', descVi: 'Xem thông tin phiên, kết nối mạng và hệ thống', descEn: 'Show version, connectivity, and session info', action: 'status' },
   { name: '/btw', arg: '[question]', descVi: 'Đặt câu hỏi phụ nhanh ngoài lề mà không tốn context', descEn: 'Ask a side question without context cost' },
-  { name: '/help', descVi: 'Xem tất cả các lệnh và phím tắt hỗ trợ', descEn: 'Show available commands and shortcuts' },
+  { name: '/help', descVi: 'Xem tất cả các lệnh và phím tắt hỗ trợ', descEn: 'Show available commands and shortcuts', action: 'help' },
   { name: '/exit', descVi: 'Kết thúc phiên làm việc hiện tại', descEn: 'End current Claude session' },
 ];
 
@@ -442,7 +444,67 @@ function scrollActiveSlashIntoView() {
   });
 }
 
-function selectSlashCommand(cmd: { name: string; arg?: string; action?: 'clear' | 'model' | 'limits' }) {
+function addLocalExchange(userText: string, assistantText: string) {
+  let session = activeSession.value;
+  if (!session) return;
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  session.messages.push({
+    id: `u-${Date.now()}`,
+    sender: 'user',
+    text: userText,
+    time: timeStr,
+  });
+  session.messages.push({
+    id: `a-${Date.now() + 1}`,
+    sender: 'assistant',
+    text: assistantText,
+    time: timeStr,
+  });
+  scrollToBottom();
+}
+
+function showHelpGuide() {
+  addLocalExchange(
+    '/help',
+    `### 💡 Danh sách Slash Commands hỗ trợ trong Claude Chat\n\n` +
+    `- **/clear**: Xoá sạch lịch sử tin nhắn trong phiên hiện tại.\n` +
+    `- **/resume [id]**: Mở trình quản lý phiên (Hub) hoặc chuyển sang phiên khác bằng ID/tên.\n` +
+    `- **/model [name]**: Mở menu chọn Model hoặc đổi nhanh (\`sonnet\`, \`opus\`, \`haiku\`).\n` +
+    `- **/usage**: Xem hạn mức sử dụng (quota 5 giờ và theo tuần).\n` +
+    `- **/status**: Xem thông tin trạng thái phiên hiện tại, model và máy chủ.\n` +
+    `- **/context**: Trực quan hoá mức độ chiếm dụng của Context Window.\n` +
+    `- **/cost**: Thống kê số lượng token và chi phí API của phiên làm việc.\n` +
+    `- **/compact [focus]**: Tóm tắt và nén ngữ cảnh hội thoại để tiết kiệm token.\n` +
+    `- **/review**: Yêu cầu Claude review toàn bộ git diff tìm lỗi và cải thiện code.\n` +
+    `- **/security-review**: Quét và phân tích các lỗ hổng bảo mật trong mã nguồn.\n` +
+    `- **/plan [nhiệm vụ]**: Bật chế độ lập kế hoạch giải pháp trước khi code.\n` +
+    `- **/commit**: Phân tích git diff và tự động tạo git commit message.\n` +
+    `- **/init**: Khởi tạo file hướng dẫn \`CLAUDE.md\` cho dự án.\n` +
+    `- **/permissions**: Bật / tắt chế độ bỏ qua hỏi quyền thực thi (Bypass Permissions).\n` +
+    `- **/effort [low|medium|high|max]**: Đặt mức độ tư duy/suy nghĩ cho Claude.\n` +
+    `- **/todos**: Kiểm tra danh sách các đầu việc đang theo dõi trong dự án.\n` +
+    `- **/help**: Hiển thị bảng hướng dẫn này.`
+  );
+}
+
+function showStatusInfo() {
+  const s = activeSession.value;
+  const srv = claudeStore.currentServerId || 'server-local';
+  addLocalExchange(
+    '/status',
+    `### ℹ️ Trạng thái phiên làm việc Claude\n\n` +
+    `- **Phiên:** ${s?.name || 'Không xác định'} (\`${s?.id || 'N/A'}\`)\n` +
+    `- **Model:** \`${s?.model || 'Default Medium'}\`\n` +
+    `- **Chế độ:** \`${s?.mode || 'Auto'}\` (Bypass Permissions: **${s?.bypassPermissions ? 'Bật' : 'Tắt'}**)\n` +
+    `- **Thư mục (CWD):** \`${s?.cwd || 'N/A'}\`\n` +
+    `- **Máy chủ:** \`${srv}\`\n` +
+    `- **Số tin nhắn:** ${s?.messages.length || 0}\n` +
+    `- **CLI Session ID:** \`${s?.cliSessionId || 'Chưa khởi tạo'}\``
+  );
+}
+
+async function selectSlashCommand(cmd: { name: string; arg?: string; action?: 'clear' | 'model' | 'limits' | 'resume' | 'help' | 'status' | 'permissions' }) {
   if (cmd.action === 'clear') {
     if (activeSession.value) {
       claudeStore.clearSession(activeSession.value.id);
@@ -464,6 +526,34 @@ function selectSlashCommand(cmd: { name: string; arg?: string; action?: 'clear' 
     inputText.value = '';
     isSlashMenuDismissed.value = true;
     autoResize();
+    return;
+  }
+  if (cmd.action === 'resume') {
+    emit('open-session-hub');
+    inputText.value = '';
+    isSlashMenuDismissed.value = true;
+    autoResize();
+    return;
+  }
+  if (cmd.action === 'help') {
+    inputText.value = '';
+    isSlashMenuDismissed.value = true;
+    autoResize();
+    showHelpGuide();
+    return;
+  }
+  if (cmd.action === 'status') {
+    inputText.value = '';
+    isSlashMenuDismissed.value = true;
+    autoResize();
+    showStatusInfo();
+    return;
+  }
+  if (cmd.action === 'permissions') {
+    inputText.value = '';
+    isSlashMenuDismissed.value = true;
+    autoResize();
+    await toggleBypassPermissions();
     return;
   }
 
@@ -688,6 +778,18 @@ async function handleSend() {
   }
   scrollToBottom();
 
+  if (text === '/help') {
+    showHelpGuide();
+    return;
+  }
+  if (text === '/status') {
+    showStatusInfo();
+    return;
+  }
+  if (text === '/usage') {
+    claudeStore.isLimitsPopupOpen = true;
+    return;
+  }
   if (text === '/clear') {
     if (activeSession.value) {
       await claudeStore.clearSession(activeSession.value.id);
@@ -706,16 +808,98 @@ async function handleSend() {
           m.id.toLowerCase().includes(requested) ||
           m.label.toLowerCase().includes(requested)
       );
-      if (match) {
-        claudeStore.updateSession(activeSession.value.id, { model: match.id });
-      } else {
-        claudeStore.updateSession(activeSession.value.id, { model: requested });
-      }
+      const targetModel = match ? match.id : requested;
+      claudeStore.updateSession(activeSession.value.id, { model: targetModel });
+      addLocalExchange(text, `🤖 Đã chuyển model sang **${match?.label || targetModel}**.`);
     }
     return;
   }
-  if (text === '/usage' || text === '/status') {
-    claudeStore.isLimitsPopupOpen = true;
+  if (text === '/resume') {
+    emit('open-session-hub');
+    const sessions = claudeStore.currentServerSessions;
+    const list = sessions.map((s, idx) => {
+      const isCur = s.id === activeSession.value?.id;
+      return `${idx + 1}. **${s.name}** \`${s.id}\` (${s.messages.length} msgs, ${s.model || 'Default'})${isCur ? ' *(hiện tại)*' : ''}`;
+    }).join('\n');
+    addLocalExchange(
+      '/resume',
+      `### 📂 Quản lý phiên làm việc (Claude Sessions)\n\n` +
+      `Đã mở trình quản lý phiên làm việc. Danh sách các phiên trên máy chủ này:\n\n` +
+      `${list || '*Chưa có phiên làm việc nào.*'}\n\n` +
+      `*Mẹo: Bạn có thể gõ \`/resume <số thứ tự, tên hoặc ID>\` để chuyển trực tiếp.*`
+    );
+    return;
+  }
+  if (text.startsWith('/resume ')) {
+    const query = text.slice(8).trim().toLowerCase();
+    if (!query) {
+      emit('open-session-hub');
+      return;
+    }
+    const sessions = claudeStore.currentServerSessions;
+    const idxNum = parseInt(query, 10);
+    let target = (!isNaN(idxNum) && idxNum >= 1 && idxNum <= sessions.length) ? sessions[idxNum - 1] : null;
+    if (!target) {
+      target = sessions.find((s) =>
+        s.id.toLowerCase() === query ||
+        s.id.toLowerCase().startsWith(query) ||
+        s.name.toLowerCase().includes(query)
+      ) || null;
+    }
+    if (target) {
+      claudeStore.activeSessionId = target.id;
+      addLocalExchange(
+        text,
+        `✅ Đã chuyển sang phiên làm việc **"${target.name}"** (\`${target.id}\`).`
+      );
+    } else {
+      addLocalExchange(
+        text,
+        `❌ Không tìm thấy phiên nào khớp với "${query}". Gõ \`/resume\` để xem danh sách.`
+      );
+    }
+    return;
+  }
+  if (text === '/permissions') {
+    await toggleBypassPermissions();
+    const isBypass = activeSession.value?.bypassPermissions;
+    addLocalExchange(
+      '/permissions',
+      `🛡️ Chế độ bỏ qua hỏi quyền (Bypass Permissions) hiện đang **${isBypass ? 'BẬT' : 'TẮT'}**.`
+    );
+    return;
+  }
+  if (text.startsWith('/effort')) {
+    const level = text.replace('/effort', '').trim().toLowerCase();
+    if (['low', 'medium', 'high', 'max'].includes(level)) {
+      const capLevel = level.charAt(0).toUpperCase() + level.slice(1);
+      if (activeSession.value) {
+        const currentM = activeSession.value.model || 'Default';
+        const baseName = currentM.replace(/\b(Low|Medium|High|Max)\b/i, '').trim();
+        const newModel = `${baseName || 'Default'} ${capLevel}`.trim();
+        claudeStore.updateSession(activeSession.value.id, { model: newModel });
+        addLocalExchange(
+          text,
+          `⚡ Đã đặt mức độ tư duy (Effort) thành **${capLevel}** (Model: \`${newModel}\`).`
+        );
+      }
+    } else {
+      const curEffort = activeSession.value?.model?.match(/\b(Low|Medium|High|Max)\b/i)?.[1] || 'Medium';
+      addLocalExchange(
+        text,
+        `⚡ Mức độ tư duy hiện tại: **${curEffort}**.\n\nCú pháp: \`/effort low\` | \`/effort medium\` | \`/effort high\` | \`/effort max\``
+      );
+    }
+    return;
+  }
+  if (text === '/plan') {
+    if (activeSession.value) {
+      claudeStore.updateSession(activeSession.value.id, { mode: 'Plan' });
+      addLocalExchange(
+        '/plan',
+        `📋 Đã kích hoạt **Plan Mode**. Claude sẽ lập kế hoạch chi tiết trước khi chỉnh sửa mã nguồn.`
+      );
+    }
     return;
   }
 

@@ -169,6 +169,31 @@
 
       <!-- Input Box (Terracotta Highlight Border) -->
       <div class="claude-ext-input-box" :class="{ focused: isInputFocused }">
+        <!-- Slash Command Autocomplete Menu (Exact Claude style: flat unified list, dark palette, terracotta highlight) -->
+        <div
+          v-if="isSlashMenuOpen"
+          ref="slashMenuRef"
+          class="claude-slash-menu"
+          @mousedown.prevent
+        >
+          <button
+            v-for="(cmd, idx) in filteredSlashCommands"
+            :key="cmd.name"
+            type="button"
+            class="claude-slash-item"
+            :class="{ active: idx === activeSlashIndex }"
+            :data-index="idx"
+            @click="selectSlashCommand(cmd)"
+            @mouseenter="activeSlashIndex = idx"
+          >
+            <div class="slash-item-left">
+              <span class="slash-item-name">{{ cmd.name }}</span>
+              <span v-if="cmd.arg" class="slash-item-arg">{{ cmd.arg }}</span>
+            </div>
+            <div class="slash-item-desc">{{ cmd.desc }}</div>
+          </button>
+        </div>
+
         <!-- Top Row: Input Textarea + Mic -->
         <div class="claude-ext-input-row">
           <textarea
@@ -310,7 +335,7 @@ const emit = defineEmits<{
 }>();
 
 const claudeStore = useClaudeStore();
-const { t } = useI18n();
+const { t, i18n } = useI18n();
 const streamRef = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
 
@@ -318,6 +343,141 @@ const inputText = ref('');
 const isInputFocused = ref(false);
 const usageWarning = ref<string | null>(null);
 const isModelPopupOpen = ref(false);
+
+interface SlashCommandDef {
+  name: string;
+  arg?: string;
+  descVi: string;
+  descEn: string;
+  action?: 'clear' | 'model' | 'limits';
+}
+
+const CLAUDE_SLASH_COMMANDS: SlashCommandDef[] = [
+  { name: '/clear', descVi: 'Xóa sạch lịch sử hội thoại hiện tại', descEn: 'Clear conversation history and reset context', action: 'clear' },
+  { name: '/compact', arg: '[focus]', descVi: 'Nén ngữ cảnh cuộc trò chuyện để tiết kiệm token', descEn: 'Compact conversation history to save tokens' },
+  { name: '/resume', arg: '[id]', descVi: 'Tiếp tục hoặc chuyển sang phiên làm việc khác', descEn: 'Resume or switch to a different session' },
+  { name: '/model', arg: '[name]', descVi: 'Chọn hoặc chuyển đổi model Claude', descEn: 'Select or switch Claude model', action: 'model' },
+  { name: '/usage', descVi: 'Xem hạn mức sử dụng (quota 5 giờ và tuần)', descEn: 'View plan limits and rate limit status', action: 'limits' },
+  { name: '/cost', descVi: 'Xem chi phí và token đã dùng của phiên', descEn: 'Show token usage and cost for this session' },
+  { name: '/context', descVi: 'Trực quan hóa mức độ chiếm dụng Context Window', descEn: 'Visualize context window usage' },
+  { name: '/review', descVi: 'Review toàn bộ thay đổi git diff tìm lỗi & code style', descEn: 'Review code changes for bugs and style' },
+  { name: '/security-review', descVi: 'Quét và phân tích các lỗ hổng bảo mật trong code', descEn: 'Security analysis of code changes' },
+  { name: '/plan', arg: '[task]', descVi: 'Lập kế hoạch giải pháp trước khi code', descEn: 'Plan tasks before implementation' },
+  { name: '/commit', descVi: 'Tự động tạo commit message từ git diff', descEn: 'Generate commit message from git diff' },
+  { name: '/init', descVi: 'Khởi tạo file hướng dẫn CLAUDE.md cho dự án', descEn: 'Initialize CLAUDE.md project guide' },
+  { name: '/memory', descVi: 'Xem hoặc chỉnh sửa bộ nhớ dự án (CLAUDE.md)', descEn: 'Edit project memory (CLAUDE.md)' },
+  { name: '/effort', arg: '[level]', descVi: 'Đặt mức độ tư duy/suy nghĩ (low, medium, high, max)', descEn: 'Set reasoning effort (low, medium, high, max)' },
+  { name: '/rewind', descVi: 'Quay lui về checkpoint trước của code hoặc chat', descEn: 'Revert to a previous checkpoint' },
+  { name: '/todos', descVi: 'Xem danh sách các việc cần làm đang theo dõi', descEn: 'List tracked action items' },
+  { name: '/permissions', descVi: 'Xem và thay đổi quyền thực thi công cụ', descEn: 'View or update tool permissions' },
+  { name: '/mcp', descVi: 'Quản lý các kết nối MCP server', descEn: 'Manage Model Context Protocol (MCP) servers' },
+  { name: '/status', descVi: 'Xem thông tin phiên, kết nối mạng và hệ thống', descEn: 'Show version, connectivity, and session info' },
+  { name: '/btw', arg: '[question]', descVi: 'Đặt câu hỏi phụ nhanh ngoài lề mà không tốn context', descEn: 'Ask a side question without context cost' },
+  { name: '/help', descVi: 'Xem tất cả các lệnh và phím tắt hỗ trợ', descEn: 'Show available commands and shortcuts' },
+  { name: '/exit', descVi: 'Kết thúc phiên làm việc hiện tại', descEn: 'End current Claude session' },
+];
+
+const isSlashMenuDismissed = ref(false);
+const activeSlashIndex = ref(0);
+const slashMenuRef = ref<HTMLElement | null>(null);
+
+const availableSlashCommands = computed(() => {
+  const isEn = i18n?.locale === 'en';
+  return CLAUDE_SLASH_COMMANDS.map((cmd) => ({
+    name: cmd.name,
+    arg: cmd.arg,
+    desc: isEn ? cmd.descEn : cmd.descVi,
+    action: cmd.action,
+  }));
+});
+
+const slashQuery = computed(() => {
+  const text = inputText.value;
+  if (!text.startsWith('/')) return null;
+  if (text.includes('\n')) return null;
+  if (text.includes(' ')) return null;
+  return text.slice(1).toLowerCase();
+});
+
+const filteredSlashCommands = computed(() => {
+  const q = slashQuery.value;
+  if (q === null) return [];
+  if (!q) return availableSlashCommands.value;
+  const byNameStart = availableSlashCommands.value.filter((cmd) =>
+    cmd.name.slice(1).toLowerCase().startsWith(q)
+  );
+  const byNameInclude = availableSlashCommands.value.filter(
+    (cmd) =>
+      !cmd.name.slice(1).toLowerCase().startsWith(q) &&
+      cmd.name.slice(1).toLowerCase().includes(q)
+  );
+  return [...byNameStart, ...byNameInclude];
+});
+
+const isSlashMenuOpen = computed(() => {
+  return (
+    !isSlashMenuDismissed.value &&
+    slashQuery.value !== null &&
+    filteredSlashCommands.value.length > 0
+  );
+});
+
+watch(
+  () => inputText.value,
+  () => {
+    isSlashMenuDismissed.value = false;
+    activeSlashIndex.value = 0;
+  }
+);
+
+function scrollActiveSlashIntoView() {
+  nextTick(() => {
+    if (!slashMenuRef.value) return;
+    const activeEl = slashMenuRef.value.querySelector<HTMLElement>(
+      `.claude-slash-item[data-index="${activeSlashIndex.value}"]`
+    );
+    if (activeEl) {
+      activeEl.scrollIntoView({ block: 'nearest' });
+    }
+  });
+}
+
+function selectSlashCommand(cmd: { name: string; arg?: string; action?: 'clear' | 'model' | 'limits' }) {
+  if (cmd.action === 'clear') {
+    if (activeSession.value) {
+      claudeStore.clearSession(activeSession.value.id);
+    }
+    inputText.value = '';
+    isSlashMenuDismissed.value = true;
+    autoResize();
+    return;
+  }
+  if (cmd.action === 'model') {
+    isModelPopupOpen.value = true;
+    inputText.value = '';
+    isSlashMenuDismissed.value = true;
+    autoResize();
+    return;
+  }
+  if (cmd.action === 'limits') {
+    claudeStore.isLimitsPopupOpen = true;
+    inputText.value = '';
+    isSlashMenuDismissed.value = true;
+    autoResize();
+    return;
+  }
+
+  inputText.value = cmd.name + ' ';
+  isSlashMenuDismissed.value = true;
+  nextTick(() => {
+    if (inputRef.value) {
+      inputRef.value.focus();
+      const pos = inputText.value.length;
+      inputRef.value.setSelectionRange(pos, pos);
+    }
+    autoResize();
+  });
+}
 
 function openLimits() {
   isModelPopupOpen.value = false;
@@ -397,8 +557,14 @@ watch(
   }
 );
 
-function closeModelPopupOnDocumentClick() {
+function closeModelPopupOnDocumentClick(e?: MouseEvent) {
   isModelPopupOpen.value = false;
+  if (isSlashMenuOpen.value && e) {
+    const target = e.target as HTMLElement | null;
+    if (!target?.closest('.claude-slash-menu') && !target?.closest('.claude-ext-textarea')) {
+      isSlashMenuDismissed.value = true;
+    }
+  }
 }
 
 onMounted(() => {
@@ -420,6 +586,37 @@ function autoResize() {
 }
 
 function handleKeyDown(e: KeyboardEvent) {
+  if (isSlashMenuOpen.value) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeSlashIndex.value =
+        (activeSlashIndex.value + 1) % filteredSlashCommands.value.length;
+      scrollActiveSlashIntoView();
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeSlashIndex.value =
+        (activeSlashIndex.value - 1 + filteredSlashCommands.value.length) %
+        filteredSlashCommands.value.length;
+      scrollActiveSlashIntoView();
+      return;
+    }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      const selected = filteredSlashCommands.value[activeSlashIndex.value];
+      if (selected) {
+        selectSlashCommand(selected);
+      }
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      isSlashMenuDismissed.value = true;
+      return;
+    }
+  }
+
   if (e.key === 'Escape' && claudeStore.isGenerating) {
     e.preventDefault();
     handleStop();
@@ -485,10 +682,42 @@ async function handleSend() {
   if (!text || claudeStore.isGenerating) return;
 
   inputText.value = '';
+  isSlashMenuDismissed.value = false;
   if (inputRef.value) {
     inputRef.value.style.height = 'auto';
   }
   scrollToBottom();
+
+  if (text === '/clear') {
+    if (activeSession.value) {
+      await claudeStore.clearSession(activeSession.value.id);
+    }
+    return;
+  }
+  if (text === '/model') {
+    isModelPopupOpen.value = true;
+    return;
+  }
+  if (text.startsWith('/model ')) {
+    const requested = text.slice(7).trim().toLowerCase();
+    if (activeSession.value && requested) {
+      const match = claudeStore.availableModels.find(
+        (m) =>
+          m.id.toLowerCase().includes(requested) ||
+          m.label.toLowerCase().includes(requested)
+      );
+      if (match) {
+        claudeStore.updateSession(activeSession.value.id, { model: match.id });
+      } else {
+        claudeStore.updateSession(activeSession.value.id, { model: requested });
+      }
+    }
+    return;
+  }
+  if (text === '/usage' || text === '/status') {
+    claudeStore.isLimitsPopupOpen = true;
+    return;
+  }
 
   await claudeStore.sendMessage(text);
   scrollToBottom();
@@ -1043,11 +1272,103 @@ function showUsageToast() {
 
 /* Signature Input Box */
 .claude-ext-input-box {
+  position: relative;
   background: #1e1e24;
   border: 1px solid rgba(217, 119, 87, 0.55);
   border-radius: 12px;
   padding: 8px 10px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Slash Command Autocomplete Menu (Claude Design System) */
+.claude-slash-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: #18181d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(217, 119, 87, 0.15);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+}
+
+.claude-slash-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.claude-slash-item:hover,
+.claude-slash-item.active {
+  background: rgba(217, 119, 87, 0.15);
+}
+
+.slash-item-left {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.slash-item-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f4f4f5;
+}
+
+.claude-slash-item.active .slash-item-name {
+  color: #d97757;
+}
+
+.slash-item-arg {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: #71717a;
+}
+
+.slash-item-desc {
+  font-size: 11.5px;
+  color: #a1a1aa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+@media (max-width: 480px) {
+  .claude-slash-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 7px 9px;
+  }
+  .slash-item-desc {
+    text-align: left;
+    font-size: 11px;
+    color: #71717a;
+  }
 }
 
 .claude-ext-input-box.focused {

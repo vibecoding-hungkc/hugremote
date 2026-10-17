@@ -367,16 +367,25 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
-  async function clearMessages() {
-    const session = activeSession.value;
-    if (!session) return;
+  async function clearMessages(sessionId?: string) {
+    const targetId = sessionId || activeSession.value?.id;
+    if (!targetId) return;
+
+    // Immediately clear in-memory state for instant UI response
+    const session = sessions.value.find((s) => s.id === targetId);
+    if (session) {
+      session.messages = [];
+      session.contextTokens = '0';
+      session.updatedAt = Date.now();
+    }
+
     try {
-      const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(session.id)}/clear`), {
+      const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(targetId)}/clear`), {
         method: 'POST',
       });
       const data = await res.json();
       if (data.session) {
-        const idx = sessions.value.findIndex((s) => s.id === session.id);
+        const idx = sessions.value.findIndex((s) => s.id === targetId);
         if (idx !== -1) {
           sessions.value[idx] = data.session;
         }
@@ -485,6 +494,7 @@ export const useClaudeStore = defineStore('claude', () => {
     sendMessage,
     cancelGeneration,
     clearMessages,
+    clearSession: clearMessages,
     fetchLimits,
     updateLimits,
     fetchModels,

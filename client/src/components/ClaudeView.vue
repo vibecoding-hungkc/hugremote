@@ -1,5 +1,13 @@
 <template>
   <div class="claude-extension-container">
+    <!-- Floating Action Toast Notification -->
+    <transition name="claude-toast-fade">
+      <div v-if="actionToast" class="claude-action-toast" :class="actionToast.type">
+        <i :class="actionToast.icon || 'ri-checkbox-circle-fill'"></i>
+        <span>{{ actionToast.message }}</span>
+      </div>
+    </transition>
+
     <!-- 1. Stream of messages -->
     <div class="claude-ext-stream" ref="streamRef">
       <!-- Empty State: Centered Claude Code Logo (Matching Image 3) -->
@@ -301,6 +309,10 @@
 
     <!-- Mobile Claude shortcut bar: between chat composer and bottom dock -->
     <div class="claude-shortcut-bar">
+      <button type="button" class="claude-shortcut-key" title="Xoá sạch hội thoại" @click="inputText = '/clear'; handleSend()">
+        <span>/clear</span>
+        <small>Dọn dẹp</small>
+      </button>
       <button type="button" class="claude-shortcut-key" title="Chạy /init để khởi tạo dự án" @click="inputText = '/init'; handleSend()">
         <span>/init</span>
         <small>Khởi tạo</small>
@@ -346,6 +358,24 @@ const inputText = ref('');
 const isInputFocused = ref(false);
 const usageWarning = ref<string | null>(null);
 const isModelPopupOpen = ref(false);
+
+const actionToast = ref<{ message: string; icon?: string; type?: 'success' | 'info' } | null>(null);
+let toastTimer: any = null;
+
+function showActionToast(message: string, icon = 'ri-checkbox-circle-fill', type: 'success' | 'info' = 'success') {
+  if (toastTimer) clearTimeout(toastTimer);
+  actionToast.value = { message, icon, type };
+  toastTimer = setTimeout(() => {
+    actionToast.value = null;
+  }, 3500);
+}
+
+async function executeClearSession() {
+  if (activeSession.value) {
+    await claudeStore.clearMessages(activeSession.value.id);
+    showActionToast('🧹 Đã xóa sạch lịch sử hội thoại của phiên này.');
+  }
+}
 
 interface SlashCommandDef {
   name: string;
@@ -740,10 +770,8 @@ async function handleSend() {
     claudeStore.isLimitsPopupOpen = true;
     return;
   }
-  if (text === '/clear') {
-    if (activeSession.value) {
-      await claudeStore.clearSession(activeSession.value.id);
-    }
+  if (text === '/clear' || text.startsWith('/clear ')) {
+    await executeClearSession();
     return;
   }
   if (text === '/model') {
@@ -760,7 +788,9 @@ async function handleSend() {
       );
       const targetModel = match ? match.id : requested;
       claudeStore.updateSession(activeSession.value.id, { model: targetModel });
-      addLocalExchange(text, `🤖 Đã chuyển model sang **${match?.label || targetModel}**.`);
+      const label = match?.label || targetModel;
+      showActionToast(`🤖 Đã chuyển sang model ${label}`);
+      addLocalExchange(text, `🤖 Đã chuyển model sang **${label}**.`);
     }
     return;
   }
@@ -813,6 +843,9 @@ async function handleSend() {
   if (text === '/permissions') {
     await toggleBypassPermissions();
     const isBypass = activeSession.value?.bypassPermissions;
+    showActionToast(
+      isBypass ? '🛡️ Đã BẬT bỏ qua hỏi quyền' : '🛡️ Đã TẮT bỏ qua hỏi quyền'
+    );
     addLocalExchange(
       '/permissions',
       `🛡️ Chế độ bỏ qua hỏi quyền (Bypass Permissions) hiện đang **${isBypass ? 'BẬT' : 'TẮT'}**.`
@@ -1757,6 +1790,48 @@ function showUsageToast() {
 @keyframes fadeInLogo {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Floating Action Toast Notification */
+.claude-action-toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(24, 24, 29, 0.95);
+  border: 1px solid rgba(217, 119, 87, 0.45);
+  border-radius: 20px;
+  color: #f5f5f7;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 14px rgba(217, 119, 87, 0.25);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.claude-action-toast i {
+  color: #d97757;
+  font-size: 15px;
+}
+
+.claude-toast-fade-enter-active,
+.claude-toast-fade-leave-active {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.claude-toast-fade-enter-from {
+  opacity: 0;
+  transform: translate(-50%, -12px) scale(0.95);
+}
+
+.claude-toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -8px) scale(0.98);
 }
 
 </style>

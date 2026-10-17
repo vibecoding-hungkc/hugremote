@@ -131,12 +131,12 @@
           <span class="current-task-spinner"></span>
           <div class="current-task-copy">
             <span class="current-task-label">{{ currentLiveTask.label }}</span>
-            <span class="current-task-title">{{ currentLiveTask.title }}</span>
+            <span v-if="currentLiveTask.title" class="current-task-title">{{ currentLiveTask.title }}</span>
           </div>
         </div>
         <div class="current-task-meta">
-          <span>{{ currentLiveTask.phase }}</span>
-          <span>·</span>
+          <span v-if="currentLiveTask.phase">{{ currentLiveTask.phase }}</span>
+          <span v-if="currentLiveTask.phase">·</span>
           <span>{{ elapsedSeconds }}s</span>
         </div>
       </div>
@@ -366,7 +366,7 @@ const currentLiveTask = computed(() => {
     return { title: cleanTitle, label, phase };
   }
 
-  return { title: t('claudeView.analyzingCodebase'), label: 'Thinking', phase: 'Thinking' };
+  return { title: '', label: 'Thinking…', phase: '' };
 });
 
 watch(() => claudeStore.isGenerating, (running) => {

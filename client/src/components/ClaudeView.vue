@@ -49,10 +49,10 @@
                     <i v-else class="ri-check-line thinking-complete-icon"></i>
                     <span>{{ msg.isThinking ? t('claudeView.thinkingActive') : t('claudeView.thinkingDone') }}</span>
                   </span>
-                  <i :class="msg.isThinkingExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'"></i>
+                  <i v-if="msg.thinking" :class="msg.isThinkingExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'"></i>
                 </button>
-                <div v-if="msg.isThinkingExpanded" class="claude-thinking-content">
-                  {{ msg.thinking || t('claudeView.thinkingFallback') }}
+                <div v-if="msg.isThinkingExpanded && msg.thinking" class="claude-thinking-content">
+                  {{ msg.thinking }}
                 </div>
               </div>
 

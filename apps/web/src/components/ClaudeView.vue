@@ -861,14 +861,17 @@ async function handleSend() {
   if (text.startsWith('/model ')) {
     const requested = text.slice(7).trim().toLowerCase();
     if (activeSession.value && requested) {
-      const match = claudeStore.availableModels.find(
+      const curServerId = activeSession.value.serverId || serverStore.currentServerId || 'server-local';
+      const serverModels = claudeStore.modelsByServer[curServerId] || claudeStore.availableModels;
+      const match = serverModels.find(
         (m) =>
           m.id.toLowerCase().includes(requested) ||
-          m.label.toLowerCase().includes(requested)
+          m.title.toLowerCase().includes(requested) ||
+          m.prefix.toLowerCase().includes(requested)
       );
-      const targetModel = match ? match.id : requested;
+      const targetModel = match ? `${match.prefix} Medium` : requested;
       claudeStore.updateSession(activeSession.value.id, { model: targetModel });
-      const label = match?.label || targetModel;
+      const label = match?.title || targetModel;
       showActionToast(`🤖 Đã chuyển sang model ${label}`);
       addLocalExchange(text, `🤖 Đã chuyển model sang **${label}**.`);
     }

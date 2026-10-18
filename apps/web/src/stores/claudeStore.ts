@@ -85,6 +85,9 @@ export const useClaudeStore = defineStore('claude', () => {
 
   async function fetchSessions(serverId?: string) {
     const sId = serverId || serverStore.currentServer.id;
+    if (!modelsByServer.value[sId]) {
+      fetchModels(sId).catch(() => {});
+    }
     try {
       const projectId = currentProjectId.value;
       const defaultCwd = currentProjectRoot.value;
@@ -168,12 +171,13 @@ export const useClaudeStore = defineStore('claude', () => {
     bypassPermissions = false
   ) {
     const sId = serverStore.currentServer.id;
+    const defaultModel = defaultModelByServer.value[sId] ? `${defaultModelByServer.value[sId]} Medium` : 'Default Medium';
     const body = {
       serverId: sId,
       name: name || 'chat',
       projectId: projectStore.currentProject?.id || '',
       cwd: cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~',
-      model: model || 'Default Medium',
+      model: model || defaultModel,
       mode: mode || 'Auto',
       initialPrompt,
       bypassPermissions,
@@ -636,9 +640,18 @@ export const useClaudeStore = defineStore('claude', () => {
       if (!res.ok) throw new Error('Failed to fetch models');
       const data = await res.json();
       if (data && Array.isArray(data.models)) {
-        modelsByServer.value[sId] = data.models;
-        modelSourceByServer.value[sId] = data.source || 'fallback';
-        defaultModelByServer.value[sId] = data.defaultModel || 'default';
+        modelsByServer.value = {
+          ...modelsByServer.value,
+          [sId]: data.models,
+        };
+        modelSourceByServer.value = {
+          ...modelSourceByServer.value,
+          [sId]: data.source || 'fallback',
+        };
+        defaultModelByServer.value = {
+          ...defaultModelByServer.value,
+          [sId]: data.defaultModel || 'default',
+        };
       }
       return data;
     } catch (err) {
@@ -648,9 +661,18 @@ export const useClaudeStore = defineStore('claude', () => {
         defaultModel: 'Sonnet 5.5',
         models: defaultFallbackModels,
       };
-      modelsByServer.value[sId] = fallback.models;
-      modelSourceByServer.value[sId] = fallback.source;
-      defaultModelByServer.value[sId] = fallback.defaultModel;
+      modelsByServer.value = {
+        ...modelsByServer.value,
+        [sId]: fallback.models,
+      };
+      modelSourceByServer.value = {
+        ...modelSourceByServer.value,
+        [sId]: fallback.source,
+      };
+      defaultModelByServer.value = {
+        ...defaultModelByServer.value,
+        [sId]: fallback.defaultModel,
+      };
       return fallback;
     } finally {
       isLoadingModels.value = false;

@@ -224,7 +224,10 @@ async function handleScopeChanged() {
   fileStore.closeActiveFile();
   await fileStore.fetchFiles('');
   terminalStore.ensureServerSession();
-  await claudeStore.ensureProjectSession();
+  await Promise.all([
+    claudeStore.fetchModels(serverStore.currentServerId),
+    claudeStore.ensureProjectSession(),
+  ]);
   await gitStore.fetchStatus();
 }
 

@@ -231,6 +231,15 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => targetServerId.value,
+  (newId) => {
+    if (newId) {
+      claudeStore.fetchModels(newId);
+    }
+  }
+);
+
 function suggestName(pathStr: string) {
   const clean = (pathStr || '').replace(/\/+$/, '').trim();
   if (!clean) {

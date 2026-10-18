@@ -23,7 +23,10 @@ export function useAppBootstrap() {
     await projectStore.fetchProjects(serverStore.currentServerId);
     await fileStore.fetchFiles('');
     terminalStore.ensureServerSession();
-    await claudeStore.ensureProjectSession();
+    await Promise.all([
+      claudeStore.fetchModels(serverStore.currentServerId),
+      claudeStore.ensureProjectSession(),
+    ]);
     await gitStore.fetchStatus();
   }
 

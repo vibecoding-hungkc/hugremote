@@ -42,6 +42,7 @@ export const useClaudeStore = defineStore('claude', () => {
   const sessions = ref<ClaudeSession[]>([]);
   const activeSessionId = ref<string>('');
   const isGenerating = ref<boolean>(false);
+  const isReconnecting = ref<boolean>(false);
   const compactTaskMode = ref<boolean>(localStorage.getItem('hugcode_claude_compact_task_mode') === 'true');
   const isLimitsPopupOpen = ref<boolean>(false);
   const limits = ref<ClaudeLimits>({
@@ -112,6 +113,16 @@ export const useClaudeStore = defineStore('claude', () => {
           } else if (!activeSessionId.value || !currentList.some((s: ClaudeSession) => s.id === activeSessionId.value)) {
             activeSessionId.value = currentList[0].id;
             storeActiveSessionId(currentList[0].id, sId, projectId);
+          }
+        }
+
+        // Auto-attach if active session is currently running in background on server
+        const curActive = activeSession.value;
+        if (curActive && curActive.isRunning && !isGenerating.value) {
+          const lastMsg = curActive.messages[curActive.messages.length - 1];
+          if (lastMsg && lastMsg.sender === 'assistant' && lastMsg.isWorking) {
+            isGenerating.value = true;
+            reconnectToBackgroundStream(curActive.id, lastMsg);
           }
         }
       }
@@ -221,6 +232,159 @@ export const useClaudeStore = defineStore('claude', () => {
     localStorage.setItem('hugcode_claude_compact_task_mode', compactTaskMode.value ? 'true' : 'false');
   }
 
+  function applyStreamEvent(event: any, reactiveMsg: ClaudeMessage, session: ClaudeSession) {
+    switch (event.type) {
+      case 'sync':
+        if (event.liveMessage) {
+          reactiveMsg.id = event.liveMessage.id || reactiveMsg.id;
+          if (event.liveMessage.text) reactiveMsg.text = event.liveMessage.text;
+          if (event.liveMessage.thinking) reactiveMsg.thinking = event.liveMessage.thinking;
+          reactiveMsg.isThinking = Boolean(event.liveMessage.isThinking);
+          reactiveMsg.isWorking = event.liveMessage.isWorking !== false;
+          if (Array.isArray(event.liveMessage.tools)) {
+            reactiveMsg.tools = event.liveMessage.tools;
+          }
+        }
+        if (event.status === 'done' || event.status === 'cancelled') {
+          reactiveMsg.isThinking = false;
+          reactiveMsg.isWorking = false;
+          isGenerating.value = false;
+        }
+        if (event.contextTokens) session.contextTokens = event.contextTokens;
+        break;
+      case 'thinking_start':
+        reactiveMsg.isThinking = true;
+        reactiveMsg.isThinkingExpanded = true;
+        break;
+      case 'thinking':
+        reactiveMsg.isThinking = true;
+        reactiveMsg.thinking = (reactiveMsg.thinking || '') + (event.text || '');
+        break;
+      case 'tool_use':
+        reactiveMsg.isThinking = false;
+        reactiveMsg.tools = reactiveMsg.tools || [];
+        reactiveMsg.tools.push({
+          ...event.tool,
+          isExpanded: event.tool?.type === 'bash' ? false : undefined,
+        });
+        break;
+      case 'tool_result': {
+        reactiveMsg.tools = reactiveMsg.tools || [];
+        const tool = reactiveMsg.tools.find((t) => t.id === event.tool_use_id);
+        if (tool) {
+          tool.output = event.output;
+          tool.status = event.status || 'done';
+        }
+        break;
+      }
+      case 'text_delta':
+        reactiveMsg.isThinking = false;
+        reactiveMsg.text = (reactiveMsg.text || '') + (event.text || '');
+        break;
+      case 'done':
+        reactiveMsg.isThinking = false;
+        reactiveMsg.isWorking = false;
+        reactiveMsg.tools?.forEach((tool) => {
+          if (!tool.status || tool.status === 'running') tool.status = 'error';
+        });
+        if (event.text) reactiveMsg.text = event.text;
+        if (event.contextTokens) session.contextTokens = event.contextTokens;
+        break;
+      case 'finish':
+        reactiveMsg.isThinking = false;
+        reactiveMsg.isWorking = false;
+        if (event.assistantMessage) {
+          reactiveMsg.id = event.assistantMessage.id || reactiveMsg.id;
+          reactiveMsg.text = event.assistantMessage.text || reactiveMsg.text;
+          reactiveMsg.thinking = event.assistantMessage.thinking || reactiveMsg.thinking;
+          reactiveMsg.tools = event.assistantMessage.tools || reactiveMsg.tools;
+        }
+        reactiveMsg.tools?.forEach((tool) => {
+          if (!tool.status || tool.status === 'running') tool.status = 'error';
+        });
+        if (event.contextTokens) session.contextTokens = event.contextTokens;
+        break;
+      case 'error':
+        reactiveMsg.isThinking = false;
+        reactiveMsg.isWorking = false;
+        reactiveMsg.tools?.forEach((tool) => {
+          if (!tool.status || tool.status === 'running') tool.status = 'error';
+        });
+        reactiveMsg.text = event.error || 'Lỗi từ Claude Agent.';
+        break;
+    }
+  }
+
+  async function reconnectToBackgroundStream(sessionId: string, reactiveMsg: ClaudeMessage, maxRetries = 15) {
+    const session = sessions.value.find((s) => s.id === sessionId);
+    if (!session) return;
+    isReconnecting.value = true;
+
+    let retryCount = 0;
+    while (retryCount < maxRetries && isGenerating.value) {
+      try {
+        const streamUrl = apiUrl(`/api/claude/sessions/${encodeURIComponent(sessionId)}/stream`);
+        const res = await fetch(streamUrl);
+        if (!res.ok || !res.body) {
+          throw new Error(`Reconnection status ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let completed = false;
+
+        // Connected to stream!
+        isReconnecting.value = false;
+
+        while (!completed) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const dataLine = block.split('\n').find((l) => l.startsWith('data: '));
+            if (!dataLine) continue;
+            const raw = dataLine.slice(6).trim();
+            if (!raw) continue;
+            if (raw === '[DONE]') {
+              completed = true;
+              break;
+            }
+            try {
+              const event = JSON.parse(raw);
+              applyStreamEvent(event, reactiveMsg, session);
+              if (event.type === 'finish' || event.type === 'done' || event.type === 'error') {
+                completed = true;
+              }
+            } catch (_) {}
+          }
+        }
+
+        if (completed) {
+          isGenerating.value = false;
+          reactiveMsg.isWorking = false;
+          reactiveMsg.isThinking = false;
+          await fetchSessions(session.serverId);
+          return;
+        }
+      } catch (err) {
+        retryCount++;
+        isReconnecting.value = true;
+        const delay = Math.min(5000, 1000 + retryCount * 800);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    isReconnecting.value = false;
+    isGenerating.value = false;
+    reactiveMsg.isWorking = false;
+    reactiveMsg.isThinking = false;
+    await fetchSessions(session.serverId);
+  }
+
   async function sendMessage(prompt: string) {
     if (!prompt.trim() || isGenerating.value) return;
 
@@ -277,8 +441,9 @@ export const useClaudeStore = defineStore('claude', () => {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let completed = false;
 
-      while (true) {
+      while (!completed) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
@@ -298,82 +463,26 @@ export const useClaudeStore = defineStore('claude', () => {
             continue;
           }
 
-          switch (event.type) {
-            case 'thinking_start':
-              reactiveMsg.isThinking = true;
-              reactiveMsg.isThinkingExpanded = true;
-              break;
-            case 'thinking':
-              reactiveMsg.isThinking = true;
-              reactiveMsg.thinking = (reactiveMsg.thinking || '') + (event.text || '');
-              break;
-            case 'tool_use':
-              reactiveMsg.isThinking = false;
-              reactiveMsg.tools = reactiveMsg.tools || [];
-              reactiveMsg.tools.push({
-                ...event.tool,
-                isExpanded: event.tool?.type === 'bash' ? false : undefined,
-              });
-              break;
-            case 'tool_result': {
-              reactiveMsg.tools = reactiveMsg.tools || [];
-              const tool = reactiveMsg.tools.find((t) => t.id === event.tool_use_id);
-              if (tool) {
-                tool.output = event.output;
-                tool.status = event.status || 'done';
-              }
-              break;
-            }
-            case 'text_delta':
-              reactiveMsg.isThinking = false;
-              reactiveMsg.text = (reactiveMsg.text || '') + (event.text || '');
-              break;
-            case 'done':
-              reactiveMsg.isThinking = false;
-              reactiveMsg.isWorking = false;
-              reactiveMsg.tools?.forEach((tool) => {
-                if (!tool.status || tool.status === 'running') tool.status = 'error';
-              });
-              if (event.text) reactiveMsg.text = event.text;
-              if (event.contextTokens) session.contextTokens = event.contextTokens;
-              break;
-            case 'finish':
-              reactiveMsg.isThinking = false;
-              reactiveMsg.isWorking = false;
-              if (event.assistantMessage) {
-                reactiveMsg.id = event.assistantMessage.id || reactiveMsg.id;
-                reactiveMsg.text = event.assistantMessage.text || reactiveMsg.text;
-                reactiveMsg.thinking = event.assistantMessage.thinking || reactiveMsg.thinking;
-                reactiveMsg.tools = event.assistantMessage.tools || reactiveMsg.tools;
-              }
-              reactiveMsg.tools?.forEach((tool) => {
-                if (!tool.status || tool.status === 'running') tool.status = 'error';
-              });
-              break;
-            case 'error':
-              reactiveMsg.isThinking = false;
-              reactiveMsg.isWorking = false;
-              reactiveMsg.tools?.forEach((tool) => {
-                if (!tool.status || tool.status === 'running') tool.status = 'error';
-              });
-              reactiveMsg.text = event.error || 'Lỗi từ Claude Agent.';
-              break;
+          applyStreamEvent(event, reactiveMsg, session);
+          if (event.type === 'finish' || event.type === 'done' || event.type === 'error') {
+            completed = true;
           }
         }
       }
 
-      // Refresh canonical session after stream persistence completes
-      await fetchSessions(session.serverId);
+      if (completed) {
+        isGenerating.value = false;
+        await fetchSessions(session.serverId);
+        return;
+      }
     } catch (err) {
-      console.error('sendClaudeMessage stream error:', err);
-      reactiveMsg.isThinking = false;
-      reactiveMsg.isWorking = false;
-      reactiveMsg.tools?.forEach((tool) => {
-        if (!tool.status || tool.status === 'running') tool.status = 'error';
-      });
-      reactiveMsg.text = 'Lỗi kết nối tới Claude Agent. Vui lòng thử lại.';
+      console.warn('sendClaudeMessage stream disconnected. Attempting resilient reconnection...', err);
+      // Background execution continues on server, reconnect to background stream!
+      await reconnectToBackgroundStream(session.id, reactiveMsg);
     } finally {
-      isGenerating.value = false;
+      if (!isReconnecting.value) {
+        isGenerating.value = false;
+      }
     }
   }
 
@@ -718,6 +827,7 @@ export const useClaudeStore = defineStore('claude', () => {
     renameProjectSession,
     deleteProjectSession,
     isGenerating,
+    isReconnecting,
     compactTaskMode,
     toggleCompactTaskMode,
     isLimitsPopupOpen,

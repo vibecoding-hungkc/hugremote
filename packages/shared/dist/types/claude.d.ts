@@ -63,5 +63,6 @@ export interface ClaudeSession {
     updatedAt: number;
     createdAt?: number;
     cliSessionId?: string;
+    isRunning?: boolean;
 }
 //# sourceMappingURL=claude.d.ts.map

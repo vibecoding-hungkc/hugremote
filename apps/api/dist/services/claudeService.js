@@ -48,6 +48,7 @@ function shellEscape(arg) {
 export class ClaudeService {
     sessions = new Map();
     activeProcesses = new Map();
+    activeTasks = new Map();
     cancelledSessions = new Set();
     limits = {
         fiveHour: {
@@ -151,6 +152,13 @@ export class ClaudeService {
             console.error('Failed to save claude sessions to disk:', e);
         }
     }
+    getTask(sessionId) {
+        return this.activeTasks.get(sessionId);
+    }
+    isTaskRunning(sessionId) {
+        const task = this.activeTasks.get(sessionId);
+        return task?.status === 'running';
+    }
     getSessionsForServer(serverId, defaultCwd = '', projectId = '') {
         const normDefaultCwd = defaultCwd ? path.resolve(defaultCwd) : '';
         const list = Array.from(this.sessions.values()).filter((s) => {
@@ -164,10 +172,21 @@ export class ClaudeService {
                 return true;
             return false;
         });
-        return list.sort((a, b) => b.updatedAt - a.updatedAt);
+        return list
+            .map((s) => ({
+            ...s,
+            isRunning: this.isTaskRunning(s.id),
+        }))
+            .sort((a, b) => b.updatedAt - a.updatedAt);
     }
     getSession(id) {
-        return this.sessions.get(id);
+        const s = this.sessions.get(id);
+        if (!s)
+            return undefined;
+        return {
+            ...s,
+            isRunning: this.isTaskRunning(s.id),
+        };
     }
     createSession(serverId, projectIdOrName, nameOrCwd, cwdOrModel, modelOrMode = 'Sonnet 5.5 Medium', modeOrInitialPrompt = 'Auto', initialPromptOrBypass, bypassPermissions = false) {
         let projectId = projectIdOrName;
@@ -1188,6 +1207,30 @@ export class ClaudeService {
         };
     }
     cancelRun(sessionId) {
+        const task = this.activeTasks.get(sessionId);
+        if (task && task.status === 'running') {
+            task.status = 'cancelled';
+            task.liveMessage.isWorking = false;
+            task.liveMessage.isThinking = false;
+            task.liveMessage.text = task.liveMessage.text
+                ? (task.liveMessage.text + '\n\n[Đã dừng yêu cầu]')
+                : 'Đã dừng yêu cầu.';
+            const session = this.sessions.get(sessionId);
+            if (session) {
+                const idx = session.messages.findIndex((m) => m.id === task.liveMessage.id);
+                if (idx !== -1) {
+                    session.messages[idx] = { ...task.liveMessage };
+                }
+                this.saveSessions();
+            }
+            const doneEvt = { type: 'done', text: task.liveMessage.text };
+            for (const listener of task.listeners) {
+                try {
+                    listener(doneEvt);
+                }
+                catch (_) { }
+            }
+        }
         const child = this.activeProcesses.get(sessionId);
         if (!child)
             return false;
@@ -1278,6 +1321,141 @@ export class ClaudeService {
                 return killed;
             },
         };
+    }
+    startBackgroundPrompt(session, userPrompt) {
+        const existing = this.activeTasks.get(session.id);
+        if (existing && existing.status === 'running') {
+            return existing;
+        }
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const liveAsstMsg = {
+            id: `msg-${Date.now()}-a`,
+            sender: 'assistant',
+            text: '',
+            thinking: '',
+            isThinking: true,
+            isWorking: true,
+            isThinkingExpanded: true,
+            tools: [],
+            time: timeStr,
+        };
+        session.messages.push(liveAsstMsg);
+        session.updatedAt = Date.now();
+        this.saveSessions();
+        const task = {
+            sessionId: session.id,
+            userPrompt,
+            status: 'running',
+            startTime: Date.now(),
+            liveMessage: liveAsstMsg,
+            events: [],
+            listeners: new Set(),
+        };
+        this.activeTasks.set(session.id, task);
+        const onEvent = (event) => {
+            if (event.type === 'thinking_start') {
+                task.liveMessage.isThinking = true;
+                task.liveMessage.isThinkingExpanded = true;
+            }
+            else if (event.type === 'thinking') {
+                task.liveMessage.thinking = (task.liveMessage.thinking || '') + (event.text || '');
+            }
+            else if (event.type === 'tool_use') {
+                task.liveMessage.isThinking = false;
+                task.liveMessage.tools = task.liveMessage.tools || [];
+                task.liveMessage.tools.push(event.tool);
+            }
+            else if (event.type === 'tool_result') {
+                const found = task.liveMessage.tools?.find((t) => t.id === event.tool_use_id);
+                if (found) {
+                    found.output = event.output;
+                    found.status = event.status;
+                }
+            }
+            else if (event.type === 'text_delta') {
+                task.liveMessage.isThinking = false;
+                task.liveMessage.text = (task.liveMessage.text || '') + (event.text || '');
+            }
+            else if (event.type === 'done') {
+                task.liveMessage.isThinking = false;
+                task.liveMessage.isWorking = false;
+                if (event.text) {
+                    task.liveMessage.text = event.text;
+                }
+            }
+            task.events.push(event);
+            if (task.events.length > 1000) {
+                task.events.shift();
+            }
+            for (const listener of task.listeners) {
+                try {
+                    listener(event);
+                }
+                catch (_) { }
+            }
+        };
+        task.promise = this.streamClaudePrompt(session, userPrompt, onEvent)
+            .then((finalResult) => {
+            task.status = 'done';
+            task.liveMessage.isWorking = false;
+            task.liveMessage.isThinking = false;
+            if (finalResult.text) {
+                task.liveMessage.text = finalResult.text;
+            }
+            if (finalResult.thinking) {
+                task.liveMessage.thinking = finalResult.thinking;
+            }
+            if (finalResult.tools) {
+                task.liveMessage.tools = finalResult.tools;
+            }
+            const idx = session.messages.findIndex((m) => m.id === liveAsstMsg.id);
+            if (idx !== -1) {
+                session.messages[idx] = { ...task.liveMessage };
+            }
+            session.updatedAt = Date.now();
+            this.saveSessions();
+            const finishEvent = {
+                type: 'finish',
+                assistantMessage: task.liveMessage,
+                contextTokens: session.contextTokens,
+            };
+            for (const listener of task.listeners) {
+                try {
+                    listener(finishEvent);
+                }
+                catch (_) { }
+            }
+            return finalResult;
+        })
+            .catch((err) => {
+            task.status = 'error';
+            task.liveMessage.isWorking = false;
+            task.liveMessage.isThinking = false;
+            task.liveMessage.text = `Lỗi thực thi: ${err.message || err}`;
+            const idx = session.messages.findIndex((m) => m.id === liveAsstMsg.id);
+            if (idx !== -1) {
+                session.messages[idx] = { ...task.liveMessage };
+            }
+            session.updatedAt = Date.now();
+            this.saveSessions();
+            const errEvent = { type: 'error', error: err.message || err };
+            for (const listener of task.listeners) {
+                try {
+                    listener(errEvent);
+                }
+                catch (_) { }
+            }
+            return { text: task.liveMessage.text };
+        })
+            .finally(() => {
+            setTimeout(() => {
+                if (this.activeTasks.get(session.id) === task) {
+                    this.activeTasks.delete(session.id);
+                }
+            }, 10 * 60 * 1000);
+        });
+        return task;
     }
     async streamClaudePrompt(session, userPrompt, onEvent) {
         const server = session.serverId ? this.serverConfigResolver(session.serverId) : undefined;
@@ -1435,7 +1613,23 @@ export class ClaudeService {
             args.push('--dangerously-skip-permissions');
         }
         if (session.cliSessionId) {
-            args.push('--resume', session.cliSessionId);
+            let cliExists = true;
+            if (!isRemote) {
+                const pdir = this.resolveClaudeProjectDir(session.cwd || process.cwd());
+                if (pdir) {
+                    const jsonlFile = path.join(pdir, `${session.cliSessionId}.jsonl`);
+                    if (!fs.existsSync(jsonlFile)) {
+                        cliExists = false;
+                    }
+                }
+            }
+            if (cliExists) {
+                args.push('--resume', session.cliSessionId);
+            }
+            else {
+                session.cliSessionId = undefined;
+                this.saveSessions();
+            }
         }
         let handle;
         try {

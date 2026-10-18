@@ -68,4 +68,5 @@ export interface ClaudeSession {
   updatedAt: number;
   createdAt?: number;
   cliSessionId?: string;
+  isRunning?: boolean;
 }

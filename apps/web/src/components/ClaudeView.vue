@@ -157,6 +157,12 @@
         </div>
       </div>
 
+      <!-- Background execution / Reconnecting banner -->
+      <div v-if="claudeStore.isReconnecting" class="claude-reconnecting-banner">
+        <i class="ri-loader-4-line ri-spin"></i>
+        <span>Claude đang chạy nền trên máy chủ • Đang đồng bộ phản hồi...</span>
+      </div>
+
     </div>
 
     <!-- 2. Bottom Controls & Signature Input Box -->
@@ -1189,6 +1195,22 @@ function showUsageToast() {
   word-break: break-all;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.claude-reconnecting-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px auto;
+  padding: 6px 14px;
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 20px;
+  color: #facc15;
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: currentTaskIn 0.2s ease;
 }
 
 /* Tool Cards */

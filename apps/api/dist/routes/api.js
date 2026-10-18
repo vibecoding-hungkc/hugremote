@@ -360,35 +360,102 @@ export const apiRoutes = async (fastify) => {
             time: timeStr,
         };
         claudeService.addMessage(id, userMsg);
+        const task = claudeService.startBackgroundPrompt(session, prompt.trim());
         const sendEvent = (data) => {
             try {
                 reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
             }
             catch (_) { }
         };
-        try {
-            const result = await claudeService.streamClaudePrompt(session, prompt.trim(), (ev) => {
-                sendEvent(ev);
+        // Send initial sync state
+        sendEvent({
+            type: 'sync',
+            status: task.status,
+            liveMessage: task.liveMessage,
+            contextTokens: session.contextTokens,
+        });
+        if (task.status !== 'running') {
+            reply.raw.write('data: [DONE]\n\n');
+            return reply.raw.end();
+        }
+        const listener = (event) => {
+            sendEvent(event);
+            if (event.type === 'finish' || event.type === 'error' || (event.type === 'done' && task.status !== 'running')) {
+                try {
+                    reply.raw.write('data: [DONE]\n\n');
+                    reply.raw.end();
+                }
+                catch (_) { }
+            }
+        };
+        task.listeners.add(listener);
+        request.raw.on('close', () => {
+            task.listeners.delete(listener);
+            // NOTE: Do not kill background execution, allows mobile browser to reconnect!
+        });
+    });
+    fastify.get('/api/claude/sessions/:id/stream', async (request, reply) => {
+        const { id } = request.params;
+        const session = claudeService.getSession(id);
+        if (!session)
+            return reply.status(404).send({ error: 'Session not found' });
+        reply.raw.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
+        reply.raw.setHeader('Connection', 'keep-alive');
+        reply.raw.setHeader('X-Accel-Buffering', 'no');
+        reply.raw.flushHeaders?.();
+        const sendEvent = (data) => {
+            try {
+                reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+            }
+            catch (_) { }
+        };
+        const task = claudeService.getTask(id);
+        if (!task || task.status !== 'running') {
+            const lastMsg = session.messages[session.messages.length - 1];
+            sendEvent({
+                type: 'sync',
+                status: task?.status || 'done',
+                liveMessage: task?.liveMessage || lastMsg,
+                contextTokens: session.contextTokens,
             });
-            // Add assistant message to session
-            const asstMsg = {
-                id: `msg-${Date.now()}-a`,
-                sender: 'assistant',
-                text: result.text,
-                time: timeStr,
-                thinking: result.thinking,
-                tools: result.tools,
-            };
-            claudeService.addMessage(id, asstMsg, session.contextTokens);
-            sendEvent({ type: 'finish', userMessage: userMsg, assistantMessage: asstMsg });
+            reply.raw.write('data: [DONE]\n\n');
+            return reply.raw.end();
         }
-        catch (err) {
-            sendEvent({ type: 'error', error: err.message || 'Stream error' });
+        // Send initial snapshot of live background message
+        sendEvent({
+            type: 'sync',
+            status: task.status,
+            liveMessage: task.liveMessage,
+            contextTokens: session.contextTokens,
+        });
+        const listener = (event) => {
+            sendEvent(event);
+            if (event.type === 'finish' || event.type === 'error' || (event.type === 'done' && task.status !== 'running')) {
+                try {
+                    reply.raw.write('data: [DONE]\n\n');
+                    reply.raw.end();
+                }
+                catch (_) { }
+            }
+        };
+        task.listeners.add(listener);
+        request.raw.on('close', () => {
+            task.listeners.delete(listener);
+        });
+    });
+    fastify.get('/api/claude/sessions/:id/task', async (request, reply) => {
+        const { id } = request.params;
+        const task = claudeService.getTask(id);
+        if (!task) {
+            return { isRunning: false };
         }
-        finally {
-            reply.raw.write(`data: [DONE]\n\n`);
-            reply.raw.end();
-        }
+        return {
+            isRunning: task.status === 'running',
+            status: task.status,
+            startTime: task.startTime,
+            liveMessage: task.liveMessage,
+        };
     });
     fastify.post('/api/claude/sessions/:id/cancel', async (request) => {
         const cancelled = claudeService.cancelRun(request.params.id);

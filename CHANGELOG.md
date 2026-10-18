@@ -1,30 +1,46 @@
 # 📋 Changelog — HugRemote
- 
- 
-+## [v1.3.0] - 2026-10-18
-+
-+### 🏗️ Kiến trúc Fullstack Monorepo (`nodejs-fullstack-structure`)
-+- **Tái cấu trúc Monorepo phân tách ranh giới rõ ràng**:
-+  - `apps/api`: Backend Fastify độc lập (`@hugremote/api`), tách biệt `app.ts` (`createApp`) và `main.ts` (`startServer`), module hóa cấu hình và dịch vụ.
-+  - `apps/web`: Frontend Vue 3 + Vite (`@hugremote/web`), phụ thuộc kiểu dữ liệu dùng chung và xuất bản tĩnh sang `apps/api/public`.
-+  - `packages/shared`: Thư viện hợp đồng và kiểu dữ liệu dùng chung (`@hugremote/shared`), chuẩn hóa models universal (`ClaudeSession`, `ClaudeMessage`, `ServerItem`, `TerminalSessionInfo`,...).
-+  - Thiết lập quản lý workspace đồng thời qua `pnpm-workspace.yaml` và npm workspaces.
-+  - Duy trì tương thích ngược 100% qua symlink `client -> apps/web`, `server -> apps/api` và CLI `bin/hugremote.js`.
-+
-+### 🧭 Path Router cho các Tab giao diện
-+- **Định tuyến chuẩn theo URL Hash (`#/path`)**:
-+  - Tự động đồng bộ đường dẫn trên thanh địa chỉ theo từng tab: `#/files`, `#/editor`, `#/terminal`, `#/claude`, `#/git`.
-+  - Hỗ trợ đầy đủ phím điều hướng **Back / Forward** của trình duyệt (`window.history.back()`).
-+  - Duy trì trạng thái tab khi tải lại trang (F5 reload) qua 3 lớp: URL hash, `localStorage` fallback và store reactivity.
-+
-+### 🛡️ Security Audit & Gia cố bảo mật
-+- **Nâng cấp gói phụ thuộc loại trừ lỗ hổng (0 CVEs)**: Nâng cấp `@fastify/static` lên `v10.1.6`, khắc phục hoàn toàn nguy cơ route guard bypass qua đường dẫn mã hóa (GHSA-83w8-p2f5-377r).
-+- **Gia cố `.gitignore`**: Bổ sung quy tắc phòng chống rò rỉ file `*cookie*`, `*credentials*` và các artifact monorepo.
-+- **Xác thực bảo vệ lớp biên**: Xác nhận hệ thống được bảo vệ vững chắc bởi Cloudflare Access Zero Trust và tiến trình chỉ lắng nghe trên Loopback `127.0.0.1:8099`.
-+
-+---
-+
- ## [v1.2.0] - 2026-10-17
+
+## [v1.3.1] - 2026-10-18
+
+### 🐛 Vá lỗi & Đồng bộ Trạng thái Phiên / Model (Bug Fixes)
+- **Đồng bộ danh sách Claude Models theo Server đang chọn**:
+  - Khắc phục triệt để lỗi chuyển đổi Server nhưng danh sách model vẫn hiển thị model của server trước đó.
+  - Phân tách ranh giới môi trường thực thi: remote SSH server không còn bị đọc nhầm biến môi trường `process.env.ANTHROPIC_BASE_URL` của máy chủ host (local).
+  - Cập nhật backend `serverConfigResolver` hỗ trợ tìm kiếm linh hoạt theo cả ID (`server-ssh-...`) và tên host (`s.name`).
+  - Frontend `claudeStore`: lưu trữ cache model riêng biệt theo từng `serverId` (`modelsByServer`, `modelSourceByServer`), tự động theo dõi `serverStore.currentServerId` để cập nhật danh sách tức thì trên `ModelSelectorPopup` và `NewClaudeModal`.
+- **Duy trì Project và Phiên Claude khi F5 (Persistence on Reload)**:
+  - Khắc phục lỗi khi F5 trang web bị nhảy về Root path (`~`) trong khi Claude vẫn giữ phiên của project trước đó.
+  - Lưu trạng thái project đang kích hoạt vào `localStorage.getItem('hugremote_active_project_<serverId>')`.
+  - Tối ưu hóa thứ tự khởi tạo trong `useAppBootstrap`: nạp Server -> Project -> Files -> Terminal -> Claude -> Git theo luồng tuần tự tin cậy.
+  - Khớp nối `claudeStore.currentServerSessions` và `ensureProjectSession()` chính xác theo `projectId` và `cwd` của project đang chọn.
+  - Quản lý phiên CLI: quét transcript và hiển thị Project Sessions khớp 100% với `rootPath` của project đang chọn.
+
+---
+
+## [v1.3.0] - 2026-10-18
+
+### 🏗️ Kiến trúc Fullstack Monorepo (`nodejs-fullstack-structure`)
+- **Tái cấu trúc Monorepo phân tách ranh giới rõ ràng**:
+  - `apps/api`: Backend Fastify độc lập (`@hugremote/api`), tách biệt `app.ts` (`createApp`) và `main.ts` (`startServer`), module hóa cấu hình và dịch vụ.
+  - `apps/web`: Frontend Vue 3 + Vite (`@hugremote/web`), phụ thuộc kiểu dữ liệu dùng chung và xuất bản tĩnh sang `apps/api/public`.
+  - `packages/shared`: Thư viện hợp đồng và kiểu dữ liệu dùng chung (`@hugremote/shared`), chuẩn hóa models universal (`ClaudeSession`, `ClaudeMessage`, `ServerItem`, `TerminalSessionInfo`,...).
+  - Thiết lập quản lý workspace đồng thời qua `pnpm-workspace.yaml` và npm workspaces.
+  - Duy trì tương thích ngược 100% qua symlink `client -> apps/web`, `server -> apps/api` và CLI `bin/hugremote.js`.
+
+### 🧭 Path Router cho các Tab giao diện
+- **Định tuyến chuẩn theo URL Hash (`#/path`)**:
+  - Tự động đồng bộ đường dẫn trên thanh địa chỉ theo từng tab: `#/files`, `#/editor`, `#/terminal`, `#/claude`, `#/git`.
+  - Hỗ trợ đầy đủ phím điều hướng **Back / Forward** của trình duyệt (`window.history.back()`).
+  - Duy trì trạng thái tab khi tải lại trang (F5 reload) qua 3 lớp: URL hash, `localStorage` fallback và store reactivity.
+
+### 🛡️ Security Audit & Gia cố bảo mật
+- **Nâng cấp gói phụ thuộc loại trừ lỗ hổng (0 CVEs)**: Nâng cấp `@fastify/static` lên `v10.1.6`, khắc phục hoàn toàn nguy cơ route guard bypass qua đường dẫn mã hóa (GHSA-83w8-p2f5-377r).
+- **Gia cố `.gitignore`**: Bổ sung quy tắc phòng chống rò rỉ file `*cookie*`, `*credentials*` và các artifact monorepo.
+- **Xác thực bảo vệ lớp biên**: Xác nhận hệ thống được bảo vệ vững chắc bởi Cloudflare Access Zero Trust và tiến trình chỉ lắng nghe trên Loopback `127.0.0.1:8099`.
+
+---
+
+## [v1.2.0] - 2026-10-17
 
 ### 🚀 Tính năng mới (Major Features)
 - **Kết nối Claude Code CLI Project Sessions thực tế (`~/.claude/projects/`)**:

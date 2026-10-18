@@ -1,7 +1,7 @@
 ---
 feature: refactor-nodejs-fullstack-structure
 description: Refactor HugRemote codebase to follow the strict nodejs-fullstack-structure and nodejs-backend-structure monorepo architecture.
-status: in-progress
+status: done
 created: 2026-10-18
 ---
 
@@ -45,7 +45,7 @@ Transform HugRemote into a clean, modern fullstack monorepo conforming strictly 
 - [x] T4: Migrate `client/` to `apps/web/`, update imports to reference `@hugremote/shared`, verify Vite build.
 - [x] T5: Update root `package.json`, `bin/hugremote.js`, `bin/update.js`, `install.sh`, and `beta.sh` to support `apps/api` and `apps/web`.
 - [x] T6: Run full test suite, fix any path mismatches, and verify end-to-end via CLI and browser.
-- [ ] T7: Merge into `main`, restart `hugremote.service`, push to GitHub, and report findings.
+- [x] T7: Merge into `main`, restart `hugremote.service`, push to GitHub, and report findings.
 
 ## Risks / Notes
 - The CLI `hugremote` and systemd service look for entry points relative to project root. We will provide clean path resolution in `bin/hugremote.js` supporting both legacy `server/dist` and new `apps/api/dist` locations for seamless upgrades.

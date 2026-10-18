@@ -45,6 +45,42 @@ async function runTests() {
   assert.strictEqual(resumed.messages.length, detail.messages.length, 'Messages count must match');
   console.log(`Successfully resumed session ${resumed.id} with cliSessionId ${resumed.cliSessionId}`);
 
+  // Test 5: renameProjectSession updates custom title in metadata and jsonl
+  const testSessionId = `test-dummy-${Date.now()}`;
+  const testFile = path.join(projectDir, `${testSessionId}.jsonl`);
+  fs.writeFileSync(
+    testFile,
+    JSON.stringify({ type: 'user', message: { content: 'Original dummy prompt' } }) + '\n',
+    'utf8'
+  );
+  try {
+    const preList = await claudeService.listProjectSessions(cwd, 'server-local');
+    const createdItem = preList.find((s) => s.id === testSessionId);
+    assert.ok(createdItem, 'Created dummy session must appear in session list');
+
+    const renameOk = await claudeService.renameProjectSession(testSessionId, 'Tên Mới Phiên Test', cwd, 'server-local');
+    assert.strictEqual(renameOk, true, 'renameProjectSession must return true');
+
+    const postList = await claudeService.listProjectSessions(cwd, 'server-local');
+    const renamedItem = postList.find((s) => s.id === testSessionId);
+    assert.ok(renamedItem, 'Renamed session must exist');
+    assert.strictEqual(renamedItem.summary, 'Tên Mới Phiên Test', 'Summary must match updated name');
+    console.log('Successfully tested renameProjectSession: name updated to "Tên Mới Phiên Test"');
+
+    // Test 6: deleteProjectSession removes jsonl file and metadata
+    const deleteOk = await claudeService.deleteProjectSession(testSessionId, cwd, 'server-local');
+    assert.strictEqual(deleteOk, true, 'deleteProjectSession must return true');
+    assert.strictEqual(fs.existsSync(testFile), false, 'Session jsonl file must be deleted');
+
+    const afterDeleteList = await claudeService.listProjectSessions(cwd, 'server-local');
+    assert.ok(!afterDeleteList.some((s) => s.id === testSessionId), 'Deleted session must not appear in list');
+    console.log('Successfully tested deleteProjectSession: session file removed cleanly');
+  } finally {
+    if (fs.existsSync(testFile)) {
+      fs.unlinkSync(testFile);
+    }
+  }
+
   console.log('All Claude Code CLI Project Sessions tests PASSED! ✔');
 }
 

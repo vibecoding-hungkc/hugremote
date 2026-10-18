@@ -68,7 +68,10 @@
           <button class="btn-icon-action" @click="fileStore.closeActiveFile(); $emit('change-tab', 'files')"><i class="ri-close-line"></i></button>
         </template>
         <template v-else-if="activeTab === 'terminal'"><button class="btn-icon-action" @click="$emit('open-new-terminal-modal')"><i class="ri-add-line"></i></button></template>
-        <template v-else-if="activeTab === 'claude'"><button class="btn-icon-action" @click="$emit('open-new-claude-modal')"><i class="ri-add-line"></i></button></template>
+        <template v-else-if="activeTab === 'claude'">
+          <button class="btn-icon-action" @click="$emit('open-claude-hub')" :title="t('claudeHub.tabCliSessions') || 'Danh sách phiên Project (/resume)'"><i class="ri-history-line"></i></button>
+          <button class="btn-icon-action" @click="$emit('open-new-claude-modal')" :title="t('common.create')"><i class="ri-add-line"></i></button>
+        </template>
         <template v-else-if="activeTab === 'git'"><button class="btn-icon-action" @click="gitStore.fetchStatus"><i class="ri-refresh-line"></i></button></template>
       </div>
     </div>

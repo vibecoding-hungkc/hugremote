@@ -416,6 +416,23 @@ export class ClaudeService {
     return this.listLocalProjectSessions(cwd);
   }
 
+  private readProjectMeta(projectDir: string): Record<string, { name: string; updatedAt: number }> {
+    try {
+      const metaPath = path.join(projectDir, '.hugremote-meta.json');
+      if (fs.existsSync(metaPath)) {
+        return JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+      }
+    } catch (_) {}
+    return {};
+  }
+
+  private writeProjectMeta(projectDir: string, meta: Record<string, { name: string; updatedAt: number }>): void {
+    try {
+      const metaPath = path.join(projectDir, '.hugremote-meta.json');
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf8');
+    } catch (_) {}
+  }
+
   private listLocalProjectSessions(cwd: string): ClaudeProjectSessionSummary[] {
     const projectDir = this.resolveClaudeProjectDir(cwd);
     if (!projectDir || !fs.existsSync(projectDir)) {
@@ -425,6 +442,7 @@ export class ClaudeService {
     try {
       const files = fs.readdirSync(projectDir).filter((f) => f.endsWith('.jsonl'));
       const sessions: ClaudeProjectSessionSummary[] = [];
+      const meta = this.readProjectMeta(projectDir);
 
       for (const f of files) {
         const fullPath = path.join(projectDir, f);
@@ -434,6 +452,9 @@ export class ClaudeService {
         if (summary) {
           summary.id = sessionId;
           summary.cwd = cwd;
+          if (meta[sessionId]?.name) {
+            summary.summary = meta[sessionId].name;
+          }
           sessions.push(summary);
         }
       }
@@ -458,12 +479,17 @@ export class ClaudeService {
         const fullDir = path.join(claudeProjectsDir, d);
         if (!fs.statSync(fullDir).isDirectory()) continue;
         const files = fs.readdirSync(fullDir).filter((f) => f.endsWith('.jsonl'));
+        const meta = this.readProjectMeta(fullDir);
         for (const f of files) {
           const fullPath = path.join(fullDir, f);
           const stat = fs.statSync(fullPath);
+          const sessionId = f.replace('.jsonl', '');
           const summary = this.parseSessionSummary(fullPath, stat.mtimeMs, stat.size);
           if (summary) {
-            summary.id = f.replace('.jsonl', '');
+            summary.id = sessionId;
+            if (meta[sessionId]?.name) {
+              summary.summary = meta[sessionId].name;
+            }
             all.push(summary);
           }
         }
@@ -487,6 +513,7 @@ export class ClaudeService {
 
       let firstPrompt = '';
       let lastPrompt = '';
+      let customTitle = '';
       let model = '';
       let branch = '';
       let userMsgs = 0;
@@ -496,7 +523,9 @@ export class ClaudeService {
         if (!line.trim().startsWith('{')) continue;
         try {
           const d = JSON.parse(line);
-          if (d.type === 'user' && d.message) {
+          if (d.type === 'custom-title' && d.customTitle) {
+            customTitle = String(d.customTitle).trim();
+          } else if (d.type === 'user' && d.message) {
             userMsgs++;
             let c = d.message.content;
             if (Array.isArray(c)) {
@@ -520,7 +549,7 @@ export class ClaudeService {
         } catch (_) {}
       }
 
-      let summary = lastPrompt || firstPrompt || 'Phiên chưa đặt tên';
+      let summary = customTitle || lastPrompt || firstPrompt || 'Phiên chưa đặt tên';
       summary = summary.replace(/<[^>]+>/g, '').trim() || 'Phiên chưa đặt tên';
 
       return {
@@ -691,6 +720,181 @@ export class ClaudeService {
 
     this.saveSessions();
     return session;
+  }
+
+  public async renameProjectSession(
+    sessionId: string,
+    newName: string,
+    cwd?: string,
+    serverId = 'server-local'
+  ): Promise<boolean> {
+    const isRemote = serverId !== 'server-local';
+    const server = isRemote ? this.serverConfigResolver(serverId) : undefined;
+    if (isRemote && server) {
+      return this.renameRemoteProjectSession(server, sessionId, newName, cwd);
+    }
+    return this.renameLocalProjectSession(sessionId, newName, cwd);
+  }
+
+  private renameLocalProjectSession(sessionId: string, newName: string, cwd?: string): boolean {
+    const cleanName = newName.trim();
+    if (!cleanName) return false;
+
+    let projectDir = cwd ? this.resolveClaudeProjectDir(cwd) : null;
+    let filePath = projectDir ? path.join(projectDir, `${sessionId}.jsonl`) : '';
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
+      if (fs.existsSync(claudeProjectsDir)) {
+        for (const d of fs.readdirSync(claudeProjectsDir)) {
+          const checkDir = path.join(claudeProjectsDir, d);
+          const candidate = path.join(checkDir, `${sessionId}.jsonl`);
+          if (fs.existsSync(candidate)) {
+            projectDir = checkDir;
+            filePath = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!filePath || !fs.existsSync(filePath) || !projectDir) {
+      return false;
+    }
+
+    try {
+      // 1. Update .hugremote-meta.json
+      const meta = this.readProjectMeta(projectDir);
+      meta[sessionId] = { name: cleanName, updatedAt: Date.now() };
+      this.writeProjectMeta(projectDir, meta);
+
+      // 2. Append custom-title record to .jsonl
+      const entry = JSON.stringify({
+        type: 'custom-title',
+        customTitle: cleanName,
+        updatedAt: Date.now(),
+      });
+      fs.appendFileSync(filePath, `\n${entry}\n`, 'utf8');
+
+      // 3. Update active sessions if bound
+      for (const s of this.sessions.values()) {
+        if (s.cliSessionId === sessionId) {
+          s.name = cleanName;
+          s.isCustomNamed = true;
+        }
+      }
+      this.saveSessions();
+      return true;
+    } catch (err) {
+      console.error('renameLocalProjectSession error:', err);
+      return false;
+    }
+  }
+
+  public async deleteProjectSession(
+    sessionId: string,
+    cwd?: string,
+    serverId = 'server-local'
+  ): Promise<boolean> {
+    const isRemote = serverId !== 'server-local';
+    const server = isRemote ? this.serverConfigResolver(serverId) : undefined;
+    if (isRemote && server) {
+      return this.deleteRemoteProjectSession(server, sessionId, cwd);
+    }
+    return this.deleteLocalProjectSession(sessionId, cwd);
+  }
+
+  private deleteLocalProjectSession(sessionId: string, cwd?: string): boolean {
+    let projectDir = cwd ? this.resolveClaudeProjectDir(cwd) : null;
+    let filePath = projectDir ? path.join(projectDir, `${sessionId}.jsonl`) : '';
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
+      if (fs.existsSync(claudeProjectsDir)) {
+        for (const d of fs.readdirSync(claudeProjectsDir)) {
+          const checkDir = path.join(claudeProjectsDir, d);
+          const candidate = path.join(checkDir, `${sessionId}.jsonl`);
+          if (fs.existsSync(candidate)) {
+            projectDir = checkDir;
+            filePath = candidate;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return false;
+    }
+
+    try {
+      fs.unlinkSync(filePath);
+
+      if (projectDir) {
+        const meta = this.readProjectMeta(projectDir);
+        if (meta[sessionId]) {
+          delete meta[sessionId];
+          this.writeProjectMeta(projectDir, meta);
+        }
+      }
+
+      for (const s of this.sessions.values()) {
+        if (s.cliSessionId === sessionId) {
+          s.cliSessionId = undefined;
+        }
+      }
+      this.saveSessions();
+      return true;
+    } catch (err) {
+      console.error('deleteLocalProjectSession error:', err);
+      return false;
+    }
+  }
+
+  private async renameRemoteProjectSession(
+    server: ServerConfig,
+    sessionId: string,
+    newName: string,
+    cwd?: string
+  ): Promise<boolean> {
+    try {
+      const escapedId = shellEscape(sessionId);
+      const escapedName = shellEscape(newName.trim());
+      const pyScript = `import os, glob, json, time; files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + ${escapedId} + '.jsonl'));\nif files:\n  f = files[0]; entry = json.dumps({'type': 'custom-title', 'customTitle': ${escapedName}, 'updatedAt': int(time.time()*1000)})\n  with open(f, 'a') as fp: fp.write('\\n' + entry + '\\n')\n  pdir = os.path.dirname(f); meta_path = os.path.join(pdir, '.hugremote-meta.json'); meta = {}\n  if os.path.exists(meta_path): meta = json.load(open(meta_path))\n  meta[${escapedId}] = {'name': ${escapedName}, 'updatedAt': int(time.time()*1000)}\n  json.dump(meta, open(meta_path, 'w'), indent=2); print('ok')\nelse: print('not_found')`;
+      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null`;
+      const stream = await sshPool.executeCommand(server, cmd);
+      let data = '';
+      await new Promise((resolve) => {
+        stream.on('data', (d: any) => { data += d.toString('utf8'); });
+        stream.on('close', resolve);
+        stream.on('exit', resolve);
+      });
+      return data.trim() === 'ok';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  private async deleteRemoteProjectSession(
+    server: ServerConfig,
+    sessionId: string,
+    cwd?: string
+  ): Promise<boolean> {
+    try {
+      const escapedId = shellEscape(sessionId);
+      const pyScript = `import os, glob; files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + ${escapedId} + '.jsonl'));\nif files: os.remove(files[0]); print('ok')\nelse: print('not_found')`;
+      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null`;
+      const stream = await sshPool.executeCommand(server, cmd);
+      let data = '';
+      await new Promise((resolve) => {
+        stream.on('data', (d: any) => { data += d.toString('utf8'); });
+        stream.on('close', resolve);
+        stream.on('exit', resolve);
+      });
+      return data.trim() === 'ok';
+    } catch (_) {
+      return false;
+    }
   }
 
   private async listRemoteProjectSessions(

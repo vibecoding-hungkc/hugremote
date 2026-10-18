@@ -510,6 +510,87 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
+  async function renameProjectSession(
+    cliSessionId: string,
+    newName: string,
+    cwd?: string,
+    serverId?: string
+  ): Promise<boolean> {
+    const sId = serverId || serverStore.currentServer.id;
+    const targetCwd = cwd || activeSession.value?.cwd || '';
+
+    try {
+      const res = await fetch(
+        apiUrl(`/api/claude/project-sessions/${encodeURIComponent(cliSessionId)}`),
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newName,
+            cwd: targetCwd,
+            serverId: sId,
+          }),
+        }
+      );
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.success) {
+        const item = projectSessions.value.find((s) => s.id === cliSessionId);
+        if (item) {
+          item.summary = newName;
+        }
+        for (const s of sessions.value) {
+          if (s.cliSessionId === cliSessionId) {
+            s.name = newName;
+            s.isCustomNamed = true;
+          }
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('renameProjectSession error:', err);
+      return false;
+    }
+  }
+
+  async function deleteProjectSession(
+    cliSessionId: string,
+    cwd?: string,
+    serverId?: string
+  ): Promise<boolean> {
+    const sId = serverId || serverStore.currentServer.id;
+    const targetCwd = cwd || activeSession.value?.cwd || '';
+
+    try {
+      const q = new URLSearchParams({
+        cwd: targetCwd,
+        serverId: sId,
+      });
+      const res = await fetch(
+        apiUrl(`/api/claude/project-sessions/${encodeURIComponent(cliSessionId)}?${q.toString()}`),
+        {
+          method: 'DELETE',
+        }
+      );
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.success) {
+        projectSessions.value = projectSessions.value.filter((s) => s.id !== cliSessionId);
+        for (const s of sessions.value) {
+          if (s.cliSessionId === cliSessionId) {
+            s.cliSessionId = undefined;
+          }
+        }
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('deleteProjectSession error:', err);
+      return false;
+    }
+  }
+
   return {
     sessions,
     activeSessionId,
@@ -519,6 +600,8 @@ export const useClaudeStore = defineStore('claude', () => {
     isLoadingProjectSessions,
     fetchProjectSessions,
     resumeProjectSession,
+    renameProjectSession,
+    deleteProjectSession,
     isGenerating,
     compactTaskMode,
     toggleCompactTaskMode,

@@ -434,6 +434,26 @@ export const apiRoutes = async (fastify) => {
             return reply.status(404).send({ error: 'Failed to resume project session' });
         return { success: true, session: updated };
     });
+    fastify.patch('/api/claude/project-sessions/:id', async (request, reply) => {
+        const { id } = request.params;
+        const { name, cwd, serverId } = request.body || {};
+        if (!name || !name.trim()) {
+            return reply.status(400).send({ error: 'Session name is required' });
+        }
+        const ok = await claudeService.renameProjectSession(id, name.trim(), cwd || '', serverId || 'server-local');
+        if (!ok)
+            return reply.status(404).send({ error: 'Project session not found or rename failed' });
+        return { success: true, name: name.trim() };
+    });
+    fastify.delete('/api/claude/project-sessions/:id', async (request, reply) => {
+        const { id } = request.params;
+        const cwd = request.query.cwd || '';
+        const serverId = request.query.serverId || 'server-local';
+        const ok = await claudeService.deleteProjectSession(id, cwd, serverId);
+        if (!ok)
+            return reply.status(404).send({ error: 'Project session not found or deletion failed' });
+        return { success: true };
+    });
     // --- GIT ---
     fastify.get('/api/git/status', async (request, reply) => {
         const serverId = request.query.serverId || 'server-local';

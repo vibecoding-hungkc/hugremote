@@ -25,6 +25,14 @@
           </svg>
           <span class="claude-brand-text">Claude Code</span>
         </div>
+        <button
+          type="button"
+          class="claude-empty-hub-btn"
+          @click.stop="$emit('open-session-hub')"
+        >
+          <i class="ri-history-line"></i>
+          <span>{{ t('claudeHub.tabCliSessions') || 'Xem các phiên làm việc (Project Sessions)' }}</span>
+        </button>
       </div>
 
       <template v-else>
@@ -233,6 +241,16 @@
         <div class="claude-ext-controls-bar">
           <!-- Left Controls -->
           <div class="claude-ext-left-controls">
+            <!-- Project Sessions Button: View CLI Project Sessions -->
+            <button
+              type="button"
+              class="claude-ctrl-btn"
+              :title="t('claudeHub.tabCliSessions') || 'Danh sách phiên Project (/resume)'"
+              @click.stop="$emit('open-session-hub')"
+            >
+              <i class="ri-history-line" style="color: #60a5fa;"></i>
+            </button>
+
             <!-- Target button: Compact task mode toggle -->
             <button
               type="button"
@@ -1771,6 +1789,7 @@ function showUsageToast() {
 .claude-empty-state {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 250px;
@@ -1782,6 +1801,33 @@ function showUsageToast() {
   align-items: center;
   gap: 12px;
   animation: fadeInLogo 0.4s ease;
+}
+
+.claude-empty-hub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.claude-empty-hub-btn:hover {
+  background: rgba(217, 119, 87, 0.15);
+  border-color: rgba(217, 119, 87, 0.4);
+  color: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.claude-empty-hub-btn:active {
+  transform: translateY(0);
 }
 
 .claude-sparkle-logo {

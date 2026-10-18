@@ -85,7 +85,25 @@
           >
             <div class="session-info">
               <div class="session-name-row">
-                <span class="session-name">{{ s.summary || 'Phiên chưa đặt tên' }}</span>
+                <div v-if="editingCliId === s.id" class="inline-rename-wrap" @click.stop>
+                  <input
+                    ref="renameInputRef"
+                    v-model="editingCliName"
+                    type="text"
+                    class="inline-rename-input"
+                    placeholder="Nhập tên phiên..."
+                    @keydown.enter.stop="saveRenameCli(s.id)"
+                    @keydown.esc.stop="cancelRenameCli"
+                  />
+                  <button class="btn-inline-action save" :disabled="isSavingRename" @click.stop="saveRenameCli(s.id)" title="Lưu">
+                    <i v-if="isSavingRename" class="ri-loader-4-line spin-icon"></i>
+                    <i v-else class="ri-check-line"></i>
+                  </button>
+                  <button class="btn-inline-action cancel" @click.stop="cancelRenameCli" title="Hủy">
+                    <i class="ri-close-line"></i>
+                  </button>
+                </div>
+                <span v-else class="session-name">{{ s.summary || 'Phiên chưa đặt tên' }}</span>
               </div>
               <div class="cli-meta-row">
                 <span class="session-id-pill" :title="s.id">
@@ -118,6 +136,23 @@
                 <i v-if="resumingId === s.id" class="ri-loader-4-line spin-icon"></i>
                 <i v-else class="ri-play-circle-line"></i>
                 <span>{{ t('claudeHub.resumeBtn') }}</span>
+              </button>
+
+              <button
+                class="btn-action-icon"
+                :title="t('claudeHub.edit') || 'Đổi tên'"
+                @click.stop="startRenameCli(s)"
+              >
+                <i class="ri-edit-line"></i>
+              </button>
+              <button
+                class="btn-action-icon danger"
+                :disabled="deletingCliId === s.id"
+                :title="t('claudeHub.delete') || 'Xóa phiên'"
+                @click.stop="handleDeleteCli(s)"
+              >
+                <i v-if="deletingCliId === s.id" class="ri-loader-4-line spin-icon"></i>
+                <i v-else class="ri-delete-bin-line"></i>
               </button>
             </div>
           </div>
@@ -188,6 +223,11 @@ const { t } = useI18n();
 const activeTab = ref<'cli' | 'web'>('cli');
 const cliSearchQuery = ref('');
 const resumingId = ref<string | null>(null);
+const editingCliId = ref<string | null>(null);
+const editingCliName = ref('');
+const isSavingRename = ref(false);
+const deletingCliId = ref<string | null>(null);
+const renameInputRef = ref<HTMLInputElement | null>(null);
 
 const currentCwd = computed(() => {
   return claudeStore.activeSession?.cwd || '~';
@@ -258,6 +298,61 @@ async function handleResumeCli(id: string) {
     console.error('handleResumeCli error:', err);
   } finally {
     resumingId.value = null;
+  }
+}
+
+function startRenameCli(s: any) {
+  editingCliId.value = s.id;
+  editingCliName.value = s.summary || '';
+  setTimeout(() => {
+    renameInputRef.value?.focus();
+    renameInputRef.value?.select();
+  }, 50);
+}
+
+function cancelRenameCli() {
+  editingCliId.value = null;
+  editingCliName.value = '';
+}
+
+async function saveRenameCli(id: string) {
+  const name = editingCliName.value.trim();
+  if (!name) return;
+  isSavingRename.value = true;
+  try {
+    const ok = await claudeStore.renameProjectSession(
+      id,
+      name,
+      claudeStore.activeSession?.cwd,
+      claudeStore.activeSession?.serverId
+    );
+    if (ok) {
+      editingCliId.value = null;
+      editingCliName.value = '';
+    }
+  } catch (err) {
+    console.error('saveRenameCli error:', err);
+  } finally {
+    isSavingRename.value = false;
+  }
+}
+
+async function handleDeleteCli(s: any) {
+  const displayName = s.summary || s.id.slice(0, 8);
+  if (!window.confirm(`Bạn có chắc chắn muốn xóa phiên "${displayName}" khỏi dự án không?`)) {
+    return;
+  }
+  deletingCliId.value = s.id;
+  try {
+    await claudeStore.deleteProjectSession(
+      s.id,
+      claudeStore.activeSession?.cwd,
+      claudeStore.activeSession?.serverId
+    );
+  } catch (err) {
+    console.error('handleDeleteCli error:', err);
+  } finally {
+    deletingCliId.value = null;
   }
 }
 
@@ -693,6 +788,63 @@ function selectSession(id: string) {
 
 .spin-icon {
   animation: spin 0.8s linear infinite;
+}
+
+.inline-rename-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.inline-rename-input {
+  flex: 1;
+  min-width: 120px;
+  background: #18181b;
+  border: 1px solid #d97757;
+  color: #f8fafc;
+  font-size: 13px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.inline-rename-input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+}
+
+.btn-inline-action {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.btn-inline-action.save {
+  background: #10b981;
+  color: #fff;
+}
+
+.btn-inline-action.save:hover {
+  background: #059669;
+}
+
+.btn-inline-action.cancel {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.btn-inline-action.cancel:hover {
+  background: #475569;
+  color: #f1f5f9;
 }
 
 @keyframes spin {

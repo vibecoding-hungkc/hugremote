@@ -204,6 +204,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useClaudeStore } from '../stores/claudeStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
+import { useServerStore } from '../stores/serverStore.js';
 import { useI18n } from '../composables/useI18n.js';
 
 const props = defineProps<{
@@ -218,6 +220,8 @@ const emit = defineEmits<{
 }>();
 
 const claudeStore = useClaudeStore();
+const projectStore = useProjectStore();
+const serverStore = useServerStore();
 const { t } = useI18n();
 
 const activeTab = ref<'cli' | 'web'>('cli');
@@ -230,7 +234,7 @@ const deletingCliId = ref<string | null>(null);
 const renameInputRef = ref<HTMLInputElement | null>(null);
 
 const currentCwd = computed(() => {
-  return claudeStore.activeSession?.cwd || '~';
+  return projectStore.currentProject?.rootPath || claudeStore.activeSession?.cwd || serverStore.currentServer.workspace || '~';
 });
 
 watch(
@@ -244,7 +248,7 @@ watch(
 );
 
 function refreshCliSessions() {
-  claudeStore.fetchProjectSessions(claudeStore.activeSession?.cwd, claudeStore.activeSession?.serverId);
+  claudeStore.fetchProjectSessions(currentCwd.value, serverStore.currentServerId);
 }
 
 const filteredCliSessions = computed(() => {
@@ -289,12 +293,12 @@ async function handleResumeCli(sOrId: any) {
   }
   resumingId.value = id;
   try {
-    const targetCwd = sObj?.cwd || claudeStore.activeSession?.cwd;
+    const targetCwd = sObj?.cwd || currentCwd.value;
     await claudeStore.resumeProjectSession(
       id,
       targetCwd,
       claudeStore.activeSession?.id,
-      claudeStore.activeSession?.serverId
+      serverStore.currentServerId
     );
     emit('close');
   } catch (err) {
@@ -326,8 +330,8 @@ async function saveRenameCli(id: string) {
     const ok = await claudeStore.renameProjectSession(
       id,
       name,
-      claudeStore.activeSession?.cwd,
-      claudeStore.activeSession?.serverId
+      currentCwd.value,
+      serverStore.currentServerId
     );
     if (ok) {
       editingCliId.value = null;
@@ -349,8 +353,8 @@ async function handleDeleteCli(s: any) {
   try {
     await claudeStore.deleteProjectSession(
       s.id,
-      claudeStore.activeSession?.cwd,
-      claudeStore.activeSession?.serverId
+      currentCwd.value,
+      serverStore.currentServerId
     );
   } catch (err) {
     console.error('handleDeleteCli error:', err);

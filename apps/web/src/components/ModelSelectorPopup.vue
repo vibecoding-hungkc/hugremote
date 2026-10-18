@@ -43,6 +43,7 @@ import { useServerStore } from '../stores/serverStore';
 const props = defineProps<{
   isOpen: boolean;
   modelValue: string; // e.g. "Sonnet 5.5 Medium"
+  serverId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -60,51 +61,22 @@ interface ModelItem {
   prefix: string;
 }
 
-const defaultFallbackModels: ModelItem[] = [
-  {
-    id: 'default',
-    title: 'Default (recommended)',
-    desc: 'Claude Code default model · Uses your active CLI configuration',
-    prefix: 'Default',
-  },
-  {
-    id: 'sonnet',
-    title: 'Sonnet',
-    desc: 'Sonnet · Standard model for daily coding & agentic tasks',
-    prefix: 'Sonnet',
-  },
-  {
-    id: 'opus',
-    title: 'Opus',
-    desc: 'Opus · Frontier model for complex reasoning and architecture',
-    prefix: 'Opus',
-  },
-  {
-    id: 'haiku',
-    title: 'Haiku',
-    desc: 'Haiku · Fastest model for lightweight queries & quick answers',
-    prefix: 'Haiku',
-  },
-];
+const targetServerId = computed(() => {
+  return props.serverId || claudeStore.activeSession?.serverId || serverStore.currentServerId || 'server-local';
+});
 
-const models = ref<ModelItem[]>([...defaultFallbackModels]);
-const modelSource = ref<'settings' | 'cli' | 'fallback'>('fallback');
-const isLoadingModels = ref(false);
+const models = computed<ModelItem[]>(() => {
+  return claudeStore.modelsByServer[targetServerId.value] || claudeStore.availableModels;
+});
+
+const modelSource = computed<'settings' | 'cli' | 'fallback'>(() => {
+  return (claudeStore.modelSourceByServer[targetServerId.value] as any) || 'fallback';
+});
+
+const isLoadingModels = computed(() => claudeStore.isLoadingModels);
 
 async function loadModels() {
-  if (isLoadingModels.value) return;
-  isLoadingModels.value = true;
-  try {
-    const sId = serverStore.currentServer?.id || 'server-local';
-    const res = await claudeStore.fetchModels(sId);
-    if (res && res.models && res.models.length > 0) {
-      models.value = res.models;
-      modelSource.value = (res.source as any) || 'fallback';
-    }
-  } catch (_) {
-  } finally {
-    isLoadingModels.value = false;
-  }
+  await claudeStore.fetchModels(targetServerId.value);
 }
 
 onMounted(() => {
@@ -121,9 +93,11 @@ watch(
 );
 
 watch(
-  () => serverStore.currentServer?.id,
-  () => {
-    loadModels();
+  () => targetServerId.value,
+  (newId) => {
+    if (newId) {
+      claudeStore.fetchModels(newId);
+    }
   }
 );
 

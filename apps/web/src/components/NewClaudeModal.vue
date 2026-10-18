@@ -172,41 +172,16 @@ interface ModelItem {
   prefix: string;
 }
 
-const availableModels = ref<ModelItem[]>([
-  {
-    id: 'default',
-    title: 'Default (recommended)',
-    desc: 'Claude Code default model',
-    prefix: 'Default',
-  },
-  {
-    id: 'sonnet',
-    title: 'Sonnet',
-    desc: 'Sonnet · Standard model',
-    prefix: 'Sonnet',
-  },
-  {
-    id: 'opus',
-    title: 'Opus',
-    desc: 'Opus · Frontier model',
-    prefix: 'Opus',
-  },
-  {
-    id: 'haiku',
-    title: 'Haiku',
-    desc: 'Haiku · Fastest model',
-    prefix: 'Haiku',
-  },
-]);
+const targetServerId = computed(() => {
+  return props.session?.serverId || serverStore.currentServerId || 'server-local';
+});
+
+const availableModels = computed<ModelItem[]>(() => {
+  return (claudeStore.modelsByServer[targetServerId.value] as ModelItem[]) || claudeStore.availableModels;
+});
 
 async function loadModels() {
-  try {
-    const sId = serverStore.currentServer?.id || 'server-local';
-    const res = await claudeStore.fetchModels(sId);
-    if (res && res.models && res.models.length > 0) {
-      availableModels.value = res.models;
-    }
-  } catch (_) {}
+  await claudeStore.fetchModels(targetServerId.value);
 }
 
 const efforts = ['Low', 'Medium', 'High', 'Max'];

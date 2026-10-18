@@ -32,9 +32,29 @@ export const useClaudeStore = defineStore('claude', () => {
   const serverStore = useServerStore();
   const projectStore = useProjectStore();
 
+  const currentProjectRoot = computed(() => {
+    return projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
+  });
+
+  const currentProjectId = computed(() => {
+    return projectStore.currentProject?.id || '';
+  });
+
   const currentServerSessions = computed(() => {
-    const projectId = projectStore.currentProject?.id || '';
-    return sessions.value.filter((s) => s.serverId === serverStore.currentServer.id && (!projectId || s.projectId === projectId));
+    const sId = serverStore.currentServer.id;
+    const pId = currentProjectId.value;
+    const pRoot = currentProjectRoot.value;
+    const normPRoot = pRoot.replace(/\/+$/, '');
+
+    return sessions.value.filter((s) => {
+      if (s.serverId !== sId) return false;
+      if (pId && s.projectId && s.projectId === pId) return true;
+      if (s.cwd && normPRoot && (s.cwd === normPRoot || s.cwd.replace(/\/+$/, '') === normPRoot)) {
+        return true;
+      }
+      if (!pId && !normPRoot) return true;
+      return false;
+    });
   });
 
   const activeSession = computed(() => {
@@ -46,21 +66,43 @@ export const useClaudeStore = defineStore('claude', () => {
   async function fetchSessions(serverId?: string) {
     const sId = serverId || serverStore.currentServer.id;
     try {
-      const projectId = projectStore.currentProject?.id || '';
-      const defaultCwd = projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
-      const res = await fetch(apiUrl(`/api/claude/sessions?serverId=${encodeURIComponent(sId)}&projectId=${encodeURIComponent(projectId)}&defaultCwd=${encodeURIComponent(defaultCwd)}`));
+      const projectId = currentProjectId.value;
+      const defaultCwd = currentProjectRoot.value;
+      const q = new URLSearchParams({
+        serverId: sId,
+        projectId,
+        defaultCwd,
+      });
+      const res = await fetch(apiUrl(`/api/claude/sessions?${q.toString()}`));
       if (!res.ok) throw new Error('Failed to load claude sessions');
       const data = await res.json();
       if (Array.isArray(data.sessions)) {
-        // Merge or replace for this server
-        const others = sessions.value.filter((s) => s.serverId !== sId);
+        const normPRoot = defaultCwd.replace(/\/+$/, '');
+        const others = sessions.value.filter((s) => {
+          if (s.serverId !== sId) return true;
+          if (projectId && s.projectId === projectId) return false;
+          if (s.cwd && normPRoot && s.cwd.replace(/\/+$/, '') === normPRoot) return false;
+          return true;
+        });
         sessions.value = [...others, ...data.sessions];
-        if (data.sessions.length > 0 && (!activeSessionId.value || !data.sessions.some((s: ClaudeSession) => s.id === activeSessionId.value))) {
-          activeSessionId.value = data.sessions[0].id;
+        const currentList = currentServerSessions.value;
+        if (currentList.length > 0) {
+          if (!activeSessionId.value || !currentList.some((s: ClaudeSession) => s.id === activeSessionId.value)) {
+            activeSessionId.value = currentList[0].id;
+          }
         }
       }
     } catch (err) {
       console.error('fetchClaudeSessions error:', err);
+    }
+  }
+
+  async function ensureProjectSession() {
+    await fetchSessions();
+    if (!currentServerSessions.value.length) {
+      const pName = projectStore.currentProject?.name;
+      const defaultName = (!pName || pName === '~') ? 'chat' : pName;
+      await createSession(defaultName, currentProjectRoot.value);
     }
   }
 
@@ -396,48 +438,73 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
+  const defaultFallbackModels = [
+    {
+      id: 'default',
+      title: 'Default (recommended)',
+      desc: 'Claude Code default model · Uses your active CLI configuration',
+      prefix: 'Default',
+    },
+    {
+      id: 'sonnet',
+      title: 'Sonnet',
+      desc: 'Sonnet · Standard model for daily coding & agentic tasks',
+      prefix: 'Sonnet',
+    },
+    {
+      id: 'opus',
+      title: 'Opus',
+      desc: 'Opus · Frontier model for complex reasoning and architecture',
+      prefix: 'Opus',
+    },
+    {
+      id: 'haiku',
+      title: 'Haiku',
+      desc: 'Haiku · Fastest model for lightweight queries & quick answers',
+      prefix: 'Haiku',
+    },
+  ];
+
+  const modelsByServer = ref<Record<string, Array<{ id: string; title: string; desc: string; prefix: string }>>>({});
+  const modelSourceByServer = ref<Record<string, string>>({});
+  const defaultModelByServer = ref<Record<string, string>>({});
+  const isLoadingModels = ref(false);
+
+  const availableModels = computed(() => {
+    const sId = serverStore.currentServerId || 'server-local';
+    return modelsByServer.value[sId] || defaultFallbackModels;
+  });
+
   async function fetchModels(serverId?: string): Promise<{
     source: string;
     defaultModel: string;
     models: Array<{ id: string; title: string; desc: string; prefix: string }>;
   }> {
+    const sId = serverId || serverStore.currentServerId || 'server-local';
     try {
-      const sId = serverId || serverStore.currentServer?.id || 'server-local';
+      isLoadingModels.value = true;
       const res = await fetch(apiUrl(`/api/claude/models?serverId=${encodeURIComponent(sId)}`));
       if (!res.ok) throw new Error('Failed to fetch models');
-      return await res.json();
+      const data = await res.json();
+      if (data && Array.isArray(data.models)) {
+        modelsByServer.value[sId] = data.models;
+        modelSourceByServer.value[sId] = data.source || 'fallback';
+        defaultModelByServer.value[sId] = data.defaultModel || 'default';
+      }
+      return data;
     } catch (err) {
       console.error('fetchModels error:', err);
-      return {
+      const fallback = {
         source: 'fallback',
         defaultModel: 'Sonnet 5.5',
-        models: [
-          {
-            id: 'default',
-            title: 'Default (recommended)',
-            desc: 'Claude Code default model · Uses your active CLI configuration',
-            prefix: 'Default',
-          },
-          {
-            id: 'sonnet',
-            title: 'Sonnet',
-            desc: 'Sonnet · Standard model for daily coding & agentic tasks',
-            prefix: 'Sonnet',
-          },
-          {
-            id: 'opus',
-            title: 'Opus',
-            desc: 'Opus · Frontier model for complex reasoning and architecture',
-            prefix: 'Opus',
-          },
-          {
-            id: 'haiku',
-            title: 'Haiku',
-            desc: 'Haiku · Fastest model for lightweight queries & quick answers',
-            prefix: 'Haiku',
-          },
-        ],
+        models: defaultFallbackModels,
       };
+      modelsByServer.value[sId] = fallback.models;
+      modelSourceByServer.value[sId] = fallback.source;
+      defaultModelByServer.value[sId] = fallback.defaultModel;
+      return fallback;
+    } finally {
+      isLoadingModels.value = false;
     }
   }
 
@@ -489,6 +556,7 @@ export const useClaudeStore = defineStore('claude', () => {
             cwd: targetCwd,
             targetSessionId: tSessionId,
             serverId: sId,
+            projectId: currentProjectId.value,
           }),
         }
       );
@@ -617,6 +685,7 @@ export const useClaudeStore = defineStore('claude', () => {
     isLimitsPopupOpen,
     limits,
     fetchSessions,
+    ensureProjectSession,
     switchSession,
     createSession,
     updateSession,
@@ -627,6 +696,11 @@ export const useClaudeStore = defineStore('claude', () => {
     clearSession: clearMessages,
     fetchLimits,
     updateLimits,
+    modelsByServer,
+    modelSourceByServer,
+    defaultModelByServer,
+    availableModels,
+    isLoadingModels,
     fetchModels,
   };
 });

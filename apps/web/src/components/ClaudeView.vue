@@ -173,6 +173,7 @@
       <ModelSelectorPopup
         :isOpen="isModelPopupOpen"
         :modelValue="currentModel"
+        :serverId="activeSession?.serverId || serverStore.currentServerId"
         @update:modelValue="onModelChange"
         @close="isModelPopupOpen = false"
       />
@@ -358,6 +359,8 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import { useClaudeStore } from '../stores/claudeStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
+import { useServerStore } from '../stores/serverStore.js';
 import ModelSelectorPopup from './ModelSelectorPopup.vue';
 import ClaudeLimitsPopup from './ClaudeLimitsPopup.vue';
 import { useI18n } from '../composables/useI18n.js';
@@ -368,6 +371,8 @@ const emit = defineEmits<{
 }>();
 
 const claudeStore = useClaudeStore();
+const projectStore = useProjectStore();
+const serverStore = useServerStore();
 const { t, i18n } = useI18n();
 const streamRef = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);
@@ -814,7 +819,8 @@ async function handleSend() {
   }
   if (text === '/resume') {
     emit('open-session-hub');
-    const projectSessions = await claudeStore.fetchProjectSessions(activeSession.value?.cwd, activeSession.value?.serverId);
+    const targetCwd = projectStore.currentProject?.rootPath || activeSession.value?.cwd || '~';
+    const projectSessions = await claudeStore.fetchProjectSessions(targetCwd, serverStore.currentServerId);
     const list = projectSessions.slice(0, 15).map((s, idx) => {
       const isCur = s.id === activeSession.value?.cliSessionId;
       const timeStr = new Date(s.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
@@ -823,7 +829,7 @@ async function handleSend() {
     addLocalExchange(
       '/resume',
       `### 📂 Danh sách phiên làm việc Claude Code (Project Sessions)\n\n` +
-      `📁 **Thư mục dự án:** \`${activeSession.value?.cwd || '~'}\`\n\n` +
+      `📁 **Thư mục dự án:** \`${targetCwd}\`\n\n` +
       `${list || '*Chưa tìm thấy phiên Claude CLI nào trong thư mục dự án này.*'}\n\n` +
       `👉 *Gõ \`/resume <số thứ tự hoặc ID>\` (ví dụ \`/resume 1\` hoặc \`/resume ${projectSessions[0]?.id ? projectSessions[0].id.slice(0, 8) : 'uuid'}\`) để khôi phục phiên.*`
     );
@@ -835,7 +841,8 @@ async function handleSend() {
       emit('open-session-hub');
       return;
     }
-    const projectSessions = await claudeStore.fetchProjectSessions(activeSession.value?.cwd, activeSession.value?.serverId);
+    const targetCwd = projectStore.currentProject?.rootPath || activeSession.value?.cwd || '~';
+    const projectSessions = await claudeStore.fetchProjectSessions(targetCwd, serverStore.currentServerId);
     const idxNum = parseInt(query, 10);
     let target = (!isNaN(idxNum) && idxNum >= 1 && idxNum <= projectSessions.length) ? projectSessions[idxNum - 1] : null;
     if (!target) {
@@ -848,9 +855,9 @@ async function handleSend() {
     if (target) {
       const resumed = await claudeStore.resumeProjectSession(
         target.id,
-        activeSession.value?.cwd,
+        target.cwd || targetCwd,
         activeSession.value?.id,
-        activeSession.value?.serverId
+        serverStore.currentServerId
       );
       showActionToast(`✅ Đã khôi phục phiên Claude Code: ${target.id.slice(0, 8)}`);
       addLocalExchange(

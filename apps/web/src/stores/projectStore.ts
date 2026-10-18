@@ -31,7 +31,30 @@ export const useProjectStore = defineStore('project', () => {
       const data = await res.json();
       const others = projects.value.filter((p) => p.serverId !== serverId);
       projects.value = [...others, ...(data.projects || [])];
-      if (data.activeProjectId) activeProjectIdByServer.value[serverId] = data.activeProjectId;
+
+      let chosenId = '';
+      if (typeof localStorage !== 'undefined') {
+        chosenId = localStorage.getItem(`hugremote_active_project_${serverId}`) || '';
+      }
+      const serverProjects = projects.value.filter((p) => p.serverId === serverId);
+      if (!chosenId || !serverProjects.some((p) => p.id === chosenId)) {
+        chosenId = data.activeProjectId || serverProjects[0]?.id || '';
+      }
+
+      if (chosenId) {
+        activeProjectIdByServer.value[serverId] = chosenId;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(`hugremote_active_project_${serverId}`, chosenId);
+        }
+        if (chosenId !== data.activeProjectId) {
+          // Sync active project state to backend asynchronously
+          fetch(apiUrl(`/api/projects/${encodeURIComponent(chosenId)}/select`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serverId }),
+          }).catch(() => {});
+        }
+      }
     } catch (err: any) {
       error.value = err.message;
     } finally {
@@ -49,6 +72,9 @@ export const useProjectStore = defineStore('project', () => {
     const data = await res.json();
     await fetchProjects(serverId);
     activeProjectIdByServer.value[serverId] = data.project.id;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`hugremote_active_project_${serverId}`, data.project.id);
+    }
     return data.project as ProjectItem;
   }
 
@@ -62,10 +88,17 @@ export const useProjectStore = defineStore('project', () => {
     const data = await res.json();
     await fetchProjects(serverId);
     activeProjectIdByServer.value[serverId] = data.project.id;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`hugremote_active_project_${serverId}`, data.project.id);
+    }
     return data.project as ProjectItem;
   }
 
   async function selectProject(projectId: string, serverId = serverStore.currentServerId) {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`hugremote_active_project_${serverId}`, projectId);
+    }
+    activeProjectIdByServer.value[serverId] = projectId;
     const res = await fetch(apiUrl(`/api/projects/${encodeURIComponent(projectId)}/select`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

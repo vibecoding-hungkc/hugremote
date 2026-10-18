@@ -61,7 +61,7 @@ export class ClaudeService {
         updatedAt: Date.now(),
     };
     serverConfigResolver = (id) => {
-        return parseSshConfig().find((s) => s.id === id);
+        return parseSshConfig().find((s) => s.id === id || s.name === id);
     };
     constructor() {
         this.loadSessions();
@@ -151,8 +151,19 @@ export class ClaudeService {
             console.error('Failed to save claude sessions to disk:', e);
         }
     }
-    getSessionsForServer(serverId, _defaultCwd, projectId = '') {
-        const list = Array.from(this.sessions.values()).filter((s) => s.serverId === serverId && (!projectId || s.projectId === projectId));
+    getSessionsForServer(serverId, defaultCwd = '', projectId = '') {
+        const normDefaultCwd = defaultCwd ? path.resolve(defaultCwd) : '';
+        const list = Array.from(this.sessions.values()).filter((s) => {
+            if (s.serverId !== serverId)
+                return false;
+            if (projectId && s.projectId && s.projectId === projectId)
+                return true;
+            if (normDefaultCwd && s.cwd && path.resolve(s.cwd) === normDefaultCwd)
+                return true;
+            if (!projectId && !defaultCwd)
+                return true;
+            return false;
+        });
         return list.sort((a, b) => b.updatedAt - a.updatedAt);
     }
     getSession(id) {
@@ -612,22 +623,36 @@ export class ClaudeService {
             return [];
         }
     }
-    async resumeProjectSession(cliSessionId, cwd, targetSessionId, serverId = 'server-local') {
+    async resumeProjectSession(cliSessionId, cwd, targetSessionId, serverId = 'server-local', projectId) {
         const detail = await this.getProjectSessionDetail(cliSessionId, cwd, serverId);
         if (!detail)
             return null;
+        const targetCwd = detail.cwd || cwd;
+        const normTargetCwd = targetCwd ? path.resolve(targetCwd) : '';
         let session;
         if (targetSessionId) {
-            session = this.sessions.get(targetSessionId);
+            const candidate = this.sessions.get(targetSessionId);
+            if (candidate && candidate.serverId === serverId) {
+                const candidateNormCwd = candidate.cwd ? path.resolve(candidate.cwd) : '';
+                const isMatchCwd = candidateNormCwd === normTargetCwd;
+                const isMatchProject = projectId && candidate.projectId === projectId;
+                const isEmptySession = (!candidate.messages || candidate.messages.length === 0) && !candidate.cliSessionId;
+                if (isMatchCwd || isMatchProject || isEmptySession) {
+                    session = candidate;
+                }
+            }
+        }
+        if (!session && normTargetCwd) {
+            session = Array.from(this.sessions.values()).find((s) => s.serverId === serverId && s.cwd && path.resolve(s.cwd) === normTargetCwd);
         }
         if (!session) {
-            session = Array.from(this.sessions.values()).find((s) => s.cwd === cwd && s.serverId === serverId);
-        }
-        if (!session) {
-            session = this.createSession(serverId, '', `Claude ${cliSessionId.slice(0, 8)}`, cwd);
+            session = this.createSession(serverId, projectId || '', `Claude ${cliSessionId.slice(0, 8)}`, targetCwd);
         }
         session.cliSessionId = cliSessionId;
         session.messages = detail.messages;
+        if (projectId) {
+            session.projectId = projectId;
+        }
         if (detail.model)
             session.model = detail.model;
         if (detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
@@ -638,8 +663,8 @@ export class ClaudeService {
             session.name = detail.summary || `Claude ${cliSessionId.slice(0, 8)}`;
             session.isCustomNamed = true;
         }
-        if (detail.cwd) {
-            session.cwd = detail.cwd;
+        if (targetCwd) {
+            session.cwd = targetCwd;
         }
         session.updatedAt = Date.now();
         const totalChars = session.messages.reduce((acc, m) => acc + (m.text?.length || 0), 0);
@@ -918,8 +943,8 @@ export class ClaudeService {
             if (rawSettingsContent.trim()) {
                 const settings = JSON.parse(rawSettingsContent);
                 const env = (settings && typeof settings === 'object' && (settings.env || settings.aenv)) || {};
-                const baseUrl = env.ANTHROPIC_BASE_URL || env.anthropic_base_url || process.env.ANTHROPIC_BASE_URL;
-                const apiKey = env.ANTHROPIC_AUTH_TOKEN || env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY;
+                const baseUrl = env.ANTHROPIC_BASE_URL || env.anthropic_base_url || (!isRemote ? process.env.ANTHROPIC_BASE_URL : undefined);
+                const apiKey = env.ANTHROPIC_AUTH_TOKEN || env.ANTHROPIC_API_KEY || (!isRemote ? process.env.ANTHROPIC_API_KEY : undefined);
                 // Custom modelPicker options defined directly in settings
                 if (settings.modelPicker && Array.isArray(settings.modelPicker.options) && settings.modelPicker.options.length > 0) {
                     const customModels = settings.modelPicker.options.map((opt) => {

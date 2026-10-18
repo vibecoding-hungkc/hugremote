@@ -504,17 +504,18 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
 
   fastify.post<{
     Params: { id: string };
-    Body: { cwd?: string; targetSessionId?: string; serverId?: string };
+    Body: { cwd?: string; targetSessionId?: string; serverId?: string; projectId?: string };
   }>(
     '/api/claude/project-sessions/:id/resume',
     async (request, reply) => {
       const { id } = request.params;
-      const { cwd, targetSessionId, serverId } = request.body || {};
+      const { cwd, targetSessionId, serverId, projectId } = request.body || {};
       const updated = await claudeService.resumeProjectSession(
         id,
         cwd || '',
         targetSessionId,
-        serverId || 'server-local'
+        serverId || 'server-local',
+        projectId
       );
       if (!updated) return reply.status(404).send({ error: 'Failed to resume project session' });
       return { success: true, session: updated };

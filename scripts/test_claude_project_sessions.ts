@@ -17,6 +17,17 @@ async function runTests() {
   assert.ok(fs.existsSync(projectDir), 'Project dir must exist on disk');
 
   // Test 2: listProjectSessions returns array of project sessions
+  const existingJsonls = fs.readdirSync(projectDir).filter((f) => f.endsWith('.jsonl'));
+  const fixtureFile = path.join(projectDir, 'test-fixture-session.jsonl');
+  if (existingJsonls.length === 0) {
+    fs.writeFileSync(
+      fixtureFile,
+      JSON.stringify({ type: 'user', message: { content: 'Sample prompt for test' }, timestamp: new Date().toISOString() }) + '\n' +
+      JSON.stringify({ type: 'assistant', message: { content: 'Sample assistant response' }, timestamp: new Date().toISOString() }) + '\n',
+      'utf8'
+    );
+  }
+
   const sessions = await claudeService.listProjectSessions(cwd, 'server-local');
   console.log(`Found ${sessions.length} Claude Code CLI project sessions`);
   assert.ok(sessions.length > 0, 'Must find at least one CLI project session in hugremote');

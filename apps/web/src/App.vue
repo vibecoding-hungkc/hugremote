@@ -224,14 +224,9 @@ async function handleScopeChanged() {
   fileStore.closeActiveFile();
   await fileStore.fetchFiles('');
   terminalStore.ensureServerSession();
-  await claudeStore.fetchSessions();
+  await claudeStore.ensureProjectSession();
   await gitStore.fetchStatus();
 }
-
-onMounted(async () => {
-  await projectStore.fetchProjects(serverStore.currentServerId);
-  await handleScopeChanged();
-});
 
 watch(
   () => projectStore.currentProject?.id,

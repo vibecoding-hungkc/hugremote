@@ -1,7 +1,30 @@
 # 📋 Changelog — HugRemote
-
-
-## [v1.2.0] - 2026-10-17
+ 
+ 
++## [v1.3.0] - 2026-10-18
++
++### 🏗️ Kiến trúc Fullstack Monorepo (`nodejs-fullstack-structure`)
++- **Tái cấu trúc Monorepo phân tách ranh giới rõ ràng**:
++  - `apps/api`: Backend Fastify độc lập (`@hugremote/api`), tách biệt `app.ts` (`createApp`) và `main.ts` (`startServer`), module hóa cấu hình và dịch vụ.
++  - `apps/web`: Frontend Vue 3 + Vite (`@hugremote/web`), phụ thuộc kiểu dữ liệu dùng chung và xuất bản tĩnh sang `apps/api/public`.
++  - `packages/shared`: Thư viện hợp đồng và kiểu dữ liệu dùng chung (`@hugremote/shared`), chuẩn hóa models universal (`ClaudeSession`, `ClaudeMessage`, `ServerItem`, `TerminalSessionInfo`,...).
++  - Thiết lập quản lý workspace đồng thời qua `pnpm-workspace.yaml` và npm workspaces.
++  - Duy trì tương thích ngược 100% qua symlink `client -> apps/web`, `server -> apps/api` và CLI `bin/hugremote.js`.
++
++### 🧭 Path Router cho các Tab giao diện
++- **Định tuyến chuẩn theo URL Hash (`#/path`)**:
++  - Tự động đồng bộ đường dẫn trên thanh địa chỉ theo từng tab: `#/files`, `#/editor`, `#/terminal`, `#/claude`, `#/git`.
++  - Hỗ trợ đầy đủ phím điều hướng **Back / Forward** của trình duyệt (`window.history.back()`).
++  - Duy trì trạng thái tab khi tải lại trang (F5 reload) qua 3 lớp: URL hash, `localStorage` fallback và store reactivity.
++
++### 🛡️ Security Audit & Gia cố bảo mật
++- **Nâng cấp gói phụ thuộc loại trừ lỗ hổng (0 CVEs)**: Nâng cấp `@fastify/static` lên `v10.1.6`, khắc phục hoàn toàn nguy cơ route guard bypass qua đường dẫn mã hóa (GHSA-83w8-p2f5-377r).
++- **Gia cố `.gitignore`**: Bổ sung quy tắc phòng chống rò rỉ file `*cookie*`, `*credentials*` và các artifact monorepo.
++- **Xác thực bảo vệ lớp biên**: Xác nhận hệ thống được bảo vệ vững chắc bởi Cloudflare Access Zero Trust và tiến trình chỉ lắng nghe trên Loopback `127.0.0.1:8099`.
++
++---
++
+ ## [v1.2.0] - 2026-10-17
 
 ### 🚀 Tính năng mới (Major Features)
 - **Kết nối Claude Code CLI Project Sessions thực tế (`~/.claude/projects/`)**:

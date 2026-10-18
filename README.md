@@ -65,15 +65,56 @@ HugRemote được thiết kế ưu tiên 100% cho màn hình di động, mang l
   <em>Hình 3: Trợ lý Claude Code thời gian thực trên mobile (trái) · Popup chọn Model Claude động theo máy chủ (phải)</em>
 </p>
 
-* **Dynamic Model Discovery:** Tự động phát hiện và nạp danh sách model Claude động từ cấu hình máy chủ hoặc qua CLI (`claude -p /model`).
+* **Dynamic Model Discovery theo Server:** Tự động phát hiện và nạp danh sách model Claude động tương ứng với máy chủ đang kết nối (Local LLM Router hoặc Remote SSH/CLI `claude -p /model`), tự động đồng bộ khi chuyển server.
+* **Quản lý Phiên Claude CLI của Dự án (Project Sessions):**
+  * Quét và liên kết trực tiếp với các phiên Claude Code CLI thực tế tại `~/.claude/projects/<slug>/`.
+  * **Xem danh sách phiên:** Mở nhanh qua lệnh `/resume` trong khung chat hoặc nút lịch sử trên màn hình Claude và Header.
+  * **Đổi tên phiên (Inline Rename):** Chỉnh sửa tên phiên trực tiếp trên giao diện, tự động lưu metadata vào `.hugremote-meta.json` mà không làm hỏng cấu trúc transcript gốc.
+  * **Xóa phiên an toàn:** Xóa tệp transcript `.jsonl` và dọn dẹp metadata tương ứng chỉ bằng 1 chạm.
+  * **Đồng bộ Header Pill:** Khi khôi phục phiên (Resume), tên phiên tùy chỉnh và thư mục làm việc lập tức đồng bộ lên thanh điều hướng trên cùng.
+* **Duy trì Trạng thái khi F5 (Persistence on Reload):** Lưu trữ dự án và phiên Claude đang chọn vào bộ nhớ cục bộ theo từng server, ngăn ngừa tình trạng F5 bị lệch root path.
 * **Tool Invocation Cards:** Hiển thị trực quan các lệnh bash, file read/edit của Claude Code dưới dạng thẻ thao tác gọn gàng.
 * **Theo dõi hạn mức & Token:** Popup kiểm tra hạn mức sử dụng 5 giờ và tuần, tính toán chi phí token trực quan.
 
 ---
 
+## 🧭 Client-Side Path Router cho các Tab
+
+HugRemote tích hợp hệ thống định tuyến URL Hash chuẩn hóa, hỗ trợ đồng bộ trạng thái 3 lớp:
+* **URL Hash hai chiều:** Tự động phản ánh tab đang hoạt động trên URL (`#/files`, `#/editor`, `#/terminal`, `#/claude`, `#/git`).
+* **Hỗ trợ điều hướng trình duyệt:** Tương thích hoàn toàn với nút **Back / Forward** của trình duyệt web hoặc cử chỉ vuốt trên smartphone (`window.history.back()`).
+* **Lưu vết khi F5:** Duy trì trạng thái tab đang mở qua reload mà không bị reset về trang mặc định.
+
+---
+
+## 🏗️ Kiến trúc Fullstack Monorepo
+
+Dự án áp dụng mô hình monorepo chuẩn hóa với ranh giới trách nhiệm rõ ràng:
+
+```text
+hugremote/
+├── apps/
+│   ├── api/          # Fastify Backend Server (@hugremote/api)
+│   │   ├── src/routes/       # REST endpoints & WebSocket streams
+│   │   ├── src/services/     # Claude, SSH, PTY, Project, Git services
+│   │   └── public/           # Static build artifacts từ frontend
+│   └── web/          # Vue 3 + Vite Mobile-First Frontend (@hugremote/web)
+│       ├── src/components/   # Mobile Terminal, ClaudeView, Modals
+│       ├── src/stores/       # Pinia stores (claude, server, project,...)
+│       └── src/app/router.ts # Client-side Hash Router
+├── packages/
+│   └── shared/       # Universal Types & Contracts (@hugremote/shared)
+│       └── src/types/        # ClaudeSession, ServerConfig, Terminal types
+├── bin/hugremote.js  # CLI Entry Point toàn hệ thống
+├── install.sh        # Script cài đặt tự động cho bản Stable
+└── beta.sh           # Script cài đặt tự động cho bản Beta (Latest Main)
+```
+
+---
+
 ## ⚡ Quick Install
 
-**Bản Stable Release (v1.3.0):**
+**Bản Stable Release (v1.3.1):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
 ```
@@ -146,7 +187,7 @@ systemctl --user restart hugremote
 | Tham số / Lệnh | Mô tả | Mặc định |
 |---|---|---|
 | `update` | Cập nhật HugRemote lên commit mới nhất & build lại | |
-| `-v, --version` | Xem phiên bản hiện tại | `1.1.1` |
+| `-v, --version` | Xem phiên bản hiện tại | `1.3.1` |
 | `-p, --port <number>` | Cổng HTTP & WebSocket | `8099` hoặc `$PORT` |
 | `-h, --host <ip>` | Địa chỉ IP lắng nghe | `::` hoặc `$HOST` |
 | `-b, --base-path <path>` | Tiền tố đường dẫn subpath (vd: `/remote`) | `""` hoặc `$BASE_PATH` |

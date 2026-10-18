@@ -168,6 +168,7 @@ import { useProjectStore } from './stores/projectStore.js';
 import { useGitStore } from './stores/gitStore.js';
 import { useAppBootstrap } from './composables/useAppBootstrap.js';
 import { useI18n } from './composables/useI18n.js';
+import { useAppRouter } from './app/router.js';
 
 const { authStore } = useAppBootstrap();
 const serverStore = useServerStore();
@@ -178,7 +179,7 @@ const projectStore = useProjectStore();
 const gitStore = useGitStore();
 const { t } = useI18n();
 
-const activeTab = ref<'files' | 'editor' | 'terminal' | 'claude' | 'git'>('files');
+const { activeTab, navigateTo } = useAppRouter();
 const isServerDrawerOpen = ref(false);
 const isProjectModalOpen = ref(false);
 const isServerModalOpen = ref(false);

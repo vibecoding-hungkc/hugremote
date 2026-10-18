@@ -1,9 +1,14 @@
 # Dependencies
 node_modules/
+apps/*/node_modules/
+packages/*/node_modules/
 client/node_modules/
 server/node_modules/
 
 # Build outputs
+apps/*/dist/
+packages/*/dist/
+apps/api/public/assets/
 client/dist/
 server/dist/
 server/public/assets/
@@ -14,6 +19,8 @@ server/public/assets/
 !.env.example
 *.pem
 *.key
+*cookie*
+*credentials*
 
 # Runtime data and logs
 *.log

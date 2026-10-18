@@ -690,14 +690,24 @@ function closeModelPopupOnDocumentClick(e?: MouseEvent) {
   }
 }
 
+async function handleVisibilityOrFocus() {
+  if (document.visibilityState === 'visible') {
+    await claudeStore.fetchSessions();
+  }
+}
+
 onMounted(() => {
   scrollToBottom();
   claudeStore.fetchLimits();
   document.addEventListener('click', closeModelPopupOnDocumentClick);
+  document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+  window.addEventListener('focus', handleVisibilityOrFocus);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', closeModelPopupOnDocumentClick);
+  document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+  window.removeEventListener('focus', handleVisibilityOrFocus);
   if (elapsedTimer) clearInterval(elapsedTimer);
 });
 

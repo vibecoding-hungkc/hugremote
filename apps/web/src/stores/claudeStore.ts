@@ -124,6 +124,15 @@ export const useClaudeStore = defineStore('claude', () => {
             isGenerating.value = true;
             reconnectToBackgroundStream(curActive.id, lastMsg);
           }
+        } else if (curActive && !curActive.isRunning && isGenerating.value) {
+          // Task completed on server while user was away / in another app
+          isGenerating.value = false;
+          isReconnecting.value = false;
+          const lastMsg = curActive.messages[curActive.messages.length - 1];
+          if (lastMsg && lastMsg.sender === 'assistant') {
+            lastMsg.isWorking = false;
+            lastMsg.isThinking = false;
+          }
         }
       }
     } catch (err) {

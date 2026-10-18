@@ -494,6 +494,11 @@ export const useClaudeStore = defineStore('claude', () => {
       );
       const data = await res.json();
       if (data.session) {
+        const cliSess = projectSessions.value.find((p) => p.id === cliSessionId);
+        if (cliSess?.summary && cliSess.summary !== 'Phiên chưa đặt tên') {
+          data.session.name = cliSess.summary;
+          data.session.isCustomNamed = true;
+        }
         const idx = sessions.value.findIndex((s) => s.id === data.session.id);
         if (idx !== -1) {
           sessions.value[idx] = data.session;
@@ -544,6 +549,10 @@ export const useClaudeStore = defineStore('claude', () => {
             s.name = newName;
             s.isCustomNamed = true;
           }
+        }
+        if (activeSession.value?.cliSessionId === cliSessionId) {
+          activeSession.value.name = newName;
+          activeSession.value.isCustomNamed = true;
         }
         return true;
       }

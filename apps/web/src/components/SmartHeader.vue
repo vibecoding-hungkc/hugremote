@@ -136,7 +136,17 @@ const displaySessionName = computed(() => {
 const displayClaudeSessionName = computed(() => {
   const sess = claudeStore.activeSession;
   if (!sess) return 'claude';
-  if (sess.name && sess.name.trim() && sess.name !== 'claude') {
+
+  // 1. If session is linked to a Claude CLI Project Session, prioritize its summary
+  if (sess.cliSessionId) {
+    const cliSess = claudeStore.projectSessions.find((p) => p.id === sess.cliSessionId);
+    if (cliSess?.summary && cliSess.summary !== 'Phiên chưa đặt tên') {
+      return cliSess.summary;
+    }
+  }
+
+  // 2. If session has a custom or meaningful name (not 'chat' and not 'claude')
+  if (sess.name && sess.name.trim() && sess.name !== 'claude' && sess.name !== 'chat') {
     const clean = sess.name.trim();
     if (clean.includes('/')) {
       const parts = clean.split('/').filter(Boolean);
@@ -144,13 +154,15 @@ const displayClaudeSessionName = computed(() => {
     }
     return clean;
   }
+
+  // 3. Fallback to folder name from cwd
   if (sess.cwd) {
     const clean = sess.cwd.replace(/[/\\]+$/, '');
     const parts = clean.split(/[/\\]/).filter(Boolean);
     const last = parts[parts.length - 1];
     if (last) return last;
   }
-  return 'claude';
+  return sess.name || 'claude';
 });
 </script>
 

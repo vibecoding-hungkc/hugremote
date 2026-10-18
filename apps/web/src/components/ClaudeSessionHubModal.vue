@@ -81,7 +81,7 @@
             :key="s.id"
             class="session-card cli-card"
             :class="{ active: isConnectedCli(s.id) }"
-            @click="handleResumeCli(s.id)"
+            @click="handleResumeCli(s)"
           >
             <div class="session-info">
               <div class="session-name-row">
@@ -131,7 +131,7 @@
                 v-else
                 class="btn-resume-cli"
                 :disabled="resumingId === s.id"
-                @click="handleResumeCli(s.id)"
+                @click="handleResumeCli(s)"
               >
                 <i v-if="resumingId === s.id" class="ri-loader-4-line spin-icon"></i>
                 <i v-else class="ri-play-circle-line"></i>
@@ -280,16 +280,19 @@ function formatTime(timestamp: number) {
   return `${dateStr} ${timeStr}`;
 }
 
-async function handleResumeCli(id: string) {
+async function handleResumeCli(sOrId: any) {
+  const id = typeof sOrId === 'string' ? sOrId : sOrId.id;
+  const sObj = typeof sOrId === 'object' ? sOrId : filteredCliSessions.value.find((x) => x.id === id);
   if (isConnectedCli(id)) {
     emit('close');
     return;
   }
   resumingId.value = id;
   try {
+    const targetCwd = sObj?.cwd || claudeStore.activeSession?.cwd;
     await claudeStore.resumeProjectSession(
       id,
-      claudeStore.activeSession?.cwd,
+      targetCwd,
       claudeStore.activeSession?.id,
       claudeStore.activeSession?.serverId
     );

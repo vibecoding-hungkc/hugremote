@@ -190,6 +190,14 @@ export class ClaudeService {
               changed = true;
               return;
             }
+            if (s.cliSessionId && (!s.isCustomNamed || s.name === 'chat' || s.name === 'claude')) {
+              const detail = this.getLocalProjectSessionDetail(s.cliSessionId, s.cwd || '');
+              if (detail && detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
+                s.name = detail.summary;
+                s.isCustomNamed = true;
+                changed = true;
+              }
+            }
             this.sessions.set(s.id, s);
           });
           if (changed) this.saveSessions();
@@ -611,7 +619,28 @@ export class ClaudeService {
     if (!summary) return null;
 
     summary.id = sessionId;
-    summary.cwd = cwd;
+
+    // Check project metadata file
+    const meta = this.readProjectMeta(path.dirname(targetFile));
+    if (meta[sessionId]?.name) {
+      summary.summary = meta[sessionId].name;
+    }
+
+    // Attempt to extract actual project workingDirectory from transcript
+    try {
+      const headLines = fs.readFileSync(targetFile, 'utf8').split('\n', 25);
+      for (const hl of headLines) {
+        if (hl.includes('"cwd"') || hl.includes('"workingDirectory"')) {
+          const parsed = JSON.parse(hl);
+          const realCwd = parsed.cwd || parsed.snapshot?.workingDirectory || parsed.workingDirectory;
+          if (realCwd) {
+            summary.cwd = realCwd;
+            break;
+          }
+        }
+      }
+    } catch (_) {}
+    if (!summary.cwd) summary.cwd = cwd;
 
     const messages = this.parseSessionMessages(targetFile);
     return {
@@ -712,6 +741,16 @@ export class ClaudeService {
     session.cliSessionId = cliSessionId;
     session.messages = detail.messages;
     if (detail.model) session.model = detail.model;
+    if (detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
+      session.name = detail.summary;
+      session.isCustomNamed = true;
+    } else if (!session.isCustomNamed || session.name === 'chat' || session.name === 'claude') {
+      session.name = detail.summary || `Claude ${cliSessionId.slice(0, 8)}`;
+      session.isCustomNamed = true;
+    }
+    if (detail.cwd) {
+      session.cwd = detail.cwd;
+    }
     session.updatedAt = Date.now();
 
     const totalChars = session.messages.reduce((acc, m) => acc + (m.text?.length || 0), 0);

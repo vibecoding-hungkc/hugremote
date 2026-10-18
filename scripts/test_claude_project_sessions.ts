@@ -2,13 +2,12 @@ import assert from 'node:assert';
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
-import { ClaudeService } from '../server/src/services/claudeService.js';
+import { ClaudeService } from '../apps/api/src/services/claudeService.js';
 
 async function runTests() {
   console.log('Testing Claude Code CLI Project Sessions integration...');
 
-  const mockServerResolver = () => undefined;
-  const claudeService = new ClaudeService(mockServerResolver);
+  const claudeService = new ClaudeService();
 
   // Test 1: resolveClaudeProjectDir for hugremote
   const cwd = path.resolve('/home/hungnd/projects/hugremote');

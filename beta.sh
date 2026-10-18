@@ -211,7 +211,7 @@ echo "✓ Công cụ build native đã sẵn sàng."
 
 # 3. Xác định thư mục cài đặt
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
-if [ -f "$SCRIPT_DIR/package.json" ] && [ -d "$SCRIPT_DIR/client" ] && [ -d "$SCRIPT_DIR/server" ]; then
+if [ -f "$SCRIPT_DIR/package.json" ] && ([ -d "$SCRIPT_DIR/apps/web" ] || [ -d "$SCRIPT_DIR/client" ]) && ([ -d "$SCRIPT_DIR/apps/api" ] || [ -d "$SCRIPT_DIR/server" ]); then
   # Chạy trực tiếp bên trong repo đã clone
   INSTALL_DIR="$SCRIPT_DIR"
   echo -e "✓ Cài đặt từ thư mục hiện tại: ${C_GREEN}$INSTALL_DIR${C_RESET}"
@@ -268,23 +268,10 @@ echo "beta" > "$INSTALL_DIR/.channel" 2>/dev/null || true
 echo ""
 echo -e "${C_BOLD}📦 Đang cài đặt thư viện và build gói...${C_RESET}"
 
-# Build client
-echo "  [1/2] Cài đặt & Build Frontend Client..."
-cd "$INSTALL_DIR/client"
-npm install --foreground-scripts
-npm run build
-
-# Build server
-echo "  [2/2] Cài đặt & Build Backend Server..."
-cd "$INSTALL_DIR/server"
-npm install --foreground-scripts
-# Khắc phục lỗi node-pty trên macOS (spawn-helper thiếu quyền execute)
-find "$INSTALL_DIR" -type f -name "spawn-helper" -exec chmod +x {} + 2>/dev/null || true
-npm run build
-
-# Root package dependencies
 cd "$INSTALL_DIR"
 npm install --foreground-scripts
+find "$INSTALL_DIR" -type f -name "spawn-helper" -exec chmod +x {} + 2>/dev/null || true
+npm run build
 find "$INSTALL_DIR" -type f -name "spawn-helper" -exec chmod +x {} + 2>/dev/null || true
 
 echo -e "${C_GREEN}✓ Hoàn tất build Frontend và Backend!${C_RESET}"

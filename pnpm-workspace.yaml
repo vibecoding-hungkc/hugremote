@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+onlyBuiltDependencies:
+  - cpu-features
+  - esbuild
+  - node-pty
+  - ssh2

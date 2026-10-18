@@ -1,0 +1,1 @@
+{"version":3,"file":"terminal.d.ts","sourceRoot":"","sources":["../../src/types/terminal.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,mBAAmB;IAClC,EAAE,EAAE,MAAM,CAAC;IACX,IAAI,EAAE,MAAM,CAAC;IACb,QAAQ,EAAE,MAAM,CAAC;IACjB,GAAG,EAAE,MAAM,CAAC;IACZ,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,UAAU,CAAC,EAAE,MAAM,CAAC;CACrB"}

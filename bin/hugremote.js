@@ -138,7 +138,10 @@ if (!fs.existsSync(targetWs)) {
 }
 
 // Ensure server dist exists
-const serverEntry = path.resolve(__dirname, '../server/dist/index.js');
+let serverEntry = path.resolve(__dirname, '../apps/api/dist/index.js');
+if (!fs.existsSync(serverEntry)) {
+  serverEntry = path.resolve(__dirname, '../server/dist/index.js');
+}
 if (!fs.existsSync(serverEntry)) {
   console.error('⚠️  Không tìm thấy bản build server tại: ' + serverEntry);
   console.error('Vui lòng chạy: npm run build');
@@ -149,6 +152,9 @@ if (!fs.existsSync(serverEntry)) {
 if (process.platform === 'darwin') {
   try {
     const candidates = [
+      path.resolve(__dirname, '../apps/api/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'),
+      path.resolve(__dirname, '../apps/api/node_modules/node-pty/prebuilds/darwin-x64/spawn-helper'),
+      path.resolve(__dirname, '../apps/api/node_modules/node-pty/build/Release/spawn-helper'),
       path.resolve(__dirname, '../server/node_modules/node-pty/prebuilds/darwin-arm64/spawn-helper'),
       path.resolve(__dirname, '../server/node_modules/node-pty/prebuilds/darwin-x64/spawn-helper'),
       path.resolve(__dirname, '../server/node_modules/node-pty/build/Release/spawn-helper'),

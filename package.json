@@ -3,25 +3,35 @@
   "version": "1.2.0",
   "description": "Mobile-First Web IDE, Terminal Emulator & AI Coding Assistant for Smartphones",
   "type": "module",
-  "main": "server/dist/index.js",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "main": "apps/api/dist/index.js",
   "bin": {
     "hugremote": "./bin/hugremote.js",
     "hugcode": "./bin/hugremote.js"
   },
   "files": [
     "bin",
+    "apps/api/dist",
+    "apps/api/public",
+    "apps/api/package.json",
+    "packages/shared/dist",
     "server/dist",
     "server/public",
-    "server/package.json",
     "install.sh",
     "README.md"
   ],
   "scripts": {
-    "build": "npm run build:client && npm run build:server",
-    "build:client": "npm run build --prefix client",
-    "build:server": "npm run build --prefix server",
+    "build": "npm run build:shared && npm run build:web && npm run build:api",
+    "build:shared": "npm run build --prefix packages/shared",
+    "build:web": "npm run build --prefix apps/web",
+    "build:api": "npm run build --prefix apps/api",
+    "build:client": "npm run build:web",
+    "build:server": "npm run build:api",
     "start": "node bin/hugremote.js",
-    "dev": "npm run dev --prefix server"
+    "dev": "npm run dev --prefix apps/api"
   },
   "keywords": [
     "web-ide",
@@ -46,5 +56,12 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "allowScripts": {
+    "cpu-features@0.0.10": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.25.12": true,
+    "node-pty@1.1.0": true,
+    "ssh2@1.17.0": true
   }
 }

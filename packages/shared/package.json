@@ -1,0 +1,15 @@
+{
+  "name": "@hugremote/shared",
+  "version": "1.2.0",
+  "description": "Universal domain models, contracts, and schemas for HugRemote",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

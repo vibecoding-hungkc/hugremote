@@ -116,6 +116,12 @@
                 <span class="cli-msg-count">
                   {{ s.userMsgs }} {{ t('claudeHub.messages') }}
                 </span>
+                <span v-if="s.contextTokens && s.contextTokens !== '0'" class="cli-msg-count" :title="`Context: ${s.contextTokens}`">
+                  <i class="ri-cpu-line"></i> {{ s.contextTokens }}
+                </span>
+                <span v-if="s.totalCostUSD" class="cli-msg-count" :title="`Cost: $${s.totalCostUSD.toFixed(4)}`">
+                  <i class="ri-money-dollar-circle-line"></i> ${{ s.totalCostUSD.toFixed(3) }}
+                </span>
                 <span class="cli-time">
                   {{ formatTime(s.updatedAt) }}
                 </span>
@@ -182,7 +188,7 @@
                 <i class="ri-folder-line"></i> {{ s.cwd }}
               </div>
               <div class="session-stats">
-                {{ s.messages.length }} {{ t('claudeHub.messages') }} • {{ t('claudeHub.context') }}: {{ s.messages.length === 0 ? '0' : (s.contextTokens || '0') }}/1000k
+                {{ s.messages.length }} {{ t('claudeHub.messages') }} • {{ t('claudeHub.context') }}: {{ s.messages.length === 0 ? '0' : (s.contextTokens || '0') }}/{{ getModelContextLabel(s.model) }}
               </div>
             </div>
 
@@ -232,6 +238,12 @@ const editingCliName = ref('');
 const isSavingRename = ref(false);
 const deletingCliId = ref<string | null>(null);
 const renameInputRef = ref<HTMLInputElement | null>(null);
+
+function getModelContextLabel(modelName?: string): string {
+  const m = (modelName || '').toLowerCase();
+  if (m.includes('1m') || m.includes('1000k')) return '1000k';
+  return '200k';
+}
 
 const currentCwd = computed(() => {
   return projectStore.currentProject?.rootPath || claudeStore.activeSession?.cwd || serverStore.currentServer.workspace || '~';

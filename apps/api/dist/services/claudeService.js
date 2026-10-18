@@ -258,16 +258,34 @@ export class ClaudeService {
             this.saveSessions();
         return ok;
     }
-    addMessage(sessionId, message) {
+    estimateSessionTokens(messages) {
+        let totalChars = 0;
+        for (const m of messages) {
+            totalChars += (m.text?.length || 0);
+            totalChars += (m.thinking?.length || 0);
+            if (m.tools && Array.isArray(m.tools)) {
+                for (const t of m.tools) {
+                    totalChars += (t.title?.length || 0);
+                    totalChars += (t.content?.length || 0);
+                    totalChars += (t.output?.length || 0);
+                }
+            }
+        }
+        const estTokens = Math.round(totalChars / 3.8);
+        return estTokens >= 1000 ? `${(estTokens / 1000).toFixed(1)}k` : `${estTokens}`;
+    }
+    addMessage(sessionId, message, explicitContextTokens) {
         const session = this.sessions.get(sessionId);
         if (!session)
             return undefined;
         session.messages.push(message);
         session.updatedAt = Date.now();
-        // Increment context tokens dynamically based on total message characters
-        const totalChars = session.messages.reduce((acc, m) => acc + (m.text?.length || 0), 0);
-        const estTokens = Math.round(totalChars / 3.5);
-        session.contextTokens = estTokens >= 1000 ? `${(estTokens / 1000).toFixed(1)}k` : `${estTokens}`;
+        if (explicitContextTokens && explicitContextTokens !== '0' && explicitContextTokens !== '0k') {
+            session.contextTokens = explicitContextTokens;
+        }
+        else if (!session.contextTokens || session.contextTokens === '0' || session.contextTokens === '0k') {
+            session.contextTokens = this.estimateSessionTokens(session.messages);
+        }
         this.saveSessions();
         return session;
     }
@@ -437,11 +455,41 @@ export class ClaudeService {
             let branch = '';
             let userMsgs = 0;
             let asstMsgs = 0;
+            let latestContextTokens = 0;
+            let totalCostUSD = undefined;
             for (const line of lines) {
                 if (!line.trim().startsWith('{'))
                     continue;
                 try {
                     const d = JSON.parse(line);
+                    if (d.type === 'cost-state') {
+                        if (typeof d.totalCostUSD === 'number') {
+                            totalCostUSD = d.totalCostUSD;
+                        }
+                        if (d.modelUsage && typeof d.modelUsage === 'object') {
+                            for (const mu of Object.values(d.modelUsage)) {
+                                if (mu && typeof mu === 'object') {
+                                    const inTok = mu.inputTokens || 0;
+                                    const outTok = mu.outputTokens || 0;
+                                    const cRead = mu.cacheReadInputTokens || 0;
+                                    const cCreate = mu.cacheCreationInputTokens || 0;
+                                    const sum = inTok + outTok + cRead + cCreate;
+                                    if (sum > 0)
+                                        latestContextTokens = sum;
+                                }
+                            }
+                        }
+                    }
+                    else if (d.type === 'assistant' && d.message?.usage) {
+                        const u = d.message.usage;
+                        const inTok = u.input_tokens || 0;
+                        const outTok = u.output_tokens || 0;
+                        const cRead = u.cache_read_input_tokens || 0;
+                        const cCreate = u.cache_creation_input_tokens || 0;
+                        const sum = inTok + outTok + cRead + cCreate;
+                        if (sum > 0)
+                            latestContextTokens = sum;
+                    }
                     if (d.type === 'custom-title' && d.customTitle) {
                         customTitle = String(d.customTitle).trim();
                     }
@@ -475,6 +523,13 @@ export class ClaudeService {
             }
             let summary = customTitle || lastPrompt || firstPrompt || 'Phiên chưa đặt tên';
             summary = summary.replace(/<[^>]+>/g, '').trim() || 'Phiên chưa đặt tên';
+            let contextTokensStr = undefined;
+            if (latestContextTokens >= 1000) {
+                contextTokensStr = `${(latestContextTokens / 1000).toFixed(1)}k`;
+            }
+            else if (latestContextTokens > 0) {
+                contextTokensStr = `${latestContextTokens}`;
+            }
             return {
                 id: '',
                 summary,
@@ -486,6 +541,8 @@ export class ClaudeService {
                 asstMsgs,
                 updatedAt: mtime,
                 size,
+                contextTokens: contextTokensStr,
+                totalCostUSD,
             };
         }
         catch (_) {
@@ -667,9 +724,12 @@ export class ClaudeService {
             session.cwd = targetCwd;
         }
         session.updatedAt = Date.now();
-        const totalChars = session.messages.reduce((acc, m) => acc + (m.text?.length || 0), 0);
-        const estTokens = Math.round(totalChars / 3.5);
-        session.contextTokens = estTokens >= 1000 ? `${(estTokens / 1000).toFixed(1)}k` : `${estTokens}`;
+        if (detail.contextTokens && detail.contextTokens !== '0' && detail.contextTokens !== '0k') {
+            session.contextTokens = detail.contextTokens;
+        }
+        else {
+            session.contextTokens = this.estimateSessionTokens(session.messages);
+        }
         this.saveSessions();
         return session;
     }
@@ -1430,61 +1490,75 @@ export class ClaudeService {
                             onEvent({ type: 'thinking_start' });
                         }
                         // 3. Assistant content
-                        if (obj.type === 'assistant' && obj.message && Array.isArray(obj.message.content)) {
-                            for (const c of obj.message.content) {
-                                if (c.type === 'thinking' && c.thinking) {
-                                    thinkingText += c.thinking;
-                                    onEvent({ type: 'thinking', text: c.thinking });
+                        if (obj.type === 'assistant' && obj.message) {
+                            if (obj.message.usage) {
+                                const u = obj.message.usage;
+                                const inTok = u.input_tokens || 0;
+                                const outTok = u.output_tokens || 0;
+                                const cRead = u.cache_read_input_tokens || 0;
+                                const cCreate = u.cache_creation_input_tokens || 0;
+                                const sum = inTok + outTok + cRead + cCreate;
+                                if (sum > 0) {
+                                    const ctxStr = sum >= 1000 ? `${(sum / 1000).toFixed(1)}k` : `${sum}`;
+                                    session.contextTokens = ctxStr;
                                 }
-                                else if (c.type === 'tool_use') {
-                                    const nameLower = (c.name || '').toLowerCase();
-                                    let toolType = 'bash';
-                                    let title = `${c.name}`;
-                                    let content = '';
-                                    let diff = undefined;
-                                    if (nameLower === 'bash') {
-                                        toolType = 'bash';
-                                        const cmd = c.input?.command || '';
-                                        title = `Chạy lệnh: ${cmd.length > 50 ? cmd.slice(0, 47) + '...' : cmd}`;
-                                        content = cmd;
+                            }
+                            if (Array.isArray(obj.message.content)) {
+                                for (const c of obj.message.content) {
+                                    if (c.type === 'thinking' && c.thinking) {
+                                        thinkingText += c.thinking;
+                                        onEvent({ type: 'thinking', text: c.thinking });
                                     }
-                                    else if (nameLower === 'view' || nameLower === 'read') {
-                                        toolType = 'read';
-                                        const p = c.input?.path || c.input?.file_path || '';
-                                        title = `Đọc file: ${path.basename(p) || p}`;
-                                        content = p;
-                                    }
-                                    else if (nameLower.includes('edit') || nameLower.includes('replace')) {
-                                        toolType = 'edit';
-                                        const p = c.input?.path || c.input?.file_path || '';
-                                        title = `Chỉnh sửa: ${path.basename(p) || p}`;
-                                        if (c.input?.old_str || c.input?.new_str) {
-                                            diff = [];
-                                            if (c.input.old_str) {
-                                                c.input.old_str.split('\n').forEach((l) => diff.push(`- ${l}`));
-                                            }
-                                            if (c.input.new_str) {
-                                                c.input.new_str.split('\n').forEach((l) => diff.push(`+ ${l}`));
+                                    else if (c.type === 'tool_use') {
+                                        const nameLower = (c.name || '').toLowerCase();
+                                        let toolType = 'bash';
+                                        let title = `${c.name}`;
+                                        let content = '';
+                                        let diff = undefined;
+                                        if (nameLower === 'bash') {
+                                            toolType = 'bash';
+                                            const cmd = c.input?.command || '';
+                                            title = `Chạy lệnh: ${cmd.length > 50 ? cmd.slice(0, 47) + '...' : cmd}`;
+                                            content = cmd;
+                                        }
+                                        else if (nameLower === 'view' || nameLower === 'read') {
+                                            toolType = 'read';
+                                            const p = c.input?.path || c.input?.file_path || '';
+                                            title = `Đọc file: ${path.basename(p) || p}`;
+                                            content = p;
+                                        }
+                                        else if (nameLower.includes('edit') || nameLower.includes('replace')) {
+                                            toolType = 'edit';
+                                            const p = c.input?.path || c.input?.file_path || '';
+                                            title = `Chỉnh sửa: ${path.basename(p) || p}`;
+                                            if (c.input?.old_str || c.input?.new_str) {
+                                                diff = [];
+                                                if (c.input.old_str) {
+                                                    c.input.old_str.split('\n').forEach((l) => diff.push(`- ${l}`));
+                                                }
+                                                if (c.input.new_str) {
+                                                    c.input.new_str.split('\n').forEach((l) => diff.push(`+ ${l}`));
+                                                }
                                             }
                                         }
+                                        else {
+                                            title = `${c.name}: ${JSON.stringify(c.input || {}).slice(0, 40)}`;
+                                        }
+                                        const toolCall = {
+                                            id: c.id,
+                                            type: toolType,
+                                            title,
+                                            status: 'running',
+                                            content: content || undefined,
+                                            diff,
+                                        };
+                                        tools.push(toolCall);
+                                        onEvent({ type: 'tool_use', tool: toolCall });
                                     }
-                                    else {
-                                        title = `${c.name}: ${JSON.stringify(c.input || {}).slice(0, 40)}`;
+                                    else if (c.type === 'text' && c.text) {
+                                        fullText += c.text;
+                                        onEvent({ type: 'text_delta', text: c.text });
                                     }
-                                    const toolCall = {
-                                        id: c.id,
-                                        type: toolType,
-                                        title,
-                                        status: 'running',
-                                        content: content || undefined,
-                                        diff,
-                                    };
-                                    tools.push(toolCall);
-                                    onEvent({ type: 'tool_use', tool: toolCall });
-                                }
-                                else if (c.type === 'text' && c.text) {
-                                    fullText += c.text;
-                                    onEvent({ type: 'text_delta', text: c.text });
                                 }
                             }
                         }
@@ -1513,16 +1587,31 @@ export class ClaudeService {
                                 fullText = obj.result;
                             }
                             let ctxStr = undefined;
+                            let totalTokens = 0;
                             if (obj.usage) {
                                 const inTok = obj.usage.input_tokens || 0;
                                 const outTok = obj.usage.output_tokens || 0;
-                                const cacheTok = obj.usage.cache_read_input_tokens || 0;
-                                const total = inTok + outTok + cacheTok;
-                                if (total > 0) {
-                                    ctxStr = total >= 1000 ? `${(total / 1000).toFixed(1)}k` : `${total}`;
-                                    session.contextTokens = ctxStr;
-                                    this.saveSessions();
+                                const cacheReadTok = obj.usage.cache_read_input_tokens || 0;
+                                const cacheCreateTok = obj.usage.cache_creation_input_tokens || 0;
+                                totalTokens = inTok + outTok + cacheReadTok + cacheCreateTok;
+                            }
+                            if (totalTokens === 0 && obj.modelUsage && typeof obj.modelUsage === 'object') {
+                                for (const mu of Object.values(obj.modelUsage)) {
+                                    if (mu && typeof mu === 'object') {
+                                        const inTok = mu.inputTokens || 0;
+                                        const outTok = mu.outputTokens || 0;
+                                        const cacheRead = mu.cacheReadInputTokens || 0;
+                                        const cacheCreate = mu.cacheCreationInputTokens || 0;
+                                        const sum = inTok + outTok + cacheRead + cacheCreate;
+                                        if (sum > totalTokens)
+                                            totalTokens = sum;
+                                    }
                                 }
+                            }
+                            if (totalTokens > 0) {
+                                ctxStr = totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : `${totalTokens}`;
+                                session.contextTokens = ctxStr;
+                                this.saveSessions();
                             }
                             onEvent({
                                 type: 'done',

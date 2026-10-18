@@ -22,7 +22,10 @@ export const useServerStore = defineStore('server', () => {
   ]);
 
   const availableKeys = ref<string[]>([]);
-  const currentServerId = ref<string>('server-local');
+  const SAVED_SERVER_KEY = 'hugremote_active_server';
+  const currentServerId = ref<string>(
+    (typeof localStorage !== 'undefined' && localStorage.getItem(SAVED_SERVER_KEY)) || 'server-local'
+  );
 
   const currentServer = computed(() => {
     return servers.value.find((s) => s.id === currentServerId.value) || servers.value[0];
@@ -39,6 +42,10 @@ export const useServerStore = defineStore('server', () => {
         const data = await res.json();
         if (data.servers && Array.isArray(data.servers)) {
           servers.value = data.servers;
+          const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(SAVED_SERVER_KEY) : null;
+          if (stored && servers.value.some((s) => s.id === stored)) {
+            currentServerId.value = stored;
+          }
         }
       }
     } catch (err) {
@@ -100,11 +107,17 @@ export const useServerStore = defineStore('server', () => {
     if (s) s.isConnected = false;
     if (currentServerId.value === id) {
       currentServerId.value = 'server-local';
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SAVED_SERVER_KEY, 'server-local');
+      }
     }
   }
 
   function selectServer(id: string) {
     currentServerId.value = id;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(SAVED_SERVER_KEY, id);
+    }
     const s = servers.value.find((x) => x.id === id);
     if (s) s.isConnected = true;
   }

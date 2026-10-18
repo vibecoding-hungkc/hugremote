@@ -328,7 +328,7 @@ export const apiRoutes = async (fastify) => {
             time: timeStr,
             tools: assistantResult.tools,
         };
-        const updated = claudeService.addMessage(id, asstMsg);
+        const updated = claudeService.addMessage(id, asstMsg, session.contextTokens);
         return {
             success: true,
             userMessage: userMsg,
@@ -379,7 +379,7 @@ export const apiRoutes = async (fastify) => {
                 thinking: result.thinking,
                 tools: result.tools,
             };
-            claudeService.addMessage(id, asstMsg);
+            claudeService.addMessage(id, asstMsg, session.contextTokens);
             sendEvent({ type: 'finish', userMessage: userMsg, assistantMessage: asstMsg });
         }
         catch (err) {

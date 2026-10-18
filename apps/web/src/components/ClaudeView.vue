@@ -280,7 +280,7 @@
               @click.stop="openLimits"
             >
               <span class="ctx-used">{{ currentContextTokens }}</span>
-              <span class="ctx-max">/1000k</span>
+              <span class="ctx-max">/{{ maxContextLabel }}</span>
             </span>
 
             <!-- Model selector badge: Sonnet 5.5 Medium -->
@@ -580,6 +580,30 @@ function openLimits() {
 const activeSession = computed(() => claudeStore.activeSession);
 const currentModel = computed(() => activeSession.value?.model || 'Default Medium');
 const currentMode = computed(() => activeSession.value?.mode || 'Auto');
+
+function parseTokenCount(t: string | undefined): number {
+  if (!t || t === '0' || t === '0k') return 0;
+  const lower = t.toLowerCase().trim();
+  if (lower.endsWith('k')) {
+    return (parseFloat(lower.slice(0, -1)) || 0) * 1000;
+  }
+  if (lower.endsWith('m')) {
+    return (parseFloat(lower.slice(0, -1)) || 0) * 1000000;
+  }
+  return parseFloat(lower) || 0;
+}
+
+function getModelContextWindow(modelName: string): { maxTokens: number; label: string } {
+  const m = (modelName || '').toLowerCase();
+  if (m.includes('1m') || m.includes('1000k')) {
+    return { maxTokens: 1000000, label: '1000k' };
+  }
+  return { maxTokens: 200000, label: '200k' };
+}
+
+const maxContextInfo = computed(() => getModelContextWindow(currentModel.value));
+const maxContextLabel = computed(() => maxContextInfo.value.label);
+
 const currentContextTokens = computed(() => {
   const s = activeSession.value;
   if (!s || !s.messages || s.messages.length === 0) return '0';
@@ -795,6 +819,23 @@ async function handleSend() {
   }
   if (text === '/clear' || text.startsWith('/clear ')) {
     await executeClearSession();
+    return;
+  }
+  if (text === '/cost') {
+    const s = activeSession.value;
+    const tokens = currentContextTokens.value;
+    const maxInfo = getModelContextWindow(currentModel.value);
+    const parsedTokens = parseTokenCount(tokens);
+    const pct = ((parsedTokens / maxInfo.maxTokens) * 100).toFixed(1);
+    addLocalExchange(
+      '/cost',
+      `### 📊 Thống kê Token & Context Window\n\n` +
+      `• **Model:** \`${currentModel.value}\`\n` +
+      `• **Context Window:** \`${tokens} / ${maxInfo.label}\` tokens (${pct}% dung lượng)\n` +
+      `• **Số tin nhắn trong phiên:** \`${s?.messages?.length || 0}\` tin nhắn\n` +
+      `• **Chế độ thực thi:** \`${currentMode.value}\`\n\n` +
+      `💡 *Mẹo: Gõ \`/compact\` nếu context window vượt quá 70% để nén bớt lịch sử.*`
+    );
     return;
   }
   if (text === '/model') {

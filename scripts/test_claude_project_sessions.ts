@@ -92,6 +92,47 @@ async function runTests() {
     }
   }
 
+  // Test 7: Verify token extraction from jsonl and preservation in resumeProjectSession
+  const testTokenSessionId = `test-token-${Date.now()}`;
+  const testTokenFile = path.join(projectDir, `${testTokenSessionId}.jsonl`);
+  fs.writeFileSync(
+    testTokenFile,
+    JSON.stringify({ type: 'user', message: { content: 'User question for tokens test' } }) + '\n' +
+    JSON.stringify({
+      type: 'assistant',
+      message: {
+        content: [{ type: 'text', text: 'Assistant answer' }],
+        usage: {
+          input_tokens: 15420,
+          output_tokens: 80,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+      },
+    }) + '\n',
+    'utf8'
+  );
+  try {
+    const detailWithTokens = await claudeService.getProjectSessionDetail(testTokenSessionId, cwd, 'server-local');
+    assert.ok(detailWithTokens, 'Detail must be loaded');
+    assert.strictEqual(detailWithTokens.contextTokens, '15.5k', 'contextTokens must be 15.5k (15420 + 80 = 15500)');
+
+    const resumedWithTokens = await claudeService.resumeProjectSession(testTokenSessionId, cwd, undefined, 'server-local');
+    assert.ok(resumedWithTokens, 'Resumed session must exist');
+    assert.strictEqual(resumedWithTokens.contextTokens, '15.5k', 'Resumed session must preserve authentic 15.5k context tokens');
+
+    // Adding message without explicitContextTokens must not wipe out 15.5k
+    const dummyMsg = { id: 'm1', sender: 'assistant' as const, text: 'Another message', time: '12:00' };
+    claudeService.addMessage(resumedWithTokens.id, dummyMsg);
+    const afterAdd = claudeService.getSession(resumedWithTokens.id);
+    assert.strictEqual(afterAdd?.contextTokens, '15.5k', 'addMessage must not overwrite existing 15.5k with a crude character estimate');
+    console.log('Successfully tested token extraction and preservation: contextTokens = 15.5k maintained!');
+  } finally {
+    if (fs.existsSync(testTokenFile)) {
+      fs.unlinkSync(testTokenFile);
+    }
+  }
+
   console.log('All Claude Code CLI Project Sessions tests PASSED! ✔');
 }
 

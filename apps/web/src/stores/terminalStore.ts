@@ -43,7 +43,10 @@ export const useTerminalStore = defineStore('terminal', () => {
     },
   ]);
 
-  const activeSessionId = ref('term-local-main');
+  const SAVED_TERM_KEY_PREFIX = 'hugremote_active_terminal_session_';
+  const activeSessionId = ref(
+    (typeof localStorage !== 'undefined' && localStorage.getItem(`${SAVED_TERM_KEY_PREFIX}server-local`)) || 'term-local-main'
+  );
 
   // Watch server workspace to auto-update the default session path once loaded
   watch(
@@ -98,11 +101,17 @@ export const useTerminalStore = defineStore('terminal', () => {
     };
     sessions.value.push(newSession);
     activeSessionId.value = newSession.id;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${curServerId}`, newSession.id);
+    }
     return newSession;
   }
 
   function switchSession(id: string) {
     activeSessionId.value = id;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${serverStore.currentServerId}`, id);
+    }
   }
 
   function closeSession(id: string) {
@@ -115,6 +124,9 @@ export const useTerminalStore = defineStore('terminal', () => {
       const remaining = currentServerSessions.value;
       if (remaining.length > 0) {
         activeSessionId.value = remaining[0].id;
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${serverStore.currentServerId}`, remaining[0].id);
+        }
       }
     }
   }
@@ -142,12 +154,27 @@ export const useTerminalStore = defineStore('terminal', () => {
   }
 
   function ensureServerSession() {
+    const curServerId = serverStore.currentServerId;
+    const stored = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(`${SAVED_TERM_KEY_PREFIX}${curServerId}`)
+      : null;
     if (currentServerSessions.value.length === 0) {
       createSession();
+    } else if (stored && currentServerSessions.value.some((s) => s.id === stored)) {
+      activeSessionId.value = stored;
     } else if (!currentServerSessions.value.some((s) => s.id === activeSessionId.value)) {
       activeSessionId.value = currentServerSessions.value[0].id;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${curServerId}`, currentServerSessions.value[0].id);
+      }
     }
   }
+
+  watch(activeSessionId, (id) => {
+    if (id && typeof localStorage !== 'undefined') {
+      localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${serverStore.currentServerId}`, id);
+    }
+  });
 
   return {
     sessions,

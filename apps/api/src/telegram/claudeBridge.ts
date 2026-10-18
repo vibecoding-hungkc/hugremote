@@ -206,7 +206,7 @@ export async function executeAndStreamPrompt(
       thinking: result.thinking || currentThinking || undefined,
       tools: result.tools?.length ? result.tools : currentTools.length ? currentTools : undefined,
     };
-    claudeService.addMessage(session.id, asstMsg);
+    claudeService.addMessage(session.id, asstMsg, session.contextTokens);
 
     // 5. Final message presentation
     const finalFullText = result.text || currentText;

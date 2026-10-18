@@ -82,7 +82,7 @@
               <div class="limit-progress-fill" :style="{ width: `${contextPercent}%` }"></div>
             </div>
             <div class="limit-card-bottom">
-              <span class="limit-tokens-detail">{{ currentTokens }} / 1,000k tokens</span>
+              <span class="limit-tokens-detail">{{ currentTokens }} / {{ maxContextLabel }} tokens</span>
               <span class="limit-model-tag">{{ currentModel }}</span>
             </div>
           </div>
@@ -122,11 +122,34 @@ const currentTokens = computed(() => {
 });
 const currentModel = computed(() => activeSession.value?.model || 'Default Medium');
 
+function parseTokenCount(t: string | undefined): number {
+  if (!t || t === '0' || t === '0k') return 0;
+  const lower = t.toLowerCase().trim();
+  if (lower.endsWith('k')) {
+    return (parseFloat(lower.slice(0, -1)) || 0) * 1000;
+  }
+  if (lower.endsWith('m')) {
+    return (parseFloat(lower.slice(0, -1)) || 0) * 1000000;
+  }
+  return parseFloat(lower) || 0;
+}
+
+function getModelContextWindow(modelName: string): { maxTokens: number; label: string } {
+  const m = (modelName || '').toLowerCase();
+  if (m.includes('1m') || m.includes('1000k')) {
+    return { maxTokens: 1000000, label: '1,000k' };
+  }
+  return { maxTokens: 200000, label: '200k' };
+}
+
+const maxContextInfo = computed(() => getModelContextWindow(currentModel.value));
+const maxContextLabel = computed(() => maxContextInfo.value.label);
+
 const contextPercent = computed(() => {
-  const t = currentTokens.value;
-  if (t === '0') return '0.0';
-  const k = parseFloat(t.replace(/[^0-9.]/g, '') || '0');
-  return ((k / 1000) * 100).toFixed(1);
+  const tokens = parseTokenCount(currentTokens.value);
+  if (tokens <= 0) return '0.0';
+  const pct = (tokens / maxContextInfo.value.maxTokens) * 100;
+  return Math.min(100, Math.max(0, pct)).toFixed(1);
 });
 
 // Tự động tải số liệu mới nhất khi mở popup

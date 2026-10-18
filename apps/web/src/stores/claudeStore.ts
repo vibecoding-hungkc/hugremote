@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { apiUrl } from '../utils/api.js';
 import { useServerStore } from './serverStore.js';
 import { useProjectStore } from './projectStore.js';
@@ -20,6 +20,25 @@ export type {
 };
 
 export const useClaudeStore = defineStore('claude', () => {
+  const SAVED_SESSION_KEY_PREFIX = 'hugremote_active_claude_session_';
+
+  function getStoredActiveSessionId(sId: string, pId?: string): string {
+    if (typeof localStorage === 'undefined') return '';
+    if (pId) {
+      const perProject = localStorage.getItem(`${SAVED_SESSION_KEY_PREFIX}${sId}_${pId}`);
+      if (perProject) return perProject;
+    }
+    return localStorage.getItem(`${SAVED_SESSION_KEY_PREFIX}${sId}`) || '';
+  }
+
+  function storeActiveSessionId(id: string, sId: string, pId?: string) {
+    if (typeof localStorage === 'undefined' || !id) return;
+    if (pId) {
+      localStorage.setItem(`${SAVED_SESSION_KEY_PREFIX}${sId}_${pId}`, id);
+    }
+    localStorage.setItem(`${SAVED_SESSION_KEY_PREFIX}${sId}`, id);
+  }
+
   const sessions = ref<ClaudeSession[]>([]);
   const activeSessionId = ref<string>('');
   const isGenerating = ref<boolean>(false);
@@ -87,8 +106,12 @@ export const useClaudeStore = defineStore('claude', () => {
         sessions.value = [...others, ...data.sessions];
         const currentList = currentServerSessions.value;
         if (currentList.length > 0) {
-          if (!activeSessionId.value || !currentList.some((s: ClaudeSession) => s.id === activeSessionId.value)) {
+          const storedId = getStoredActiveSessionId(sId, projectId);
+          if (storedId && currentList.some((s: ClaudeSession) => s.id === storedId)) {
+            activeSessionId.value = storedId;
+          } else if (!activeSessionId.value || !currentList.some((s: ClaudeSession) => s.id === activeSessionId.value)) {
             activeSessionId.value = currentList[0].id;
+            storeActiveSessionId(currentList[0].id, sId, projectId);
           }
         }
       }
@@ -103,11 +126,17 @@ export const useClaudeStore = defineStore('claude', () => {
       const pName = projectStore.currentProject?.name;
       const defaultName = (!pName || pName === '~') ? 'chat' : pName;
       await createSession(defaultName, currentProjectRoot.value);
+    } else {
+      const storedId = getStoredActiveSessionId(serverStore.currentServer.id, currentProjectId.value);
+      if (storedId && currentServerSessions.value.some((s) => s.id === storedId)) {
+        activeSessionId.value = storedId;
+      }
     }
   }
 
   function switchSession(id: string) {
     activeSessionId.value = id;
+    storeActiveSessionId(id, serverStore.currentServer.id, currentProjectId.value);
   }
 
   async function createSession(
@@ -139,6 +168,7 @@ export const useClaudeStore = defineStore('claude', () => {
       if (data.session) {
         sessions.value.unshift(data.session);
         activeSessionId.value = data.session.id;
+        storeActiveSessionId(data.session.id, sId, currentProjectId.value);
         return data.session;
       }
     } catch (err) {
@@ -178,6 +208,7 @@ export const useClaudeStore = defineStore('claude', () => {
         const remaining = currentServerSessions.value;
         if (activeSessionId.value === id && remaining.length > 0) {
           activeSessionId.value = remaining[0].id;
+          storeActiveSessionId(remaining[0].id, serverStore.currentServer.id, currentProjectId.value);
         }
       }
     } catch (err) {
@@ -574,6 +605,7 @@ export const useClaudeStore = defineStore('claude', () => {
           sessions.value.unshift(data.session);
         }
         activeSessionId.value = data.session.id;
+        storeActiveSessionId(data.session.id, sId, currentProjectId.value);
         return data.session as ClaudeSession;
       }
       return null;
@@ -667,6 +699,12 @@ export const useClaudeStore = defineStore('claude', () => {
       return false;
     }
   }
+
+  watch(activeSessionId, (id) => {
+    if (id) {
+      storeActiveSessionId(id, serverStore.currentServer.id, currentProjectId.value);
+    }
+  });
 
   return {
     sessions,

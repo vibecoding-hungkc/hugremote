@@ -44,6 +44,8 @@ export interface ClaudeProjectSessionSummary {
   updatedAt: number;
   size: number;
   cwd?: string;
+  contextTokens?: string;
+  totalCostUSD?: number;
 }
 
 export interface ClaudeProjectSessionDetail extends ClaudeProjectSessionSummary {

@@ -336,17 +336,35 @@ export class ClaudeService {
     return ok;
   }
 
-  addMessage(sessionId: string, message: ClaudeMessage): ClaudeSession | undefined {
+  public estimateSessionTokens(messages: ClaudeMessage[]): string {
+    let totalChars = 0;
+    for (const m of messages) {
+      totalChars += (m.text?.length || 0);
+      totalChars += (m.thinking?.length || 0);
+      if (m.tools && Array.isArray(m.tools)) {
+        for (const t of m.tools) {
+          totalChars += (t.title?.length || 0);
+          totalChars += (t.content?.length || 0);
+          totalChars += (t.output?.length || 0);
+        }
+      }
+    }
+    const estTokens = Math.round(totalChars / 3.8);
+    return estTokens >= 1000 ? `${(estTokens / 1000).toFixed(1)}k` : `${estTokens}`;
+  }
+
+  addMessage(sessionId: string, message: ClaudeMessage, explicitContextTokens?: string): ClaudeSession | undefined {
     const session = this.sessions.get(sessionId);
     if (!session) return undefined;
 
     session.messages.push(message);
     session.updatedAt = Date.now();
 
-    // Increment context tokens dynamically based on total message characters
-    const totalChars = session.messages.reduce((acc, m) => acc + (m.text?.length || 0), 0);
-    const estTokens = Math.round(totalChars / 3.5);
-    session.contextTokens = estTokens >= 1000 ? `${(estTokens / 1000).toFixed(1)}k` : `${estTokens}`;
+    if (explicitContextTokens && explicitContextTokens !== '0' && explicitContextTokens !== '0k') {
+      session.contextTokens = explicitContextTokens;
+    } else if (!session.contextTokens || session.contextTokens === '0' || session.contextTokens === '0k') {
+      session.contextTokens = this.estimateSessionTokens(session.messages);
+    }
 
     this.saveSessions();
     return session;
@@ -533,11 +551,39 @@ export class ClaudeService {
       let branch = '';
       let userMsgs = 0;
       let asstMsgs = 0;
+      let latestContextTokens = 0;
+      let totalCostUSD: number | undefined = undefined;
 
       for (const line of lines) {
         if (!line.trim().startsWith('{')) continue;
         try {
           const d = JSON.parse(line);
+          if (d.type === 'cost-state') {
+            if (typeof d.totalCostUSD === 'number') {
+              totalCostUSD = d.totalCostUSD;
+            }
+            if (d.modelUsage && typeof d.modelUsage === 'object') {
+              for (const mu of Object.values<any>(d.modelUsage)) {
+                if (mu && typeof mu === 'object') {
+                  const inTok = mu.inputTokens || 0;
+                  const outTok = mu.outputTokens || 0;
+                  const cRead = mu.cacheReadInputTokens || 0;
+                  const cCreate = mu.cacheCreationInputTokens || 0;
+                  const sum = inTok + outTok + cRead + cCreate;
+                  if (sum > 0) latestContextTokens = sum;
+                }
+              }
+            }
+          } else if (d.type === 'assistant' && d.message?.usage) {
+            const u = d.message.usage;
+            const inTok = u.input_tokens || 0;
+            const outTok = u.output_tokens || 0;
+            const cRead = u.cache_read_input_tokens || 0;
+            const cCreate = u.cache_creation_input_tokens || 0;
+            const sum = inTok + outTok + cRead + cCreate;
+            if (sum > 0) latestContextTokens = sum;
+          }
+
           if (d.type === 'custom-title' && d.customTitle) {
             customTitle = String(d.customTitle).trim();
           } else if (d.type === 'user' && d.message) {
@@ -567,6 +613,13 @@ export class ClaudeService {
       let summary = customTitle || lastPrompt || firstPrompt || 'Phiên chưa đặt tên';
       summary = summary.replace(/<[^>]+>/g, '').trim() || 'Phiên chưa đặt tên';
 
+      let contextTokensStr: string | undefined = undefined;
+      if (latestContextTokens >= 1000) {
+        contextTokensStr = `${(latestContextTokens / 1000).toFixed(1)}k`;
+      } else if (latestContextTokens > 0) {
+        contextTokensStr = `${latestContextTokens}`;
+      }
+
       return {
         id: '',
         summary,
@@ -578,6 +631,8 @@ export class ClaudeService {
         asstMsgs,
         updatedAt: mtime,
         size,
+        contextTokens: contextTokensStr,
+        totalCostUSD,
       };
     } catch (_) {
       return null;
@@ -776,9 +831,11 @@ export class ClaudeService {
     }
     session.updatedAt = Date.now();
 
-    const totalChars = session.messages.reduce((acc, m) => acc + (m.text?.length || 0), 0);
-    const estTokens = Math.round(totalChars / 3.5);
-    session.contextTokens = estTokens >= 1000 ? `${(estTokens / 1000).toFixed(1)}k` : `${estTokens}`;
+    if (detail.contextTokens && detail.contextTokens !== '0' && detail.contextTokens !== '0k') {
+      session.contextTokens = detail.contextTokens;
+    } else {
+      session.contextTokens = this.estimateSessionTokens(session.messages);
+    }
 
     this.saveSessions();
     return session;
@@ -1625,8 +1682,22 @@ export class ClaudeService {
             }
 
             // 3. Assistant content
-            if (obj.type === 'assistant' && obj.message && Array.isArray(obj.message.content)) {
-              for (const c of obj.message.content) {
+            if (obj.type === 'assistant' && obj.message) {
+              if (obj.message.usage) {
+                const u = obj.message.usage;
+                const inTok = u.input_tokens || 0;
+                const outTok = u.output_tokens || 0;
+                const cRead = u.cache_read_input_tokens || 0;
+                const cCreate = u.cache_creation_input_tokens || 0;
+                const sum = inTok + outTok + cRead + cCreate;
+                if (sum > 0) {
+                  const ctxStr = sum >= 1000 ? `${(sum / 1000).toFixed(1)}k` : `${sum}`;
+                  session.contextTokens = ctxStr;
+                }
+              }
+
+              if (Array.isArray(obj.message.content)) {
+                for (const c of obj.message.content) {
                 if (c.type === 'thinking' && c.thinking) {
                   thinkingText += c.thinking;
                   onEvent({ type: 'thinking', text: c.thinking });
@@ -1680,6 +1751,7 @@ export class ClaudeService {
                 }
               }
             }
+          }
 
             // 4. User tool results
             if (obj.type === 'user' && obj.message && Array.isArray(obj.message.content)) {
@@ -1707,16 +1779,33 @@ export class ClaudeService {
                 fullText = obj.result;
               }
               let ctxStr: string | undefined = undefined;
+              let totalTokens = 0;
+
               if (obj.usage) {
                 const inTok = obj.usage.input_tokens || 0;
                 const outTok = obj.usage.output_tokens || 0;
-                const cacheTok = obj.usage.cache_read_input_tokens || 0;
-                const total = inTok + outTok + cacheTok;
-                if (total > 0) {
-                  ctxStr = total >= 1000 ? `${(total / 1000).toFixed(1)}k` : `${total}`;
-                  session.contextTokens = ctxStr;
-                  this.saveSessions();
+                const cacheReadTok = obj.usage.cache_read_input_tokens || 0;
+                const cacheCreateTok = obj.usage.cache_creation_input_tokens || 0;
+                totalTokens = inTok + outTok + cacheReadTok + cacheCreateTok;
+              }
+
+              if (totalTokens === 0 && obj.modelUsage && typeof obj.modelUsage === 'object') {
+                for (const mu of Object.values<any>(obj.modelUsage)) {
+                  if (mu && typeof mu === 'object') {
+                    const inTok = mu.inputTokens || 0;
+                    const outTok = mu.outputTokens || 0;
+                    const cacheRead = mu.cacheReadInputTokens || 0;
+                    const cacheCreate = mu.cacheCreationInputTokens || 0;
+                    const sum = inTok + outTok + cacheRead + cacheCreate;
+                    if (sum > totalTokens) totalTokens = sum;
+                  }
                 }
+              }
+
+              if (totalTokens > 0) {
+                ctxStr = totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : `${totalTokens}`;
+                session.contextTokens = ctxStr;
+                this.saveSessions();
               }
               onEvent({
                 type: 'done',

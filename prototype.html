@@ -11,6 +11,8 @@
   <meta name="theme-color" content="#0b0f19">
   <!-- Remix Icon CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css">
+  <!-- JSZip CDN for in-browser client-side zip creation simulation -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <style>
     /* ========================================================
@@ -321,6 +323,153 @@
     }
     .btn-action-icon.danger:active {
       background: rgba(239, 68, 68, 0.28) !important;
+    }
+    .btn-action-icon.download {
+      color: #38bdf8 !important;
+      border-color: rgba(56, 189, 248, 0.35) !important;
+      background: rgba(56, 189, 248, 0.08) !important;
+    }
+    .btn-action-icon.download:hover {
+      background: rgba(56, 189, 248, 0.18) !important;
+      border-color: rgba(56, 189, 248, 0.5) !important;
+      color: #7dd3fc !important;
+    }
+    .btn-action-icon.download:active {
+      background: rgba(56, 189, 248, 0.28) !important;
+    }
+
+    /* Zip cache badge on header icon */
+    .zip-cache-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #0284c7;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 8px;
+      border: 1px solid #0f172a;
+      line-height: 1.1;
+      pointer-events: none;
+    }
+    .zip-cache-badge.hidden {
+      display: none;
+    }
+
+    /* Drag & Drop Overlay */
+    .file-list-container {
+      position: relative;
+    }
+    .file-drop-overlay {
+      position: absolute;
+      inset: 8px;
+      border: 2px dashed #38bdf8;
+      background: rgba(15, 23, 42, 0.94);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      z-index: 50;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+    .file-drop-overlay.hidden {
+      display: none;
+    }
+    .file-drop-overlay i {
+      font-size: 44px;
+      color: #38bdf8;
+      animation: floatPulse 1.2s infinite ease-in-out alternate;
+    }
+    .file-drop-overlay .drop-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+    .file-drop-overlay .drop-subtitle {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    @keyframes floatPulse {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(-6px) scale(1.05); }
+    }
+
+    /* Modal Cleanup styling */
+    .modal-card.modal-cleanup {
+      max-width: 480px;
+    }
+    .cleanup-info-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .cleanup-info-box code {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+    .cleanup-list {
+      max-height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 4px 0;
+    }
+    .cleanup-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+    .cleanup-row-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .cleanup-row-name {
+      color: #f1f5f9;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
+    }
+    .cleanup-row-meta {
+      color: #64748b;
+      font-size: 11px;
+    }
+    .cleanup-row-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .cleanup-badge-ttl {
+      font-size: 10px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 4px;
+      padding: 2px 5px;
     }
 
     /* ========================================================
@@ -3743,7 +3892,13 @@
       <div class="smart-header-right">
         <!-- Actions for Files -->
         <div id="ctx-actions-files" class="ctx-actions-item active">
+          <button id="btn-quick-upload" class="btn-icon-action" title="Tải lên (File / Thư mục)"><i class="ri-upload-2-line"></i></button>
+          <button id="btn-quick-download-zip" class="btn-icon-action" title="Nén & tải về thư mục này (.zip)"><i class="ri-folder-zip-line"></i></button>
           <button id="btn-quick-new" class="btn-icon-action" title="Tạo file / thư mục mới"><i class="ri-add-line"></i></button>
+          <button id="btn-open-cleanup-modal" class="btn-icon-action" title="Quản lý file nén tạm & dọn dẹp định kỳ" style="position:relative;">
+            <i class="ri-archive-line"></i>
+            <span id="zip-cache-badge" class="zip-cache-badge hidden">0</span>
+          </button>
         </div>
 
         <!-- Actions for Editor -->
@@ -3773,10 +3928,15 @@
     <main class="views-wrapper">
       <!-- VIEW 1: FILES -->
       <section id="view-files" class="view active">
-        <div class="file-list-container">
+        <div class="file-list-container" id="file-drop-container">
           <ul id="file-list" class="file-list">
             <!-- Rendered by JS -->
           </ul>
+          <div id="file-drop-overlay" class="file-drop-overlay hidden">
+            <i class="ri-upload-cloud-2-line"></i>
+            <span class="drop-title">Thả tệp hoặc thư mục vào đây</span>
+            <span class="drop-subtitle">Tự động nạp vào thư mục hiện tại</span>
+          </div>
         </div>
       </section>
 
@@ -4227,6 +4387,23 @@
     </button>
   </div>
 
+  <!-- POPOVER: UPLOAD MENU (Ở Tab Files) -->
+  <div id="popover-upload" class="popover-menu hidden">
+    <button id="pop-upload-files" class="popover-item">
+      <i class="ri-file-upload-line"></i><span>Tải lên các tệp (Upload Files)</span>
+    </button>
+    <button id="pop-upload-folder" class="popover-item">
+      <i class="ri-folder-upload-line"></i><span>Tải lên cả thư mục (Upload Folder)</span>
+    </button>
+    <div class="popover-divider"></div>
+    <button id="pop-upload-drag-hint" class="popover-item">
+      <i class="ri-drag-drop-line"></i><span>Kéo thả tệp/folder vào màn hình</span>
+    </button>
+  </div>
+
+  <input type="file" id="input-upload-files" multiple style="display:none;" />
+  <input type="file" id="input-upload-folder" webkitdirectory directory multiple style="display:none;" />
+
   <!-- POPOVER: TERMINAL MORE ACTIONS (Ở Tab Terminal) -->
     <!-- POPOVER: CLAUDE MORE ACTIONS -->
   <div id="popover-claude" class="popover-menu hidden">
@@ -4464,6 +4641,42 @@
       <div class="form-submit-row" style="margin-top:8px;">
         <button id="btn-cancel-create-item" class="btn btn-secondary">Hủy</button>
         <button id="btn-confirm-create-item" class="btn btn-primary"><i class="ri-add-line"></i> Tạo Mới</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AUTO-CLEANUP & TEMP ZIP ARCHIVES MANAGER -->
+  <div id="cleanup-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-cleanup">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 class="modal-title" style="color:#38bdf8; display:flex; align-items:center; gap:8px;">
+          <i class="ri-archive-line"></i> Quản Lý File Nén Tạm & Dọn Dẹp
+        </h3>
+        <button id="btn-close-cleanup-modal" class="btn-action-icon" style="background:transparent; border:none; color:#94a3b8;"><i class="ri-close-line" style="font-size:18px;"></i></button>
+      </div>
+
+      <div class="cleanup-info-box">
+        <div>📁 <b>Thư mục đệm zip trên server:</b> <code>~/.config/hugremote/tmp/downloads/</code></div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:4px;">
+          <span>⏱ <b>TTL Hạn sử dụng:</b> 60 phút</span>
+          <span>🔄 <b>Lịch dọn dẹp định kỳ:</b> Quét mỗi 15 phút</span>
+          <span>📦 <b>Ngưỡng LRU:</b> 500 MB</span>
+        </div>
+      </div>
+
+      <div style="font-size:12px; color:#cbd5e1; font-weight:600; margin-top:4px;">
+        Danh sách file zip vừa tạo (<span id="cleanup-active-count">0</span> file):
+      </div>
+
+      <div id="cleanup-archive-list" class="cleanup-list">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="modal-actions" style="justify-content:space-between; margin-top:8px;">
+        <button id="btn-purge-all-zips" class="btn btn-secondary danger" style="color:#ef4444; border-color:rgba(239,68,68,0.3); font-size:12px;">
+          <i class="ri-delete-bin-line"></i> Xóa sạch ngay
+        </button>
+        <button id="btn-done-cleanup-modal" class="btn btn-primary" style="font-size:12px;">Đóng</button>
       </div>
     </div>
   </div>
@@ -5084,17 +5297,34 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
       // Popovers
       const popoverNew = document.getElementById('popover-new');
+      const popoverUpload = document.getElementById('popover-upload');
       const popoverTerm = document.getElementById('popover-term');
       const popoverBrand = document.getElementById('popover-brand');
       const popoverClaude = document.getElementById('popover-claude');
-      const allPopovers = [popoverNew, popoverTerm, popoverBrand, popoverClaude];
+      const allPopovers = [popoverNew, popoverUpload, popoverTerm, popoverBrand, popoverClaude];
 
       const btnQuickNew = document.getElementById('btn-quick-new');
+      const btnQuickUpload = document.getElementById('btn-quick-upload');
+      const btnQuickDownloadZip = document.getElementById('btn-quick-download-zip');
+      const btnOpenCleanupModal = document.getElementById('btn-open-cleanup-modal');
+      const zipCacheBadge = document.getElementById('zip-cache-badge');
       const btnTermMore = document.getElementById('btn-term-more');
 
       // Files DOM
       const fileBreadcrumb = document.getElementById('file-breadcrumb');
       const fileList = document.getElementById('file-list');
+      const fileDropContainer = document.getElementById('file-drop-container');
+      const fileDropOverlay = document.getElementById('file-drop-overlay');
+      const inputUploadFiles = document.getElementById('input-upload-files');
+      const inputUploadFolder = document.getElementById('input-upload-folder');
+
+      // Cleanup Modal DOM
+      const cleanupModal = document.getElementById('cleanup-modal');
+      const cleanupArchiveList = document.getElementById('cleanup-archive-list');
+      const cleanupActiveCount = document.getElementById('cleanup-active-count');
+      const btnPurgeAllZips = document.getElementById('btn-purge-all-zips');
+      const btnCloseCleanupModal = document.getElementById('btn-close-cleanup-modal');
+      const btnDoneCleanupModal = document.getElementById('btn-done-cleanup-modal');
 
       // Editor DOM
       const editorFilename = document.getElementById('editor-filename');
@@ -6289,10 +6519,30 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               </div>
             </div>
             <div class="file-row-actions">
+              ${item.type === 'dir'
+                ? `<button class="btn-action-icon download btn-download-folder" title="Nén zip và tải về thư mục"><i class="ri-folder-zip-line"></i></button>`
+                : `<button class="btn-action-icon download btn-download-file" title="Tải về file này"><i class="ri-download-2-line"></i></button>`
+              }
               <button class="btn-action-icon btn-rename" title="Đổi tên"><i class="ri-edit-line"></i></button>
               <button class="btn-action-icon danger btn-delete" title="Xóa"><i class="ri-delete-bin-line"></i></button>
             </div>
           `;
+
+          // Download action
+          const btnDlFile = li.querySelector('.btn-download-file');
+          if (btnDlFile) {
+            btnDlFile.addEventListener('click', (e) => {
+              e.stopPropagation();
+              executeSingleFileDownload(name, item);
+            });
+          }
+          const btnDlFolder = li.querySelector('.btn-download-folder');
+          if (btnDlFolder) {
+            btnDlFolder.addEventListener('click', (e) => {
+              e.stopPropagation();
+              executeFolderZipDownload(name, item);
+            });
+          }
 
           // Tap to Open: Directly opens editor / preview!
           li.querySelector('.file-row-left').addEventListener('click', () => {
@@ -8453,6 +8703,397 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           closeClaudeSession(activeClaudeId);
         });
       }
+
+      // ========================================================
+      // DOWNLOAD, UPLOAD & AUTO-CLEANUP MANAGER LOGIC
+      // ========================================================
+
+      // Temporary Zip Archives Registry (Simulating server-side storage at ~/.config/hugremote/tmp/downloads/)
+      const tempZipArchives = [
+        {
+          id: 'zip-demo-1',
+          name: 'apps-web_backup.zip',
+          folderName: 'apps/web',
+          size: '1.2 MB',
+          createdAt: Date.now() - 15 * 60 * 1000,
+          expiresAt: Date.now() + 45 * 60 * 1000,
+        },
+        {
+          id: 'zip-demo-2',
+          name: 'docs_archive.zip',
+          folderName: 'docs',
+          size: '480 KB',
+          createdAt: Date.now() - 40 * 60 * 1000,
+          expiresAt: Date.now() + 20 * 60 * 1000,
+        }
+      ];
+
+      function updateZipCacheBadge() {
+        if (!zipCacheBadge) return;
+        const validArchives = tempZipArchives.filter(z => z.expiresAt > Date.now());
+        if (validArchives.length > 0) {
+          zipCacheBadge.textContent = validArchives.length;
+          zipCacheBadge.classList.remove('hidden');
+        } else {
+          zipCacheBadge.classList.add('hidden');
+        }
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }
+
+      function executeSingleFileDownload(name, item) {
+        showToast(`⬇️ Đang tải về file "${name}"...`, 'info');
+        const content = item.content || '';
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        downloadBlob(blob, name);
+      }
+
+      function addFolderToZip(zipFolder, node) {
+        if (!node || !node.children) return;
+        for (const [name, child] of Object.entries(node.children)) {
+          if (child.type === 'dir') {
+            const subZip = zipFolder.folder(name);
+            addFolderToZip(subZip, child);
+          } else {
+            zipFolder.file(name, child.content || '');
+          }
+        }
+      }
+
+      async function executeFolderZipDownload(folderName, folderNode) {
+        const cleanName = folderName || 'workspace';
+        showToast(`📦 Đang quét & nén zip thư mục "${cleanName}"...`, 'info');
+
+        try {
+          let zipBlob;
+          if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            const rootZipFolder = zip.folder(cleanName);
+            addFolderToZip(rootZipFolder, folderNode);
+            zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+          } else {
+            zipBlob = new Blob([JSON.stringify(folderNode, null, 2)], { type: 'application/zip' });
+          }
+
+          const sizeStr = `${Math.max(1, (zipBlob.size / 1024).toFixed(1))} KB`;
+          const now = Date.now();
+          const zipFileName = `${cleanName}-${new Date().toISOString().slice(0, 10)}.zip`;
+
+          // Register in temporary zip archives list (server temporary folder ~/.config/hugremote/tmp/downloads/)
+          tempZipArchives.unshift({
+            id: `zip-${now}`,
+            name: zipFileName,
+            folderName: cleanName,
+            size: sizeStr,
+            createdAt: now,
+            expiresAt: now + 60 * 60 * 1000,
+            blob: zipBlob
+          });
+          updateZipCacheBadge();
+
+          downloadBlob(zipBlob, zipFileName);
+          showToast(`✅ Đã nén "${zipFileName}" (${sizeStr})! Lưu tạm tại ~/.config/hugremote/tmp/downloads/ (tự hủy sau 60m)`, 'success');
+        } catch (err) {
+          console.error('Zip download error:', err);
+          showToast(`Lỗi khi nén zip: ${err.message}`, 'error');
+        }
+      }
+
+      function executeCurrentFolderDownload() {
+        const curServer = getCurrentServer();
+        const rootLabel = curServer.workspace ? (extractLast3Dirs(curServer.workspace).pop() || 'workspace') : 'workspace';
+        const folderName = currentPathStack.length > 0 ? currentPathStack[currentPathStack.length - 1] : rootLabel;
+        const folderNode = getCurrentDirNode();
+        executeFolderZipDownload(folderName, folderNode);
+      }
+
+      function renderCleanupModal() {
+        if (!cleanupArchiveList) return;
+        const now = Date.now();
+        cleanupArchiveList.innerHTML = '';
+        const validArchives = tempZipArchives.filter(z => z.expiresAt > now);
+        if (cleanupActiveCount) cleanupActiveCount.textContent = validArchives.length;
+
+        if (validArchives.length === 0) {
+          cleanupArchiveList.innerHTML = `
+            <div style="text-align:center; padding:18px; color:#64748b; font-size:12px;">
+              <i class="ri-checkbox-circle-line" style="color:#10b981; font-size:24px; display:block; margin-bottom:4px;"></i>
+              Thư mục đệm trống sạch. Không có file zip tạm nào cần dọn dẹp.
+            </div>
+          `;
+          return;
+        }
+
+        validArchives.forEach((arch) => {
+          const row = document.createElement('div');
+          row.className = 'cleanup-row';
+          const remainingMins = Math.max(1, Math.round((arch.expiresAt - now) / 60000));
+          row.innerHTML = `
+            <div class="cleanup-row-left">
+              <i class="ri-file-zip-fill" style="color:#38bdf8; font-size:18px;"></i>
+              <div>
+                <div class="cleanup-row-name" title="${escapeHtml(arch.name)}">${escapeHtml(arch.name)}</div>
+                <div class="cleanup-row-meta">${arch.size} • Thư mục: ${escapeHtml(arch.folderName)}</div>
+              </div>
+            </div>
+            <div class="cleanup-row-actions">
+              <span class="cleanup-badge-ttl"><i class="ri-time-line"></i> Còn ${remainingMins}m</span>
+              <button class="btn-action-icon btn-dl-arch" title="Tải lại file zip này"><i class="ri-download-2-line"></i></button>
+              <button class="btn-action-icon danger btn-del-arch" title="Xóa file zip này ngay"><i class="ri-delete-bin-line"></i></button>
+            </div>
+          `;
+
+          row.querySelector('.btn-dl-arch').addEventListener('click', () => {
+            if (arch.blob) {
+              downloadBlob(arch.blob, arch.name);
+            } else {
+              const dummyBlob = new Blob(['Simulated zip archive content'], { type: 'application/zip' });
+              downloadBlob(dummyBlob, arch.name);
+            }
+            showToast(`Đang tải lại ${arch.name}`, 'info');
+          });
+
+          row.querySelector('.btn-del-arch').addEventListener('click', () => {
+            const idx = tempZipArchives.indexOf(arch);
+            if (idx !== -1) {
+              tempZipArchives.splice(idx, 1);
+              updateZipCacheBadge();
+              renderCleanupModal();
+              showToast(`Đã xóa file nén tạm "${arch.name}"`, 'success');
+            }
+          });
+
+          cleanupArchiveList.appendChild(row);
+        });
+      }
+
+      function openCleanupModal() {
+        closeAllPopovers();
+        renderCleanupModal();
+        cleanupModal.classList.remove('hidden');
+      }
+
+      function closeCleanupModal() {
+        cleanupModal.classList.add('hidden');
+      }
+
+      function purgeAllZips() {
+        tempZipArchives.length = 0;
+        updateZipCacheBadge();
+        renderCleanupModal();
+        showToast('🧹 Đã xóa sạch toàn bộ file zip trong thư mục đệm tạm!', 'success');
+      }
+
+      // Auto-cleanup background simulation timer: Runs every 10 seconds in prototype
+      setInterval(() => {
+        const now = Date.now();
+        const initialCount = tempZipArchives.length;
+        const valid = tempZipArchives.filter(z => z.expiresAt > now);
+        if (valid.length < initialCount) {
+          tempZipArchives.length = 0;
+          tempZipArchives.push(...valid);
+          updateZipCacheBadge();
+          if (!cleanupModal.classList.contains('hidden')) {
+            renderCleanupModal();
+          }
+          console.log('[Auto-Cleanup Daemon] Purged expired zip archives from ~/.config/hugremote/tmp/downloads/');
+        }
+      }, 10000);
+
+      // File & Folder Upload logic
+      function handleUploadFiles(files) {
+        if (!files || files.length === 0) return;
+        const fileArr = Array.from(files);
+        const currentDir = getCurrentDirNode();
+        let addedCount = 0;
+
+        fileArr.forEach((file) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const content = e.target.result || '';
+            const sizeStr = `${Math.max(1, (file.size / 1024).toFixed(1))} KB`;
+            currentDir.children[file.name] = {
+              type: 'file',
+              size: sizeStr,
+              modified: 'Vừa tải lên',
+              content: content
+            };
+            addedCount++;
+            if (addedCount === fileArr.length) {
+              renderFileExplorer();
+              showToast(`✅ Đã tải lên ${fileArr.length} tệp thành công!`, 'success');
+              if (inputUploadFiles) inputUploadFiles.value = '';
+            }
+          };
+          reader.onerror = () => {
+            addedCount++;
+            if (addedCount === fileArr.length) {
+              renderFileExplorer();
+            }
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      function handleUploadFolder(files) {
+        if (!files || files.length === 0) return;
+        const fileArr = Array.from(files);
+        const currentDir = getCurrentDirNode();
+        let totalCount = 0;
+        let rootFolderName = '';
+
+        fileArr.forEach((file) => {
+          const relPath = file.webkitRelativePath || file.name;
+          const parts = relPath.split('/').filter(Boolean);
+          if (parts.length > 0 && !rootFolderName) rootFolderName = parts[0];
+
+          let targetNode = currentDir;
+          for (let i = 0; i < parts.length - 1; i++) {
+            const dirName = parts[i];
+            if (!targetNode.children[dirName] || targetNode.children[dirName].type !== 'dir') {
+              targetNode.children[dirName] = {
+                type: 'dir',
+                children: {}
+              };
+            }
+            targetNode = targetNode.children[dirName];
+          }
+
+          const fileName = parts[parts.length - 1];
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const content = e.target.result || '';
+            const sizeStr = `${Math.max(1, (file.size / 1024).toFixed(1))} KB`;
+            targetNode.children[fileName] = {
+              type: 'file',
+              size: sizeStr,
+              modified: 'Vừa tải lên',
+              content: content
+            };
+            totalCount++;
+            if (totalCount === fileArr.length) {
+              renderFileExplorer();
+              showToast(`✅ Đã tải lên thư mục "${rootFolderName}" (${fileArr.length} tệp) thành công!`, 'success');
+              if (inputUploadFolder) inputUploadFolder.value = '';
+            }
+          };
+          reader.onerror = () => {
+            totalCount++;
+            if (totalCount === fileArr.length) {
+              renderFileExplorer();
+            }
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      // Drag & Drop Handling on File Explorer view
+      if (fileDropContainer && fileDropOverlay) {
+        ['dragenter', 'dragover'].forEach((evtName) => {
+          fileDropContainer.addEventListener(evtName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileDropOverlay.classList.remove('hidden');
+          });
+        });
+
+        ['dragleave', 'dragend'].forEach((evtName) => {
+          fileDropContainer.addEventListener(evtName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!e.relatedTarget || !fileDropContainer.contains(e.relatedTarget)) {
+              fileDropOverlay.classList.add('hidden');
+            }
+          });
+        });
+
+        fileDropContainer.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          fileDropOverlay.classList.add('hidden');
+
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleUploadFiles(e.dataTransfer.files);
+          }
+        });
+      }
+
+      // Button listeners
+      if (btnQuickUpload) {
+        btnQuickUpload.addEventListener('click', (e) => {
+          e.stopPropagation();
+          togglePopover(popoverUpload, btnQuickUpload);
+        });
+      }
+
+      if (btnQuickDownloadZip) {
+        btnQuickDownloadZip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          executeCurrentFolderDownload();
+        });
+      }
+
+      if (btnOpenCleanupModal) {
+        btnOpenCleanupModal.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCleanupModal();
+        });
+      }
+
+      const popUploadFiles = document.getElementById('pop-upload-files');
+      if (popUploadFiles && inputUploadFiles) {
+        popUploadFiles.addEventListener('click', () => {
+          closeAllPopovers();
+          inputUploadFiles.click();
+        });
+      }
+
+      const popUploadFolder = document.getElementById('pop-upload-folder');
+      if (popUploadFolder && inputUploadFolder) {
+        popUploadFolder.addEventListener('click', () => {
+          closeAllPopovers();
+          inputUploadFolder.click();
+        });
+      }
+
+      const popUploadDragHint = document.getElementById('pop-upload-drag-hint');
+      if (popUploadDragHint) {
+        popUploadDragHint.addEventListener('click', () => {
+          closeAllPopovers();
+          showToast('Kéo thả file hoặc thư mục bất kỳ từ máy tính vào khung Files để tải lên!', 'info');
+        });
+      }
+
+      if (inputUploadFiles) {
+        inputUploadFiles.addEventListener('change', () => {
+          if (inputUploadFiles.files && inputUploadFiles.files.length > 0) {
+            handleUploadFiles(inputUploadFiles.files);
+          }
+        });
+      }
+
+      if (inputUploadFolder) {
+        inputUploadFolder.addEventListener('change', () => {
+          if (inputUploadFolder.files && inputUploadFolder.files.length > 0) {
+            handleUploadFolder(inputUploadFolder.files);
+          }
+        });
+      }
+
+      if (btnCloseCleanupModal) btnCloseCleanupModal.addEventListener('click', closeCleanupModal);
+      if (btnDoneCleanupModal) btnDoneCleanupModal.addEventListener('click', closeCleanupModal);
+      if (btnPurgeAllZips) btnPurgeAllZips.addEventListener('click', purgeAllZips);
+
+      updateZipCacheBadge();
 
       // --- STARTUP ---
       renderFileExplorer();

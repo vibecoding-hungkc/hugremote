@@ -171,13 +171,12 @@ export const useClaudeStore = defineStore('claude', () => {
     bypassPermissions = false
   ) {
     const sId = serverStore.currentServer.id;
-    const defaultModel = defaultModelByServer.value[sId] ? `${defaultModelByServer.value[sId]} Medium` : 'Default Medium';
     const body = {
       serverId: sId,
       name: name || 'chat',
       projectId: projectStore.currentProject?.id || '',
       cwd: cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~',
-      model: model || defaultModel,
+      model: model || 'Default Medium',
       mode: mode || 'Auto',
       initialPrompt,
       bypassPermissions,

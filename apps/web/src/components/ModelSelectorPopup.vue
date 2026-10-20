@@ -105,15 +105,15 @@ const effortSteps = ['Low', 'Medium', 'High', 'Max'] as const;
 type EffortLevel = typeof effortSteps[number];
 
 const currentModelId = computed(() => {
-  const val = (props.modelValue || '').toLowerCase().trim();
-  if (val.includes('default')) return 'default';
-  for (const m of models.value) {
-    if (m.id === 'default') continue;
-    if (val.includes(m.id.toLowerCase()) || val.includes(m.prefix.toLowerCase())) {
-      return m.id;
-    }
-  }
-  return models.value[0]?.id || 'default';
+  // modelValue looks like "<alias> <Effort>" e.g. "sonnet[1m] Medium" -> match the alias exactly
+  const base = (props.modelValue || '')
+    .replace(/\s+\b(Low|Medium|High|Max)\b\s*$/i, '')
+    .trim()
+    .toLowerCase();
+  if (!base || base.startsWith('default')) return 'default';
+  const exact = models.value.find((m) => m.id.toLowerCase() === base || m.prefix.toLowerCase() === base);
+  if (exact) return exact.id;
+  return models.value.find((m) => base.includes(m.id.toLowerCase()) && m.id !== 'default')?.id || 'default';
 });
 
 const currentEffort = computed<EffortLevel>(() => {

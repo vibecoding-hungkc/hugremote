@@ -31,6 +31,7 @@
       <!-- Tab 3: Terminal View -->
       <TerminalView
         v-show="activeTab === 'terminal'"
+        :is-active="activeTab === 'terminal'"
       />
 
       <!-- Tab 4: Claude View -->

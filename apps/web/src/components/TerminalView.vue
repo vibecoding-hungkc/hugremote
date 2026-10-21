@@ -166,6 +166,10 @@ import InputModal from './InputModal.vue';
 import VirtualLaptopKeyboard from './VirtualLaptopKeyboard.vue';
 import { useI18n } from '../composables/useI18n.js';
 
+const props = defineProps<{
+  isActive?: boolean;
+}>();
+
 const terminalStore = useTerminalStore();
 const { t } = useI18n();
 const serverStore = useServerStore();
@@ -179,6 +183,7 @@ const isPasteModalOpen = ref(false);
 
 let term: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
+let resizeObserver: ResizeObserver | null = null;
 let socket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
@@ -257,7 +262,26 @@ watch(isLaptopKeyboardOpen, (open) => {
   } else {
     restoreTerminalTextarea();
   }
+  setTimeout(handleResize, 50);
+  setTimeout(handleResize, 150);
 });
+
+watch(isDrawerOpen, () => {
+  setTimeout(handleResize, 50);
+  setTimeout(handleResize, 150);
+});
+
+watch(
+  () => props.isActive,
+  (active) => {
+    if (active) {
+      setTimeout(handleResize, 10);
+      setTimeout(handleResize, 60);
+      setTimeout(handleResize, 180);
+      setTimeout(focusTerminal, 80);
+    }
+  }
+);
 
 function resizeTerminal() {
   setTimeout(handleResize, 50);
@@ -293,6 +317,10 @@ function executeManualPaste(text: string) {
 }
 
 function cleanupCurrentTerminal() {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
   if (cleanupTouch) {
     cleanupTouch();
     cleanupTouch = null;
@@ -408,6 +436,19 @@ function initTerminal() {
   term.loadAddon(webLinksAddon);
   term.open(terminalRef.value);
 
+  // Setup ResizeObserver to automatically fit on container resize, tab switch, and font render
+  if (typeof ResizeObserver !== 'undefined' && terminalRef.value) {
+    if (resizeObserver) resizeObserver.disconnect();
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          handleResize();
+        }
+      }
+    });
+    resizeObserver.observe(terminalRef.value);
+  }
+
   // SANITIZE MOBILE TEXTAREA (Prevent mobile autocorrect/autocapitalize from messing up commands)
   const textarea = terminalRef.value.querySelector('textarea');
   if (textarea) {
@@ -504,6 +545,8 @@ function scheduleReconnect() {
 
 function handleResize() {
   if (fitAddon && term && terminalRef.value) {
+    const el = terminalRef.value;
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
     try {
       fitAddon.fit();
       if (socket && socket.readyState === WebSocket.OPEN) {
@@ -572,6 +615,11 @@ onMounted(() => {
   initTerminal();
   requestWakeLock();
   window.addEventListener('resize', handleResize);
+  if (document.fonts) {
+    document.fonts.ready.then(() => {
+      handleResize();
+    });
+  }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       requestWakeLock();
@@ -590,6 +638,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
   releaseWakeLock();
   window.removeEventListener('resize', handleResize);
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
   if (switchDebounceTimer) clearTimeout(switchDebounceTimer);
   cleanupCurrentTerminal();
 });
@@ -601,7 +653,9 @@ onBeforeUnmount(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: #050811;
   position: relative;
@@ -628,12 +682,17 @@ onBeforeUnmount(() => {
 
 .xterm-container {
   flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   padding: 6px 8px;
   touch-action: pan-y;
+  box-sizing: border-box;
 }
 
 .terminal-view-container .xterm {
+  width: 100%;
   height: 100%;
   padding: 0;
 }
@@ -642,6 +701,7 @@ onBeforeUnmount(() => {
   background: #050811 !important;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  width: 100% !important;
 }
 
 .terminal-touch-bar-container {

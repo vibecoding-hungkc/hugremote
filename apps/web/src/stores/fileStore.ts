@@ -186,11 +186,111 @@ export const useFileStore = defineStore('file', () => {
     await fetchFiles(currentRel.value);
   }
 
+  // --- UPLOAD & DOWNLOAD ---
+  const isUploading = ref(false);
+  const uploadProgressText = ref('');
+  const tempArchives = ref<Array<{ id: string; name: string; folderName: string; sizeStr: string; mtime: number; expiresAt: number }>>([]);
+
+  function getDownloadUrl(relPath: string): string {
+    const serverId = serverStore.currentServerId;
+    const projectId = projectStore.currentProject?.id || '';
+    return apiUrl(`/api/fs/download?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(relPath)}`);
+  }
+
+  function downloadItem(relPath: string, fileName?: string) {
+    const url = getDownloadUrl(relPath);
+    const a = document.createElement('a');
+    a.href = url;
+    if (fileName) a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  async function uploadFiles(files: FileList | File[], targetRel?: string) {
+    if (!files || files.length === 0) return { success: true, count: 0 };
+    isUploading.value = true;
+    uploadProgressText.value = `Đang tải lên ${files.length} tệp...`;
+    error.value = null;
+
+    try {
+      const serverId = serverStore.currentServerId;
+      const projectId = projectStore.currentProject?.id || '';
+      const destRel = targetRel !== undefined ? targetRel : currentRel.value;
+
+      const formData = new FormData();
+      const fileArr = Array.from(files);
+
+      fileArr.forEach((file) => {
+        // webkitRelativePath exists for folder uploads
+        const relPath = (file as any).webkitRelativePath || file.name;
+        // encodeURIComponent to preserve directory slashes in multipart filename header
+        formData.append('files', file, encodeURIComponent(relPath));
+      });
+
+      const url = apiUrl(`/api/fs/upload?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&targetDir=${encodeURIComponent(destRel)}`);
+      const res = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Lỗi khi tải lên file');
+      }
+
+      const data = await res.json();
+      saveNotice.value = `Đã tải lên ${data.count || fileArr.length} tệp thành công`;
+      if (saveNoticeTimer) clearTimeout(saveNoticeTimer);
+      saveNoticeTimer = setTimeout(() => { saveNotice.value = ''; }, 3000);
+
+      await fetchFiles(currentRel.value);
+      return data;
+    } catch (err: any) {
+      error.value = `Lỗi tải lên: ${err.message}`;
+      throw err;
+    } finally {
+      isUploading.value = false;
+      uploadProgressText.value = '';
+    }
+  }
+
+  async function fetchTempArchives() {
+    try {
+      const res = await fetch(apiUrl('/api/fs/tmp-archives'));
+      if (res.ok) {
+        const data = await res.json();
+        tempArchives.value = data.archives || [];
+      }
+    } catch (_) {}
+  }
+
+  async function purgeTempArchives() {
+    try {
+      const res = await fetch(apiUrl('/api/fs/tmp-archives'), { method: 'DELETE' });
+      if (res.ok) {
+        await fetchTempArchives();
+      }
+    } catch (_) {}
+  }
+
+  async function deleteTempArchive(id: string) {
+    try {
+      const res = await fetch(apiUrl(`/api/fs/tmp-archives/${encodeURIComponent(id)}`), { method: 'DELETE' });
+      if (res.ok) {
+        await fetchTempArchives();
+      }
+    } catch (_) {}
+  }
+
   return {
     currentRel,
     parentRel,
     entries,
     loading,
+    isUploading,
+    uploadProgressText,
+    tempArchives,
     error,
     saveNotice,
     activeFile,
@@ -202,5 +302,11 @@ export const useFileStore = defineStore('file', () => {
     createItem,
     deleteItem,
     renameItem,
+    getDownloadUrl,
+    downloadItem,
+    uploadFiles,
+    fetchTempArchives,
+    purgeTempArchives,
+    deleteTempArchive,
   };
 });

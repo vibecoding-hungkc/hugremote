@@ -60,6 +60,22 @@
         <LanguageSwitcher />
         <template v-if="activeTab === 'files'">
           <button class="btn-icon-action" @click="$emit('prompt-create-item')" :title="t('common.create')"><i class="ri-add-line"></i></button>
+
+          <div class="header-action-dropdown-wrapper">
+            <button class="btn-icon-action" @click.stop="toggleUploadDropdown" :title="t('fileExplorer.upload') || 'Tải lên'">
+              <i class="ri-upload-2-line"></i>
+            </button>
+            <div v-if="isUploadDropdownOpen" class="header-dropdown-menu" @click.stop>
+              <button class="dropdown-item" @click="handleUploadFilesClick">
+                <i class="ri-file-upload-line"></i> <span>{{ t('fileExplorer.uploadFiles') || 'Tải lên tệp' }}</span>
+              </button>
+              <button class="dropdown-item" @click="handleUploadFolderClick">
+                <i class="ri-folder-upload-line"></i> <span>{{ t('fileExplorer.uploadFolder') || 'Tải lên thư mục' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn-icon-action" @click="handleDownloadCurrentFolder" :title="t('fileExplorer.downloadZip') || 'Nén zip và tải về thư mục'"><i class="ri-folder-zip-line"></i></button>
           <button class="btn-icon-action" @click="fileStore.fetchFiles(fileStore.currentRel)" :title="t('common.refresh')"><i class="ri-refresh-line"></i></button>
         </template>
         <template v-else-if="activeTab === 'editor'">
@@ -75,11 +91,15 @@
         <template v-else-if="activeTab === 'git'"><button class="btn-icon-action" @click="gitStore.fetchStatus"><i class="ri-refresh-line"></i></button></template>
       </div>
     </div>
+
+    <!-- Hidden file inputs for Header upload action -->
+    <input ref="headerFileInput" type="file" multiple style="display: none" @change="onHeaderFilesSelected" />
+    <input ref="headerFolderInput" type="file" webkitdirectory directory multiple style="display: none" @change="onHeaderFolderSelected" />
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
 import { useFileStore } from '../stores/fileStore.js';
@@ -94,6 +114,59 @@ defineEmits<{
   (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void;
 }>();
 const serverStore = useServerStore(); const projectStore = useProjectStore(); const fileStore = useFileStore(); const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); const gitStore = useGitStore(); const { t } = useI18n();
+
+const isUploadDropdownOpen = ref(false);
+const headerFileInput = ref<HTMLInputElement | null>(null);
+const headerFolderInput = ref<HTMLInputElement | null>(null);
+
+function toggleUploadDropdown() {
+  isUploadDropdownOpen.value = !isUploadDropdownOpen.value;
+}
+
+function handleUploadFilesClick() {
+  isUploadDropdownOpen.value = false;
+  headerFileInput.value?.click();
+}
+
+function handleUploadFolderClick() {
+  isUploadDropdownOpen.value = false;
+  headerFolderInput.value?.click();
+}
+
+async function onHeaderFilesSelected(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    await fileStore.uploadFiles(target.files);
+    target.value = '';
+  }
+}
+
+async function onHeaderFolderSelected(e: Event) {
+  const target = e.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    await fileStore.uploadFiles(target.files);
+    target.value = '';
+  }
+}
+
+function handleDownloadCurrentFolder() {
+  fileStore.downloadItem(fileStore.currentRel);
+}
+
+function handleGlobalClick(e: MouseEvent) {
+  const target = e.target as HTMLElement;
+  if (!target.closest('.header-action-dropdown-wrapper')) {
+    isUploadDropdownOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', handleGlobalClick);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', handleGlobalClick);
+});
 const isMarkdownFile = computed(() => (fileStore.activeFile?.name?.toLowerCase() || '').endsWith('.md') || (fileStore.activeFile?.name?.toLowerCase() || '').endsWith('.markdown'));
 interface BreadcrumbPart { name: string; path: string; isLast: boolean; }
 const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || '').trim(); if (!rel) return { hasMore:false, parentPath:'', parts: [] as BreadcrumbPart[] }; const all = rel.split('/').filter(Boolean); const items = all.map((name, index) => ({ name, path: all.slice(0,index+1).join('/'), isLast:index===all.length-1 })); return items.length <= 3 ? { hasMore:false, parentPath:'', parts:items } : { hasMore:true, parentPath:items[items.length-4].path, parts:items.slice(-3) }; });
@@ -428,5 +501,51 @@ const displayClaudeSessionName = computed(() => {
   .crumb-segment, .crumb-more {
     max-width: 100px;
   }
+}
+
+.header-action-dropdown-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.header-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  min-width: 170px;
+  padding: 5px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.header-dropdown-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.header-dropdown-menu .dropdown-item:hover {
+  background: #1e293b;
+  color: #38bdf8;
+}
+
+.header-dropdown-menu .dropdown-item i {
+  font-size: 16px;
 }
 </style>

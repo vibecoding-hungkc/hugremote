@@ -13,7 +13,7 @@ export interface FileEntry {
 }
 
 export class FsService {
-  private resolveLocalPath(requestedPath: string, workspaceOverride?: string): string {
+  public resolveLocalPath(requestedPath: string, workspaceOverride?: string): string {
     let base = workspaceOverride || LOCAL_WORKSPACE;
     if (!fs.existsSync(base)) {
       try {
@@ -174,7 +174,7 @@ export class FsService {
   }
 
   // --- REMOTE SFTP FS ---
-  private resolveRemotePath(server: ServerConfig, requestedPath = '', workspaceOverride?: string): string {
+  public resolveRemotePath(server: ServerConfig, requestedPath = '', workspaceOverride?: string): string {
     const home = server.user && server.user !== 'root' ? `/home/${server.user}` : '/root';
     const rawBase = workspaceOverride || server.workspace || home;
     let base = rawBase;
@@ -192,7 +192,7 @@ export class FsService {
     return path.posix.normalize(path.posix.join(base, requestedPath));
   }
 
-  private async sftpMkdirRecursive(sftp: any, targetDir: string): Promise<void> {
+  public async sftpMkdirRecursive(sftp: any, targetDir: string): Promise<void> {
     const normalized = path.posix.normalize(targetDir);
     const parts = normalized.split('/').filter(Boolean);
     let current = normalized.startsWith('/') ? '/' : '';

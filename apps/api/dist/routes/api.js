@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { parseSshConfig, saveOrUpdateSshConfigHost, updateSshConfigHostWorkspace, getAvailableSshKeys, normalizeWorkspacePath, } from '../config.js';
 import { fsService } from '../services/fsService.js';
 import { sessionManager } from '../services/sessionManager.js';
@@ -5,6 +7,7 @@ import { sshPool } from '../services/sshPool.js';
 import { claudeService } from '../services/claudeService.js';
 import { projectService } from '../services/projectService.js';
 import { gitService } from '../services/gitService.js';
+import { tempZipService } from '../services/tempZipService.js';
 export const apiRoutes = async (fastify) => {
     // --- SERVER ROUTES ---
     fastify.get('/api/servers', async () => {
@@ -262,6 +265,194 @@ export const apiRoutes = async (fastify) => {
                 return reply.status(400).send({ error: err.message });
             }
         }
+    });
+    // --- FS DOWNLOAD ROUTE ---
+    fastify.get('/api/fs/download', async (request, reply) => {
+        const serverId = request.query.serverId || 'server-local';
+        const projectId = request.query.projectId;
+        const itemPath = request.query.path || '';
+        const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+        const projectRoot = project?.rootPath;
+        if (serverId === 'server-local') {
+            try {
+                const all = parseSshConfig();
+                const localServer = all.find((s) => s.id === 'server-local');
+                const ws = projectRoot || localServer?.workspace;
+                const fullPath = fsService.resolveLocalPath(itemPath, ws);
+                if (!fs.existsSync(fullPath)) {
+                    return reply.status(404).send({ error: 'File or directory not found' });
+                }
+                const stat = fs.statSync(fullPath);
+                if (stat.isFile()) {
+                    const fileName = path.basename(fullPath);
+                    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+                    reply.header('Content-Type', 'application/octet-stream');
+                    reply.header('Content-Length', stat.size);
+                    return reply.send(fs.createReadStream(fullPath));
+                }
+                else if (stat.isDirectory()) {
+                    const folderName = path.basename(fullPath) || 'workspace';
+                    const zipRes = await tempZipService.createLocalZip(fullPath, folderName);
+                    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(zipRes.fileName)}"`);
+                    reply.header('Content-Type', 'application/zip');
+                    reply.header('Content-Length', zipRes.size);
+                    reply.header('X-Zip-Archive-Name', zipRes.fileName);
+                    return reply.send(fs.createReadStream(zipRes.zipPath));
+                }
+                else {
+                    return reply.status(400).send({ error: 'Unsupported file type' });
+                }
+            }
+            catch (err) {
+                return reply.status(400).send({ error: err.message });
+            }
+        }
+        else {
+            const all = parseSshConfig();
+            const target = all.find((s) => s.id === serverId);
+            if (!target)
+                return reply.status(404).send({ error: 'Server not found' });
+            try {
+                const remotePath = fsService.resolveRemotePath(target, itemPath, projectRoot);
+                const sftp = await sshPool.getSftp(target);
+                const stat = await new Promise((resolve, reject) => {
+                    sftp.stat(remotePath, (err, st) => {
+                        if (err)
+                            reject(err);
+                        else
+                            resolve(st);
+                    });
+                });
+                if (stat.isFile()) {
+                    const fileName = path.posix.basename(remotePath);
+                    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+                    reply.header('Content-Type', 'application/octet-stream');
+                    reply.header('Content-Length', stat.size);
+                    const stream = sftp.createReadStream(remotePath);
+                    return reply.send(stream);
+                }
+                else if (stat.isDirectory()) {
+                    const folderName = path.posix.basename(remotePath) || 'workspace';
+                    const zipRes = await tempZipService.createRemoteZip(target, remotePath, folderName);
+                    reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(zipRes.fileName)}"`);
+                    reply.header('Content-Type', 'application/zip');
+                    reply.header('Content-Length', zipRes.size);
+                    reply.header('X-Zip-Archive-Name', zipRes.fileName);
+                    return reply.send(fs.createReadStream(zipRes.zipPath));
+                }
+                else {
+                    return reply.status(400).send({ error: 'Unsupported remote item type' });
+                }
+            }
+            catch (err) {
+                return reply.status(500).send({ error: err.message });
+            }
+        }
+    });
+    // --- FS UPLOAD ROUTE ---
+    fastify.post('/api/fs/upload', async (request, reply) => {
+        const serverId = request.query.serverId || 'server-local';
+        const projectId = request.query.projectId;
+        const targetRelDir = request.query.targetDir || '';
+        const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+        const projectRoot = project?.rootPath;
+        let uploadedCount = 0;
+        let totalBytes = 0;
+        const isLocal = serverId === 'server-local';
+        let localBaseDir = '';
+        let remoteTargetServer = null;
+        let remoteSftp = null;
+        if (isLocal) {
+            const all = parseSshConfig();
+            const localServer = all.find((s) => s.id === 'server-local');
+            const ws = projectRoot || localServer?.workspace;
+            localBaseDir = fsService.resolveLocalPath(targetRelDir, ws);
+            if (!fs.existsSync(localBaseDir)) {
+                fs.mkdirSync(localBaseDir, { recursive: true });
+            }
+        }
+        else {
+            const all = parseSshConfig();
+            const target = all.find((s) => s.id === serverId);
+            if (!target)
+                return reply.status(404).send({ error: 'Server not found' });
+            remoteTargetServer = target;
+            remoteSftp = await sshPool.getSftp(target);
+            const remoteBaseDir = fsService.resolveRemotePath(target, targetRelDir, projectRoot);
+            await fsService.sftpMkdirRecursive(remoteSftp, remoteBaseDir);
+        }
+        const parts = request.files();
+        for await (const part of parts) {
+            let rawRel = part.filename;
+            try {
+                rawRel = decodeURIComponent(part.filename);
+            }
+            catch (_) { }
+            const relField = part.fields?.relativePath?.value || part.fields?.relPath?.value;
+            if (typeof relField === 'string' && relField.trim()) {
+                rawRel = relField;
+            }
+            const safeRel = rawRel.replace(/\\/g, '/').split('/').filter((seg) => seg && seg !== '..').join('/');
+            if (!safeRel)
+                continue;
+            if (isLocal) {
+                const destPath = path.resolve(localBaseDir, safeRel);
+                if (!destPath.startsWith(localBaseDir)) {
+                    continue;
+                }
+                const parentDir = path.dirname(destPath);
+                if (!fs.existsSync(parentDir)) {
+                    fs.mkdirSync(parentDir, { recursive: true });
+                }
+                await new Promise((resolve, reject) => {
+                    const writeStream = fs.createWriteStream(destPath);
+                    part.file.pipe(writeStream);
+                    writeStream.on('finish', () => {
+                        uploadedCount++;
+                        try {
+                            totalBytes += fs.statSync(destPath).size;
+                        }
+                        catch (_) { }
+                        resolve();
+                    });
+                    writeStream.on('error', reject);
+                });
+            }
+            else if (remoteTargetServer && remoteSftp) {
+                const remoteBaseDir = fsService.resolveRemotePath(remoteTargetServer, targetRelDir, projectRoot);
+                const destPath = path.posix.join(remoteBaseDir, safeRel);
+                const parentDir = path.posix.dirname(destPath);
+                await fsService.sftpMkdirRecursive(remoteSftp, parentDir);
+                await new Promise((resolve, reject) => {
+                    const writeStream = remoteSftp.createWriteStream(destPath);
+                    part.file.pipe(writeStream);
+                    writeStream.on('close', () => {
+                        uploadedCount++;
+                        resolve();
+                    });
+                    writeStream.on('error', reject);
+                });
+            }
+        }
+        return {
+            success: true,
+            count: uploadedCount,
+            totalBytes,
+        };
+    });
+    // --- TEMP ZIP ARCHIVES & CLEANUP ROUTES ---
+    fastify.get('/api/fs/tmp-archives', async () => {
+        return { archives: tempZipService.listArchives() };
+    });
+    fastify.delete('/api/fs/tmp-archives', async () => {
+        const res = tempZipService.purgeAll();
+        return { success: true, ...res };
+    });
+    fastify.delete('/api/fs/tmp-archives/:id', async (request, reply) => {
+        const ok = tempZipService.deleteArchive(request.params.id);
+        if (!ok)
+            return reply.status(404).send({ error: 'Archive not found' });
+        return { success: true };
     });
     // --- SESSIONS ---
     fastify.get('/api/sessions', async (request) => {

@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyWs from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -48,6 +49,12 @@ export async function createApp() {
         reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
     });
     await fastify.register(fastifyWs);
+    await fastify.register(multipart, {
+        limits: {
+            fileSize: 100 * 1024 * 1024, // 100MB per file
+            files: 200,
+        },
+    });
     await fastify.register(authRoutes);
     fastify.addHook('preHandler', authGuard);
     // Core API and WebSocket routes

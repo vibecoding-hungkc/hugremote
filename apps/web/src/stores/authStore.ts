@@ -95,7 +95,13 @@ export const useAuthStore = defineStore('auth', () => {
         await fetchMe();
         return true;
       }
-      error.value = data.error || 'Failed to change password.';
+      if (data.error === 'password_too_short') {
+        error.value = i18n.t('auth.passwordTooShort');
+      } else if (data.error === 'cannot_use_default_password') {
+        error.value = i18n.t('auth.cannotUseDefault');
+      } else {
+        error.value = data.error || 'Failed to change password.';
+      }
       return false;
     } catch (_) {
       error.value = i18n.t('auth.cannotReach');
@@ -119,6 +125,8 @@ export const useAuthStore = defineStore('auth', () => {
     mode,
     authenticated,
     user,
+    mustChangePassword,
+    changePassword,
     loading,
     error,
     attemptsLeft,

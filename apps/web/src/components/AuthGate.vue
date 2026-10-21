@@ -116,8 +116,8 @@ async function submitPassword() {
   submitting.value = true;
   const ok = await auth.loginPassword(password.value);
   submitting.value = false;
+  password.value = '';
   if (!ok) {
-    password.value = '';
     focusPassword();
   } else if (auth.mustChangePassword) {
     nextTick(() => newPasswordInput.value?.focus());

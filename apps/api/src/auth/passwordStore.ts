@@ -39,13 +39,25 @@ class PasswordStore {
     return crypto.pbkdf2Sync(password, salt, ITERATIONS, KEY_LEN, DIGEST).toString('hex');
   }
 
+  private verifyHash(password: string, salt: string, iterations: number, targetHex: string): boolean {
+    try {
+      const computed = crypto.pbkdf2Sync(password, salt, iterations, KEY_LEN, DIGEST).toString('hex');
+      const a = Buffer.from(computed, 'hex');
+      const b = Buffer.from(targetHex, 'hex');
+      if (a.length !== b.length) return false;
+      return crypto.timingSafeEqual(a, b);
+    } catch (_) {
+      return false;
+    }
+  }
+
   private loadOrCreate(): StoredPasswordRecord {
     try {
       if (fs.existsSync(this.filePath)) {
         const raw = fs.readFileSync(this.filePath, 'utf8');
         const parsed = JSON.parse(raw);
         if (parsed.salt && parsed.hash) {
-          return {
+          const rec: StoredPasswordRecord = {
             salt: parsed.salt,
             hash: parsed.hash,
             iterations: parsed.iterations || ITERATIONS,
@@ -53,6 +65,22 @@ class PasswordStore {
             isDefault: Boolean(parsed.isDefault),
             updatedAt: parsed.updatedAt || new Date().toISOString(),
           };
+
+          // If CLI passed --password or process.env.AUTH_PASSWORD was set, and record is still default:
+          const envPass = process.env.AUTH_PASSWORD;
+          if (envPass && rec.isDefault && !this.verifyHash(envPass, rec.salt, rec.iterations, rec.hash)) {
+            const newSalt = crypto.randomBytes(32).toString('hex');
+            const newHash = this.hashPassword(envPass, newSalt);
+            rec.salt = newSalt;
+            rec.hash = newHash;
+            rec.isDefault = (envPass === DEFAULT_PASSWORD);
+            rec.updatedAt = new Date().toISOString();
+            try {
+              fs.writeFileSync(this.filePath, JSON.stringify(rec, null, 2), { mode: 0o600 });
+            } catch (_) {}
+          }
+
+          return rec;
         }
       }
     } catch (err) {
@@ -85,22 +113,12 @@ class PasswordStore {
   }
 
   public verify(password: string): boolean {
-    try {
-      const computedHash = crypto.pbkdf2Sync(
-        password,
-        this.currentRecord.salt,
-        this.currentRecord.iterations,
-        KEY_LEN,
-        DIGEST
-      ).toString('hex');
-
-      const a = Buffer.from(computedHash, 'hex');
-      const b = Buffer.from(this.currentRecord.hash, 'hex');
-      if (a.length !== b.length) return false;
-      return crypto.timingSafeEqual(a, b);
-    } catch (_) {
-      return false;
-    }
+    return this.verifyHash(
+      password,
+      this.currentRecord.salt,
+      this.currentRecord.iterations,
+      this.currentRecord.hash
+    );
   }
 
   public changePassword(newPassword: string): void {

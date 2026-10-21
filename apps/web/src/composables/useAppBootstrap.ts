@@ -1,4 +1,4 @@
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useAuthStore } from '../stores/authStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
@@ -18,7 +18,7 @@ export function useAppBootstrap() {
 
   async function bootstrap() {
     await authStore.fetchMe();
-    if (!authStore.authenticated) return;
+    if (!authStore.authenticated || authStore.mustChangePassword) return;
     await serverStore.fetchServers();
     await projectStore.fetchProjects(serverStore.currentServerId);
     await fileStore.fetchFiles('');
@@ -31,6 +31,16 @@ export function useAppBootstrap() {
   }
 
   onMounted(bootstrap);
+
+  // Automatically bootstrap when user logs in or completes first-time password change
+  watch(
+    () => authStore.needsLogin,
+    (needed, wasNeeded) => {
+      if (wasNeeded && !needed && authStore.authenticated && !authStore.mustChangePassword) {
+        bootstrap();
+      }
+    }
+  );
 
   return { authStore, bootstrap };
 }

@@ -1,5 +1,40 @@
 # 📋 Changelog — HugRemote
 
+## [v1.4.0] - 2026-10-21
+
+### 🚀 Tính năng nổi bật (Major Features)
+- **Tiến trình Claude Chạy Nền Kiên Cường & Tái Kết Nối SSE (Background Execution & Resilient Reconnection)**:
+  - Tách rời vòng đời thực thi của Claude CLI khỏi HTTP request đơn lẻ: tiến trình CLI chạy ngầm liên tục trên backend daemon `hugremote.service` ngay cả khi tắt màn hình điện thoại, đóng trình duyệt hoặc mạng gián đoạn.
+  - Hỗ trợ endpoint tái gắn kết nối `GET /api/claude/sessions/:id/stream` truyền snapshot sự kiện tức thì và stream tiếp phản hồi trực tiếp.
+  - Tự động nhận diện tab hiển thị lại qua sự kiện `visibilitychange` và `window focus`, tự kích hoạt đồng bộ phiên và nối lại stream nền với backoff an toàn.
+  - Hiển thị banner trạng thái tái kết nối thông minh (`.claude-reconnecting-banner`) trên giao diện khi đang bắt lại tiến trình nền.
+- **Model Discovery Chuẩn Xác theo Claude CLI (`claude -p /model`)**:
+  - Chuyển đổi cơ chế khám phá model sang single-source-of-truth trực tiếp từ lệnh `claude -p /model --output-format json` trên từng máy chủ (cả máy host local và máy chủ remote qua SSH).
+  - Loại bỏ hoàn toàn việc đọc nhầm các khóa tự định nghĩa (`aenv`, `modelPicker`, `availableModels`) trong `settings.json`.
+  - Giữ nguyên vẹn các alias model đặc thù như `sonnet[1m]`, `opus[1m]`, `fable[1m]`, `opusplan`, `best` và chuyển tiếp chính xác đối số `--model <alias>` vào tiến trình Claude Code CLI.
+  - Phân giải động mô tả alias (Resolves to...) dựa theo biến môi trường ánh xạ thật sự (`ANTHROPIC_DEFAULT_*_MODEL`).
+  - Tối ưu hóa bộ nhớ đệm model (Cache TTL 30s) và hỗ trợ tham số làm mới tức thì `?refresh=1`.
+- **Đếm Token Chuẩn Xác & Context Window Động (Dynamic Context Ceiling)**:
+  - Bóc tách số lượng token thực tế từ các bản ghi `usage` trong file transcript `.jsonl` và stream chunks.
+  - Tự động nhận diện và cập nhật trần ngữ cảnh: `1000k` đối với các model mở rộng 1M context (`sonnet[1m]`, `opus[1m]`,...) và `200k` đối với các model tiêu chuẩn.
+  - Bổ sung lệnh slash `/cost` trong khung chat: xuất bảng Markdown trực quan hiển thị model hiện tại, số token đã dùng, phần trăm context tiêu thụ, tổng chi phí và khuyến nghị chạy `/compact` khi vượt ngưỡng 70%.
+  - Hiển thị thông số token (`contextTokens`) và chi phí ước tính (`totalCostUSD`) trực tiếp trên từng mục phiên tại Claude Session Hub Modal.
+- **Duy trì Trạng thái Đa tầng khi F5 / Thoát Trình Duyệt (Multi-tier Persistence)**:
+  - Lưu trữ và phục hồi liền mạch Server đang chọn (`hugremote_active_server`), Project đang chọn (`hugremote_active_project_<serverId>`), Phiên Terminal đang mở (`hugremote_active_term_<serverId>`) và Phiên Claude đang chạy (`hugremote_active_session_<serverId>_<projectId>`).
+  - Khắc phục triệt để tình trạng F5 làm lệch root path hoặc đứt ngữ cảnh đang làm việc dở dang.
+- **Interactive Prototype: Download, Upload & Tự Động Nén Zip / Dọn Dẹp File Tạm**:
+  - Giao diện xem trước tại `prototype.html` mô phỏng đầy đủ tính năng: tải lên file lẻ hoặc đệ quy cả thư mục (`webkitdirectory`), kéo thả tệp/thư mục trực tiếp vào giao diện.
+  - Tải xuống file đơn lẻ hoặc nén zip toàn bộ thư mục bằng JSZip và lưu trữ tạm thời tại `~/.config/hugremote/tmp/downloads/`.
+  - Modal quản lý file nén tạm (Auto-Cleanup Manager) với bộ đếm TTL (hết hạn sau 60m), cơ chế quét định kỳ (mỗi 15m), giới hạn LRU (500MB) và nút dọn dẹp sạch tức thì.
+
+### 🐛 Vá lỗi & Tối ưu hóa (Bug Fixes & Refinements)
+- Sửa lỗi mất hậu tố `[1m]` khi người dùng chọn model `sonnet[1m]` trong popup khiến Claude CLI bị ép về bản 200k.
+- Sửa lỗi lệnh slash `/model <name>` tìm kiếm theo thuộc tính không tồn tại (`label`) thay vì `id`/`title`/`prefix`.
+- Khắc phục lỗi Vue Reactivity không kích hoạt re-render khi gán trực tiếp thuộc tính mới vào `modelsByServer.value[serverId]`.
+- Thêm kiểm tra phòng vệ (guard check) trước khi gọi `--resume <cliSessionId>`: tự động xác minh file `<cliSessionId>.jsonl` có tồn tại trước khi resume để tránh crash tiến trình CLI khi file transcript bị xóa bên ngoài.
+
+---
+
 ## [v1.3.1] - 2026-10-18
 
 ### 🐛 Vá lỗi & Đồng bộ Trạng thái Phiên / Model (Bug Fixes)

@@ -2,7 +2,7 @@
 
 > **Mobile-first web IDE, multi-window terminal, and Claude Code coding assistant crafted for smartphones, remote servers, and Docker containers.**
 
-[![Release](https://img.shields.io/badge/release-v1.3.1-blue.svg)](https://github.com/vibecoding-hungkc/hugremote/releases)
+[![Release](https://img.shields.io/badge/release-v1.4.0-blue.svg)](https://github.com/vibecoding-hungkc/hugremote/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Docker-orange.svg)]()
 [![Mobile First](https://img.shields.io/badge/design-Mobile--First%20(390px)-purple.svg)]()
@@ -65,14 +65,16 @@ HugRemote được thiết kế ưu tiên 100% cho màn hình di động, mang l
   <em>Hình 3: Trợ lý Claude Code thời gian thực trên mobile (trái) · Popup chọn Model Claude động theo máy chủ (phải)</em>
 </p>
 
-* **Dynamic Model Discovery theo Server:** Tự động phát hiện và nạp danh sách model Claude động tương ứng với máy chủ đang kết nối (Local LLM Router hoặc Remote SSH/CLI `claude -p /model`), tự động đồng bộ khi chuyển server.
+* **Chạy nền kiên cường & Tái gắn kết nối SSE (Background Execution & Resilient Stream):** Tách biệt vòng đời thực thi của Claude CLI khỏi HTTP request. Tiến trình CLI chạy nền độc lập trên máy chủ daemon ngay cả khi đóng trình duyệt, khóa màn hình điện thoại (iOS Safari/Android Chrome) hoặc gián đoạn mạng; tự động tái gắn (re-attach) qua SSE stream và tự động đồng bộ kết quả tức thì khi người dùng quay lại tab (`visibilitychange` / `window focus`).
+* **Single Source of Truth Model Discovery (`claude -p /model`):** Phát hiện danh sách model chuẩn xác trực tiếp từ Claude CLI của từng máy chủ, hỗ trợ đầy đủ các alias 1M context (`sonnet[1m]`, `opus[1m]`, `fable[1m]`), `opusplan`, `best` và chuyển tiếp chính xác đối số `--model` vào tiến trình CLI.
+* **Theo dõi Token & Context Window động (200k / 1000k):** Bóc tách chính xác số lượng token từ transcript `.jsonl` và stream chunks; tự động phát hiện trần ngữ cảnh (200k mặc định hoặc 1000k cho model 1M); hỗ trợ slash command `/cost` hiển thị bảng chi tiết mức tiêu thụ và khuyến nghị `/compact`.
+* **Duy trì Trạng thái Đa tầng khi F5 / Đóng trình duyệt:** Lưu trữ Server, Project, Terminal session và Claude session đang chọn vào bộ nhớ cục bộ theo từng phạm vi, ngăn ngừa tình trạng F5 bị lệch root path hoặc mất ngữ cảnh đang gõ dở.
 * **Quản lý Phiên Claude CLI của Dự án (Project Sessions):**
   * Quét và liên kết trực tiếp với các phiên Claude Code CLI thực tế tại `~/.claude/projects/<slug>/`.
   * **Xem danh sách phiên:** Mở nhanh qua lệnh `/resume` trong khung chat hoặc nút lịch sử trên màn hình Claude và Header.
   * **Đổi tên phiên (Inline Rename):** Chỉnh sửa tên phiên trực tiếp trên giao diện, tự động lưu metadata vào `.hugremote-meta.json` mà không làm hỏng cấu trúc transcript gốc.
   * **Xóa phiên an toàn:** Xóa tệp transcript `.jsonl` và dọn dẹp metadata tương ứng chỉ bằng 1 chạm.
   * **Đồng bộ Header Pill:** Khi khôi phục phiên (Resume), tên phiên tùy chỉnh và thư mục làm việc lập tức đồng bộ lên thanh điều hướng trên cùng.
-* **Duy trì Trạng thái khi F5 (Persistence on Reload):** Lưu trữ dự án và phiên Claude đang chọn vào bộ nhớ cục bộ theo từng server, ngăn ngừa tình trạng F5 bị lệch root path.
 * **Tool Invocation Cards:** Hiển thị trực quan các lệnh bash, file read/edit của Claude Code dưới dạng thẻ thao tác gọn gàng.
 * **Theo dõi hạn mức & Token:** Popup kiểm tra hạn mức sử dụng 5 giờ và tuần, tính toán chi phí token trực quan.
 
@@ -114,7 +116,7 @@ hugremote/
 
 ## ⚡ Quick Install
 
-**Bản Stable Release (v1.3.1):**
+**Bản Stable Release (v1.4.0):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
 ```
@@ -187,7 +189,7 @@ systemctl --user restart hugremote
 | Tham số / Lệnh | Mô tả | Mặc định |
 |---|---|---|
 | `update` | Cập nhật HugRemote lên commit mới nhất & build lại | |
-| `-v, --version` | Xem phiên bản hiện tại | `1.3.1` |
+| `-v, --version` | Xem phiên bản hiện tại | `1.4.0` |
 | `-p, --port <number>` | Cổng HTTP & WebSocket | `8099` hoặc `$PORT` |
 | `-h, --host <ip>` | Địa chỉ IP lắng nghe | `::` hoặc `$HOST` |
 | `-b, --base-path <path>` | Tiền tố đường dẫn subpath (vd: `/remote`) | `""` hoặc `$BASE_PATH` |

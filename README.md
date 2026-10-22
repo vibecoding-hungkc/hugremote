@@ -55,6 +55,8 @@ HugRemote được thiết kế ưu tiên 100% cho màn hình di động, mang l
 
 ## 🤖 Trợ lý Lập trình Claude Code trên Mobile
 
+Tài liệu kỹ thuật: [Claude Chat Realtime Streaming](docs/claude-realtime-streaming.md) — kiến trúc CLI/SSE/UI, reconcile snapshot, reconnect, cancellation, kiểm thử và giới hạn.
+
 <p align="center">
   <img src="docs/screenshots/mobile-claude.png" alt="HugRemote Claude Code Assistant" width="48%" />
   &nbsp;&nbsp;

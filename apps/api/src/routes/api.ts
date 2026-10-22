@@ -112,6 +112,9 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   });
 
   fastify.patch<{ Params: { id: string }; Body: { name?: string; rootPath?: string; lastPath?: string } }>('/api/projects/:id', async (request, reply) => {
+    if (request.body?.name !== undefined && request.body.name.trim() === '~') {
+      return reply.status(400).send({ error: 'Project name "~" is reserved' });
+    }
     const project = projectService.updateProject(request.params.id, request.body || {});
     if (!project) return reply.status(404).send({ error: 'Project not found' });
     return { success: true, project };

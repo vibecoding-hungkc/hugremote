@@ -9,7 +9,8 @@
         <button class="drawer-close" @click="$emit('close')"><i class="ri-close-line"></i></button>
       </div>
 
-      <div class="server-list">
+      <p v-if="scopeError" class="scope-error" role="alert">{{ scopeError }}</p>
+      <div class="server-list" :aria-busy="scopeBusy">
         <div
           v-for="server in serverStore.servers"
           :key="server.id"
@@ -40,6 +41,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+import { useFileStore } from '../stores/fileStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
 
@@ -47,27 +50,36 @@ const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'open-server-manager'): void; (e: 'selected'): void }>();
 const serverStore = useServerStore();
 const projectStore = useProjectStore();
+const fileStore = useFileStore();
 
 function projectCount(serverId: string) {
   return projectStore.projects.filter((p) => p.serverId === serverId).length || 1;
 }
 
-async function selectServer(serverId: string) {
-  serverStore.selectServer(serverId);
-  await projectStore.fetchProjects(serverId);
-  emit('selected');
-  emit('close');
+const scopeBusy = ref(false);
+const scopeError = ref('');
+async function changeServer(serverId: string, home = false) {
+  if (scopeBusy.value) return;
+  scopeBusy.value = true;
+  scopeError.value = '';
+  try {
+    if (!await fileStore.confirmUnsavedChanges()) return;
+    // Load target scope before committing the visible server selection.
+    if (home) await projectStore.openHomeProject(serverId);
+    else await projectStore.fetchProjects(serverId);
+    serverStore.selectServer(serverId);
+    emit('selected');
+    emit('close');
+  } catch (err: any) {
+    scopeError.value = err.message || 'Không thể đổi server';
+  } finally { scopeBusy.value = false; }
 }
-
-async function openHome(serverId: string) {
-  serverStore.selectServer(serverId);
-  await projectStore.openHomeProject(serverId);
-  emit('selected');
-  emit('close');
-}
+async function selectServer(serverId: string) { await changeServer(serverId); }
+async function openHome(serverId: string) { await changeServer(serverId, true); }
 </script>
 
 <style scoped>
+.scope-error { color: #fda4af; font-size: 13px; }
 .drawer-overlay { position: fixed; inset: 0; z-index: 120; background: rgba(2,6,23,.58); display: flex; justify-content: flex-start; }
 .drawer-panel { width: min(320px, 86vw); height: 100%; background: #0f172a; border-right: 1px solid #334155; box-shadow: 18px 0 40px rgba(0,0,0,.36); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .drawer-header { display:flex; align-items:flex-start; justify-content:space-between; }

@@ -37,7 +37,6 @@
       <!-- Tab 4: Claude View -->
       <ClaudeView
         v-show="activeTab === 'claude'"
-        @open-tree-picker="isClaudeAttachTreePickerOpen = true"
         @open-session-hub="isClaudeHubOpen = true"
       />
 
@@ -45,6 +44,8 @@
         v-show="activeTab === 'git'"
       />
     </main>
+
+    <div v-if="activeTab === 'editor' && fileStore.error" class="editor-save-error" role="alert">{{ fileStore.error }}</div>
 
     <!-- 3. Compact Bottom Dock -->
     <BottomDock
@@ -62,6 +63,7 @@
 
     <ServerModal
       :is-open="isServerModalOpen"
+      @selected="handleScopeChanged"
       @close="isServerModalOpen = false"
     />
 
@@ -126,22 +128,12 @@
       @confirm="executeDeleteClaudeSession"
     />
 
-    <!-- 12. Context Attachment Folder Tree Picker -->
-    <FolderTreePicker
-      :is-open="isClaudeAttachTreePickerOpen"
-      :initial-path="serverStore.currentServer.workspace || '~'"
-      :server-id="serverStore.currentServer.id"
-      :server-type="serverStore.currentServer.type"
-      :server-workspace="serverStore.currentServer.workspace"
-      @close="isClaudeAttachTreePickerOpen = false"
-      @confirm="handleClaudeAttachFolder"
-      @selected="handleClaudeAttachFolder"
-    />
+    <UnsavedChangesModal />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import SmartHeader from './components/SmartHeader.vue';
 import FileExplorer from './components/FileExplorer.vue';
 import CodeEditor from './components/CodeEditor.vue';
@@ -158,7 +150,7 @@ import ClaudeSessionHubModal from './components/ClaudeSessionHubModal.vue';
 import NewClaudeModal from './components/NewClaudeModal.vue';
 import CreateItemModal from './components/CreateItemModal.vue';
 import ConfirmModal from './components/ConfirmModal.vue';
-import FolderTreePicker from './components/FolderTreePicker.vue';
+import UnsavedChangesModal from './components/UnsavedChangesModal.vue';
 import AuthGate from './components/AuthGate.vue';
 
 import { useServerStore } from './stores/serverStore.js';
@@ -197,14 +189,21 @@ const editingClaudeSession = ref<any | null>(null);
 const isConfirmDeleteClaudeOpen = ref(false);
 const deleteClaudeTargetId = ref('');
 const deleteClaudeTargetName = ref('');
-const isClaudeAttachTreePickerOpen = ref(false);
+// Tab switches preserve the buffer in the store. Browser unload must still warn.
+function warnUnsaved(event: BeforeUnloadEvent) {
+  if (!fileStore.activeFile?.isDirty) return;
+  event.preventDefault();
+  event.returnValue = '';
+}
+onMounted(() => window.addEventListener('beforeunload', warnUnsaved));
+onBeforeUnmount(() => window.removeEventListener('beforeunload', warnUnsaved));
 
 async function handleOpenFile(relPath: string) {
-  await fileStore.openFile(relPath);
-  activeTab.value = 'editor';
+  if (await fileStore.openFile(relPath)) activeTab.value = 'editor';
 }
 
 async function handleOpenFolderAsProject(relPath: string) {
+  if (!(await fileStore.confirmUnsavedChanges())) return;
   const root = projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
   const fullPath = root.endsWith('/') ? `${root}${relPath}` : `${root}/${relPath}`;
   await projectStore.openProject(fullPath);
@@ -222,7 +221,8 @@ function openServerManager() {
 }
 
 async function handleScopeChanged() {
-  fileStore.closeActiveFile();
+  if (!(await fileStore.closeActiveFile())) return;
+  if (activeTab.value === 'editor') activeTab.value = 'files';
   await fileStore.fetchFiles('');
   terminalStore.ensureServerSession();
   await Promise.all([
@@ -232,12 +232,7 @@ async function handleScopeChanged() {
   await gitStore.fetchStatus();
 }
 
-watch(
-  () => projectStore.currentProject?.id,
-  async (id, oldId) => {
-    if (id && oldId && id !== oldId) await handleScopeChanged();
-  }
-);
+// Scope selectors emit only after projects are loaded; avoid duplicate watcher refreshes.
 
 watch(activeTab, async (tab) => {
   if (tab === 'git') {
@@ -319,17 +314,11 @@ async function executeDeleteClaudeSession() {
   }
 }
 
-function handleClaudeAttachFolder(folderPath: string) {
-  isClaudeAttachTreePickerOpen.value = false;
-  const session = claudeStore.activeSession;
-  if (session) {
-    claudeStore.updateSession(session.id, { cwd: folderPath });
-  }
-}
 
 </script>
 
 <style>
+.editor-save-error { color: #fda4af; padding: 8px 16px; background: #450a0a; font-size: 13px; }
 /* Reset & Global Mobile-First CSS */
 * {
   box-sizing: border-box;

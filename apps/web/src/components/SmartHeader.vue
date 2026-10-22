@@ -40,6 +40,7 @@
         </div>
         <div v-else-if="activeTab === 'editor'" class="ctx-header-item editor-title">
           <i class="ri-file-text-line"></i> {{ fileStore.activeFile?.name || t('nav.editor') }}
+          <span v-if="fileStore.activeFile?.isDirty" class="editor-dirty" title="Nội dung chưa lưu" aria-label="Nội dung chưa lưu">●</span>
         </div>
         <div v-else-if="activeTab === 'terminal'" class="ctx-header-item ctx-header-session">
           <button class="term-session-pill" @click="$emit('open-session-hub')">
@@ -80,8 +81,8 @@
         </template>
         <template v-else-if="activeTab === 'editor'">
           <button v-if="isMarkdownFile" class="btn-icon-action" @click="fileStore.fileMode = fileStore.fileMode === 'code' ? 'preview' : 'code'"><i :class="fileStore.fileMode === 'code' ? 'ri-eye-line' : 'ri-edit-line'"></i></button>
-          <button class="btn-icon-action" @click="fileStore.saveActiveFile"><i class="ri-save-line"></i></button>
-          <button class="btn-icon-action" @click="fileStore.closeActiveFile(); $emit('change-tab', 'files')"><i class="ri-close-line"></i></button>
+          <button class="btn-icon-action" :disabled="!fileStore.activeFile?.isDirty || isSaving || fileStore.isSaving" title="Lưu file" @click="saveFile"><i class="ri-save-line"></i></button>
+          <button class="btn-icon-action" title="Đóng file" @click="closeFile"><i class="ri-close-line"></i></button>
         </template>
         <template v-else-if="activeTab === 'terminal'"><button class="btn-icon-action" @click="$emit('open-new-terminal-modal')"><i class="ri-add-line"></i></button></template>
         <template v-else-if="activeTab === 'claude'">
@@ -110,7 +111,7 @@ import { useI18n } from '../composables/useI18n.js';
 import LanguageSwitcher from './LanguageSwitcher.vue';
 
 defineProps<{ activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'; }>();
-defineEmits<{
+const emit = defineEmits<{
   (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void;
 }>();
 const serverStore = useServerStore(); const projectStore = useProjectStore(); const fileStore = useFileStore(); const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); const gitStore = useGitStore(); const { t } = useI18n();
@@ -237,9 +238,20 @@ const displayClaudeSessionName = computed(() => {
   }
   return sess.name || 'claude';
 });
+const isSaving = ref(false);
+async function saveFile() {
+  isSaving.value = true;
+  try { await fileStore.saveActiveFile(); }
+  catch { /* The file store exposes the save error to the editor. */ }
+  finally { isSaving.value = false; }
+}
+async function closeFile() {
+  if (await fileStore.closeActiveFile()) emit('change-tab', 'files');
+}
 </script>
 
 <style>
+.editor-dirty { color: #fbbf24; font-size: 11px; flex-shrink: 0; }
 /* SmartHeader: Unified layout compatible with existing template */
 .smart-header {
   height: 64px;

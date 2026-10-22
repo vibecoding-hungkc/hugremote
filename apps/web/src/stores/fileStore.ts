@@ -32,6 +32,16 @@ export const useFileStore = defineStore('file', () => {
 
   const activeFile = ref<ActiveFile | null>(null);
   const fileMode = ref<'code' | 'preview'>('code');
+  const isUnsavedPromptOpen = ref(false);
+  const unsavedPromptError = ref('');
+  const isResolvingUnsaved = ref(false);
+  const isSaving = ref(false);
+  let saveTail: Promise<void> | null = null;
+  let pendingSaves = 0;
+  let openGeneration = 0;
+  let pendingUnsaved: Promise<boolean> | null = null;
+  let resolvePendingUnsaved: ((proceed: boolean) => void) | null = null;
+  let activeFileScope: { serverId: string; projectId: string } | null = null;
 
   const serverStore = useServerStore();
   const projectStore = useProjectStore();
@@ -60,17 +70,29 @@ export const useFileStore = defineStore('file', () => {
   }
 
   async function openFile(relPath: string) {
+    if (!(await confirmUnsavedChanges())) return false;
+    const generation = ++openGeneration;
+    const serverId = serverStore.currentServerId;
+    const projectId = projectStore.currentProject?.id || '';
+    const previousFile = activeFile.value;
+    const previousContent = previousFile?.content;
+    const isCurrent = () => generation === openGeneration
+      && serverId === serverStore.currentServerId
+      && projectId === (projectStore.currentProject?.id || '')
+      && activeFile.value === previousFile
+      && activeFile.value?.content === previousContent
+      && !activeFile.value?.isDirty;
     loading.value = true;
     error.value = null;
     try {
-      const serverId = serverStore.currentServerId;
-      const projectId = projectStore.currentProject?.id || '';
+      if (!isCurrent()) return false;
       const res = await fetch(apiUrl(`/api/fs/read?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(relPath)}`));
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to read file');
       }
       const data = await res.json();
+      if (!isCurrent()) return false;
       activeFile.value = {
         relPath,
         name: data.name,
@@ -79,41 +101,59 @@ export const useFileStore = defineStore('file', () => {
         isDirty: false,
       };
 
+      activeFileScope = { serverId, projectId };
       const lowerName = data.name.toLowerCase();
       if (lowerName.endsWith('.md') || lowerName.endsWith('.markdown')) {
         fileMode.value = 'preview';
       } else {
         fileMode.value = 'code';
       }
+      return true;
     } catch (err: any) {
+      if (!isCurrent()) return false;
       error.value = `Lỗi mở file: ${err.message}`;
       throw err;
     } finally {
-      loading.value = false;
+      if (generation === openGeneration) loading.value = false;
     }
   }
 
-  async function saveActiveFile() {
-    if (!activeFile.value) return;
+  function saveActiveFile(): Promise<void> {
+    const file = activeFile.value;
+    if (!file) return Promise.resolve();
+    const content = file.content;
+    const scope = activeFileScope || { serverId: serverStore.currentServerId, projectId: projectStore.currentProject?.id || '' };
+    pendingSaves++;
+    isSaving.value = true;
+    const write = () => writeFile(file, content, scope);
+    const operation = (saveTail ? saveTail.then(write) : write()).finally(() => {
+      isSaving.value = --pendingSaves > 0;
+    });
+    // A failed write must not poison later queued saves.
+    saveTail = operation.catch(() => {});
+    return operation;
+  }
+
+  async function writeFile(file: ActiveFile, content: string, scope: { serverId: string; projectId: string }) {
     try {
-      const serverId = serverStore.currentServerId;
+      const serverId = scope.serverId;
       const res = await fetch(apiUrl('/api/fs/save'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serverId,
-          projectId: projectStore.currentProject?.id || '',
-          path: activeFile.value.relPath,
-          content: activeFile.value.content,
+          projectId: scope.projectId,
+          path: file.relPath,
+          content,
         }),
       });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to save file');
       }
-      activeFile.value.originalContent = activeFile.value.content;
-      activeFile.value.isDirty = false;
-      saveNotice.value = `Đã lưu ${activeFile.value.name}`;
+      file.originalContent = content;
+      file.isDirty = file.content !== content;
+      saveNotice.value = `Đã lưu ${file.name}`;
       if (saveNoticeTimer) clearTimeout(saveNoticeTimer);
       saveNoticeTimer = setTimeout(() => { saveNotice.value = ''; }, 2400);
     } catch (err: any) {
@@ -122,8 +162,46 @@ export const useFileStore = defineStore('file', () => {
     }
   }
 
-  function closeActiveFile() {
+  function confirmUnsavedChanges(): Promise<boolean> {
+    // A choice grants one action, never every competing navigation.
+    if (pendingUnsaved) return Promise.resolve(false);
+    if (!activeFile.value?.isDirty) return Promise.resolve(true);
+    unsavedPromptError.value = '';
+    isUnsavedPromptOpen.value = true;
+    pendingUnsaved = new Promise(resolve => { resolvePendingUnsaved = resolve; });
+    return pendingUnsaved;
+  }
+
+  async function resolveUnsavedChanges(choice: 'save' | 'discard' | 'cancel') {
+    if (!resolvePendingUnsaved || isResolvingUnsaved.value) return;
+    isResolvingUnsaved.value = true;
+    try {
+      if (choice === 'save') {
+        await saveActiveFile();
+        if (activeFile.value?.isDirty) throw new Error('Nội dung đã thay đổi trong lúc lưu. Vui lòng lưu lại.');
+      } else if (choice === 'discard' && activeFile.value) {
+        activeFile.value.content = activeFile.value.originalContent;
+        activeFile.value.isDirty = false;
+      }
+      const resolve = resolvePendingUnsaved;
+      resolvePendingUnsaved = null;
+      pendingUnsaved = null;
+      isUnsavedPromptOpen.value = false;
+      resolve(choice !== 'cancel');
+    } catch (err: any) {
+      unsavedPromptError.value = err.message || 'Không thể lưu file';
+    } finally {
+      isResolvingUnsaved.value = false;
+    }
+  }
+
+  async function closeActiveFile() {
+    if (!(await confirmUnsavedChanges())) return false;
+    if (activeFile.value?.isDirty) return false;
+    ++openGeneration;
     activeFile.value = null;
+    activeFileScope = null;
+    return true;
   }
 
   async function createItem(name: string, type: 'file' | 'dir') {
@@ -299,6 +377,12 @@ export const useFileStore = defineStore('file', () => {
     openFile,
     saveActiveFile,
     closeActiveFile,
+    confirmUnsavedChanges,
+    resolveUnsavedChanges,
+    isUnsavedPromptOpen,
+    unsavedPromptError,
+    isResolvingUnsaved,
+    isSaving,
     createItem,
     deleteItem,
     renameItem,

@@ -22,7 +22,7 @@ export const useProjectStore = defineStore('project', () => {
     return currentServerProjects.value.find((p) => p.id === activeId) || currentServerProjects.value[0] || null;
   });
 
-  async function fetchProjects(serverId = serverStore.currentServerId) {
+  async function fetchProjects(serverId = serverStore.currentServerId, preferredProjectId = '') {
     loading.value = true;
     error.value = null;
     try {
@@ -30,19 +30,20 @@ export const useProjectStore = defineStore('project', () => {
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load projects');
       const data = await res.json();
       const others = projects.value.filter((p) => p.serverId !== serverId);
-      projects.value = [...others, ...(data.projects || [])];
+      const nextProjects: ProjectItem[] = [...others, ...(data.projects || [])];
 
-      let chosenId = '';
-      if (typeof localStorage !== 'undefined') {
+      let chosenId = preferredProjectId;
+      if (!chosenId && typeof localStorage !== 'undefined') {
         chosenId = localStorage.getItem(`hugremote_active_project_${serverId}`) || '';
       }
-      const serverProjects = projects.value.filter((p) => p.serverId === serverId);
+      const serverProjects = nextProjects.filter((p) => p.serverId === serverId);
       if (!chosenId || !serverProjects.some((p) => p.id === chosenId)) {
         chosenId = data.activeProjectId || serverProjects[0]?.id || '';
       }
 
+      projects.value = nextProjects;
+      activeProjectIdByServer.value[serverId] = chosenId;
       if (chosenId) {
-        activeProjectIdByServer.value[serverId] = chosenId;
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem(`hugremote_active_project_${serverId}`, chosenId);
         }
@@ -57,6 +58,7 @@ export const useProjectStore = defineStore('project', () => {
       }
     } catch (err: any) {
       error.value = err.message;
+      throw err;
     } finally {
       loading.value = false;
     }
@@ -95,10 +97,6 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function selectProject(projectId: string, serverId = serverStore.currentServerId) {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(`hugremote_active_project_${serverId}`, projectId);
-    }
-    activeProjectIdByServer.value[serverId] = projectId;
     const res = await fetch(apiUrl(`/api/projects/${encodeURIComponent(projectId)}/select`), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,8 +104,7 @@ export const useProjectStore = defineStore('project', () => {
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to select project');
     const data = await res.json();
-    activeProjectIdByServer.value[serverId] = data.project.id;
-    await fetchProjects(serverId);
+    await fetchProjects(serverId, data.project.id);
     return data.project as ProjectItem;
   }
 

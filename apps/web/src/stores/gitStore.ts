@@ -44,21 +44,22 @@ export const useGitStore = defineStore('git', () => {
 
   async function fetchStatus() {
     const projectId = projectStore.currentProject?.id;
-    if (!projectId) return;
+    if (!projectId) {
+      applyStatus({});
+      error.value = null;
+      loading.value = false;
+      return;
+    }
     loading.value = true;
     error.value = null;
     try {
       const res = await fetch(apiUrl(`/api/git/status?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`));
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git status');
       const data = await res.json();
-      branch.value = data.branch || '';
-      repoRoot.value = data.repoRoot || '';
-      ahead.value = data.ahead || 0;
-      behind.value = data.behind || 0;
-      files.value = data.files || [];
+      applyStatus(data);
     } catch (err: any) {
       error.value = err.message;
-      files.value = [];
+      applyStatus({});
     } finally {
       loading.value = false;
     }

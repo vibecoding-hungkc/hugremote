@@ -33,7 +33,8 @@
             <button
               v-if="terminalStore.currentServerSessions.length > 1"
               class="btn-action-icon danger"
-              @click="terminalStore.closeSession(s.id)"
+              @click="closeSession(s.id)"
+              :disabled="Boolean(closingSessionId)"
               :title="t('terminalHub.closeDelete')"
             >
               <i class="ri-delete-bin-line"></i>
@@ -42,6 +43,7 @@
         </div>
       </div>
 
+      <p v-if="closeError" role="alert" style="color: #f87171">{{ closeError }}</p>
       <button class="btn-hub-create" @click="$emit('open-new')">
         <i class="ri-add-line"></i> {{ t('terminalHub.new') }}
       </button>
@@ -50,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useTerminalStore } from '../stores/terminalStore.js';
 import { useI18n } from '../composables/useI18n.js';
@@ -66,6 +69,23 @@ const emit = defineEmits<{
 const serverStore = useServerStore();
 const terminalStore = useTerminalStore();
 const { t } = useI18n();
+
+const closeError = ref('');
+const closingSessionId = ref('');
+
+async function closeSession(id: string) {
+  if (closingSessionId.value || terminalStore.currentServerSessions.length <= 1) return;
+  closeError.value = '';
+  if (!window.confirm('Đóng terminal này? Tiến trình đang chạy sẽ bị dừng.')) return;
+  closingSessionId.value = id;
+  try {
+    await terminalStore.closeSession(id);
+  } catch (error) {
+    closeError.value = error instanceof Error ? error.message : 'Không thể đóng terminal. Vui lòng thử lại.';
+  } finally {
+    closingSessionId.value = '';
+  }
+}
 
 function selectSession(id: string) {
   terminalStore.switchSession(id);

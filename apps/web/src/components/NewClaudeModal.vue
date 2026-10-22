@@ -122,7 +122,7 @@
       :initial-path="cwdInput || serverStore.currentServer.workspace || '~'"
       :server-id="serverStore.currentServer.id"
       :server-type="serverStore.currentServer.type"
-      :server-workspace="serverStore.currentServer.workspace"
+      :server-workspace="serverStore.currentServer.workspace || '~'"
       @close="isTreePickerOpen = false"
       @confirm="onFolderSelected"
       @selected="onFolderSelected"

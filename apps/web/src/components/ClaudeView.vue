@@ -248,6 +248,15 @@
         <div class="claude-ext-controls-bar">
           <!-- Left Controls -->
           <div class="claude-ext-left-controls">
+            <button
+              type="button"
+              class="claude-ctrl-btn claude-add-context-btn"
+              aria-label="Add context"
+              @click.stop="openContextPicker"
+            >
+              <i class="ri-attachment-2"></i>
+              <span>Add context</span>
+            </button>
             <!-- Project Sessions Button: View CLI Project Sessions -->
             <button
               type="button"
@@ -332,6 +341,15 @@
       </div>
     </div>
 
+    <ContextAttachmentPicker
+      v-if="isContextPickerOpen"
+      :server-id="activeSession?.serverId || serverStore.currentServerId"
+      :project-id="activeSession?.projectId || projectStore.currentProject?.id"
+      :root-path="projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~'"
+      @confirm="attachContextPath"
+      @close="isContextPickerOpen = false"
+    />
+
     <!-- Mobile Claude shortcut bar: between chat composer and bottom dock -->
     <div class="claude-shortcut-bar">
       <button type="button" class="claude-shortcut-key" title="Xoá sạch hội thoại" @click="inputText = '/clear'; handleSend()">
@@ -369,10 +387,10 @@ import { useProjectStore } from '../stores/projectStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import ModelSelectorPopup from './ModelSelectorPopup.vue';
 import ClaudeLimitsPopup from './ClaudeLimitsPopup.vue';
+import ContextAttachmentPicker from './ContextAttachmentPicker.vue';
 import { useI18n } from '../composables/useI18n.js';
 
 const emit = defineEmits<{
-  (e: 'open-tree-picker'): void;
   (e: 'open-session-hub'): void;
 }>();
 
@@ -387,6 +405,24 @@ const inputText = ref('');
 const isInputFocused = ref(false);
 const usageWarning = ref<string | null>(null);
 const isModelPopupOpen = ref(false);
+const isContextPickerOpen = ref(false);
+
+function openContextPicker() {
+  isContextPickerOpen.value = true;
+}
+
+function attachContextPath(path: string) {
+  if (!path) return;
+  const separator = inputText.value && !/\s$/.test(inputText.value) ? ' ' : '';
+  inputText.value += `${separator}@${path} `;
+  isContextPickerOpen.value = false;
+  nextTick(() => {
+    inputRef.value?.focus();
+    const end = inputText.value.length;
+    inputRef.value?.setSelectionRange(end, end);
+    autoResize();
+  });
+}
 
 const actionToast = ref<{ message: string; icon?: string; type?: 'success' | 'info' } | null>(null);
 let toastTimer: any = null;
@@ -550,7 +586,7 @@ function showHelpGuide() {
 
 function showStatusInfo() {
   const s = activeSession.value;
-  const srv = claudeStore.currentServerId || 'server-local';
+  const srv = s?.serverId || serverStore.currentServerId || 'server-local';
   addLocalExchange(
     '/status',
     `### ℹ️ Trạng thái phiên làm việc Claude\n\n` +
@@ -1752,6 +1788,14 @@ function showUsageToast() {
   cursor: pointer;
   touch-action: manipulation;
   flex-shrink: 0;
+}
+
+.claude-add-context-btn {
+  width: auto;
+  gap: 5px;
+  padding: 0 8px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .claude-ctrl-btn:hover {

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { useServerStore } from './serverStore.js';
 import { useProjectStore } from './projectStore.js';
+import { apiUrl } from '../utils/api.js';
 
 export interface TerminalSessionItem {
   id: string;
@@ -114,20 +115,77 @@ export const useTerminalStore = defineStore('terminal', () => {
     }
   }
 
-  function closeSession(id: string) {
-    if (currentServerSessions.value.length <= 1) {
-      return;
+  const closingSessionIds = ref<Set<string>>(new Set());
+  const restartingSessionIds = ref<Set<string>>(new Set());
+  const pendingOperationIds = computed(() => new Set([...closingSessionIds.value, ...restartingSessionIds.value]));
+  const restartGenerations = ref<Record<string, number>>({});
+
+  function isSessionSuspended(id: string): boolean {
+    return closingSessionIds.value.has(id) || restartingSessionIds.value.has(id);
+  }
+
+  function beginClose(id: string): boolean {
+    const scope = currentServerSessions.value;
+    const session = scope.find((s) => s.id === id);
+    if (!session || isSessionSuspended(id)) return false;
+    const activeOrPending = scope.filter((s) => !isSessionSuspended(s.id));
+    if (activeOrPending.length <= 1) return false;
+
+    const next = new Set(closingSessionIds.value);
+    next.add(id);
+    closingSessionIds.value = next;
+    return true;
+  }
+
+  function endClose(id: string) {
+    const next = new Set(closingSessionIds.value);
+    next.delete(id);
+    closingSessionIds.value = next;
+  }
+
+  function beginRestart(id: string): boolean {
+    const scope = currentServerSessions.value;
+    const session = scope.find((s) => s.id === id);
+    if (!session || isSessionSuspended(id)) return false;
+
+    const next = new Set(restartingSessionIds.value);
+    next.add(id);
+    restartingSessionIds.value = next;
+    return true;
+  }
+
+  function endRestart(id: string, success = false) {
+    const next = new Set(restartingSessionIds.value);
+    next.delete(id);
+    restartingSessionIds.value = next;
+    if (success) {
+      restartGenerations.value[id] = (restartGenerations.value[id] || 0) + 1;
     }
-    const idx = sessions.value.findIndex((s) => s.id === id);
-    if (idx !== -1) {
-      sessions.value.splice(idx, 1);
-      const remaining = currentServerSessions.value;
-      if (remaining.length > 0) {
-        activeSessionId.value = remaining[0].id;
-        if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${serverStore.currentServerId}`, remaining[0].id);
+  }
+
+  async function closeSession(id: string): Promise<boolean> {
+    const scope = currentServerSessions.value;
+    const session = scope.find((s) => s.id === id);
+    if (!session || !beginClose(id)) {
+      return false;
+    }
+    try {
+      const response = await fetch(apiUrl(`/api/sessions/${encodeURIComponent(id)}`), { method: 'DELETE' });
+      if (!response.ok) throw new Error('Không thể đóng terminal. Vui lòng thử lại.');
+      const idx = sessions.value.findIndex((s) => s.id === id);
+      if (idx !== -1) sessions.value.splice(idx, 1);
+      if (activeSessionId.value === id) {
+        const remaining = sessions.value.filter((s) => s.serverId === session.serverId && s.projectId === session.projectId);
+        if (remaining.length) {
+          activeSessionId.value = remaining[0].id;
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${session.serverId}`, remaining[0].id);
+          }
         }
       }
+      return true;
+    } finally {
+      endClose(id);
     }
   }
 
@@ -181,6 +239,15 @@ export const useTerminalStore = defineStore('terminal', () => {
     activeSessionId,
     currentServerSessions,
     activeSession,
+    closingSessionIds,
+    restartingSessionIds,
+    pendingOperationIds,
+    restartGenerations,
+    isSessionSuspended,
+    beginClose,
+    endClose,
+    beginRestart,
+    endRestart,
     getDefaultSessionName,
     createSession,
     switchSession,

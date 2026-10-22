@@ -316,15 +316,7 @@ function executeManualPaste(text: string) {
   }
 }
 
-function cleanupCurrentTerminal() {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
-  if (cleanupTouch) {
-    cleanupTouch();
-    cleanupTouch = null;
-  }
+function disconnectSocket() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
@@ -339,6 +331,19 @@ function cleanupCurrentTerminal() {
     } catch (_) {}
     socket = null;
   }
+  isDisconnected.value = true;
+}
+
+function cleanupCurrentTerminal() {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+  if (cleanupTouch) {
+    cleanupTouch();
+    cleanupTouch = null;
+  }
+  disconnectSocket();
   if (term) {
     try {
       term.dispose();
@@ -497,6 +502,7 @@ function connectWebSocket() {
   const curServer = serverStore.currentServer;
   const curSession = terminalStore.activeSession;
   if (!curSession || !term) return;
+  if (terminalStore.isSessionSuspended(curSession.id)) return;
 
   const cols = term.cols || 80;
   const rows = term.rows || 24;
@@ -525,6 +531,8 @@ function connectWebSocket() {
 
   socket.onclose = () => {
     isDisconnected.value = true;
+    const session = terminalStore.activeSession;
+    if (session && terminalStore.isSessionSuspended(session.id)) return;
     scheduleReconnect();
   };
 
@@ -534,6 +542,8 @@ function connectWebSocket() {
 }
 
 function scheduleReconnect() {
+  const curSession = terminalStore.activeSession;
+  if (!curSession || terminalStore.isSessionSuspended(curSession.id)) return;
   if (reconnectTimer) return;
   const delay = Math.min(30000, 1000 * Math.pow(1.5, reconnectAttempts));
   reconnectAttempts++;
@@ -599,15 +609,41 @@ function sendGitCommitPrefix() {
   sendKey('git commit -m "');
 }
 
-let switchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+watch(
+  () => {
+    const curSession = terminalStore.activeSession;
+    return curSession ? terminalStore.isSessionSuspended(curSession.id) : false;
+  },
+  (suspended) => {
+    if (suspended) {
+      disconnectSocket();
+    }
+  },
+  { flush: 'sync' }
+);
 
 watch(
-  () => [terminalStore.activeSessionId, serverStore.currentServerId],
   () => {
-    if (switchDebounceTimer) clearTimeout(switchDebounceTimer);
-    switchDebounceTimer = setTimeout(() => {
+    const curSession = terminalStore.activeSession;
+    const curServer = serverStore.currentServer;
+    const id = curSession?.id || '';
+    return [
+      id,
+      curServer?.id || '',
+      curSession?.cwd || '',
+      id ? terminalStore.isSessionSuspended(id) : false,
+    ] as const;
+  },
+  ([newId, newServer, newCwd, newSuspended], oldVal) => {
+    const [oldId, oldServer, oldCwd, oldSuspended] = oldVal || [];
+    if (newSuspended) return;
+
+    if (newId !== oldId || newServer !== oldServer) {
       initTerminal();
-    }, 50);
+    } else if (oldSuspended || newCwd !== oldCwd) {
+      disconnectSocket();
+      connectWebSocket();
+    }
   }
 );
 
@@ -624,6 +660,8 @@ onMounted(() => {
     if (document.visibilityState === 'visible') {
       requestWakeLock();
       handleResize();
+      const curSession = terminalStore.activeSession;
+      if (curSession && terminalStore.isSessionSuspended(curSession.id)) return;
       if (!socket || socket.readyState !== WebSocket.OPEN) {
         if (reconnectTimer) {
           clearTimeout(reconnectTimer);
@@ -642,8 +680,17 @@ onBeforeUnmount(() => {
     resizeObserver.disconnect();
     resizeObserver = null;
   }
-  if (switchDebounceTimer) clearTimeout(switchDebounceTimer);
   cleanupCurrentTerminal();
+});
+
+defineExpose({
+  initTerminal,
+  connectWebSocket,
+  scheduleReconnect,
+  cleanupCurrentTerminal,
+  disconnectSocket,
+  terminalRef,
+  isDisconnected,
 });
 </script>
 

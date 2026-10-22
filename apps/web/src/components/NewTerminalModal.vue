@@ -1,12 +1,12 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
+  <div v-if="isOpen" class="modal-overlay" @click.self="requestClose">
     <div class="modal-sheet">
       <div class="modal-header">
         <div class="modal-title">
           <i class="ri-terminal-box-line"></i>
           {{ isEditMode ? t('terminalModal.editTitle') : t('terminalModal.createTitle') }}
         </div>
-        <button class="btn-close" @click="$emit('close')">
+        <button class="btn-close" :disabled="isSubmitting" @click="requestClose">
           <i class="ri-close-line"></i>
         </button>
       </div>
@@ -75,9 +75,10 @@
         </div>
       </div>
 
+      <p v-if="submitError" role="alert" style="color: #f87171">{{ submitError }}</p>
       <div class="modal-footer">
-        <button class="btn-secondary" @click="$emit('close')">{{ t('terminalModal.cancel') }}</button>
-        <button class="btn-primary" @click="handleSubmit">
+        <button class="btn-secondary" :disabled="isSubmitting" @click="requestClose">{{ t('terminalModal.cancel') }}</button>
+        <button class="btn-primary" :disabled="isSubmitting" @click="handleSubmit">
           <i :class="isEditMode ? 'ri-save-line' : 'ri-add-line'"></i>
           {{ isEditMode ? t('terminalModal.saveChanges') : t('terminalModal.createWindow') }}
         </button>
@@ -100,6 +101,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
 import { useFileStore } from '../stores/fileStore.js';
 import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
 import { apiUrl } from '../utils/api.js';
@@ -128,8 +130,11 @@ const projectStore = useProjectStore();
 const targetCwd = ref('');
 const customName = ref('');
 const isTreePickerOpen = ref(false);
+const isSubmitting = ref(false);
+const submitError = ref('');
 
 function initDefaults() {
+  submitError.value = '';
   if (props.session?.id) {
     targetCwd.value = props.session.cwd || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
     customName.value = props.session.isCustomNamed ? (props.session.name || '') : '';
@@ -176,34 +181,47 @@ watch(
   { immediate: true }
 );
 
+function requestClose() {
+  if (!isSubmitting.value) emit('close');
+}
+
 async function handleSubmit() {
+  if (isSubmitting.value) return;
+  submitError.value = '';
   const cwd = targetCwd.value.trim() || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
   const name = customName.value.trim();
+  const sessionId = props.session?.id;
+  const cwdChanged = Boolean(sessionId && cwd !== (props.session.cwd || ''));
+  if (cwdChanged && !window.confirm('Đổi thư mục sẽ khởi động lại terminal và dừng tiến trình đang chạy. Tiếp tục?')) return;
 
-  if (isEditMode.value && props.session?.id) {
-    const cwdChanged = cwd !== (props.session.cwd || '');
-    terminalStore.updateSession(props.session.id, {
-      name,
-      cwd,
-      isCustomNamed: Boolean(name),
-    });
-    if (cwdChanged) {
-      try {
-        await fetch(apiUrl(`/api/sessions/${encodeURIComponent(props.session.id)}`), {
-          method: 'DELETE',
-        });
-      } catch (_) {}
+  isSubmitting.value = true;
+  try {
+    if (isEditMode.value && sessionId) {
+      if (cwdChanged) {
+        if (!terminalStore.beginRestart(sessionId)) return;
+        try {
+          const response = await fetch(apiUrl(`/api/sessions/${encodeURIComponent(sessionId)}`), { method: 'DELETE' });
+          if (!response.ok) throw new Error('Không thể khởi động lại terminal. Vui lòng thử lại.');
+          terminalStore.updateSession(sessionId, { name, cwd, isCustomNamed: Boolean(name) });
+          terminalStore.endRestart(sessionId, true);
+        } catch (err) {
+          terminalStore.endRestart(sessionId, false);
+          throw err;
+        }
+      } else {
+        terminalStore.updateSession(sessionId, { name, cwd, isCustomNamed: Boolean(name) });
+      }
+      emit('updated');
+    } else {
+      terminalStore.createSession({ name: name || undefined, cwd, isCustomNamed: Boolean(name) });
+      emit('created');
     }
-    emit('updated');
-  } else {
-    terminalStore.createSession({
-      name: name || undefined,
-      cwd,
-      isCustomNamed: Boolean(name),
-    });
-    emit('created');
+    emit('close');
+  } catch (error) {
+    submitError.value = error instanceof Error ? error.message : 'Không thể lưu terminal. Vui lòng thử lại.';
+  } finally {
+    isSubmitting.value = false;
   }
-  emit('close');
 }
 </script>
 

@@ -20,7 +20,12 @@ export function useAppBootstrap() {
     await authStore.fetchMe();
     if (!authStore.authenticated || authStore.mustChangePassword) return;
     await serverStore.fetchServers();
-    await projectStore.fetchProjects(serverStore.currentServerId);
+    try {
+      await projectStore.fetchProjects(serverStore.currentServerId);
+    } catch (err: any) {
+      fileStore.error = err.message || 'Không thể tải Project';
+      return;
+    }
     await fileStore.fetchFiles('');
     terminalStore.ensureServerSession();
     await Promise.all([

@@ -172,7 +172,7 @@
               <button
                 v-if="server.isConnected && server.type !== 'local'"
                 class="btn-mini-disconnect"
-                @click="serverStore.disconnectServer(server.id)"
+                @click="handleDisconnect(server.id)"
                 :title="t('serverModal.disconnect')"
               >
                 <i class="ri-shut-down-line"></i>
@@ -238,17 +238,17 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useServerStore, ServerItem } from '../stores/serverStore.js';
 import { useFileStore } from '../stores/fileStore.js';
-import { useTerminalStore } from '../stores/terminalStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
 import FolderTreePicker from './FolderTreePicker.vue';
 import { useI18n } from '../composables/useI18n.js';
 
 defineProps<{ isOpen: boolean }>();
-const emit = defineEmits<{ (e: 'close'): void }>();
+const emit = defineEmits<{ (e: 'close'): void; (e: 'selected'): void }>();
 
 const serverStore = useServerStore();
 const { t } = useI18n();
 const fileStore = useFileStore();
-const terminalStore = useTerminalStore();
+const projectStore = useProjectStore();
 
 const showAddForm = ref(false);
 const showPasswordText = ref(false);
@@ -353,13 +353,37 @@ async function handleAddServer() {
   }
 }
 
+async function handleDisconnect(id: string) {
+  if (isSelecting.value) return;
+  isSelecting.value = true;
+  serverModalError.value = '';
+  try {
+    const changesScope = id === serverStore.currentServerId;
+    if (changesScope && !await fileStore.confirmUnsavedChanges()) return;
+    await serverStore.disconnectServer(id);
+    if (changesScope) {
+      await projectStore.fetchProjects(serverStore.currentServerId);
+      emit('selected');
+    }
+  } catch (err: any) {
+    serverModalError.value = err.message || 'Không thể ngắt kết nối';
+  } finally { isSelecting.value = false; }
+}
+
+const isSelecting = ref(false);
 async function handleSelect(id: string) {
-  serverStore.selectServer(id);
-  terminalStore.ensureServerSession();
-  const current = serverStore.currentServer;
-  const targetDir = current.workspace === '~' ? '' : (current.workspace || '');
-  await fileStore.fetchFiles(targetDir);
-  emit('close');
+  if (isSelecting.value) return;
+  isSelecting.value = true;
+  serverModalError.value = '';
+  try {
+    if (!await fileStore.confirmUnsavedChanges()) return;
+    await projectStore.fetchProjects(id);
+    serverStore.selectServer(id);
+    emit('selected');
+    emit('close');
+  } catch (err: any) {
+    serverModalError.value = err.message || 'Không thể đổi server';
+  } finally { isSelecting.value = false; }
 }
 
 onMounted(() => {

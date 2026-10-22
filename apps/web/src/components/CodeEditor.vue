@@ -16,20 +16,29 @@
     </div>
 
     <!-- Quick Programming Accessory Keybar -->
-    <div class="editor-keybar">
-      <div class="keybar-scroll">
-        <button class="key-pill" @click="insertText('\t')">Tab</button>
-        <button class="key-pill" @click="insertText('{')">{</button>
-        <button class="key-pill" @click="insertText('}')">}</button>
-        <button class="key-pill" @click="insertText('(')">(</button>
-        <button class="key-pill" @click="insertText(')')">)</button>
-        <button class="key-pill" @click="insertText('[')">[</button>
-        <button class="key-pill" @click="insertText(']')">]</button>
-        <button class="key-pill" @click="insertText('=>')">=&gt;</button>
-        <button class="key-pill" @click="insertText('===')">===</button>
-        <button class="key-pill" @click="insertText('const ')">const</button>
-        <button class="key-pill" @click="insertText('function ')">fn</button>
-        <button class="key-pill" @click="insertText('return ')">ret</button>
+    <div v-if="fileStore.fileMode === 'code' || !isMarkdown" class="editor-keybar" @pointerdown.prevent>
+      <div class="keybar-row">
+        <div class="keybar-scroll">
+          <button type="button" class="key-pill" title="Undo" aria-label="Undo" @click="runEditorCommand(undo)">Undo</button>
+          <button type="button" class="key-pill" title="Move cursor left" aria-label="Move cursor left" @click="runEditorCommand(cursorCharLeft)">←</button>
+          <button type="button" class="key-pill" title="Move cursor right" aria-label="Move cursor right" @click="runEditorCommand(cursorCharRight)">→</button>
+          <button class="key-pill" @click="insertText('\t')">Tab</button>
+          <button class="key-pill" @click="insertText('{')">{</button>
+          <button class="key-pill" @click="insertText('}')">}</button>
+          <button class="key-pill" @click="insertText('(')">(</button>
+          <button class="key-pill" @click="insertText(')')">)</button>
+          <button class="key-pill" @click="insertText('[')">[</button>
+          <button class="key-pill" @click="insertText(']')">]</button>
+          <button class="key-pill" @click="insertText('=>')">=&gt;</button>
+          <button class="key-pill" @click="insertText('===')">===</button>
+          <button class="key-pill" @click="insertText('const ')">const</button>
+          <button class="key-pill" @click="insertText('function ')">fn</button>
+          <button class="key-pill" @click="insertText('return ')">ret</button>
+        </div>
+        <button type="button" class="key-pill" title="Toggle snippets" aria-label="Toggle snippets" :aria-expanded="snippetsExpanded" aria-controls="editor-snippets" @click="snippetsExpanded = !snippetsExpanded">Snippets</button>
+      </div>
+      <div v-if="snippetsExpanded" id="editor-snippets" class="keybar-scroll">
+        <button v-for="snippet in extraSnippets" :key="snippet" type="button" class="key-pill" :title="`Insert ${snippet.trim()}`" :aria-label="`Insert ${snippet.trim()}`" @click="insertText(snippet)">{{ snippet.trim() }}</button>
       </div>
     </div>
   </div>
@@ -39,7 +48,8 @@
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { EditorView, lineNumbers, highlightActiveLineGutter, highlightSpecialChars } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap, undo, cursorCharLeft, cursorCharRight } from '@codemirror/commands';
+import type { Command } from '@codemirror/view';
 import { keymap } from '@codemirror/view';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { javascript } from '@codemirror/lang-javascript';
@@ -52,6 +62,8 @@ import { useFileStore } from '../stores/fileStore.js';
 
 const fileStore = useFileStore();
 const editorContainer = ref<HTMLDivElement | null>(null);
+const snippetsExpanded = ref(false);
+const extraSnippets = ['!==', '&&', '||', 'import ', 'export '];
 let view: EditorView | null = null;
 
 const isMarkdown = computed(() => {
@@ -114,6 +126,12 @@ function initEditor() {
     state,
     parent: editorContainer.value,
   });
+}
+
+function runEditorCommand(command: Command) {
+  if (!view) return;
+  command(view);
+  view.focus();
 }
 
 function insertText(text: string) {
@@ -244,13 +262,25 @@ onBeforeUnmount(() => {
 }
 
 .editor-keybar {
-  height: 38px;
   background: #0f172a;
   border-top: 1px solid #1e293b;
   display: flex;
-  align-items: center;
-  padding: 0 6px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
   flex-shrink: 0;
+}
+
+.keybar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.keybar-row > .keybar-scroll {
+  flex: 1;
+  min-width: 0;
 }
 
 .keybar-scroll {

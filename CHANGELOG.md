@@ -1,5 +1,52 @@
 # 📋 Changelog — HugRemote
 
+## [v1.5.0] - 2026-10-22
+
+### 🚀 Tính năng nổi bật (Major Features)
+- **Tải lên & Tải xuống Tệp/Thư mục và Tự động Nén Zip (File Explorer Upload & Download with Zip Packaging)**:
+  - Tải lên tệp lẻ hoặc tải lên cả cây thư mục (`webkitdirectory`) trực tiếp trên giao diện File Explorer và backend API.
+  - Tải xuống từng tệp đơn lẻ hoặc tự động đóng gói nén thư mục thành file `.zip` (`tempZipService.ts`) với cơ chế streaming nhanh chóng.
+  - Tích hợp bộ đệm file zip tạm thời tại `~/.config/hugremote/tmp/downloads/` với cơ chế tự động dọn dẹp theo thời gian sống (TTL 60 phút), quét định kỳ và giới hạn dung lượng LRU (500MB).
+  - Modal quản lý File nén tạm (Zip Cache Manager) cho phép người dùng theo dõi dung lượng và dọn dẹp cache tức thì.
+- **Claude Context Attachment Picker (Đính kèm ngữ cảnh tệp/thư mục)**:
+  - Bổ sung nút **Add context** trên composer của Claude View, cho phép chọn file hoặc thư mục từ danh sách cây tệp tin trong project hiện tại.
+  - Tự động chèn cú pháp `@<đường-dẫn>` vào bản nháp câu lệnh mà không can thiệp hay thay đổi working directory (`cwd`) của phiên Claude đang chạy.
+  - Tối ưu giao diện modal vừa vặn với kích thước màn hình smartphone (viewport 390px).
+
+### 🛠️ Cải tiến Trải nghiệm & Giao diện (UI/UX & Mobile Parity)
+- **Bảo vệ Nội dung Chưa lưu (Unsaved Changes Guard & Modal)**:
+  - Hộp thoại `UnsavedChangesModal.vue` tự động nhắc nhở người dùng khi có nội dung sửa dở trước mọi thao tác chuyển ngữ cảnh: đóng file, mở file khác, đổi server, đổi project hoặc xóa project.
+  - Cung cấp 3 lựa chọn trực quan: **Lưu (Save)**, **Không lưu (Discard)** và **Hủy (Cancel)**.
+  - Khôi phục chỉ báo dirty (`*` và chấm trạng thái) trên `SmartHeader.vue`.
+  - Cơ chế xếp hàng tuần tự (serialized save queue) ngăn ngừa xung đột ghi đè race condition khi lưu file đồng thời từ toolbar và modal xác nhận.
+- **Thanh Phím Điều khiển Nâng cao cho CodeMirror trên Mobile (Touch Keybar)**:
+  - Bổ sung phím **Undo** (`undo(view)`), phím điều hướng con trỏ **Trái / Phải** (`cursorCharLeft`, `cursorCharRight`) giữ nguyên focus editor.
+  - Drawer phím tắt mở rộng cung cấp các toán tử và từ khóa thông dụng cho lập trình viên trên smartphone: `!==`, `&&`, `||`, `import`, `export`.
+- **Quản lý & Đổi tên Project (Project Management)**:
+  - Bổ sung form đổi tên project ngay trên giao diện `ProjectModal.vue` thông qua API `PATCH /api/projects/:id`.
+  - Chặn đặt tên dành riêng `'~'` (cả ở frontend lẫn backend) để ngăn project thường bị vô hiệu hóa tính năng do trùng tên với Home workspace.
+- **Đồng bộ hóa Chuyển đổi Server (Server Synchronization)**:
+  - Đồng bộ trạng thái giữa `ServerModal.vue` (Server Manager) và `ServerDrawer.vue`.
+  - Bổ sung cờ `scopeBusy` và cảnh báo lỗi `scopeError` khi chuyển server thất bại, giữ nguyên server cũ thay vì rơi vào trạng thái giao diện bất nhất.
+
+### 🐛 Vá lỗi & Ổn định Hệ thống (Bug Fixes & Hardening)
+- **Terminal Reconnect & Lifecycle Hardening**:
+  - Khắc phục lỗi màn hình trắng khi bấm nút "+" tạo cửa sổ terminal mới do thiếu import `useProjectStore` trong `NewTerminalModal.vue`.
+  - Đình chỉ toàn bộ cơ chế auto-reconnect của `TerminalView` khi một phiên đang trong quá trình DELETE hoặc khởi động lại CWD (`beginClose`, `beginRestart`), tránh việc tạo lại session cũ trên PTY backend khi mạng phản hồi chậm.
+  - Bắt buộc gọi API `DELETE /api/sessions/:id` backend thành công trước khi xóa session khỏi frontend state.
+  - Thêm ResizeObserver và watcher trạng thái kích hoạt trên `TerminalView.vue` giúp giao diện terminal co giãn linh hoạt 100% full-screen trên cả màn hình lớn và di động.
+- **Git Upstream Status**:
+  - Sửa lỗi hiển thị "Branch chưa có upstream" trong `gitStore.ts` khi repository đã cấu hình upstream hợp lệ.
+- **Claude `/status` Command**:
+  - Sửa lệnh slash `/status` đọc đúng thông tin server hiện tại từ `serverStore.currentServer`.
+- **Authentication & Default Password**:
+  - Bổ sung xuất khẩu `mustChangePassword` & `changePassword` từ `authStore`, tự động bootstrap khi đăng nhập và kiểm soát chặt chẽ luồng đổi mật khẩu mặc định.
+- **Typecheck & Kiểm thử Hồi quy Toàn diện (Quality Gates)**:
+  - Tích hợp `vue-tsc --noEmit` vào script `build:web` trong `package.json`, đảm bảo 0 lỗi type khi biên dịch production bundle.
+  - Bổ sung 8 bộ test UI tự động (`npm run test:ui`) với 63/63 bài test pass exit 0 bao phủ toàn diện các luồng thao tác phức tạp.
+
+---
+
 ## [v1.4.0] - 2026-10-21
 
 ### 🚀 Tính năng nổi bật (Major Features)

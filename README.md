@@ -2,7 +2,7 @@
 
 > **Mobile-first web IDE, multi-window terminal, and Claude Code coding assistant crafted for smartphones, remote servers, and Docker containers.**
 
-[![Release](https://img.shields.io/badge/release-v1.4.0-blue.svg)](https://github.com/vibecoding-hungkc/hugremote/releases)
+[![Release](https://img.shields.io/badge/release-v1.5.0-blue.svg)](https://github.com/vibecoding-hungkc/hugremote/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Docker-orange.svg)]()
 [![Mobile First](https://img.shields.io/badge/design-Mobile--First%20(390px)-purple.svg)]()
@@ -116,7 +116,7 @@ hugremote/
 
 ## ⚡ Quick Install
 
-**Bản Stable Release (v1.4.0):**
+**Bản Stable Release (v1.5.0):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
 ```
@@ -189,7 +189,7 @@ systemctl --user restart hugremote
 | Tham số / Lệnh | Mô tả | Mặc định |
 |---|---|---|
 | `update` | Cập nhật HugRemote lên commit mới nhất & build lại | |
-| `-v, --version` | Xem phiên bản hiện tại | `1.4.0` |
+| `-v, --version` | Xem phiên bản hiện tại | `1.5.0` |
 | `-p, --port <number>` | Cổng HTTP & WebSocket | `8099` hoặc `$PORT` |
 | `-h, --host <ip>` | Địa chỉ IP lắng nghe | `::` hoặc `$HOST` |
 | `-b, --base-path <path>` | Tiền tố đường dẫn subpath (vd: `/remote`) | `""` hoặc `$BASE_PATH` |

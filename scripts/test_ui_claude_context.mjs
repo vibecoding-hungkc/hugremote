@@ -54,6 +54,129 @@ try {
     assert.match(claude.activeSession.messages[1].text, /Máy chủ:\*\* `ssh-test`/);
     assert.equal(requests.length, before, '/status stays local');
   });
+  await test('/model uses exact native values, not description substrings or another target', async () => {
+    const { state, claude } = await view();
+    claude.modelsByServer['ssh-test'] = [
+      { id: 'default', title: 'Default', desc: 'Custom Opus model', prefix: 'Default' },
+      { id: 'opus', title: 'Team model', desc: '', prefix: 'opus' },
+    ];
+    claude.modelCwdByServer['ssh-test'] = '/work/project';
+    const selected = [];
+    claude.updateSession = async (_, value) => { selected.push(value.model); };
+    claude.fetchModels = async () => ({ models: claude.modelsByServer['ssh-test'] });
+    state.inputText.value = '/model opus';
+    await state.handleSend();
+    assert.equal(selected.at(-1), 'opus Medium');
+    state.inputText.value = '/model Team/Custom-Opus-XL';
+    await state.handleSend();
+    assert.equal(selected.at(-1), 'Team/Custom-Opus-XL');
+  });
+  await test('/model keeps only the latest selection when discovery finishes in reverse order', async () => {
+    const { state, claude } = await view();
+    const discoveries = [];
+    const selected = [];
+    claude.fetchModels = () => new Promise((resolve) => discoveries.push(resolve));
+    claude.updateSession = async (_, updates) => {
+      selected.push(updates.model);
+      Object.assign(claude.activeSession, updates);
+    };
+    state.inputText.value = '/model opus';
+    const oldSelection = state.handleSend();
+    state.inputText.value = '/model haiku';
+    const newSelection = state.handleSend();
+    discoveries[1]({ models: [] });
+    await newSelection;
+    const latestToast = state.actionToast.value;
+    discoveries[0]({ models: [] });
+    await oldSelection;
+    assert.deepEqual(selected, ['haiku'], 'obsolete discovery must not update the selected model');
+    assert.equal(claude.activeSession.model, 'haiku');
+    assert.equal(state.actionToast.value, latestToast, 'obsolete selection must not replace the success toast');
+    assert.deepEqual(claude.activeSession.messages.filter((m) => m.sender === 'user').map((m) => m.text), ['/model haiku']);
+  });
+  await test('picker selection invalidates pending /model discovery', async () => {
+    const { state, claude } = await view();
+    let resolveDiscovery;
+    const selected = [];
+    claude.fetchModels = () => new Promise((resolve) => { resolveDiscovery = resolve; });
+    claude.updateSession = async (_, updates) => {
+      selected.push(updates.model);
+      Object.assign(claude.activeSession, updates);
+    };
+    state.inputText.value = '/model opus';
+    const pending = state.handleSend();
+    state.onModelChange('haiku High');
+    resolveDiscovery({ models: [] });
+    await pending;
+    assert.deepEqual(selected, ['haiku High']);
+    assert.equal(claude.activeSession.model, 'haiku High');
+    assert.equal(state.actionToast.value, null, 'obsolete command must not announce success');
+    assert.deepEqual(claude.activeSession.messages, []);
+  });
+  await test('/effort selection invalidates pending /model discovery even before persistence applies', async () => {
+    const { state, claude } = await view();
+    let resolveDiscovery;
+    const selected = [];
+    claude.fetchModels = () => new Promise((resolve) => { resolveDiscovery = resolve; });
+    claude.updateSession = async (_, updates) => { selected.push(updates.model); };
+    state.inputText.value = '/model opus';
+    const pending = state.handleSend();
+    state.inputText.value = '/effort high';
+    await state.handleSend();
+    resolveDiscovery({ models: [] });
+    await pending;
+    assert.deepEqual(selected, ['Sonnet High']);
+    assert.equal(state.actionToast.value, null);
+    assert.deepEqual(claude.activeSession.messages.filter((m) => m.sender === 'user').map((m) => m.text), ['/effort high']);
+  });
+  for (const [context, changeContext] of [
+    ['cwd', (claude) => { claude.activeSession.cwd = '/work/other'; }],
+    ['server', (claude) => { claude.activeSession.serverId = 'other-server'; }],
+    ['model', (claude) => { claude.activeSession.model = 'haiku'; }],
+    ['session', (claude) => {
+      claude.sessions.push({ ...claude.activeSession, id: 'other-session', messages: [] });
+      claude.activeSessionId = 'other-session';
+    }],
+  ]) {
+    await test(`/model ignores discovery after ${context} context changes`, async () => {
+      const { state, claude } = await view();
+      let resolveDiscovery;
+      const selected = [];
+      claude.fetchModels = () => new Promise((resolve) => { resolveDiscovery = resolve; });
+      claude.updateSession = async (_, updates) => { selected.push(updates.model); };
+      state.inputText.value = '/model opus';
+      const pending = state.handleSend();
+      changeContext(claude);
+      resolveDiscovery({ models: [] });
+      await pending;
+      assert.deepEqual(selected, [], 'changed context must block the obsolete update');
+      assert.equal(state.actionToast.value, null);
+      assert.ok(claude.sessions.every((session) => session.messages.length === 0));
+    });
+  }
+  for (const [context, changeContext] of [
+    ['picker selection', (state) => state.onModelChange('haiku High')],
+    ['cwd change', (_, claude) => { claude.activeSession.cwd = '/work/other'; }],
+  ]) {
+    await test(`/model does not announce stale success after ${context} during persistence`, async () => {
+      const { state, claude } = await view();
+      let resolveUpdate;
+      claude.fetchModels = async () => ({ models: [] });
+      claude.updateSession = (_, updates) => {
+        Object.assign(claude.activeSession, updates);
+        return updates.model === 'opus' ? new Promise((resolve) => { resolveUpdate = resolve; }) : Promise.resolve();
+      };
+      state.inputText.value = '/model opus';
+      const pending = state.handleSend();
+      await nextTick();
+      assert.equal(typeof resolveUpdate, 'function', 'the old operation must be waiting on persistence');
+      changeContext(state, claude);
+      resolveUpdate();
+      await pending;
+      assert.equal(state.actionToast.value, null, 'obsolete persistence must not announce success');
+      assert.deepEqual(claude.activeSession.messages, []);
+    });
+  }
   await test('Add context is visible and inserts paths without losing multiline draft or changing CWD', async () => {
     const { state, html, claude } = await view();
     const controls = html.match(/<div class="claude-ext-controls-bar"[\s\S]*?(?=<!-- Right Controls -->)/)?.[0];

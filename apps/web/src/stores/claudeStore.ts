@@ -594,92 +594,78 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
-  const defaultFallbackModels = [
-    {
-      id: 'default',
-      title: 'Default (recommended)',
-      desc: 'Claude Code default model · Uses your active CLI configuration',
-      prefix: 'Default',
-    },
-    {
-      id: 'sonnet',
-      title: 'Sonnet',
-      desc: 'Sonnet · Standard model for daily coding & agentic tasks',
-      prefix: 'Sonnet',
-    },
-    {
-      id: 'opus',
-      title: 'Opus',
-      desc: 'Opus · Frontier model for complex reasoning and architecture',
-      prefix: 'Opus',
-    },
-    {
-      id: 'haiku',
-      title: 'Haiku',
-      desc: 'Haiku · Fastest model for lightweight queries & quick answers',
-      prefix: 'Haiku',
-    },
-  ];
+  interface NativeModel {
+    id: string;
+    title: string;
+    desc: string;
+    prefix: string;
+    resolvedModel?: string;
+    supportsEffort?: boolean;
+    disabled?: boolean;
+  }
 
-  const modelsByServer = ref<Record<string, Array<{ id: string; title: string; desc: string; prefix: string }>>>({});
+  const modelsByServer = ref<Record<string, NativeModel[]>>({});
   const modelSourceByServer = ref<Record<string, string>>({});
   const defaultModelByServer = ref<Record<string, string>>({});
-  const isLoadingModels = ref(false);
+  const modelErrorsByServer = ref<Record<string, string>>({});
+  const modelCwdByServer = ref<Record<string, string>>({});
+  const loadingModelsByServer = ref<Record<string, boolean>>({});
+  const modelRequestIds = new Map<string, number>();
+  interface ModelsResponse { source: string; defaultModel: string; models: NativeModel[] }
+  const modelRequests = new Map<string, { id: number; promise: Promise<ModelsResponse> }>();
+  const isLoadingModels = computed(() => !!loadingModelsByServer.value[serverStore.currentServerId || 'server-local']);
 
   const availableModels = computed(() => {
     const sId = serverStore.currentServerId || 'server-local';
-    return modelsByServer.value[sId] || defaultFallbackModels;
+    return modelsByServer.value[sId] || [];
   });
 
-  async function fetchModels(serverId?: string): Promise<{
-    source: string;
-    defaultModel: string;
-    models: Array<{ id: string; title: string; desc: string; prefix: string }>;
-  }> {
+  function fetchModels(serverId?: string, cwd?: string): Promise<ModelsResponse> {
     const sId = serverId || serverStore.currentServerId || 'server-local';
-    try {
-      isLoadingModels.value = true;
-      const res = await fetch(apiUrl(`/api/claude/models?serverId=${encodeURIComponent(sId)}`));
-      if (!res.ok) throw new Error('Failed to fetch models');
-      const data = await res.json();
-      if (data && Array.isArray(data.models)) {
-        modelsByServer.value = {
-          ...modelsByServer.value,
-          [sId]: data.models,
-        };
-        modelSourceByServer.value = {
-          ...modelSourceByServer.value,
-          [sId]: data.source || 'fallback',
-        };
-        defaultModelByServer.value = {
-          ...defaultModelByServer.value,
-          [sId]: data.defaultModel || 'default',
-        };
-      }
-      return data;
-    } catch (err) {
-      console.error('fetchModels error:', err);
-      const fallback = {
-        source: 'fallback',
-        defaultModel: 'Sonnet 5.5',
-        models: defaultFallbackModels,
-      };
-      modelsByServer.value = {
-        ...modelsByServer.value,
-        [sId]: fallback.models,
-      };
-      modelSourceByServer.value = {
-        ...modelSourceByServer.value,
-        [sId]: fallback.source,
-      };
-      defaultModelByServer.value = {
-        ...defaultModelByServer.value,
-        [sId]: fallback.defaultModel,
-      };
-      return fallback;
-    } finally {
-      isLoadingModels.value = false;
+    const targetCwd = cwd ?? (activeSession.value?.serverId === sId ? activeSession.value.cwd : '') ?? '';
+    const key = JSON.stringify([sId, targetCwd]);
+    const pending = modelRequests.get(key);
+    if (pending && modelRequestIds.get(sId) === pending.id) return pending.promise;
+    const requestId = (modelRequestIds.get(sId) || 0) + 1;
+    modelRequestIds.set(sId, requestId);
+    if (modelCwdByServer.value[sId] !== targetCwd) {
+      modelsByServer.value[sId] = [];
+      modelSourceByServer.value[sId] = '';
+      defaultModelByServer.value[sId] = '';
     }
+    modelCwdByServer.value[sId] = targetCwd;
+    modelErrorsByServer.value[sId] = '';
+    loadingModelsByServer.value[sId] = true;
+    const isCurrent = () => modelRequestIds.get(sId) === requestId;
+    const promise = (async (): Promise<ModelsResponse> => {
+      try {
+        const query = new URLSearchParams({ serverId: sId });
+        if (targetCwd) query.set('cwd', targetCwd);
+        const res = await fetch(apiUrl(`/api/claude/models?${query}`));
+        const data = await res.json();
+        if (!res.ok || data?.error) throw new Error(data?.error || 'Failed to fetch native models');
+        if (!Array.isArray(data?.models)) throw new Error('Invalid native model metadata');
+        if (isCurrent()) {
+          modelsByServer.value[sId] = data.models;
+          modelSourceByServer.value[sId] = data.source || '';
+          defaultModelByServer.value[sId] = data.defaultModel || '';
+        }
+        return data;
+      } catch (err) {
+        if (isCurrent()) {
+          modelsByServer.value[sId] = [];
+          modelSourceByServer.value[sId] = '';
+          defaultModelByServer.value[sId] = '';
+          modelErrorsByServer.value[sId] = err instanceof Error ? err.message : 'Failed to fetch native models';
+        }
+        return { source: '', defaultModel: '', models: [] };
+      } finally {
+        if (isCurrent()) loadingModelsByServer.value[sId] = false;
+        if (modelRequests.get(key)?.id === requestId) modelRequests.delete(key);
+      }
+    })();
+    modelRequests.set(key, { id: requestId, promise });
+    return promise;
   }
 
   const projectSessions = ref<ClaudeProjectSessionSummary[]>([]);
@@ -881,6 +867,9 @@ export const useClaudeStore = defineStore('claude', () => {
     modelsByServer,
     modelSourceByServer,
     defaultModelByServer,
+    modelErrorsByServer,
+    modelCwdByServer,
+    loadingModelsByServer,
     availableModels,
     isLoadingModels,
     fetchModels,

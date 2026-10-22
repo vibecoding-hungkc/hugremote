@@ -749,9 +749,9 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     };
   });
 
-  fastify.get<{ Querystring: { serverId?: string; refresh?: string } }>('/api/claude/models', async (request) => {
+  fastify.get<{ Querystring: { serverId?: string; refresh?: string; cwd?: string } }>('/api/claude/models', async (request) => {
     const serverId = request.query.serverId || 'server-local';
-    const result = await claudeService.getAvailableModels(serverId, request.query.refresh === '1');
+    const result = await claudeService.getAvailableModels(serverId, request.query.refresh === '1', request.query.cwd);
     return result;
   });
 

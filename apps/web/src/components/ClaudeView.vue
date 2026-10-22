@@ -826,6 +826,14 @@ async function pasteClipboard() {
   }
 }
 
+const modelSelectionGenerations = new Map<string, number>();
+
+function nextModelSelection(sessionId: string) {
+  const generation = (modelSelectionGenerations.get(sessionId) || 0) + 1;
+  modelSelectionGenerations.set(sessionId, generation);
+  return generation;
+}
+
 async function handleSend() {
   const text = inputText.value.trim();
   if (!text || claudeStore.isGenerating) return;
@@ -875,18 +883,33 @@ async function handleSend() {
     return;
   }
   if (text.startsWith('/model ')) {
-    const requested = text.slice(7).trim().toLowerCase();
+    const requested = text.slice(7).trim();
     if (activeSession.value && requested) {
-      const curServerId = activeSession.value.serverId || serverStore.currentServerId || 'server-local';
-      const serverModels = claudeStore.modelsByServer[curServerId] || claudeStore.availableModels;
-      const match = serverModels.find(
-        (m) =>
-          m.id.toLowerCase().includes(requested) ||
-          m.title.toLowerCase().includes(requested) ||
-          m.prefix.toLowerCase().includes(requested)
+      const session = activeSession.value;
+      const generation = nextModelSelection(session.id);
+      const curServerId = session.serverId || serverStore.currentServerId || 'server-local';
+      const cwd = session.cwd || '';
+      const model = session.model;
+      const isCurrentSelection = (expectedModel = model) => {
+        const current = activeSession.value;
+        return current?.id === session.id &&
+          modelSelectionGenerations.get(session.id) === generation &&
+          (current.serverId || serverStore.currentServerId || 'server-local') === curServerId &&
+          (current.cwd || '') === cwd && current.model === expectedModel;
+      };
+      const result = await claudeStore.fetchModels(curServerId, cwd);
+      if (!isCurrentSelection()) return;
+      const match = result.models.find((m) =>
+        m.id === requested || m.prefix === requested ||
+        (requested.toLowerCase() === 'default' && m.id === 'default')
       );
+      if (match?.disabled) {
+        showActionToast('Model này hiện không khả dụng');
+        return;
+      }
       const targetModel = match ? `${match.prefix} Medium` : requested;
-      claudeStore.updateSession(activeSession.value.id, { model: targetModel });
+      await claudeStore.updateSession(session.id, { model: targetModel });
+      if (!isCurrentSelection(targetModel)) return;
       const label = match?.title || targetModel;
       showActionToast(`🤖 Đã chuyển sang model ${label}`);
       addLocalExchange(text, `🤖 Đã chuyển model sang **${label}**.`);
@@ -969,6 +992,7 @@ async function handleSend() {
     if (['low', 'medium', 'high', 'max'].includes(level)) {
       const capLevel = level.charAt(0).toUpperCase() + level.slice(1);
       if (activeSession.value) {
+        nextModelSelection(activeSession.value.id);
         const currentM = activeSession.value.model || 'Default';
         const baseName = currentM.replace(/\b(Low|Medium|High|Max)\b/i, '').trim();
         const newModel = `${baseName || 'Default'} ${capLevel}`.trim();
@@ -1004,6 +1028,7 @@ async function handleSend() {
 
 function onModelChange(newModel: string) {
   if (activeSession.value) {
+    nextModelSelection(activeSession.value.id);
     claudeStore.updateSession(activeSession.value.id, { model: newModel });
   }
 }

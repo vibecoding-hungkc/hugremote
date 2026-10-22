@@ -668,7 +668,7 @@ export const apiRoutes = async (fastify) => {
     });
     fastify.get('/api/claude/models', async (request) => {
         const serverId = request.query.serverId || 'server-local';
-        const result = await claudeService.getAvailableModels(serverId, request.query.refresh === '1');
+        const result = await claudeService.getAvailableModels(serverId, request.query.refresh === '1', request.query.cwd);
         return result;
     });
     // --- CLAUDE CODE PROJECT SESSIONS (Real CLI sessions from ~/.claude/projects/) ---

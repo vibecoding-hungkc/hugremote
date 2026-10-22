@@ -1,10 +1,22 @@
 <template>
   <div v-if="isOpen" class="claude-model-popup" @click.stop>
     <div class="claude-model-popup-header">Select a model</div>
-    <div class="claude-model-list">
-      <div
+    <div v-if="isLoadingModels" class="claude-model-state" role="status">Loading native models…</div>
+    <div v-else-if="modelError" class="claude-model-state" role="alert">
+      {{ modelError }}
+      <button type="button" class="claude-model-retry" @click="loadModels">Retry</button>
+    </div>
+    <div v-else-if="!models.length" class="claude-model-state" role="status">
+      No native models available.
+      <button type="button" class="claude-model-retry" @click="loadModels">Retry</button>
+    </div>
+    <div v-else class="claude-model-list" aria-label="Native models">
+      <button
         v-for="item in models"
         :key="item.id"
+        type="button"
+        :aria-pressed="currentModelId === item.id"
+        :disabled="item.disabled"
         class="claude-model-item"
         :class="{ active: currentModelId === item.id }"
         @click="selectModel(item)"
@@ -13,8 +25,8 @@
           <div class="claude-model-title">{{ item.title }}</div>
           <div class="claude-model-desc">{{ item.desc }}</div>
         </div>
-        <i v-if="currentModelId === item.id" class="ri-check-line claude-model-check"></i>
-      </div>
+        <i v-if="currentModelId === item.id" class="ri-check-line claude-model-check" aria-hidden="true"></i>
+      </button>
     </div>
 
     <!-- Effort Row -->
@@ -36,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import { useClaudeStore } from '../stores/claudeStore';
 import { useServerStore } from '../stores/serverStore';
 
@@ -59,24 +71,23 @@ interface ModelItem {
   title: string;
   desc: string;
   prefix: string;
+  disabled?: boolean;
 }
 
 const targetServerId = computed(() => {
   return props.serverId || claudeStore.activeSession?.serverId || serverStore.currentServerId || 'server-local';
 });
 
-const models = computed<ModelItem[]>(() => {
-  return claudeStore.modelsByServer[targetServerId.value] || claudeStore.availableModels;
-});
-
-const modelSource = computed<'settings' | 'cli' | 'fallback'>(() => {
-  return (claudeStore.modelSourceByServer[targetServerId.value] as any) || 'fallback';
-});
-
-const isLoadingModels = computed(() => claudeStore.isLoadingModels);
+const targetCwd = computed(() => claudeStore.activeSession?.serverId === targetServerId.value
+  ? claudeStore.activeSession.cwd || '' : '');
+const hasCurrentContext = computed(() => (claudeStore.modelCwdByServer[targetServerId.value] || '') === targetCwd.value);
+const models = computed<ModelItem[]>(() => hasCurrentContext.value
+  ? claudeStore.modelsByServer[targetServerId.value] || [] : []);
+const isLoadingModels = computed(() => hasCurrentContext.value && !!claudeStore.loadingModelsByServer[targetServerId.value]);
+const modelError = computed(() => hasCurrentContext.value ? claudeStore.modelErrorsByServer[targetServerId.value] || '' : '');
 
 async function loadModels() {
-  await claudeStore.fetchModels(targetServerId.value);
+  await claudeStore.fetchModels(targetServerId.value, targetCwd.value);
 }
 
 onMounted(() => {
@@ -92,28 +103,21 @@ watch(
   }
 );
 
-watch(
-  () => targetServerId.value,
-  (newId) => {
-    if (newId) {
-      claudeStore.fetchModels(newId);
-    }
-  }
-);
+watch([targetServerId, targetCwd], () => {
+  loadModels();
+});
 
 const effortSteps = ['Low', 'Medium', 'High', 'Max'] as const;
 type EffortLevel = typeof effortSteps[number];
 
+const currentModelBase = computed(() => (props.modelValue || '')
+  .replace(/\s+\b(Low|Medium|High|Max)\b\s*$/i, '')
+  .trim());
 const currentModelId = computed(() => {
-  // modelValue looks like "<alias> <Effort>" e.g. "sonnet[1m] Medium" -> match the alias exactly
-  const base = (props.modelValue || '')
-    .replace(/\s+\b(Low|Medium|High|Max)\b\s*$/i, '')
-    .trim()
-    .toLowerCase();
-  if (!base || base.startsWith('default')) return 'default';
-  const exact = models.value.find((m) => m.id.toLowerCase() === base || m.prefix.toLowerCase() === base);
-  if (exact) return exact.id;
-  return models.value.find((m) => base.includes(m.id.toLowerCase()) && m.id !== 'default')?.id || 'default';
+  const base = currentModelBase.value.toLowerCase();
+  if (!base) return '';
+  return models.value.find((m) => m.prefix.toLowerCase() === base)?.id
+    || models.value.find((m) => m.id.toLowerCase() === base)?.id || '';
 });
 
 const currentEffort = computed<EffortLevel>(() => {
@@ -140,15 +144,16 @@ const thumbLeft = computed(() => {
 });
 
 function selectModel(item: ModelItem) {
-  const newName = `${item.prefix} ${currentEffort.value}`;
+  if (item.disabled || isLoadingModels.value || modelError.value) return;
+  const newName = `${item.id === 'default' ? 'Default' : item.prefix} ${currentEffort.value}`;
   emit('update:modelValue', newName);
   emit('close');
 }
 
 function setEffort(step: EffortLevel) {
-  const item = models.value.find((m) => m.id === currentModelId.value) || models.value[0];
-  const newName = `${item ? item.prefix : 'Sonnet'} ${step}`;
-  emit('update:modelValue', newName);
+  // Changing effort must never replace an unknown/custom model with a catalog row.
+  if (!currentModelBase.value) return;
+  emit('update:modelValue', `${currentModelBase.value} ${step}`);
 }
 
 function cycleEffort() {
@@ -187,9 +192,40 @@ function cycleEffort() {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  max-height: min(360px, 45dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.claude-model-state {
+  padding: 12px 10px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.claude-model-retry {
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.claude-model-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.claude-model-item:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
 }
 
 .claude-model-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;

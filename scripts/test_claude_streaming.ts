@@ -16,7 +16,7 @@ after(() => fs.rmSync(home, { recursive: true, force: true }));
 const { ClaudeService } = await import('../apps/api/src/services/claudeService.js');
 
 type Event = import('../apps/api/src/services/claudeService.js').ClaudeStreamEvent;
-async function harness(remote = false) {
+async function harness(remote = false, model = 'Default') {
   const service = new ClaudeService();
   const child = Object.assign(new EventEmitter(), {
     stdout: new PassThrough(), stderr: new PassThrough(), kill() {},
@@ -30,7 +30,7 @@ async function harness(remote = false) {
   }) : undefined;
   const session = {
     id: 'test-session', name: 'test', cwd: home, serverId: remote ? 'remote' : 'server-local',
-    messages: [], model: 'Default', mode: 'Auto', createdAt: 0, updatedAt: 0,
+    messages: [], model, mode: 'Auto', createdAt: 0, updatedAt: 0,
     contextTokens: undefined as string | undefined,
   };
   const events: Event[] = [];
@@ -276,6 +276,25 @@ test('snapshot-only split blocks preserve thinking and multiple same-type blocks
   const result = await h.result;
   assert.equal(result.text, 'firstsecond');
   assert.equal(result.thinking, 'reason');
+});
+
+test('native model values are passed exactly; Default omits model and legacy titles still work', async () => {
+  for (const remote of [false, true]) {
+    for (const [selection, expected] of [
+      ['Default Medium', null], ['opus High', 'opus'], ['sonnet[1m] Medium', 'sonnet[1m]'],
+      ['Team/Custom-Opus-XL High', 'Team/Custom-Opus-XL'], ['default-special Low', 'default-special'],
+      ['Sonnet 5.5 Medium', 'sonnet'], ['Haiku High', 'haiku'],
+    ] as const) {
+      const h = await harness(remote, selection);
+      h.send(snapshot('selected', [{ type: 'text', text: 'ok' }]));
+      h.close();
+      await h.result;
+      const idx = h.args.indexOf('--model');
+      assert.equal(idx === -1 ? null : h.args[idx + 1], expected, selection);
+      const effort = selection.split(' ').at(-1)!.toLowerCase();
+      assert.equal(h.args[h.args.indexOf('--effort') + 1], effort);
+    }
+  }
 });
 
 test('local and SSH invocations request partial messages', async () => {

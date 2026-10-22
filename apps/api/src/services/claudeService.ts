@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import { spawn, ChildProcess } from 'child_process';
 import { StringDecoder } from 'string_decoder';
-import { normalizeWorkspacePath, parseSshConfig, ServerConfig } from '../config.js';
+import { ALLOWED_ROOT, normalizeWorkspacePath, parseSshConfig, ServerConfig } from '../config.js';
 import { sshPool } from './sshPool.js';
 
 export interface ClaudeLimits {
@@ -49,6 +49,11 @@ export interface ClaudeModelItem {
   title: string;
   desc: string;
   prefix: string;
+  value: string;
+  resolvedModel?: string;
+  displayName: string;
+  description: string;
+  [metadata: string]: unknown;
 }
 
 export interface ClaudeModelsResult {
@@ -102,71 +107,52 @@ function shellEscape(arg: string): string {
 
 const MODELS_CACHE_TTL_MS = 30_000;
 
-const MODEL_ALIAS_ENV: Record<string, string> = {
-  sonnet: 'ANTHROPIC_DEFAULT_SONNET_MODEL',
-  opus: 'ANTHROPIC_DEFAULT_OPUS_MODEL',
-  haiku: 'ANTHROPIC_DEFAULT_HAIKU_MODEL',
-};
-
-const MODEL_ALIAS_DESC: Record<string, string> = {
-  best: 'Most capable model available',
-  opusplan: 'Opus for planning, Sonnet for execution',
-  fable: 'Fable model',
-};
-
-/** Build picker items from CLI alias ids. `prefix` keeps the exact alias (e.g. `sonnet[1m]`) so it is passed to `--model` unchanged. */
-export function buildModelItems(
-  currentModel: string,
-  aliases: string[],
-  settingsEnv: Record<string, string>
-): ClaudeModelItem[] {
-  const items: ClaudeModelItem[] = [
-    {
-      id: 'default',
-      title: currentModel === 'Default' ? 'Default (recommended)' : `Default (${currentModel})`,
-      desc: currentModel === 'Default' ? 'Claude Code default model' : `CLI default model: ${currentModel}`,
-      prefix: 'Default',
-    },
-  ];
-  for (const alias of aliases) {
-    if (!alias || alias === 'default') continue;
-    const base = alias.replace(/\[1m\]$/i, '');
-    const is1m = /\[1m\]$/i.test(alias);
-    const label = base.charAt(0).toUpperCase() + base.slice(1);
-    const mapped = settingsEnv[MODEL_ALIAS_ENV[base] || ''];
-    const baseDesc = mapped ? `Resolves to ${mapped}` : MODEL_ALIAS_DESC[base] || `${label} model`;
-    items.push({
-      id: alias,
-      title: is1m ? `${label} (1M context)` : label,
-      desc: is1m ? `${baseDesc} · 1M context window` : baseDesc,
-      prefix: alias,
-    });
+/** Resolve discovery from home by default, not the API process directory. */
+function resolveLocalClaudeCwd(cwd?: string): string {
+  const target = normalizeWorkspacePath(cwd || os.homedir());
+  if (target.includes('\0')) throw new Error('Invalid Claude model discovery cwd');
+  let canonical: string;
+  try {
+    canonical = fs.realpathSync(target);
+    if (!fs.statSync(canonical).isDirectory()) throw new Error('not a directory');
+  } catch (_) { throw new Error('Claude model discovery cwd must be an existing directory'); }
+  if (cwd) {
+    const root = fs.realpathSync(ALLOWED_ROOT);
+    const relative = path.relative(root, canonical);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error('Claude model discovery cwd is outside allowed root');
+    }
   }
-  return items;
+  return canonical;
 }
 
-/** Parse `claude -p /model` text: "Current model: `X (default)`\nUsage: ... Available: a, b, or a full model ID." */
-export function parseCliModelOutput(
-  resultText: string,
-  settingsEnv: Record<string, string> = {}
-): ClaudeModelsResult | null {
-  const availMatch = resultText.match(/Available:\s*([^\n]+)/i);
-  if (!availMatch) return null;
-  const currentMatch = resultText.match(/Current model:\s*`([^`]+)`/i);
-  const currentModel = (currentMatch ? currentMatch[1] : 'Default').replace(/\s*\(default\)\s*$/i, '').trim() || 'Default';
+function modelDiscoveryBinaryIdentity(binary: string): string {
+  try {
+    const real = fs.realpathSync(binary);
+    const stat = fs.statSync(real);
+    return `${real}:${stat.mtimeMs}:${stat.size}`;
+  } catch (_) { return binary; }
+}
 
-  const aliases = availMatch[1]
-    .replace(/\.\s*$/, '')
-    .split(',')
-    .map((s) => s.trim().replace(/^or\s+/i, '').trim())
-    .filter((s) => s && !/^a full model id$/i.test(s) && !/^a full/i.test(s));
-  if (aliases.length === 0) return null;
-
-  return {
-    source: 'cli',
-    defaultModel: currentModel,
-    models: buildModelItems(currentModel, aliases, settingsEnv),
-  };
+/** Use only native initialize rows, never the /model syntax-help alias list. */
+export function parseNativeModels(models: unknown): ClaudeModelsResult {
+  const invalid = () => new Error('Claude native model discovery returned invalid model metadata');
+  if (!Array.isArray(models) || models.length === 0) throw invalid();
+  const seen = new Set<string>();
+  const items: ClaudeModelItem[] = models.map(row => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)
+      || typeof row.value !== 'string' || !row.value.trim()
+      || typeof row.displayName !== 'string' || !row.displayName.trim()
+      || typeof row.description !== 'string'
+      || (row.resolvedModel !== undefined && (typeof row.resolvedModel !== 'string' || !row.resolvedModel.trim()))
+      || (row.disabled !== undefined && typeof row.disabled !== 'boolean')
+      || seen.has(row.value)) throw invalid();
+    seen.add(row.value);
+    return { ...row, id: row.value, title: row.displayName, desc: row.description, prefix: row.value };
+  });
+  const nativeDefault = items.find(row => row.value === 'default');
+  if (!nativeDefault?.resolvedModel) throw invalid();
+  return { source: 'cli', defaultModel: nativeDefault.resolvedModel, models: items };
 }
 
 export interface ClaudeProcessHandle {
@@ -1239,88 +1225,139 @@ export class ClaudeService {
     return this.getLimits();
   }
 
-  async getAvailableModels(serverId?: string, forceRefresh = false): Promise<ClaudeModelsResult> {
+  // Separate spawn seam keeps discovery tests off the real CLI and user sessions.
+  private spawnModelDiscovery = spawn;
+  private modelDiscoveryTimeoutMs = 15_000;
+  private modelDiscoveryKillGraceMs = 1_000;
+
+  async getAvailableModels(serverId?: string, forceRefresh = false, cwd?: string): Promise<ClaudeModelsResult> {
     const sId = serverId || 'server-local';
-    const cached = this.modelsCache.get(sId);
-    if (!forceRefresh && cached && Date.now() - cached.at < MODELS_CACHE_TTL_MS) {
-      return cached.result;
-    }
-
     const server = this.serverConfigResolver(sId);
-    const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
-
-    // Single source of truth = the Claude CLI itself (`claude -p /model`).
-    // The CLI reads only the `env` key of ~/.claude/settings.json (verified: renaming it to `aenv`
-    // makes the CLI ignore it), has no `modelPicker`, and `availableModels` does not change /model output.
-    let cliOutput = '';
-    try {
-      if (!isRemote) {
-        const bin = getClaudeBinaryPath();
-        const proc = spawn(bin, ['-p', '/model', '--output-format', 'json'], {
-          stdio: ['ignore', 'pipe', 'pipe'],
-          env: {
-            ...process.env,
-            PATH: `${path.join(os.homedir(), '.local', 'bin')}:${process.env.PATH}`,
-          },
-        });
-        cliOutput = await new Promise<string>((resolve) => {
-          let out = '';
-          const timer = setTimeout(() => {
-            try { proc.kill('SIGTERM'); } catch (_) {}
-          }, 45000);
-          proc.stdout.on('data', (d) => (out += d.toString('utf8')));
-          proc.on('close', () => { clearTimeout(timer); resolve(out); });
-          proc.on('error', () => { clearTimeout(timer); resolve(''); });
-        });
-      } else if (server) {
-        const remoteCmd = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; claude -p '/model' --output-format json`;
-        const stream = await sshPool.executeCommand(server, remoteCmd);
-        cliOutput = await new Promise<string>((resolve) => {
-          let out = '';
-          stream.on('data', (d: Buffer) => (out += d.toString('utf8')));
-          stream.on('close', () => resolve(out));
-        });
-      }
-    } catch (_) {}
-
-    // Only `env` is honoured by the CLI -> use it just to describe what each alias resolves to.
-    let settingsEnv: Record<string, string> = {};
-    try {
-      let raw = '';
-      if (!isRemote) {
-        const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
-        if (fs.existsSync(settingsPath)) raw = fs.readFileSync(settingsPath, 'utf8');
-      } else if (server) {
-        const stream = await sshPool.executeCommand(server, 'cat "$HOME/.claude/settings.json" 2>/dev/null || true');
-        raw = await new Promise<string>((resolve) => {
-          let out = '';
-          stream.on('data', (d: Buffer) => (out += d.toString('utf8')));
-          stream.on('close', () => resolve(out));
-        });
-      }
-      if (raw.trim()) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed.env === 'object' && parsed.env) settingsEnv = parsed.env;
-      }
-    } catch (_) {}
-
-    let result: ClaudeModelsResult | null = null;
-    try {
-      const resultText = cliOutput.trim() ? String(JSON.parse(cliOutput).result || '') : '';
-      result = parseCliModelOutput(resultText, settingsEnv);
-    } catch (_) {}
-
-    if (result) {
-      this.modelsCache.set(sId, { at: Date.now(), result });
-      return result;
-    }
-
-    // Fallback (CLI missing / not logged in): same alias list the CLI documents. Not cached.
-    return {
-      source: 'fallback',
-      defaultModel: 'Default',
-      models: buildModelItems('Default', ['sonnet', 'opus', 'haiku', 'fable', 'best', 'sonnet[1m]', 'opus[1m]', 'fable[1m]', 'opusplan'], {}),
+    if (!server && sId !== 'server-local') throw new Error('Unknown Claude model discovery target');
+    const remote = server?.type === 'ssh';
+    const targetCwd = remote ? (cwd?.trim() || server.workspace?.trim() || '~') : resolveLocalClaudeCwd(cwd);
+    if (targetCwd.includes('\0')) throw new Error('Invalid Claude model discovery cwd');
+    const binary = remote ? 'claude' : getClaudeBinaryPath();
+    const cacheKey = JSON.stringify([sId, server?.type || 'local', server?.host, server?.port, server?.user, targetCwd,
+      remote ? binary : modelDiscoveryBinaryIdentity(binary)]);
+    const cached = this.modelsCache.get(cacheKey);
+    if (!forceRefresh && cached && Date.now() - cached.at < MODELS_CACHE_TTL_MS) return cached.result;
+    const args = ['--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '-p', '--no-session-persistence'];
+    let proc: {
+      stdin: NodeJS.WritableStream; stdout: NodeJS.ReadableStream; stderr: NodeJS.ReadableStream;
+      on(event: string, callback: (...args: any[]) => void): unknown;
+      kill(signal: string): unknown;
     };
+    if (server?.type === 'ssh') {
+      const remoteCwd = targetCwd === '~' ? '"$HOME"'
+        : targetCwd.startsWith('~/') ? `"$HOME"/${shellEscape(targetCwd.slice(2))}` : shellEscape(targetCwd);
+      const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; cd -- ${remoteCwd} && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
+      const channel = await new Promise<Awaited<ReturnType<typeof sshPool.executeCommand>>>((resolve, reject) => {
+        let expired = false;
+        const timer = setTimeout(() => {
+          expired = true;
+          reject(new Error('Claude model discovery timed out opening SSH channel'));
+        }, this.modelDiscoveryTimeoutMs);
+        sshPool.executeCommand(server, command).then(channel => {
+          clearTimeout(timer);
+          if (expired) {
+            try { channel.signal('TERM'); } catch (_) {}
+            try { channel.close(); } catch (_) {}
+          } else resolve(channel);
+        }, error => { clearTimeout(timer); reject(error); });
+      });
+      proc = {
+        stdin: channel, stdout: channel, stderr: channel.stderr,
+        on: (event, callback) => channel.on(event, callback),
+        kill: () => {
+          try { channel.signal('TERM'); } catch (_) {}
+          try { channel.close(); } catch (_) {}
+        },
+      };
+    } else {
+      const child = this.spawnModelDiscovery(binary, args, {
+        cwd: targetCwd, stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, CLAUDE_CODE_CONFIG_PROBE: '1', PATH: `${path.join(os.homedir(), '.local', 'bin')}:${process.env.PATH}` },
+      });
+      proc = { stdin: child.stdin!, stdout: child.stdout!, stderr: child.stderr!, on: (event, callback) => child.on(event, callback), kill: signal => child.kill(signal as NodeJS.Signals) };
+    }
+    const requestId = `models-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const result = await new Promise<ClaudeModelsResult>((resolve, reject) => {
+      let buffer = '';
+      let bytes = 0;
+      let settled = false;
+      let closed = false;
+      let killTimer: ReturnType<typeof setTimeout> | undefined;
+      const decoder = new StringDecoder('utf8');
+      const finish = (error?: unknown, result?: ClaudeModelsResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        proc.stdout!.removeListener('data', onData);
+        proc.stderr!.removeListener('data', onStderr);
+        // Keep error handlers until streams die: SIGTERM/EOF can trigger late EPIPE.
+        try { proc.stdin!.end(); } catch (_) {}
+        try { proc.kill('SIGTERM'); } catch (_) {}
+        if (!remote && !closed) {
+          killTimer = setTimeout(() => {
+            if (!closed) try { proc.kill('SIGKILL'); } catch (_) {}
+          }, this.modelDiscoveryKillGraceMs);
+          killTimer.unref();
+        }
+        if (error) reject(error); else resolve(result!);
+      };
+      const countOutput = (chunk: Buffer | string) => {
+        bytes += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+        if (bytes > 1_048_576) {
+          finish(new Error('Claude model discovery output exceeded limit'));
+          return false;
+        }
+        return true;
+      };
+      const onStderr = (chunk: Buffer | string) => { if (!settled) countOutput(chunk); };
+      const onData = (chunk: Buffer | string) => {
+        if (settled || !countOutput(chunk)) return;
+        buffer += decoder.write(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let message: any;
+          try { message = JSON.parse(line); }
+          catch (_) { finish(new Error('Claude model discovery returned malformed JSONL')); return; }
+          if (message?.type !== 'control_response' || message.response?.request_id !== requestId) continue;
+          if (message.response.subtype !== 'success') {
+            finish(new Error('Claude model discovery initialize failed or denied'));
+          } else {
+            try { finish(undefined, parseNativeModels(message.response.response?.models)); }
+            catch (error) { finish(error); }
+          }
+          return;
+        }
+      };
+      const timer = setTimeout(() => finish(new Error('Claude model discovery timed out waiting for initialize response')), this.modelDiscoveryTimeoutMs);
+      proc.on('close', () => {
+        closed = true;
+        clearTimeout(killTimer);
+        if (!settled && buffer.trim()) {
+          buffer += decoder.end();
+          onData('\n');
+        }
+        finish(new Error('Claude model discovery closed with no initialize response'));
+      });
+      const onError = (error: Error) => finish(new Error(`Claude model discovery transport error: ${error.message}`));
+      proc.on('error', onError);
+      proc.stdin!.on('error', onError);
+      proc.stdout!.on('error', onError);
+      proc.stderr!.on('error', onError);
+      proc.stdout!.on('data', onData);
+      proc.stderr!.on('data', onStderr);
+      try {
+        proc.stdin!.write(JSON.stringify({ type: 'control_request', request_id: requestId, request: { subtype: 'initialize' } }) + '\n');
+      } catch (error) { finish(error); }
+    });
+    this.modelsCache.set(cacheKey, { at: Date.now(), result });
+    return result;
   }
 
   cancelRun(sessionId: string): boolean {
@@ -1701,31 +1738,16 @@ export class ClaudeService {
     }
 
     // Map model
-    let modelArg: string | null = null;
-    const mLower = (session.model || '').toLowerCase().trim();
+    const selection = (session.model || '').trim();
+    const baseModel = selection.replace(/\s+(Low|Medium|High|Max)$/i, '').trim();
+    // Preserve native CLI values. Only migrate old built-in display titles;
+    // arbitrary custom IDs must never collapse via substring matching.
+    const legacyTitle = baseModel.match(/^(Sonnet|Sonet|Opus|Haiku|Fable)(?:\s+\d+(?:\.\d+)*)?$/i);
+    const modelArg = !baseModel || /^default$/i.test(baseModel)
+      ? null
+      : legacyTitle ? legacyTitle[1].toLowerCase().replace('sonet', 'sonnet') : baseModel;
 
-    if (!mLower || mLower.startsWith('default')) {
-      // "Default" or unspecified: allow Claude Code to use its configured default model
-      modelArg = null;
-    } else if (/^(sonnet|opus|haiku|fable|best|opusplan)(\[1m\])?(\s|$)/.test(mLower)) {
-      // Exact CLI alias (keeps the [1m] suffix, which the includes() branches below would drop)
-      modelArg = mLower.split(/\s+/)[0];
-    } else if (mLower.startsWith('claude-')) {
-      // Explicit full model identifier
-      modelArg = mLower.split(/\s+/)[0];
-    } else if (mLower.includes('opus')) {
-      modelArg = 'opus';
-    } else if (mLower.includes('haiku')) {
-      modelArg = 'haiku';
-    } else if (mLower.includes('fable')) {
-      modelArg = 'fable';
-    } else if (mLower.includes('sonnet') || mLower.includes('sonet')) {
-      modelArg = 'sonnet';
-    } else {
-      modelArg = mLower.split(/\s+/)[0];
-    }
-
-    const effortMatch = (session.model || '').match(/\b(Low|Medium|High|Max)\b/i);
+    const effortMatch = selection.match(/\s+(Low|Medium|High|Max)$/i);
     const effortArg = (effortMatch?.[1] || 'Medium').toLowerCase();
 
     const modeKey = (session.mode || 'Auto').toLowerCase().replace(/[^a-z]/g, '');

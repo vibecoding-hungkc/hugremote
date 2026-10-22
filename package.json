@@ -29,6 +29,7 @@
     "build:web": "npm run typecheck:web && npm run build --prefix apps/web",
     "typecheck:web": "vue-tsc --noEmit -p apps/web/tsconfig.json",
     "test:ui": "node scripts/test_ui_unsaved.mjs && node scripts/test_ui_terminal.mjs && node scripts/test_ui_editor_keys.mjs && node scripts/test_ui_claude_context.mjs && node scripts/test_ui_workspace_git.mjs && node scripts/test_ui_workspace_components.mjs && node scripts/test_ui_review_terminal.mjs && node scripts/test_ui_review_project.mjs",
+    "test:git": "tsx scripts/test_git_remote.ts",
     "build:api": "npm run build --prefix apps/api",
     "build:client": "npm run build:web",
     "build:server": "npm run build:api",

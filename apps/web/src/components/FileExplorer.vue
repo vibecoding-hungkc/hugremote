@@ -130,7 +130,7 @@
             @click="handleDownloadFolder(item)"
             :title="t('fileExplorer.downloadFolderZip')"
           >
-            <i class="ri-folder-zip-line"></i>
+            <i class="ri-download-2-line"></i>
           </button>
           <button
             v-else

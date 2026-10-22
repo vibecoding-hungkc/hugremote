@@ -289,6 +289,10 @@ export const useClaudeStore = defineStore('claude', () => {
         }
         break;
       }
+      case 'content_sync':
+        reactiveMsg.text = event.text ?? '';
+        reactiveMsg.thinking = event.thinking ?? '';
+        break;
       case 'text_delta':
         reactiveMsg.isThinking = false;
         reactiveMsg.text = (reactiveMsg.text || '') + (event.text || '');

@@ -43,7 +43,7 @@ try {
     const component = { ...ClaudeView, setup(props, ctx) { state = ClaudeView.setup(props, ctx); return state; } };
     const app = createSSRApp(component); app.use(pinia);
     const html = await renderToString(app);
-    return { state, html, claude, server, project };
+    return { state, html, claude, server, project, pinia };
   }
   await test('/status reports selected server without sending an LLM prompt', async () => {
     const { state, claude } = await view();
@@ -78,6 +78,18 @@ try {
     assert.equal(claude.activeSession.messages.length, 0);
     assert.equal(requests.length, before);
     await nextTick();
+  });
+  await test('compact mode still renders a partial assistant answer during generation', async () => {
+    const { claude, pinia } = await view();
+    claude.compactTaskMode = true;
+    claude.activeSession.messages.push({ id: 'partial', sender: 'assistant', text: 'REALTIME_PARTIAL', isWorking: true, tools: [] });
+    const renderApp = createSSRApp(ClaudeView); renderApp.use(pinia);
+    const html = await renderToString(renderApp);
+    claude.isGenerating = false;
+    await nextTick();
+    const message = html.match(/<div[^>]*class="claude-ext-asst-msg"[^>]*>/)?.[0];
+    assert.ok(message);
+    assert.doesNotMatch(message, /display:\s*none/, 'partial text must stay visible even when compact mode is enabled');
   });
   await test('picker lists selectable files and folders using the project-scoped fs API', async () => {
     const { state: parent } = await view();

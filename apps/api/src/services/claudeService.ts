@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn, ChildProcess } from 'child_process';
+import { StringDecoder } from 'string_decoder';
 import { normalizeWorkspacePath, parseSshConfig, ServerConfig } from '../config.js';
 import { sshPool } from './sshPool.js';
 
@@ -39,6 +40,7 @@ export type ClaudeStreamEvent =
   | { type: 'tool_use'; tool: ClaudeToolCall }
   | { type: 'tool_result'; tool_use_id: string; output: string; status?: 'done' | 'error' }
   | { type: 'text_delta'; text: string }
+  | { type: 'content_sync'; text: string; thinking: string }
   | { type: 'done'; text: string; usage?: any; contextTokens?: string }
   | { type: 'error'; error: string };
 
@@ -1495,6 +1497,9 @@ export class ClaudeService {
           found.output = event.output;
           found.status = event.status;
         }
+      } else if (event.type === 'content_sync') {
+        task.liveMessage.text = event.text ?? '';
+        task.liveMessage.thinking = event.thinking ?? '';
       } else if (event.type === 'text_delta') {
         task.liveMessage.isThinking = false;
         task.liveMessage.text = (task.liveMessage.text || '') + (event.text || '');
@@ -1744,6 +1749,7 @@ export class ClaudeService {
       permissionModeArg,
       '--output-format',
       'stream-json',
+      '--include-partial-messages',
       '--verbose',
     ];
     if (session.bypassPermissions) {
@@ -1794,25 +1800,72 @@ export class ClaudeService {
         resolve(result);
       };
 
+      const stdoutDecoder = new StringDecoder('utf8');
+      const stderrDecoder = new StringDecoder('utf8');
       let lineBuffer = '';
       let fullStdout = '';
       let fullStderr = '';
       let thinkingText = '';
       let fullText = '';
       const tools: ClaudeToolCall[] = [];
+      // A CLI invocation can contain many assistant messages around tool turns.
+      // Reconcile snapshots per message/block, never against the aggregate text.
+      type ContentBlock = { type: string; value: string; committed: boolean };
+      type StreamMessage = { blocks: Map<number, ContentBlock> };
+      const messages = new Map<string, StreamMessage>();
+      const toolBlocks = new Set<string>();
+      const snapshotBlocks = new Map<string, number[]>();
+      let currentMessageId: string | undefined;
+      let anonymousMessage = 0;
+      const getMessage = (id: string): StreamMessage => {
+        let message = messages.get(id);
+        if (!message) {
+          message = { blocks: new Map() };
+          messages.set(id, message);
+        }
+        return message;
+      };
+      const syncContent = () => {
+        let text = '';
+        let thinking = '';
+        for (const message of messages.values()) {
+          for (const [, block] of [...message.blocks].sort(([a], [b]) => a - b)) {
+            if (block.type === 'text') text += block.value;
+            if (block.type === 'thinking') thinking += block.value;
+          }
+        }
+        if (text === fullText && thinking === thinkingText) return;
+        const previousText = fullText;
+        const previousThinking = thinkingText;
+        fullText = text;
+        thinkingText = thinking;
+        if (!text.startsWith(previousText) || !thinking.startsWith(previousThinking)) {
+          onEvent({ type: 'content_sync', text, thinking });
+        } else {
+          if (thinking.length > previousThinking.length) onEvent({ type: 'thinking', text: thinking.slice(previousThinking.length) });
+          if (text.length > previousText.length) onEvent({ type: 'text_delta', text: text.slice(previousText.length) });
+        }
+      };
+      const retireUncommitted = (exceptId: string) => {
+        for (const [id, message] of messages) {
+          if (id === exceptId) continue;
+          for (const [index, block] of message.blocks) {
+            if (!block.committed) message.blocks.delete(index);
+          }
+          if (!message.blocks.size) messages.delete(id);
+        }
+        syncContent();
+      };
 
-      handle.stdout.on('data', (d: any) => {
-        const chunk = d.toString('utf8');
-        fullStdout += chunk;
-        lineBuffer += chunk;
-        const lines = lineBuffer.split('\n');
-        lineBuffer = lines.pop() || '';
-
-        for (const line of lines) {
+      const processLine = (line: string) => {
           const trimmed = line.trim();
-          if (!trimmed.startsWith('{')) continue;
+          if (!trimmed.startsWith('{')) return;
+          let obj: any;
           try {
-            const obj = JSON.parse(trimmed);
+            obj = JSON.parse(trimmed);
+          } catch (_) {
+            return;
+          }
 
             // 1. Session Init
             if (obj.type === 'system' && obj.subtype === 'init' && obj.session_id) {
@@ -1822,6 +1875,38 @@ export class ClaudeService {
             // 2. Thinking start
             if (obj.type === 'system' && obj.subtype === 'thinking_tokens') {
               onEvent({ type: 'thinking_start' });
+            }
+
+            // Child agents have independent assemblers in the official client. This
+            // flat chat has no child rows yet, so do not mix their content into root.
+            if (obj.parent_tool_use_id != null) return;
+            if (obj.type === 'stream_event' && obj.event) {
+              const event = obj.event;
+              if (event.type === 'message_start') {
+                currentMessageId = event.message?.id || `anonymous-${++anonymousMessage}`;
+                retireUncommitted(currentMessageId!);
+                getMessage(currentMessageId!);
+              } else if (currentMessageId && event.type === 'content_block_start') {
+                const block = event.content_block;
+                if (block) {
+                  getMessage(currentMessageId).blocks.set(event.index, {
+                    type: block.type, value: block.text || block.thinking || '', committed: false,
+                  });
+                  if (block.type === 'thinking') onEvent({ type: 'thinking_start' });
+                  syncContent();
+                }
+              } else if (currentMessageId && event.type === 'content_block_delta') {
+                const block = getMessage(currentMessageId).blocks.get(event.index);
+                if (block && !block.committed) {
+                  if (event.delta?.type === 'text_delta') block.value += event.delta.text || '';
+                  if (event.delta?.type === 'thinking_delta') block.value += event.delta.thinking || '';
+                  syncContent();
+                }
+              } else if (event.type === 'content_block_stop') {
+                // Tool input stays private until the complete assistant payload.
+              } else if (event.type === 'message_stop') {
+                currentMessageId = undefined;
+              }
             }
 
             // 3. Assistant content
@@ -1840,11 +1925,31 @@ export class ClaudeService {
               }
 
               if (Array.isArray(obj.message.content)) {
-                for (const c of obj.message.content) {
-                if (c.type === 'thinking' && c.thinking) {
-                  thinkingText += c.thinking;
-                  onEvent({ type: 'thinking', text: c.thinking });
+                const messageId = obj.message.id || `snapshot-${++anonymousMessage}`;
+                // A CLI assistant record may contain only ONE completed block,
+                // not the entire message's content array. Preserve its stream index.
+                if (!messages.has(messageId)) retireUncommitted(messageId);
+                const message = getMessage(messageId);
+                const snapshotKey = obj.uuid ? `${messageId}:${obj.uuid}` : undefined;
+                const mappedIndices = snapshotKey ? snapshotBlocks.get(snapshotKey) : undefined;
+                const indices: number[] = [];
+                for (const [contentIndex, c] of obj.message.content.entries()) {
+                  let index = mappedIndices?.[contentIndex] ?? contentIndex;
+                  if (!mappedIndices && obj.message.content.length === 1) {
+                    const candidates = [...message.blocks].filter(([, b]) => b.type === c.type);
+                    const nextIndex = message.blocks.size ? Math.max(...message.blocks.keys()) + 1 : 0;
+                    index = candidates.find(([, b]) => !b.committed)?.[0]
+                      ?? (snapshotKey ? nextIndex : candidates.find(([, b]) => b.value === (c.text || c.thinking || ''))?.[0]
+                        ?? candidates[0]?.[0] ?? nextIndex);
+                  }
+                  indices.push(index);
+                  message.blocks.set(index, { type: c.type, value: c.text || c.thinking || '', committed: true });
+                if (c.type === 'thinking' || c.type === 'text') {
+                  syncContent();
                 } else if (c.type === 'tool_use') {
+                  const blockKey = `${messageId}:${index}`;
+                  if (toolBlocks.has(blockKey)) continue;
+                  toolBlocks.add(blockKey);
                   const nameLower = (c.name || '').toLowerCase();
                   let toolType: 'read' | 'edit' | 'bash' = 'bash';
                   let title = `${c.name}`;
@@ -1888,11 +1993,9 @@ export class ClaudeService {
                   };
                   tools.push(toolCall);
                   onEvent({ type: 'tool_use', tool: toolCall });
-                } else if (c.type === 'text' && c.text) {
-                  fullText += c.text;
-                  onEvent({ type: 'text_delta', text: c.text });
                 }
               }
+                if (snapshotKey) snapshotBlocks.set(snapshotKey, indices);
             }
           }
 
@@ -1957,12 +2060,19 @@ export class ClaudeService {
                 contextTokens: ctxStr || session.contextTokens,
               });
             }
-          } catch (_) {}
-        }
+      };
+
+      handle.stdout.on('data', (d: any) => {
+        const chunk = typeof d === 'string' ? d : stdoutDecoder.write(d);
+        fullStdout += chunk;
+        lineBuffer += chunk;
+        const lines = lineBuffer.split('\n');
+        lineBuffer = lines.pop() || '';
+        for (const line of lines) processLine(line);
       });
 
       handle.stderr.on('data', (d: any) => {
-        fullStderr += d.toString('utf8');
+        fullStderr += typeof d === 'string' ? d : stderrDecoder.write(d);
       });
 
       handle.on('error', (err: any) => {
@@ -1980,6 +2090,11 @@ export class ClaudeService {
         const wasCancelled = this.cancelledSessions.delete(session.id);
         if (isSettled) return;
 
+        const trailingStdout = stdoutDecoder.end();
+        fullStdout += trailingStdout;
+        lineBuffer += trailingStdout;
+        fullStderr += stderrDecoder.end();
+
         if (wasCancelled || signal === 'SIGINT' || signal === 'SIGTERM') {
           const cancelledText = 'Đã dừng yêu cầu.';
           tools.forEach((tool) => {
@@ -1993,17 +2108,11 @@ export class ClaudeService {
           });
         }
 
-        // Handle any remaining lineBuffer
-        if (lineBuffer.trim().startsWith('{')) {
-          try {
-            const obj = JSON.parse(lineBuffer.trim());
-            if (obj.type === 'result' && obj.result) {
-              fullText = obj.result;
-            }
-          } catch (_) {}
-        }
+        // Process a final JSON record even when the CLI omits its newline.
+        processLine(lineBuffer);
+        lineBuffer = '';
 
-        if (fullText) {
+        if (fullText && (code === 0 || code === null)) {
           return settle({
             text: fullText,
             thinking: thinkingText || undefined,

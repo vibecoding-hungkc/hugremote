@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
+import { StringDecoder } from 'string_decoder';
 import { normalizeWorkspacePath, parseSshConfig } from '../config.js';
 import { sshPool } from './sshPool.js';
 const STORAGE_FILE = path.join(os.homedir(), '.ssh', 'hugcode_claude_sessions.json');
@@ -1311,6 +1312,10 @@ export class ClaudeService {
                     found.status = event.status;
                 }
             }
+            else if (event.type === 'content_sync') {
+                task.liveMessage.text = event.text ?? '';
+                task.liveMessage.thinking = event.thinking ?? '';
+            }
             else if (event.type === 'text_delta') {
                 task.liveMessage.isThinking = false;
                 task.liveMessage.text = (task.liveMessage.text || '') + (event.text || '');
@@ -1549,6 +1554,7 @@ export class ClaudeService {
             permissionModeArg,
             '--output-format',
             'stream-json',
+            '--include-partial-messages',
             '--verbose',
         ];
         if (session.bypassPermissions) {
@@ -1599,169 +1605,288 @@ export class ClaudeService {
                 isSettled = true;
                 resolve(result);
             };
+            const stdoutDecoder = new StringDecoder('utf8');
+            const stderrDecoder = new StringDecoder('utf8');
             let lineBuffer = '';
             let fullStdout = '';
             let fullStderr = '';
             let thinkingText = '';
             let fullText = '';
             const tools = [];
+            const messages = new Map();
+            const toolBlocks = new Set();
+            const snapshotBlocks = new Map();
+            let currentMessageId;
+            let anonymousMessage = 0;
+            const getMessage = (id) => {
+                let message = messages.get(id);
+                if (!message) {
+                    message = { blocks: new Map() };
+                    messages.set(id, message);
+                }
+                return message;
+            };
+            const syncContent = () => {
+                let text = '';
+                let thinking = '';
+                for (const message of messages.values()) {
+                    for (const [, block] of [...message.blocks].sort(([a], [b]) => a - b)) {
+                        if (block.type === 'text')
+                            text += block.value;
+                        if (block.type === 'thinking')
+                            thinking += block.value;
+                    }
+                }
+                if (text === fullText && thinking === thinkingText)
+                    return;
+                const previousText = fullText;
+                const previousThinking = thinkingText;
+                fullText = text;
+                thinkingText = thinking;
+                if (!text.startsWith(previousText) || !thinking.startsWith(previousThinking)) {
+                    onEvent({ type: 'content_sync', text, thinking });
+                }
+                else {
+                    if (thinking.length > previousThinking.length)
+                        onEvent({ type: 'thinking', text: thinking.slice(previousThinking.length) });
+                    if (text.length > previousText.length)
+                        onEvent({ type: 'text_delta', text: text.slice(previousText.length) });
+                }
+            };
+            const retireUncommitted = (exceptId) => {
+                for (const [id, message] of messages) {
+                    if (id === exceptId)
+                        continue;
+                    for (const [index, block] of message.blocks) {
+                        if (!block.committed)
+                            message.blocks.delete(index);
+                    }
+                    if (!message.blocks.size)
+                        messages.delete(id);
+                }
+                syncContent();
+            };
+            const processLine = (line) => {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith('{'))
+                    return;
+                let obj;
+                try {
+                    obj = JSON.parse(trimmed);
+                }
+                catch (_) {
+                    return;
+                }
+                // 1. Session Init
+                if (obj.type === 'system' && obj.subtype === 'init' && obj.session_id) {
+                    session.cliSessionId = obj.session_id;
+                }
+                // 2. Thinking start
+                if (obj.type === 'system' && obj.subtype === 'thinking_tokens') {
+                    onEvent({ type: 'thinking_start' });
+                }
+                // Child agents have independent assemblers in the official client. This
+                // flat chat has no child rows yet, so do not mix their content into root.
+                if (obj.parent_tool_use_id != null)
+                    return;
+                if (obj.type === 'stream_event' && obj.event) {
+                    const event = obj.event;
+                    if (event.type === 'message_start') {
+                        currentMessageId = event.message?.id || `anonymous-${++anonymousMessage}`;
+                        retireUncommitted(currentMessageId);
+                        getMessage(currentMessageId);
+                    }
+                    else if (currentMessageId && event.type === 'content_block_start') {
+                        const block = event.content_block;
+                        if (block) {
+                            getMessage(currentMessageId).blocks.set(event.index, {
+                                type: block.type, value: block.text || block.thinking || '', committed: false,
+                            });
+                            if (block.type === 'thinking')
+                                onEvent({ type: 'thinking_start' });
+                            syncContent();
+                        }
+                    }
+                    else if (currentMessageId && event.type === 'content_block_delta') {
+                        const block = getMessage(currentMessageId).blocks.get(event.index);
+                        if (block && !block.committed) {
+                            if (event.delta?.type === 'text_delta')
+                                block.value += event.delta.text || '';
+                            if (event.delta?.type === 'thinking_delta')
+                                block.value += event.delta.thinking || '';
+                            syncContent();
+                        }
+                    }
+                    else if (event.type === 'content_block_stop') {
+                        // Tool input stays private until the complete assistant payload.
+                    }
+                    else if (event.type === 'message_stop') {
+                        currentMessageId = undefined;
+                    }
+                }
+                // 3. Assistant content
+                if (obj.type === 'assistant' && obj.message) {
+                    if (obj.message.usage) {
+                        const u = obj.message.usage;
+                        const inTok = u.input_tokens || 0;
+                        const outTok = u.output_tokens || 0;
+                        const cRead = u.cache_read_input_tokens || 0;
+                        const cCreate = u.cache_creation_input_tokens || 0;
+                        const sum = inTok + outTok + cRead + cCreate;
+                        if (sum > 0) {
+                            const ctxStr = sum >= 1000 ? `${(sum / 1000).toFixed(1)}k` : `${sum}`;
+                            session.contextTokens = ctxStr;
+                        }
+                    }
+                    if (Array.isArray(obj.message.content)) {
+                        const messageId = obj.message.id || `snapshot-${++anonymousMessage}`;
+                        // A CLI assistant record may contain only ONE completed block,
+                        // not the entire message's content array. Preserve its stream index.
+                        if (!messages.has(messageId))
+                            retireUncommitted(messageId);
+                        const message = getMessage(messageId);
+                        const snapshotKey = obj.uuid ? `${messageId}:${obj.uuid}` : undefined;
+                        const mappedIndices = snapshotKey ? snapshotBlocks.get(snapshotKey) : undefined;
+                        const indices = [];
+                        for (const [contentIndex, c] of obj.message.content.entries()) {
+                            let index = mappedIndices?.[contentIndex] ?? contentIndex;
+                            if (!mappedIndices && obj.message.content.length === 1) {
+                                const candidates = [...message.blocks].filter(([, b]) => b.type === c.type);
+                                const nextIndex = message.blocks.size ? Math.max(...message.blocks.keys()) + 1 : 0;
+                                index = candidates.find(([, b]) => !b.committed)?.[0]
+                                    ?? (snapshotKey ? nextIndex : candidates.find(([, b]) => b.value === (c.text || c.thinking || ''))?.[0]
+                                        ?? candidates[0]?.[0] ?? nextIndex);
+                            }
+                            indices.push(index);
+                            message.blocks.set(index, { type: c.type, value: c.text || c.thinking || '', committed: true });
+                            if (c.type === 'thinking' || c.type === 'text') {
+                                syncContent();
+                            }
+                            else if (c.type === 'tool_use') {
+                                const blockKey = `${messageId}:${index}`;
+                                if (toolBlocks.has(blockKey))
+                                    continue;
+                                toolBlocks.add(blockKey);
+                                const nameLower = (c.name || '').toLowerCase();
+                                let toolType = 'bash';
+                                let title = `${c.name}`;
+                                let content = '';
+                                let diff = undefined;
+                                if (nameLower === 'bash') {
+                                    toolType = 'bash';
+                                    const cmd = c.input?.command || '';
+                                    title = `Chạy lệnh: ${cmd.length > 50 ? cmd.slice(0, 47) + '...' : cmd}`;
+                                    content = cmd;
+                                }
+                                else if (nameLower === 'view' || nameLower === 'read') {
+                                    toolType = 'read';
+                                    const p = c.input?.path || c.input?.file_path || '';
+                                    title = `Đọc file: ${path.basename(p) || p}`;
+                                    content = p;
+                                }
+                                else if (nameLower.includes('edit') || nameLower.includes('replace')) {
+                                    toolType = 'edit';
+                                    const p = c.input?.path || c.input?.file_path || '';
+                                    title = `Chỉnh sửa: ${path.basename(p) || p}`;
+                                    if (c.input?.old_str || c.input?.new_str) {
+                                        diff = [];
+                                        if (c.input.old_str) {
+                                            c.input.old_str.split('\n').forEach((l) => diff.push(`- ${l}`));
+                                        }
+                                        if (c.input.new_str) {
+                                            c.input.new_str.split('\n').forEach((l) => diff.push(`+ ${l}`));
+                                        }
+                                    }
+                                }
+                                else {
+                                    title = `${c.name}: ${JSON.stringify(c.input || {}).slice(0, 40)}`;
+                                }
+                                const toolCall = {
+                                    id: c.id,
+                                    type: toolType,
+                                    title,
+                                    status: 'running',
+                                    content: content || undefined,
+                                    diff,
+                                };
+                                tools.push(toolCall);
+                                onEvent({ type: 'tool_use', tool: toolCall });
+                            }
+                        }
+                        if (snapshotKey)
+                            snapshotBlocks.set(snapshotKey, indices);
+                    }
+                }
+                // 4. User tool results
+                if (obj.type === 'user' && obj.message && Array.isArray(obj.message.content)) {
+                    for (const c of obj.message.content) {
+                        if (c.type === 'tool_result') {
+                            const found = tools.find((t) => t.id === c.tool_use_id);
+                            const outStr = typeof c.content === 'string' ? c.content : JSON.stringify(c.content || '');
+                            if (found) {
+                                found.output = outStr;
+                                found.status = c.is_error ? 'error' : 'done';
+                            }
+                            onEvent({
+                                type: 'tool_result',
+                                tool_use_id: c.tool_use_id,
+                                output: outStr,
+                                status: c.is_error ? 'error' : 'done',
+                            });
+                        }
+                    }
+                }
+                // 5. Result
+                if (obj.type === 'result') {
+                    if (obj.result && typeof obj.result === 'string') {
+                        fullText = obj.result;
+                    }
+                    let ctxStr = undefined;
+                    let totalTokens = 0;
+                    if (obj.usage) {
+                        const inTok = obj.usage.input_tokens || 0;
+                        const outTok = obj.usage.output_tokens || 0;
+                        const cacheReadTok = obj.usage.cache_read_input_tokens || 0;
+                        const cacheCreateTok = obj.usage.cache_creation_input_tokens || 0;
+                        totalTokens = inTok + outTok + cacheReadTok + cacheCreateTok;
+                    }
+                    if (totalTokens === 0 && obj.modelUsage && typeof obj.modelUsage === 'object') {
+                        for (const mu of Object.values(obj.modelUsage)) {
+                            if (mu && typeof mu === 'object') {
+                                const inTok = mu.inputTokens || 0;
+                                const outTok = mu.outputTokens || 0;
+                                const cacheRead = mu.cacheReadInputTokens || 0;
+                                const cacheCreate = mu.cacheCreationInputTokens || 0;
+                                const sum = inTok + outTok + cacheRead + cacheCreate;
+                                if (sum > totalTokens)
+                                    totalTokens = sum;
+                            }
+                        }
+                    }
+                    if (totalTokens > 0) {
+                        ctxStr = totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : `${totalTokens}`;
+                        session.contextTokens = ctxStr;
+                        this.saveSessions();
+                    }
+                    onEvent({
+                        type: 'done',
+                        text: fullText,
+                        usage: obj.usage,
+                        contextTokens: ctxStr || session.contextTokens,
+                    });
+                }
+            };
             handle.stdout.on('data', (d) => {
-                const chunk = d.toString('utf8');
+                const chunk = typeof d === 'string' ? d : stdoutDecoder.write(d);
                 fullStdout += chunk;
                 lineBuffer += chunk;
                 const lines = lineBuffer.split('\n');
                 lineBuffer = lines.pop() || '';
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed.startsWith('{'))
-                        continue;
-                    try {
-                        const obj = JSON.parse(trimmed);
-                        // 1. Session Init
-                        if (obj.type === 'system' && obj.subtype === 'init' && obj.session_id) {
-                            session.cliSessionId = obj.session_id;
-                        }
-                        // 2. Thinking start
-                        if (obj.type === 'system' && obj.subtype === 'thinking_tokens') {
-                            onEvent({ type: 'thinking_start' });
-                        }
-                        // 3. Assistant content
-                        if (obj.type === 'assistant' && obj.message) {
-                            if (obj.message.usage) {
-                                const u = obj.message.usage;
-                                const inTok = u.input_tokens || 0;
-                                const outTok = u.output_tokens || 0;
-                                const cRead = u.cache_read_input_tokens || 0;
-                                const cCreate = u.cache_creation_input_tokens || 0;
-                                const sum = inTok + outTok + cRead + cCreate;
-                                if (sum > 0) {
-                                    const ctxStr = sum >= 1000 ? `${(sum / 1000).toFixed(1)}k` : `${sum}`;
-                                    session.contextTokens = ctxStr;
-                                }
-                            }
-                            if (Array.isArray(obj.message.content)) {
-                                for (const c of obj.message.content) {
-                                    if (c.type === 'thinking' && c.thinking) {
-                                        thinkingText += c.thinking;
-                                        onEvent({ type: 'thinking', text: c.thinking });
-                                    }
-                                    else if (c.type === 'tool_use') {
-                                        const nameLower = (c.name || '').toLowerCase();
-                                        let toolType = 'bash';
-                                        let title = `${c.name}`;
-                                        let content = '';
-                                        let diff = undefined;
-                                        if (nameLower === 'bash') {
-                                            toolType = 'bash';
-                                            const cmd = c.input?.command || '';
-                                            title = `Chạy lệnh: ${cmd.length > 50 ? cmd.slice(0, 47) + '...' : cmd}`;
-                                            content = cmd;
-                                        }
-                                        else if (nameLower === 'view' || nameLower === 'read') {
-                                            toolType = 'read';
-                                            const p = c.input?.path || c.input?.file_path || '';
-                                            title = `Đọc file: ${path.basename(p) || p}`;
-                                            content = p;
-                                        }
-                                        else if (nameLower.includes('edit') || nameLower.includes('replace')) {
-                                            toolType = 'edit';
-                                            const p = c.input?.path || c.input?.file_path || '';
-                                            title = `Chỉnh sửa: ${path.basename(p) || p}`;
-                                            if (c.input?.old_str || c.input?.new_str) {
-                                                diff = [];
-                                                if (c.input.old_str) {
-                                                    c.input.old_str.split('\n').forEach((l) => diff.push(`- ${l}`));
-                                                }
-                                                if (c.input.new_str) {
-                                                    c.input.new_str.split('\n').forEach((l) => diff.push(`+ ${l}`));
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            title = `${c.name}: ${JSON.stringify(c.input || {}).slice(0, 40)}`;
-                                        }
-                                        const toolCall = {
-                                            id: c.id,
-                                            type: toolType,
-                                            title,
-                                            status: 'running',
-                                            content: content || undefined,
-                                            diff,
-                                        };
-                                        tools.push(toolCall);
-                                        onEvent({ type: 'tool_use', tool: toolCall });
-                                    }
-                                    else if (c.type === 'text' && c.text) {
-                                        fullText += c.text;
-                                        onEvent({ type: 'text_delta', text: c.text });
-                                    }
-                                }
-                            }
-                        }
-                        // 4. User tool results
-                        if (obj.type === 'user' && obj.message && Array.isArray(obj.message.content)) {
-                            for (const c of obj.message.content) {
-                                if (c.type === 'tool_result') {
-                                    const found = tools.find((t) => t.id === c.tool_use_id);
-                                    const outStr = typeof c.content === 'string' ? c.content : JSON.stringify(c.content || '');
-                                    if (found) {
-                                        found.output = outStr;
-                                        found.status = c.is_error ? 'error' : 'done';
-                                    }
-                                    onEvent({
-                                        type: 'tool_result',
-                                        tool_use_id: c.tool_use_id,
-                                        output: outStr,
-                                        status: c.is_error ? 'error' : 'done',
-                                    });
-                                }
-                            }
-                        }
-                        // 5. Result
-                        if (obj.type === 'result') {
-                            if (obj.result && typeof obj.result === 'string') {
-                                fullText = obj.result;
-                            }
-                            let ctxStr = undefined;
-                            let totalTokens = 0;
-                            if (obj.usage) {
-                                const inTok = obj.usage.input_tokens || 0;
-                                const outTok = obj.usage.output_tokens || 0;
-                                const cacheReadTok = obj.usage.cache_read_input_tokens || 0;
-                                const cacheCreateTok = obj.usage.cache_creation_input_tokens || 0;
-                                totalTokens = inTok + outTok + cacheReadTok + cacheCreateTok;
-                            }
-                            if (totalTokens === 0 && obj.modelUsage && typeof obj.modelUsage === 'object') {
-                                for (const mu of Object.values(obj.modelUsage)) {
-                                    if (mu && typeof mu === 'object') {
-                                        const inTok = mu.inputTokens || 0;
-                                        const outTok = mu.outputTokens || 0;
-                                        const cacheRead = mu.cacheReadInputTokens || 0;
-                                        const cacheCreate = mu.cacheCreationInputTokens || 0;
-                                        const sum = inTok + outTok + cacheRead + cacheCreate;
-                                        if (sum > totalTokens)
-                                            totalTokens = sum;
-                                    }
-                                }
-                            }
-                            if (totalTokens > 0) {
-                                ctxStr = totalTokens >= 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : `${totalTokens}`;
-                                session.contextTokens = ctxStr;
-                                this.saveSessions();
-                            }
-                            onEvent({
-                                type: 'done',
-                                text: fullText,
-                                usage: obj.usage,
-                                contextTokens: ctxStr || session.contextTokens,
-                            });
-                        }
-                    }
-                    catch (_) { }
-                }
+                for (const line of lines)
+                    processLine(line);
             });
             handle.stderr.on('data', (d) => {
-                fullStderr += d.toString('utf8');
+                fullStderr += typeof d === 'string' ? d : stderrDecoder.write(d);
             });
             handle.on('error', (err) => {
                 this.activeProcesses.delete(session.id);
@@ -1778,6 +1903,10 @@ export class ClaudeService {
                 const wasCancelled = this.cancelledSessions.delete(session.id);
                 if (isSettled)
                     return;
+                const trailingStdout = stdoutDecoder.end();
+                fullStdout += trailingStdout;
+                lineBuffer += trailingStdout;
+                fullStderr += stderrDecoder.end();
                 if (wasCancelled || signal === 'SIGINT' || signal === 'SIGTERM') {
                     const cancelledText = 'Đã dừng yêu cầu.';
                     tools.forEach((tool) => {
@@ -1791,17 +1920,10 @@ export class ClaudeService {
                         tools: tools.length ? tools : undefined,
                     });
                 }
-                // Handle any remaining lineBuffer
-                if (lineBuffer.trim().startsWith('{')) {
-                    try {
-                        const obj = JSON.parse(lineBuffer.trim());
-                        if (obj.type === 'result' && obj.result) {
-                            fullText = obj.result;
-                        }
-                    }
-                    catch (_) { }
-                }
-                if (fullText) {
+                // Process a final JSON record even when the CLI omits its newline.
+                processLine(lineBuffer);
+                lineBuffer = '';
+                if (fullText && (code === 0 || code === null)) {
                     return settle({
                         text: fullText,
                         thinking: thinkingText || undefined,

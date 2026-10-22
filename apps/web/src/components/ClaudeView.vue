@@ -45,7 +45,7 @@
           <!-- Assistant message (Minimalist with ● dot) -->
           <div
             v-else
-            v-show="!claudeStore.compactTaskMode || !msg.isWorking"
+            v-show="!claudeStore.compactTaskMode || !msg.isWorking || !!msg.text"
             class="claude-ext-asst-msg"
           >
             <span class="claude-asst-dot">●</span>

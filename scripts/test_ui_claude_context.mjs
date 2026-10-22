@@ -56,7 +56,17 @@ try {
   });
   await test('Add context is visible and inserts paths without losing multiline draft or changing CWD', async () => {
     const { state, html, claude } = await view();
-    assert.match(html, />\s*Add context\s*</, 'composer must expose a visible Add context control');
+    const controls = html.match(/<div class="claude-ext-controls-bar"[\s\S]*?(?=<!-- Right Controls -->)/)?.[0];
+    assert.ok(controls, 'composer controls must render');
+    const attachment = controls.match(/<button[^>]*claude-add-context-btn[\s\S]*?<\/button>/)?.[0];
+    assert.ok(attachment, 'attachment button must remain');
+    assert.match(attachment, /aria-label="Add context"/);
+    assert.match(attachment, /title="Add context"/);
+    assert.match(attachment, /ri-attachment-2/);
+    assert.doesNotMatch(attachment, /<span|>\s*Add context\s*</, 'attachment must be icon-only');
+    assert.doesNotMatch(controls, /ri-history-line|ri-dashboard-3-line/, 'duplicate history and report controls must be absent');
+    assert.match(controls, /claude-context-pill/, 'context usage report entry remains');
+    assert.match(controls, /ri-focus-3-line/, 'compact task toggle remains');
     state.inputText.value = 'Review this\nKeep all lines';
     const before = requests.length;
     state.openContextPicker();

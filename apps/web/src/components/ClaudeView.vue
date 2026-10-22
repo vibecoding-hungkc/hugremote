@@ -252,21 +252,11 @@
               type="button"
               class="claude-ctrl-btn claude-add-context-btn"
               aria-label="Add context"
+              title="Add context"
               @click.stop="openContextPicker"
             >
               <i class="ri-attachment-2"></i>
-              <span>Add context</span>
             </button>
-            <!-- Project Sessions Button: View CLI Project Sessions -->
-            <button
-              type="button"
-              class="claude-ctrl-btn"
-              :title="t('claudeHub.tabCliSessions') || 'Danh sách phiên Project (/resume)'"
-              @click.stop="$emit('open-session-hub')"
-            >
-              <i class="ri-history-line" style="color: #60a5fa;"></i>
-            </button>
-
             <!-- Target button: Compact task mode toggle -->
             <button
               type="button"
@@ -276,16 +266,6 @@
               @click.stop="claudeStore.toggleCompactTaskMode()"
             >
               <i class="ri-focus-3-line"></i>
-            </button>
-
-            <!-- Dashboard button: Limits & Usage -->
-            <button
-              type="button"
-              class="claude-ctrl-btn"
-              :title="t('header.limits')"
-              @click.stop="claudeStore.isLimitsPopupOpen = true"
-            >
-              <i class="ri-dashboard-3-line" style="color: #f59e0b;"></i>
             </button>
 
             <!-- Context Window: 63k/1000k -->

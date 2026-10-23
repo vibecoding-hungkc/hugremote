@@ -1,5 +1,40 @@
 # 📋 Changelog — HugRemote
 
+## [v1.5.2] - 2026-10-23
+
+Bản sửa giúp Claude Chat tiếp tục hiển thị tiến độ và giữ lịch sử nhất quán khi rời màn hình rồi quay lại.
+
+### Lịch sử và ngữ cảnh phiên
+- Giữ đúng reactive message khi tải lại danh sách phiên; stream không còn ghi vào object đã tách khỏi màn hình.
+- Chặn snapshot tải chậm ghi đè tiến độ mới; snapshot canonical vẫn có quyền sửa nội dung, kể cả rút ngắn phần phản hồi chưa commit.
+- Background run cập nhật đúng phiên được lưu, giữ CLI session ID và token metadata để tiếp tục ngữ cảnh qua các lượt và reload.
+
+### Reconnect trên mobile
+- Khi trở lại tab Claude hoặc browser foreground, đồng bộ snapshot và nối lại qua GET stream, không gửi lại prompt POST.
+- Mỗi phiên có transport ownership và AbortController; response hoặc cleanup cũ không làm thay đổi trạng thái của phiên mới.
+- Thêm timeout 30 giây cho bước nhận headers của GET và cho stream không nhận byte; retry có backoff và giới hạn 15 lần.
+- Khi hết retry nhưng server vẫn chạy, giữ Stop và chặn gửi trùng prompt; lần foreground tiếp theo có thể khởi động lại recovery.
+- Xử lý đúng terminal sync done/error/cancelled và nội dung canonical rỗng.
+
+### SSE và trạng thái giao diện
+- Cleanup subscriber theo vòng đời response close/finish, không theo request đã đọc xong; rời browser không hủy background task.
+- Heartbeat SSE mỗi 15 giây, cleanup timer khi đóng hoặc kết thúc.
+- Loading hiển thị cả chế độ thường, không chỉ compact mode; không hiển thị tool đã hoàn thành như task đang chạy.
+
+### Kiểm chứng
+- `npm run test:claude-resume`: 27 kiểm tra gồm history persistence, 8 real-HTTP SSE, 13 store recovery và 5 activity UI.
+- `npm run test:claude-stream`, `npm run test:claude-models`, `npm run test:ui`, `npm run test:git`: pass.
+- `npm run build`: pass, bao gồm web typecheck và TypeScript backend.
+- Browser kiểm thử cô lập qua HTTP: rời/vào lại nhận tiếp text, không gửi trùng prompt, finish tắt Stop/loading, lịch sử cuối khớp sau reload. Đã smoke-test bundle production sau triển khai.
+
+### Phạm vi và giới hạn
+- Chưa sửa phần số liệu quota/usage hoặc đồng bộ đầy đủ slash commands.
+- Timeout headers mới áp dụng cho GET recovery; POST ban đầu chưa bổ sung header timeout.
+- Backend restart chưa có durable recovery cho process đang chạy; hãy hoàn tất/dừng task trước khi cập nhật.
+- Lỗi updater có sẵn: nhánh đã ở bản mới nhất vẫn có thể restart service ngay cả khi truyền `--dry-run`. Không dùng updater trong lúc generation đang chạy.
+
+---
+
 ## [v1.5.1] - 2026-10-23
 
 Bản sửa tập trung vào Claude Chat phản hồi realtime, danh sách model theo CLI native và Git trên máy chủ SSH.

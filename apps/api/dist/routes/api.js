@@ -539,6 +539,8 @@ export const apiRoutes = async (fastify) => {
         const session = claudeService.getSession(id);
         if (!session)
             return reply.status(404).send({ error: 'Session not found' });
+        // The response, not the consumed IncomingMessage, owns this SSE connection.
+        reply.hijack();
         reply.raw.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
         reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
         reply.raw.setHeader('Connection', 'keep-alive');
@@ -556,6 +558,8 @@ export const apiRoutes = async (fastify) => {
         claudeService.addMessage(id, userMsg);
         const task = claudeService.startBackgroundPrompt(session, prompt.trim());
         const sendEvent = (data) => {
+            if (reply.raw.destroyed || reply.raw.writableEnded)
+                return;
             try {
                 reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
             }
@@ -572,33 +576,52 @@ export const apiRoutes = async (fastify) => {
             reply.raw.write('data: [DONE]\n\n');
             return reply.raw.end();
         }
+        let heartbeat;
+        const cleanup = () => {
+            task.listeners.delete(listener);
+            if (heartbeat)
+                clearInterval(heartbeat);
+            heartbeat = undefined;
+            reply.raw.off('close', cleanup);
+            reply.raw.off('finish', cleanup);
+        };
         const listener = (event) => {
             sendEvent(event);
             if (event.type === 'finish' || event.type === 'error' || (event.type === 'done' && task.status !== 'running')) {
-                try {
-                    reply.raw.write('data: [DONE]\n\n');
-                    reply.raw.end();
-                }
-                catch (_) { }
+                cleanup();
+                if (reply.raw.destroyed || reply.raw.writableEnded)
+                    return;
+                reply.raw.end('data: [DONE]\n\n');
             }
         };
         task.listeners.add(listener);
-        request.raw.on('close', () => {
-            task.listeners.delete(listener);
-            // NOTE: Do not kill background execution, allows mobile browser to reconnect!
-        });
+        reply.raw.once('close', cleanup);
+        reply.raw.once('finish', cleanup);
+        heartbeat = setInterval(() => {
+            if (reply.raw.destroyed || reply.raw.writableEnded)
+                return cleanup();
+            reply.raw.write(': heartbeat\n\n');
+        }, 15_000);
+        heartbeat.unref();
+        // Disconnect only detaches this subscriber; background execution keeps running.
+        if (reply.raw.destroyed || reply.raw.writableEnded)
+            cleanup();
     });
     fastify.get('/api/claude/sessions/:id/stream', async (request, reply) => {
         const { id } = request.params;
         const session = claudeService.getSession(id);
         if (!session)
             return reply.status(404).send({ error: 'Session not found' });
+        // The response, not the consumed IncomingMessage, owns this SSE connection.
+        reply.hijack();
         reply.raw.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
         reply.raw.setHeader('Cache-Control', 'no-cache, no-transform');
         reply.raw.setHeader('Connection', 'keep-alive');
         reply.raw.setHeader('X-Accel-Buffering', 'no');
         reply.raw.flushHeaders?.();
         const sendEvent = (data) => {
+            if (reply.raw.destroyed || reply.raw.writableEnded)
+                return;
             try {
                 reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
             }
@@ -623,20 +646,36 @@ export const apiRoutes = async (fastify) => {
             liveMessage: task.liveMessage,
             contextTokens: session.contextTokens,
         });
+        let heartbeat;
+        const cleanup = () => {
+            task.listeners.delete(listener);
+            if (heartbeat)
+                clearInterval(heartbeat);
+            heartbeat = undefined;
+            reply.raw.off('close', cleanup);
+            reply.raw.off('finish', cleanup);
+        };
         const listener = (event) => {
             sendEvent(event);
             if (event.type === 'finish' || event.type === 'error' || (event.type === 'done' && task.status !== 'running')) {
-                try {
-                    reply.raw.write('data: [DONE]\n\n');
-                    reply.raw.end();
-                }
-                catch (_) { }
+                cleanup();
+                if (reply.raw.destroyed || reply.raw.writableEnded)
+                    return;
+                reply.raw.end('data: [DONE]\n\n');
             }
         };
         task.listeners.add(listener);
-        request.raw.on('close', () => {
-            task.listeners.delete(listener);
-        });
+        reply.raw.once('close', cleanup);
+        reply.raw.once('finish', cleanup);
+        heartbeat = setInterval(() => {
+            if (reply.raw.destroyed || reply.raw.writableEnded)
+                return cleanup();
+            reply.raw.write(': heartbeat\n\n');
+        }, 15_000);
+        heartbeat.unref();
+        // Disconnect only detaches this subscriber; background execution keeps running.
+        if (reply.raw.destroyed || reply.raw.writableEnded)
+            cleanup();
     });
     fastify.get('/api/claude/sessions/:id/task', async (request, reply) => {
         const { id } = request.params;

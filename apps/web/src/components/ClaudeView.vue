@@ -138,9 +138,9 @@
         </template>
       </template>
 
-      <!-- Optional compact task mode: only the current live task is visible -->
+      <!-- Always expose activity while a task is running, including after background recovery. -->
       <div
-        v-if="claudeStore.compactTaskMode && claudeStore.isGenerating && currentLiveTask"
+        v-if="claudeStore.isGenerating && !claudeStore.isReconnecting && currentLiveTask"
         class="claude-current-task"
       >
         <div class="current-task-main">
@@ -158,7 +158,7 @@
       </div>
 
       <!-- Background execution / Reconnecting banner -->
-      <div v-if="claudeStore.isReconnecting" class="claude-reconnecting-banner">
+      <div v-if="claudeStore.isReconnecting" class="claude-reconnecting-banner" role="status" aria-live="polite">
         <i class="ri-loader-4-line ri-spin"></i>
         <span>Claude đang chạy nền trên máy chủ • Đang đồng bộ phản hồi...</span>
       </div>
@@ -369,6 +369,8 @@ import ModelSelectorPopup from './ModelSelectorPopup.vue';
 import ClaudeLimitsPopup from './ClaudeLimitsPopup.vue';
 import ContextAttachmentPicker from './ContextAttachmentPicker.vue';
 import { useI18n } from '../composables/useI18n.js';
+
+const props = withDefaults(defineProps<{ isActive?: boolean }>(), { isActive: true });
 
 const emit = defineEmits<{
   (e: 'open-session-hub'): void;
@@ -646,7 +648,7 @@ const currentLiveTask = computed(() => {
   if (!msg) return null;
   const tools = msg.tools || [];
   const running = [...tools].reverse().find((t) => t.status === 'running');
-  const latest = running || tools[tools.length - 1];
+  const latest = running;
 
   if (latest) {
     const cleanTitle = latest.title.replace(new RegExp(`^(${t('claudeView.stripRun')}|${t('claudeView.stripRead')}|${t('claudeView.stripEdit')}):\\s*`, 'i'), '');
@@ -707,10 +709,14 @@ function closeModelPopupOnDocumentClick(e?: MouseEvent) {
 }
 
 async function handleVisibilityOrFocus() {
-  if (document.visibilityState === 'visible') {
-    await claudeStore.fetchSessions();
+  if (props.isActive && document.visibilityState === 'visible') {
+    await claudeStore.resumeActiveStream();
   }
 }
+
+watch(() => props.isActive, (active) => {
+  if (active) void handleVisibilityOrFocus();
+});
 
 onMounted(() => {
   scrollToBottom();

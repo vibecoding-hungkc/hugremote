@@ -83,7 +83,43 @@ export const useClaudeStore = defineStore('claude', () => {
     return list.find((s) => s.id === activeSessionId.value) || list[0] || null;
   });
 
-  async function fetchSessions(serverId?: string) {
+  type StreamOwner = {
+    sessionId: string;
+    messageId: string;
+    controller: AbortController;
+    reconnecting: boolean;
+    awaitingSync?: boolean;
+  };
+  const streams = new Map<string, StreamOwner>();
+  const resumes = new Map<string, Promise<void>>();
+  let hydrationRequest = 0;
+
+  function updateStreamFlags() {
+    const session = activeSession.value;
+    const owner = session && streams.get(session.id);
+    isGenerating.value = !!owner || !!session?.isRunning;
+    isReconnecting.value = !!owner?.reconnecting;
+  }
+
+  function releaseStream(owner: StreamOwner) {
+    if (streams.get(owner.sessionId) !== owner) return;
+    streams.delete(owner.sessionId);
+    owner.controller.abort();
+    updateStreamFlags();
+  }
+
+  function ownStream(session: ClaudeSession, message: ClaudeMessage): StreamOwner {
+    const previous = streams.get(session.id);
+    if (previous) releaseStream(previous);
+    const owner = { sessionId: session.id, messageId: message.id, controller: new AbortController(), reconnecting: false };
+    streams.set(session.id, owner);
+    updateStreamFlags();
+    return owner;
+  }
+
+  async function fetchSessions(serverId?: string, attach = true) {
+    const request = ++hydrationRequest;
+    const ownersAtRequest = new Map(streams);
     const sId = serverId || serverStore.currentServer.id;
     if (!modelsByServer.value[sId]) {
       fetchModels(sId).catch(() => {});
@@ -99,6 +135,9 @@ export const useClaudeStore = defineStore('claude', () => {
       const res = await fetch(apiUrl(`/api/claude/sessions?${q.toString()}`));
       if (!res.ok) throw new Error('Failed to load claude sessions');
       const data = await res.json();
+      // Late foreground requests must not hydrate a newer context or transport.
+      if (request !== hydrationRequest || sId !== serverStore.currentServer.id
+        || projectId !== currentProjectId.value || defaultCwd !== currentProjectRoot.value) return;
       if (Array.isArray(data.sessions)) {
         const normPRoot = defaultCwd.replace(/\/+$/, '');
         const others = sessions.value.filter((s) => {
@@ -107,7 +146,32 @@ export const useClaudeStore = defineStore('claude', () => {
           if (s.cwd && normPRoot && s.cwd.replace(/\/+$/, '') === normPRoot) return false;
           return true;
         });
-        sessions.value = [...others, ...data.sessions];
+        // Keep Vue identities held by a live reader. A server snapshot may rename
+        // the optimistic assistant ID before the POST's first sync reaches us.
+        const hydrated = data.sessions.map((incoming: ClaudeSession) => {
+          const existing = sessions.value.find((s) => s.id === incoming.id);
+          if (!existing) return incoming;
+          const owner = streams.get(incoming.id);
+          if (owner && ownersAtRequest.get(incoming.id) !== owner) return existing;
+          const messages = incoming.messages.map((message) => {
+            const previous = existing.messages.find((m) => m.id === message.id)
+              || (incoming.isRunning && message.sender === 'assistant' && message.isWorking
+                ? existing.messages.find((m) => m.sender === 'assistant' && m.isWorking) : undefined);
+            if (previous && owner && incoming.isRunning
+              && (previous.id === owner.messageId || previous.isWorking)) {
+              // Session-list snapshots have no event cursor. Mixing their text
+              // with queued deltas loses or duplicates progress. Only the owned
+              // SSE sync/content_sync may replace running content (even shrink it).
+              previous.id = message.id;
+              owner.messageId = message.id;
+              return previous;
+            }
+            return previous ? Object.assign(previous, message) : message;
+          });
+          Object.assign(existing, incoming, { messages });
+          return existing;
+        });
+        sessions.value = [...others, ...hydrated];
         const currentList = currentServerSessions.value;
         if (currentList.length > 0) {
           const storedId = getStoredActiveSessionId(sId, projectId);
@@ -119,24 +183,18 @@ export const useClaudeStore = defineStore('claude', () => {
           }
         }
 
-        // Auto-attach if active session is currently running in background on server
-        const curActive = activeSession.value;
-        if (curActive && curActive.isRunning && !isGenerating.value) {
-          const lastMsg = curActive.messages[curActive.messages.length - 1];
-          if (lastMsg && lastMsg.sender === 'assistant' && lastMsg.isWorking) {
-            isGenerating.value = true;
-            reconnectToBackgroundStream(curActive.id, lastMsg);
-          }
-        } else if (curActive && !curActive.isRunning && isGenerating.value) {
-          // Task completed on server while user was away / in another app
-          isGenerating.value = false;
-          isReconnecting.value = false;
-          const lastMsg = curActive.messages[curActive.messages.length - 1];
-          if (lastMsg && lastMsg.sender === 'assistant') {
-            lastMsg.isWorking = false;
-            lastMsg.isThinking = false;
+        for (const session of hydrated) {
+          if (!session.isRunning) {
+            const owner = streams.get(session.id);
+            if (owner && ownersAtRequest.get(session.id) === owner) releaseStream(owner);
+            session.messages.forEach((message: ClaudeMessage) => {
+              message.isWorking = false;
+              message.isThinking = false;
+            });
           }
         }
+        if (attach) attachActiveStream();
+        updateStreamFlags();
       }
     } catch (err) {
       console.error('fetchClaudeSessions error:', err);
@@ -249,18 +307,17 @@ export const useClaudeStore = defineStore('claude', () => {
       case 'sync':
         if (event.liveMessage) {
           reactiveMsg.id = event.liveMessage.id || reactiveMsg.id;
-          if (event.liveMessage.text) reactiveMsg.text = event.liveMessage.text;
-          if (event.liveMessage.thinking) reactiveMsg.thinking = event.liveMessage.thinking;
+          if (typeof event.liveMessage.text === 'string') reactiveMsg.text = event.liveMessage.text;
+          if (typeof event.liveMessage.thinking === 'string') reactiveMsg.thinking = event.liveMessage.thinking;
           reactiveMsg.isThinking = Boolean(event.liveMessage.isThinking);
           reactiveMsg.isWorking = event.liveMessage.isWorking !== false;
           if (Array.isArray(event.liveMessage.tools)) {
             reactiveMsg.tools = event.liveMessage.tools;
           }
         }
-        if (event.status === 'done' || event.status === 'cancelled') {
+        if (['done', 'cancelled', 'error'].includes(event.status)) {
           reactiveMsg.isThinking = false;
           reactiveMsg.isWorking = false;
-          isGenerating.value = false;
         }
         if (event.contextTokens) session.contextTokens = event.contextTokens;
         break;
@@ -303,7 +360,7 @@ export const useClaudeStore = defineStore('claude', () => {
         reactiveMsg.tools?.forEach((tool) => {
           if (!tool.status || tool.status === 'running') tool.status = 'error';
         });
-        if (event.text) reactiveMsg.text = event.text;
+        if (typeof event.text === 'string') reactiveMsg.text = event.text;
         if (event.contextTokens) session.contextTokens = event.contextTokens;
         break;
       case 'finish':
@@ -311,8 +368,8 @@ export const useClaudeStore = defineStore('claude', () => {
         reactiveMsg.isWorking = false;
         if (event.assistantMessage) {
           reactiveMsg.id = event.assistantMessage.id || reactiveMsg.id;
-          reactiveMsg.text = event.assistantMessage.text || reactiveMsg.text;
-          reactiveMsg.thinking = event.assistantMessage.thinking || reactiveMsg.thinking;
+          reactiveMsg.text = event.assistantMessage.text ?? reactiveMsg.text;
+          reactiveMsg.thinking = event.assistantMessage.thinking ?? reactiveMsg.thinking;
           reactiveMsg.tools = event.assistantMessage.tools || reactiveMsg.tools;
         }
         reactiveMsg.tools?.forEach((tool) => {
@@ -331,78 +388,176 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
-  async function reconnectToBackgroundStream(sessionId: string, reactiveMsg: ClaudeMessage, maxRetries = 15) {
-    const session = sessions.value.find((s) => s.id === sessionId);
-    if (!session) return;
-    isReconnecting.value = true;
+  function attachActiveStream(force = false) {
+    const session = activeSession.value;
+    if (!session?.isRunning) return;
+    const current = streams.get(session.id);
+    if (current && (!force || current.awaitingSync)) return;
+    const message = [...session.messages].reverse().find((m) => m.sender === 'assistant');
+    if (!message) return;
+    const owner = ownStream(session, message);
+    owner.awaitingSync = true;
+    void reconnectToBackgroundStream(owner);
+  }
 
-    let retryCount = 0;
-    while (retryCount < maxRetries && isGenerating.value) {
-      try {
-        const streamUrl = apiUrl(`/api/claude/sessions/${encodeURIComponent(sessionId)}/stream`);
-        const res = await fetch(streamUrl);
-        if (!res.ok || !res.body) {
-          throw new Error(`Reconnection status ${res.status}`);
+  function resumeActiveStream(force = true): Promise<void> {
+    const session = activeSession.value;
+    if (!session) return Promise.resolve();
+    const pending = resumes.get(session.id);
+    if (pending) return pending;
+    const id = session.id;
+    const promise = (async () => {
+      await fetchSessions(session.serverId, false);
+      if (activeSession.value?.id === id) attachActiveStream(force);
+    })().finally(() => { if (resumes.get(id) === promise) resumes.delete(id); });
+    resumes.set(id, promise);
+    return promise;
+  }
+
+  function streamRow(owner: StreamOwner) {
+    const session = sessions.value.find((s) => s.id === owner.sessionId);
+    const message = session?.messages.find((m) => m.id === owner.messageId)
+      || (session && [...session.messages].reverse().find((m) => m.sender === 'assistant' && m.isWorking));
+    return { session, message };
+  }
+
+  async function readStream(owner: StreamOwner, response: Response): Promise<boolean> {
+    if (!response.ok || !response.body) throw new Error(`Claude stream status ${response.status}`);
+    const reader = response.body.getReader();
+    const cancel = () => { void reader.cancel().catch(() => {}); };
+    owner.controller.signal.addEventListener('abort', cancel, { once: true });
+    if (owner.controller.signal.aborted) cancel();
+    const decoder = new TextDecoder();
+    // The API emits SSE heartbeats while Claude is quiet; missing even those
+    // means the mobile transport is half-dead, not that Claude is finished.
+    let idleTimer = setTimeout(cancel, 30000);
+    let buffer = '';
+    let terminal = false;
+    try {
+      while (!owner.controller.signal.aborted && streams.get(owner.sessionId) === owner) {
+        const { value, done } = await reader.read();
+        if (done || owner.controller.signal.aborted) break;
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(cancel, 30000);
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split(/\r?\n\r?\n/);
+        buffer = blocks.pop() || '';
+        for (const block of blocks) {
+          const raw = block.split(/\r?\n/).find((line) => line.startsWith('data:'))?.slice(5).trim();
+          if (!raw) continue;
+          if (raw === '[DONE]') { terminal = true; return true; }
+          let event: any;
+          try { event = JSON.parse(raw); } catch { continue; }
+          if (streams.get(owner.sessionId) !== owner || owner.controller.signal.aborted) return false;
+          const { session, message } = streamRow(owner);
+          if (!session || !message) return false;
+          owner.awaitingSync = false;
+          applyStreamEvent(event, message, session);
+          owner.messageId = message.id;
+          if (event.type === 'finish' || event.type === 'done' || event.type === 'error'
+            || (event.type === 'sync' && ['done', 'cancelled', 'error'].includes(event.status))) { terminal = true; return true; }
         }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-        let completed = false;
-
-        // Connected to stream!
-        isReconnecting.value = false;
-
-        while (!completed) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const blocks = buffer.split('\n\n');
-          buffer = blocks.pop() || '';
-
-          for (const block of blocks) {
-            const dataLine = block.split('\n').find((l) => l.startsWith('data: '));
-            if (!dataLine) continue;
-            const raw = dataLine.slice(6).trim();
-            if (!raw) continue;
-            if (raw === '[DONE]') {
-              completed = true;
-              break;
-            }
-            try {
-              const event = JSON.parse(raw);
-              applyStreamEvent(event, reactiveMsg, session);
-              if (event.type === 'finish' || event.type === 'done' || event.type === 'error') {
-                completed = true;
-              }
-            } catch (_) {}
-          }
-        }
-
-        if (completed) {
-          isGenerating.value = false;
-          reactiveMsg.isWorking = false;
-          reactiveMsg.isThinking = false;
-          await fetchSessions(session.serverId);
-          return;
-        }
-      } catch (err) {
-        retryCount++;
-        isReconnecting.value = true;
-        const delay = Math.min(5000, 1000 + retryCount * 800);
-        await new Promise((resolve) => setTimeout(resolve, delay));
       }
+      return false;
+    } finally {
+      clearTimeout(idleTimer);
+      owner.controller.signal.removeEventListener('abort', cancel);
+      if (!terminal) await reader.cancel().catch(() => {});
+      reader.releaseLock();
     }
+  }
 
-    isReconnecting.value = false;
-    isGenerating.value = false;
-    reactiveMsg.isWorking = false;
-    reactiveMsg.isThinking = false;
-    await fetchSessions(session.serverId);
+  async function completeStream(owner: StreamOwner) {
+    if (streams.get(owner.sessionId) !== owner) return;
+    const { session, message } = streamRow(owner);
+    if (message) { message.isWorking = false; message.isThinking = false; }
+    if (session) session.isRunning = false;
+    releaseStream(owner);
+    if (session) await fetchSessions(session.serverId, false);
+  }
+
+  async function readBackgroundConnection(owner: StreamOwner): Promise<boolean> {
+    // A GET may stall before headers, before readStream's byte watchdog exists.
+    // Abort this attempt, not the lifetime owner, so it consumes one retry.
+    const connection = new AbortController();
+    const signal = owner.controller.signal;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let abort = () => {};
+    let response: Response | undefined;
+    const discard = (late: Response) => { void late.body?.cancel().catch(() => {}); };
+    try {
+      response = await new Promise<Response>((resolve, reject) => {
+        let settled = false;
+        const fail = (reason: string) => {
+          clearTimeout(timer);
+          connection.abort();
+          if (settled) return;
+          settled = true;
+          reject(new Error(reason));
+        };
+        abort = () => fail('Claude stream owner aborted');
+        signal.addEventListener('abort', abort, { once: true });
+        timer = setTimeout(() => fail('Claude stream headers timed out'), 30000);
+        if (signal.aborted) { abort(); return; }
+        // Explicit settlement bounds even noncompliant fetch implementations
+        // that ignore AbortSignal; late bodies never become orphaned readers.
+        void fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(owner.sessionId)}/stream`), {
+          signal: connection.signal,
+          headers: { Accept: 'text/event-stream' },
+        }).then((result) => {
+          if (settled) { discard(result); return; }
+          settled = true;
+          clearTimeout(timer);
+          resolve(result);
+        }, (error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(error);
+        });
+      });
+      if (signal.aborted || streams.get(owner.sessionId) !== owner) return false;
+      owner.reconnecting = false;
+      updateStreamFlags();
+      return await readStream(owner, response);
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', abort);
+      connection.abort();
+      if (response && !response.body?.locked) discard(response);
+    }
+  }
+
+  async function reconnectToBackgroundStream(owner: StreamOwner, maxRetries = 15) {
+    for (let attempt = 0; attempt < maxRetries && streams.get(owner.sessionId) === owner; attempt++) {
+      owner.reconnecting = true;
+      updateStreamFlags();
+      try {
+        if (await readBackgroundConnection(owner)) { await completeStream(owner); return; }
+      } catch (error) {
+        if (owner.controller.signal.aborted) return;
+      }
+      if (streams.get(owner.sessionId) !== owner) return;
+      owner.reconnecting = true;
+      updateStreamFlags();
+      await new Promise<void>((resolve) => {
+        const signal = owner.controller.signal;
+        const finish = () => { clearTimeout(timer); signal.removeEventListener('abort', finish); resolve(); };
+        const timer = setTimeout(finish, Math.min(5000, 1000 + attempt * 800));
+        signal.addEventListener('abort', finish, { once: true });
+        if (signal.aborted) finish();
+      });
+    }
+    if (streams.get(owner.sessionId) === owner) {
+      const session = sessions.value.find((s) => s.id === owner.sessionId);
+      releaseStream(owner);
+      // Do not manufacture a terminal answer when transport recovery is exhausted.
+      if (session) await fetchSessions(session.serverId, false);
+    }
   }
 
   async function sendMessage(prompt: string) {
-    if (!prompt.trim() || isGenerating.value) return;
+    if (!prompt.trim() || isGenerating.value || activeSession.value?.isRunning) return;
 
     let session = activeSession.value;
     if (!session) {
@@ -440,66 +595,20 @@ export const useClaudeStore = defineStore('claude', () => {
     // back and mutate it instead of the original object so UI updates fire.
     const reactiveMsg = session.messages[session.messages.length - 1] as ClaudeMessage;
 
+    session.isRunning = true;
+    const owner = ownStream(session, reactiveMsg);
     try {
-      const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(session.id)}/messages/stream`), {
+      const response = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(session.id)}/messages/stream`), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-        },
+        signal: owner.controller.signal,
+        headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify({ prompt: prompt.trim() }),
       });
-
-      if (!res.ok || !res.body) {
-        throw new Error(`Claude stream request failed: ${res.status}`);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let completed = false;
-
-      while (!completed) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const blocks = buffer.split('\n\n');
-        buffer = blocks.pop() || '';
-
-        for (const block of blocks) {
-          const dataLine = block.split('\n').find((line) => line.startsWith('data: '));
-          if (!dataLine) continue;
-          const raw = dataLine.slice(6).trim();
-          if (!raw || raw === '[DONE]') continue;
-
-          let event: any;
-          try {
-            event = JSON.parse(raw);
-          } catch (_) {
-            continue;
-          }
-
-          applyStreamEvent(event, reactiveMsg, session);
-          if (event.type === 'finish' || event.type === 'done' || event.type === 'error') {
-            completed = true;
-          }
-        }
-      }
-
-      if (completed) {
-        isGenerating.value = false;
-        await fetchSessions(session.serverId);
-        return;
-      }
-    } catch (err) {
-      console.warn('sendClaudeMessage stream disconnected. Attempting resilient reconnection...', err);
-      // Background execution continues on server, reconnect to background stream!
-      await reconnectToBackgroundStream(session.id, reactiveMsg);
-    } finally {
-      if (!isReconnecting.value) {
-        isGenerating.value = false;
-      }
+      if (await readStream(owner, response)) { await completeStream(owner); return; }
+    } catch (error) {
+      if (owner.controller.signal.aborted) return;
     }
+    if (streams.get(owner.sessionId) === owner) await reconnectToBackgroundStream(owner);
   }
 
   async function cancelGeneration() {
@@ -829,6 +938,17 @@ export const useClaudeStore = defineStore('claude', () => {
     }
   }
 
+  watch(() => JSON.stringify([
+    serverStore.currentServer.id, currentProjectId.value, currentProjectRoot.value, activeSession.value?.id,
+  ]), () => {
+    const id = activeSession.value?.id;
+    for (const owner of streams.values()) {
+      if (owner.sessionId !== id) releaseStream(owner);
+    }
+    updateStreamFlags();
+    attachActiveStream();
+  }, { flush: 'sync' });
+
   watch(activeSessionId, (id) => {
     if (id) {
       storeActiveSessionId(id, serverStore.currentServer.id, currentProjectId.value);
@@ -853,6 +973,7 @@ export const useClaudeStore = defineStore('claude', () => {
     isLimitsPopupOpen,
     limits,
     fetchSessions,
+    resumeActiveStream,
     ensureProjectSession,
     switchSession,
     createSession,

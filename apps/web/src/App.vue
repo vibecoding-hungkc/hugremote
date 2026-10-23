@@ -37,6 +37,7 @@
       <!-- Tab 4: Claude View -->
       <ClaudeView
         v-show="activeTab === 'claude'"
+        :is-active="activeTab === 'claude'"
         @open-session-hub="isClaudeHubOpen = true"
       />
 

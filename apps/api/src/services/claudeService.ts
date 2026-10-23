@@ -1483,6 +1483,9 @@ export class ClaudeService {
   }
 
   startBackgroundPrompt(session: ClaudeSession, userPrompt: string): ClaudeTaskState {
+    // getSession() is a public read snapshot. Run against the persisted owner so
+    // CLI resume identity/context updates survive the next HTTP hydration/reload.
+    session = this.sessions.get(session.id) || session;
     const existing = this.activeTasks.get(session.id);
     if (existing && existing.status === 'running') {
       return existing;

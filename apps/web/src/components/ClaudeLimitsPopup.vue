@@ -69,21 +69,24 @@
             </div>
           </div>
 
-          <!-- 3. Context Window (Per Session) -->
+          <!-- 3. Native Context Window (exact selected session/target/model) -->
           <div class="limit-card">
             <div class="limit-card-top">
               <div class="limit-name">
                 <i class="ri-cpu-line"></i>
                 <span>{{ t('limits.contextWindow') }}</span>
               </div>
-              <div class="limit-pct-val">{{ contextPercent }}%</div>
+              <div class="limit-pct-val">{{ contextPercentLabel }}</div>
             </div>
             <div class="limit-progress-bar">
-              <div class="limit-progress-fill" :style="{ width: `${contextPercent}%` }"></div>
+              <div class="limit-progress-fill" :style="{ width: `${contextProgressPercent}%` }"></div>
             </div>
             <div class="limit-card-bottom">
-              <span class="limit-tokens-detail">{{ currentTokens }} / {{ maxContextLabel }} tokens</span>
-              <span class="limit-model-tag">{{ currentModel }}</span>
+              <span class="limit-tokens-detail">{{ currentTokensLabel }} / {{ contextLimitLabel }} tokens</span>
+              <span class="limit-model-tag">{{ effectiveModel }}</span>
+            </div>
+            <div v-if="contextStatusLabel" class="limit-context-status" :class="contextUsage.status">
+              {{ contextStatusLabel }}
             </div>
           </div>
         </div>
@@ -94,7 +97,12 @@
 
 <script setup lang="ts">
 import { computed, watch, onMounted, onUnmounted } from 'vue';
-import { useClaudeStore } from '../stores/claudeStore.js';
+import {
+  formatContextPercentage,
+  formatContextTokenCount,
+  nativeContextLimit,
+  useClaudeStore,
+} from '../stores/claudeStore.js';
 import { useI18n } from '../composables/useI18n.js';
 
 const props = defineProps<{
@@ -113,43 +121,28 @@ const fiveHourReset = computed(() => claudeStore.limits.fiveHour.resetIn);
 const weeklyPercent = computed(() => claudeStore.limits.weekly.usedPercent);
 const weeklyReset = computed(() => claudeStore.limits.weekly.resetIn);
 
-const activeSession = computed(() => claudeStore.activeSession);
-const currentTokens = computed(() => {
-  const s = activeSession.value;
-  if (!s || !s.messages || s.messages.length === 0) return '0';
-  if (!s.contextTokens || s.contextTokens === '0' || s.contextTokens === '0k') return '0';
-  return s.contextTokens;
+const contextUsage = computed(() => claudeStore.currentContextUsage);
+const currentTokensLabel = computed(() =>
+  formatContextTokenCount(contextUsage.value.context?.totalTokens)
+);
+const contextLimitLabel = computed(() =>
+  formatContextTokenCount(nativeContextLimit(contextUsage.value.context))
+);
+const contextPercentLabel = computed(() =>
+  formatContextPercentage(contextUsage.value.context?.percentage)
+);
+const contextProgressPercent = computed(() => {
+  const value = contextUsage.value.context?.percentage;
+  return typeof value === 'number' && Number.isFinite(value)
+    ? Math.min(100, Math.max(0, value))
+    : 0;
 });
-const currentModel = computed(() => activeSession.value?.model || 'Default Medium');
-
-function parseTokenCount(t: string | undefined): number {
-  if (!t || t === '0' || t === '0k') return 0;
-  const lower = t.toLowerCase().trim();
-  if (lower.endsWith('k')) {
-    return (parseFloat(lower.slice(0, -1)) || 0) * 1000;
-  }
-  if (lower.endsWith('m')) {
-    return (parseFloat(lower.slice(0, -1)) || 0) * 1000000;
-  }
-  return parseFloat(lower) || 0;
-}
-
-function getModelContextWindow(modelName: string): { maxTokens: number; label: string } {
-  const m = (modelName || '').toLowerCase();
-  if (m.includes('1m') || m.includes('1000k')) {
-    return { maxTokens: 1000000, label: '1,000k' };
-  }
-  return { maxTokens: 200000, label: '200k' };
-}
-
-const maxContextInfo = computed(() => getModelContextWindow(currentModel.value));
-const maxContextLabel = computed(() => maxContextInfo.value.label);
-
-const contextPercent = computed(() => {
-  const tokens = parseTokenCount(currentTokens.value);
-  if (tokens <= 0) return '0.0';
-  const pct = (tokens / maxContextInfo.value.maxTokens) * 100;
-  return Math.min(100, Math.max(0, pct)).toFixed(1);
+const effectiveModel = computed(() => contextUsage.value.context?.model || 'Chưa xác định');
+const contextStatusLabel = computed(() => {
+  if (contextUsage.value.status === 'loading') return 'Đang tải ngữ cảnh native…';
+  if (contextUsage.value.status === 'error') return 'Không thể tải ngữ cảnh native';
+  if (contextUsage.value.status !== 'available') return 'Chưa xác định';
+  return '';
 });
 
 // Tự động tải số liệu mới nhất khi mở popup
@@ -158,6 +151,10 @@ watch(
   (open) => {
     if (open) {
       claudeStore.fetchLimits();
+      const status = claudeStore.currentContextUsage.status;
+      if (status === 'idle' || status === 'unavailable' || status === 'error') {
+        claudeStore.fetchContextUsage();
+      }
     }
   },
   { immediate: true }
@@ -370,5 +367,18 @@ onUnmounted(() => {
   border-radius: 4px;
   font-size: 10px;
   color: #cbd5e1;
+  max-width: 48%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.limit-context-status {
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.limit-context-status.error {
+  color: #fca5a5;
 }
 </style>

@@ -268,14 +268,15 @@
               <i class="ri-focus-3-line"></i>
             </button>
 
-            <!-- Context Window: 63k/1000k -->
+            <!-- Native context usage for the exact selected session and model -->
             <span
               class="claude-context-pill"
-              title="Context Window usage"
+              :title="contextUsageTitle"
               @click.stop="openLimits"
             >
-              <span class="ctx-used">{{ currentContextTokens }}</span>
-              <span class="ctx-max">/{{ maxContextLabel }}</span>
+              <span class="ctx-used">{{ currentContextTotalLabel }}</span>
+              <span class="ctx-max"> / {{ currentContextMaxLabel }}</span>
+              <span class="ctx-percent">{{ contextPillStatusLabel }}</span>
             </span>
 
             <!-- Model selector badge: Sonnet 5.5 Medium -->
@@ -362,7 +363,12 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
-import { useClaudeStore } from '../stores/claudeStore.js';
+import {
+  formatContextPercentage,
+  formatContextTokenCount,
+  nativeContextLimit,
+  useClaudeStore,
+} from '../stores/claudeStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import ModelSelectorPopup from './ModelSelectorPopup.vue';
@@ -604,35 +610,29 @@ function openLimits() {
 const activeSession = computed(() => claudeStore.activeSession);
 const currentModel = computed(() => activeSession.value?.model || 'Default Medium');
 const currentMode = computed(() => activeSession.value?.mode || 'Auto');
-
-function parseTokenCount(t: string | undefined): number {
-  if (!t || t === '0' || t === '0k') return 0;
-  const lower = t.toLowerCase().trim();
-  if (lower.endsWith('k')) {
-    return (parseFloat(lower.slice(0, -1)) || 0) * 1000;
-  }
-  if (lower.endsWith('m')) {
-    return (parseFloat(lower.slice(0, -1)) || 0) * 1000000;
-  }
-  return parseFloat(lower) || 0;
-}
-
-function getModelContextWindow(modelName: string): { maxTokens: number; label: string } {
-  const m = (modelName || '').toLowerCase();
-  if (m.includes('1m') || m.includes('1000k')) {
-    return { maxTokens: 1000000, label: '1000k' };
-  }
-  return { maxTokens: 200000, label: '200k' };
-}
-
-const maxContextInfo = computed(() => getModelContextWindow(currentModel.value));
-const maxContextLabel = computed(() => maxContextInfo.value.label);
-
-const currentContextTokens = computed(() => {
-  const s = activeSession.value;
-  if (!s || !s.messages || s.messages.length === 0) return '0';
-  if (!s.contextTokens || s.contextTokens === '0' || s.contextTokens === '0k') return '0';
-  return s.contextTokens;
+const nativeContextUsage = computed(() => claudeStore.currentContextUsage);
+const currentContextTotalLabel = computed(() =>
+  formatContextTokenCount(nativeContextUsage.value.context?.totalTokens)
+);
+const currentContextMaxLabel = computed(() =>
+  formatContextTokenCount(nativeContextLimit(nativeContextUsage.value.context))
+);
+const currentContextPercentLabel = computed(() =>
+  formatContextPercentage(nativeContextUsage.value.context?.percentage)
+);
+const contextPillStatusLabel = computed(() => {
+  const usage = nativeContextUsage.value;
+  if (usage.status === 'loading') return 'Đang tải';
+  if (usage.status === 'error') return 'Không thể tải';
+  if (usage.status !== 'available') return 'Chưa xác định';
+  return currentContextPercentLabel.value;
+});
+const contextUsageTitle = computed(() => {
+  const usage = nativeContextUsage.value;
+  if (usage.status === 'loading') return 'Đang tải ngữ cảnh native…';
+  if (usage.status === 'error') return `Không thể tải ngữ cảnh native: ${usage.error}`;
+  if (usage.status !== 'available' || !usage.context) return 'Chưa xác định ngữ cảnh native';
+  return `Ngữ cảnh native · ${usage.context.model} · ${currentContextPercentLabel.value}`;
 });
 
 const elapsedSeconds = ref(0);
@@ -869,15 +869,16 @@ async function handleSend() {
   }
   if (text === '/cost') {
     const s = activeSession.value;
-    const tokens = currentContextTokens.value;
-    const maxInfo = getModelContextWindow(currentModel.value);
-    const parsedTokens = parseTokenCount(tokens);
-    const pct = ((parsedTokens / maxInfo.maxTokens) * 100).toFixed(1);
+    const usage = nativeContextUsage.value;
+    const contextLine = usage.status === 'available' && usage.context
+      ? `\`${currentContextTotalLabel.value} / ${currentContextMaxLabel.value}\` tokens (${currentContextPercentLabel.value} dung lượng)`
+      : '`— / —` tokens (Chưa xác định)';
     addLocalExchange(
       '/cost',
       `### 📊 Thống kê Token & Context Window\n\n` +
-      `• **Model:** \`${currentModel.value}\`\n` +
-      `• **Context Window:** \`${tokens} / ${maxInfo.label}\` tokens (${pct}% dung lượng)\n` +
+      `• **Model đã chọn:** \`${currentModel.value}\`\n` +
+      `• **Model native hiệu lực:** \`${usage.context?.model || 'Chưa xác định'}\`\n` +
+      `• **Context Window:** ${contextLine}\n` +
       `• **Số tin nhắn trong phiên:** \`${s?.messages?.length || 0}\` tin nhắn\n` +
       `• **Chế độ thực thi:** \`${currentMode.value}\`\n\n` +
       `💡 *Mẹo: Gõ \`/compact\` nếu context window vượt quá 70% để nén bớt lịch sử.*`
@@ -1089,10 +1090,6 @@ function formatMarkdown(text: string): string {
   // Linebreaks
   str = str.replace(/\n/g, '<br>');
   return str;
-}
-
-function showContextToast() {
-  alert(`Context Window: ${currentContextTokens.value} / 1000k tokens (6.3% used)`);
 }
 
 function showUsageToast() {
@@ -1851,6 +1848,12 @@ function showUsageToast() {
 
 .claude-context-pill .ctx-max {
   color: #6b7280;
+}
+
+.claude-context-pill .ctx-percent {
+  margin-left: 3px;
+  color: #93c5fd;
+  font-size: 10px;
 }
 
 /* Model Badge */

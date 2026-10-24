@@ -62,6 +62,81 @@ export interface ClaudeModelsResult {
   models: ClaudeModelItem[];
 }
 
+export interface ClaudeContextUsage {
+  source: 'cli';
+  freshness: 'session' | 'selected-model';
+  sessionSpecific: boolean;
+  model: string;
+  totalTokens: number;
+  maxTokens: number;
+  rawMaxTokens: number;
+  percentage: number;
+}
+
+export class ContextUsageValidationError extends Error {
+  readonly statusCode = 400;
+  constructor(message: string) {
+    super(message);
+    this.name = 'ContextUsageValidationError';
+  }
+}
+
+export class ContextUsageNotFoundError extends Error {
+  readonly statusCode = 404;
+  constructor(message: string = 'Claude session not found') {
+    super(message);
+    this.name = 'ContextUsageNotFoundError';
+  }
+}
+
+export class ContextUsageConcurrencyError extends Error {
+  readonly statusCode = 429;
+  constructor(message: string = 'Too many concurrent Claude context usage requests') {
+    super(message);
+    this.name = 'ContextUsageConcurrencyError';
+  }
+}
+
+export function parseNativeContextUsage(value: unknown): Omit<ClaudeContextUsage, 'source' | 'freshness' | 'sessionSpecific'> {
+  const invalid = () => new ContextUsageValidationError('Claude native context usage returned invalid summary');
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw invalid();
+  const row = value as Record<string, unknown>;
+  if (
+    typeof row.model !== 'string' ||
+    !row.model.trim() ||
+    row.model.includes('\0') ||
+    row.model.length > 256
+  ) throw invalid();
+  if (
+    typeof row.totalTokens !== 'number' ||
+    !Number.isSafeInteger(row.totalTokens) ||
+    row.totalTokens < 0
+  ) throw invalid();
+  if (
+    typeof row.maxTokens !== 'number' ||
+    !Number.isSafeInteger(row.maxTokens) ||
+    row.maxTokens <= 0
+  ) throw invalid();
+  if (
+    typeof row.rawMaxTokens !== 'number' ||
+    !Number.isSafeInteger(row.rawMaxTokens) ||
+    row.rawMaxTokens <= 0
+  ) throw invalid();
+  if (
+    typeof row.percentage !== 'number' ||
+    !Number.isFinite(row.percentage) ||
+    row.percentage < 0
+  ) throw invalid();
+
+  return {
+    model: row.model,
+    totalTokens: row.totalTokens,
+    maxTokens: row.maxTokens,
+    rawMaxTokens: row.rawMaxTokens,
+    percentage: row.percentage,
+  };
+}
+
 const STORAGE_FILE = path.join(os.homedir(), '.ssh', 'hugcode_claude_sessions.json');
 const LIMITS_FILE = path.join(os.homedir(), '.ssh', 'hugcode_claude_limits.json');
 
@@ -107,20 +182,41 @@ function shellEscape(arg: string): string {
 
 const MODELS_CACHE_TTL_MS = 30_000;
 
+function normalizeRemotePath(raw: string): string {
+  if (typeof raw !== 'string') throw new ContextUsageValidationError('Invalid Claude context usage cwd');
+  if (raw.includes('\0')) throw new ContextUsageValidationError('Invalid Claude context usage cwd');
+  const trimmed = raw.trim();
+  if (!trimmed) return '~';
+  if (trimmed.length > 4096) throw new ContextUsageValidationError('Claude context usage cwd exceeded maximum length');
+  if (trimmed === '~' || trimmed === '$HOME') return '~';
+  if (trimmed.startsWith('~/')) {
+    const sub = path.posix.normalize(trimmed.slice(2));
+    if (sub === '.' || sub === '') return '~';
+    if (sub.startsWith('..')) throw new ContextUsageValidationError('Invalid Claude context usage cwd');
+    return `~/${sub}`.replace(/\/+$/, '');
+  }
+  const norm = path.posix.normalize(trimmed);
+  return norm.length > 1 ? norm.replace(/\/+$/, '') : norm;
+}
+
 /** Resolve discovery from home by default, not the API process directory. */
 function resolveLocalClaudeCwd(cwd?: string): string {
+  if (cwd !== undefined && typeof cwd !== 'string') {
+    throw new ContextUsageValidationError('Invalid Claude context usage cwd');
+  }
   const target = normalizeWorkspacePath(cwd || os.homedir());
-  if (target.includes('\0')) throw new Error('Invalid Claude model discovery cwd');
+  if (target.includes('\0')) throw new ContextUsageValidationError('Invalid Claude context usage cwd');
+  if (target.length > 4096) throw new ContextUsageValidationError('Claude context usage cwd exceeded maximum length');
   let canonical: string;
   try {
     canonical = fs.realpathSync(target);
     if (!fs.statSync(canonical).isDirectory()) throw new Error('not a directory');
-  } catch (_) { throw new Error('Claude model discovery cwd must be an existing directory'); }
+  } catch (_) { throw new ContextUsageValidationError('Claude context usage cwd must be an existing directory'); }
   if (cwd) {
     const root = fs.realpathSync(ALLOWED_ROOT);
     const relative = path.relative(root, canonical);
     if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-      throw new Error('Claude model discovery cwd is outside allowed root');
+      throw new ContextUsageValidationError('Claude context usage cwd is outside allowed root');
     }
   }
   return canonical;
@@ -260,8 +356,8 @@ export class ClaudeService {
               changed = true;
               return;
             }
-            if (s.cliSessionId && (!s.isCustomNamed || s.name === 'chat' || s.name === 'claude')) {
-              const detail = this.getLocalProjectSessionDetail(s.cliSessionId, s.cwd || '');
+            if (typeof s.cliSessionId === 'string' && s.cliSessionId.trim() && !s.cliSessionId.includes('\0') && (!s.isCustomNamed || s.name === 'chat' || s.name === 'claude')) {
+              const detail = this.getLocalProjectSessionDetail(s.cliSessionId.trim(), typeof s.cwd === 'string' ? s.cwd : '');
               if (detail && detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
                 s.name = detail.summary;
                 s.isCustomNamed = true;
@@ -397,6 +493,10 @@ export class ClaudeService {
     const session = this.sessions.get(id);
     if (!session) return undefined;
 
+    if (updates.serverId !== undefined || updates.cwd !== undefined || updates.model !== undefined || updates.cliSessionId !== undefined) {
+      this.clearContextUsageCacheForSession(id);
+    }
+
     if (updates.name !== undefined) {
       session.name = updates.name.trim();
       session.isCustomNamed = true;
@@ -420,9 +520,11 @@ export class ClaudeService {
   }
 
   deleteSession(id: string): boolean {
-    const ok = this.sessions.delete(id);
-    if (ok) this.saveSessions();
-    return ok;
+    if (!this.sessions.has(id)) return false;
+    this.clearContextUsageCacheForSession(id);
+    this.sessions.delete(id);
+    this.saveSessions();
+    return true;
   }
 
   public estimateSessionTokens(messages: ClaudeMessage[]): string {
@@ -1229,6 +1331,350 @@ export class ClaudeService {
   private spawnModelDiscovery = spawn;
   private modelDiscoveryTimeoutMs = 15_000;
   private modelDiscoveryKillGraceMs = 1_000;
+  private contextUsageCache = new Map<string, { sessionId: string; result: ClaudeContextUsage; at: number }>();
+  private inFlightContextUsage = new Map<string, Promise<ClaudeContextUsage>>();
+  private contextUsageScopeEpoch = new WeakMap<object, number>();
+  private nextContextUsageScopeEpoch = 0;
+  private activeContextUsageProbes = 0;
+  private static readonly MAX_CONCURRENT_CONTEXT_PROBES = 4;
+  private static readonly CONTEXT_USAGE_CACHE_TTL_MS = 2_000;
+  private static readonly MAX_CONTEXT_USAGE_CACHE_ENTRIES = 24;
+
+  private clearContextUsageCacheForSession(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (session) {
+      this.contextUsageScopeEpoch.set(session, ++this.nextContextUsageScopeEpoch);
+    }
+    for (const [key, entry] of this.contextUsageCache) {
+      if (entry.sessionId === sessionId) this.contextUsageCache.delete(key);
+    }
+  }
+
+  private pruneContextUsageCache(now: number): void {
+    for (const [key, entry] of this.contextUsageCache) {
+      if (now - entry.at >= ClaudeService.CONTEXT_USAGE_CACHE_TTL_MS) {
+        this.contextUsageCache.delete(key);
+      }
+    }
+  }
+
+  private trimContextUsageCache(): void {
+    while (this.contextUsageCache.size > ClaudeService.MAX_CONTEXT_USAGE_CACHE_ENTRIES) {
+      const oldestKey = this.contextUsageCache.keys().next().value;
+      if (oldestKey === undefined) break;
+      this.contextUsageCache.delete(oldestKey);
+    }
+  }
+
+  async getContextUsage(
+    sessionId: string,
+    selected: { serverId?: string; cwd?: string; model?: string } = {}
+  ): Promise<ClaudeContextUsage> {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new ContextUsageNotFoundError('Claude session not found');
+
+    if (session.serverId !== undefined && (typeof session.serverId !== 'string' || session.serverId.includes('\0') || session.serverId.length > 256)) {
+      throw new ContextUsageValidationError('Claude context usage session has corrupt serverId');
+    }
+    const canonicalServerId = session.serverId || 'server-local';
+
+    if (selected.serverId !== undefined) {
+      if (typeof selected.serverId !== 'string' || selected.serverId.includes('\0') || selected.serverId.length > 256) {
+        throw new ContextUsageValidationError('Invalid Claude context usage target');
+      }
+      const selectedServerId = selected.serverId || 'server-local';
+      if (selectedServerId !== canonicalServerId) {
+        throw new ContextUsageValidationError('Claude context usage serverId mismatch for session');
+      }
+    }
+
+    const server = this.serverConfigResolver(canonicalServerId);
+    if (!server && canonicalServerId !== 'server-local') {
+      throw new ContextUsageValidationError('Unknown Claude context usage target');
+    }
+    const remote = server?.type === 'ssh';
+
+    let targetCwd: string;
+    if (remote) {
+      if (session.cwd !== undefined && (typeof session.cwd !== 'string' || session.cwd.includes('\0') || session.cwd.length > 4096)) {
+        throw new ContextUsageValidationError('Claude context usage session has corrupt cwd');
+      }
+      const canonicalRemoteCwd = normalizeRemotePath(session.cwd?.trim() || server?.workspace?.trim() || '~');
+      if (selected.cwd !== undefined) {
+        if (typeof selected.cwd !== 'string' || selected.cwd.includes('\0') || selected.cwd.length > 4096) {
+          throw new ContextUsageValidationError('Invalid Claude context usage cwd');
+        }
+        const selectedRemoteCwd = normalizeRemotePath(selected.cwd);
+        if (selectedRemoteCwd !== canonicalRemoteCwd) {
+          throw new ContextUsageValidationError('Claude context usage cwd mismatch for session');
+        }
+      }
+      targetCwd = canonicalRemoteCwd;
+    } else {
+      if (session.cwd !== undefined && (typeof session.cwd !== 'string' || session.cwd.includes('\0') || session.cwd.length > 4096)) {
+        throw new ContextUsageValidationError('Claude context usage session has corrupt cwd');
+      }
+      const canonicalLocalCwd = resolveLocalClaudeCwd(session.cwd || undefined);
+      if (selected.cwd !== undefined) {
+        if (typeof selected.cwd !== 'string' || selected.cwd.includes('\0') || selected.cwd.length > 4096) {
+          throw new ContextUsageValidationError('Invalid Claude context usage cwd');
+        }
+        const selectedLocalCwd = resolveLocalClaudeCwd(selected.cwd);
+        if (selectedLocalCwd !== canonicalLocalCwd) {
+          throw new ContextUsageValidationError('Claude context usage cwd mismatch for session');
+        }
+      }
+      targetCwd = canonicalLocalCwd;
+    }
+
+    let modelSelection = '';
+    if (selected.model !== undefined) {
+      if (typeof selected.model !== 'string' || selected.model.includes('\0') || selected.model.length > 256) {
+        throw new ContextUsageValidationError('Invalid Claude context usage model');
+      }
+      modelSelection = selected.model.trim();
+    } else if (session.model !== undefined) {
+      if (typeof session.model === 'string' && !session.model.includes('\0') && session.model.length <= 256) {
+        modelSelection = session.model.trim();
+      }
+    }
+    const baseModel = modelSelection.replace(/\s+(Low|Medium|High|Max)$/i, '').trim();
+    const modelArg = !baseModel || /^default$/i.test(baseModel) ? null : baseModel;
+
+    let resumeId: string | null = null;
+    if (typeof session.cliSessionId === 'string' && !session.cliSessionId.includes('\0')) {
+      const trimmed = session.cliSessionId.trim();
+      if (trimmed.length > 0 && trimmed.length <= 256 && !/[\r\n\t]/.test(trimmed)) {
+        resumeId = trimmed;
+      }
+    }
+
+    const scopeEpoch = this.contextUsageScopeEpoch.get(session) || 0;
+    const cacheKey = JSON.stringify([session.id, canonicalServerId, targetCwd, modelArg, resumeId, scopeEpoch]);
+    const now = Date.now();
+    this.pruneContextUsageCache(now);
+
+    const cached = this.contextUsageCache.get(cacheKey);
+    if (cached) {
+      // Reinsertion keeps iteration order as a simple LRU queue.
+      this.contextUsageCache.delete(cacheKey);
+      this.contextUsageCache.set(cacheKey, cached);
+      return cached.result;
+    }
+
+    const inFlight = this.inFlightContextUsage.get(cacheKey);
+    if (inFlight) {
+      return inFlight;
+    }
+
+    if (this.activeContextUsageProbes >= ClaudeService.MAX_CONCURRENT_CONTEXT_PROBES) {
+      throw new ContextUsageConcurrencyError('Too many concurrent Claude context usage requests');
+    }
+
+    const args = [
+      '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '-p',
+      '--no-session-persistence',
+      ...(modelArg ? ['--model', modelArg] : []),
+      ...(resumeId ? ['--resume', resumeId] : []),
+    ];
+
+    this.activeContextUsageProbes++;
+    const probePromise = (async () => {
+      try {
+        const native = await this.executeContextUsageProbe(targetCwd, remote, server, args);
+        const result: ClaudeContextUsage = {
+          source: 'cli',
+          freshness: resumeId ? 'session' : 'selected-model',
+          sessionSpecific: Boolean(resumeId),
+          ...native,
+        };
+        this.pruneContextUsageCache(Date.now());
+        if (this.sessions.get(sessionId) === session && (this.contextUsageScopeEpoch.get(session) || 0) === scopeEpoch) {
+          this.contextUsageCache.set(cacheKey, { sessionId: session.id, result, at: Date.now() });
+          this.trimContextUsageCache();
+        }
+        return result;
+      } finally {
+        this.activeContextUsageProbes--;
+        this.inFlightContextUsage.delete(cacheKey);
+      }
+    })();
+
+    this.inFlightContextUsage.set(cacheKey, probePromise);
+    return probePromise;
+  }
+
+  private async executeContextUsageProbe(
+    targetCwd: string,
+    remote: boolean,
+    server: any,
+    args: string[]
+  ): Promise<ReturnType<typeof parseNativeContextUsage>> {
+    let proc: {
+      stdin: NodeJS.WritableStream; stdout: NodeJS.ReadableStream; stderr: NodeJS.ReadableStream;
+      on(event: string, callback: (...args: any[]) => void): unknown;
+      removeListener?(event: string, callback: (...args: any[]) => void): unknown;
+      kill(signal: string): unknown;
+    };
+    if (remote && server) {
+      const remoteCwd = targetCwd === '~' ? '"$HOME"'
+        : targetCwd.startsWith('~/') ? `"$HOME"/${shellEscape(targetCwd.slice(2))}` : shellEscape(targetCwd);
+      const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; cd -- ${remoteCwd} && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
+      const channel = await new Promise<Awaited<ReturnType<typeof sshPool.executeCommand>>>((resolve, reject) => {
+        let expired = false;
+        const timer = setTimeout(() => {
+          expired = true;
+          reject(new Error('Claude context usage timed out opening SSH channel'));
+        }, this.modelDiscoveryTimeoutMs);
+        sshPool.executeCommand(server, command).then(channel => {
+          clearTimeout(timer);
+          if (expired) {
+            try { channel.signal('TERM'); } catch (_) {}
+            try { channel.close(); } catch (_) {}
+          } else resolve(channel);
+        }, error => { clearTimeout(timer); reject(error); });
+      });
+      proc = {
+        stdin: channel, stdout: channel, stderr: channel.stderr,
+        on: (event, callback) => channel.on(event, callback),
+        removeListener: (event, callback) => {
+          try { (channel as any).removeListener?.(event, callback); } catch (_) {}
+        },
+        kill: () => {
+          try { channel.signal('TERM'); } catch (_) {}
+          try { channel.close(); } catch (_) {}
+        },
+      };
+    } else {
+      const binary = getClaudeBinaryPath();
+      const child = this.spawnModelDiscovery(binary, args, {
+        cwd: targetCwd, stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, CLAUDE_CODE_CONFIG_PROBE: '1', PATH: `${path.join(os.homedir(), '.local', 'bin')}:${process.env.PATH}` },
+      });
+      proc = {
+        stdin: child.stdin!, stdout: child.stdout!, stderr: child.stderr!,
+        on: (event, callback) => child.on(event, callback),
+        removeListener: (event, callback) => {
+          try { (child as any).removeListener?.(event, callback); } catch (_) {}
+        },
+        kill: signal => child.kill(signal as NodeJS.Signals),
+      };
+    }
+
+    const requestId = `context-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return new Promise<ReturnType<typeof parseNativeContextUsage>>((resolve, reject) => {
+      let buffer = '';
+      let bytes = 0;
+      let settled = false;
+      let closed = false;
+      let killTimer: ReturnType<typeof setTimeout> | undefined;
+      const decoder = new StringDecoder('utf8');
+
+      let listenersCleaned = false;
+      const cleanupDataListeners = () => {
+        try { (proc.stdout as any)?.removeListener?.('data', onData); } catch (_) {}
+        try { (proc.stderr as any)?.removeListener?.('data', onStderr); } catch (_) {}
+      };
+      const cleanupListeners = () => {
+        if (listenersCleaned) return;
+        listenersCleaned = true;
+        clearTimeout(killTimer);
+        cleanupDataListeners();
+        try { proc.removeListener?.('close', onClose); } catch (_) {}
+        try { proc.removeListener?.('error', onError); } catch (_) {}
+        try { (proc.stdin as any)?.removeListener?.('error', onError); } catch (_) {}
+        try { (proc.stdout as any)?.removeListener?.('error', onError); } catch (_) {}
+        try { (proc.stderr as any)?.removeListener?.('error', onError); } catch (_) {}
+      };
+
+      const finish = (error?: unknown, result?: ReturnType<typeof parseNativeContextUsage>) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        cleanupDataListeners();
+        // Keep close/error guards through termination: end()/SIGTERM can emit a
+        // synchronous or late EPIPE. The close handler cancels escalation.
+        try { proc.stdin?.end(); } catch (_) {}
+        try { proc.kill('SIGTERM'); } catch (_) {}
+        if (closed) {
+          cleanupListeners();
+        } else {
+          killTimer = setTimeout(() => {
+            if (!closed && !remote) {
+              try { proc.kill('SIGKILL'); } catch (_) {}
+            }
+            cleanupListeners();
+          }, this.modelDiscoveryKillGraceMs);
+          killTimer.unref();
+        }
+        if (error) reject(error); else resolve(result!);
+      };
+
+      const countOutput = (chunk: Buffer | string) => {
+        bytes += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk);
+        if (bytes > 1_048_576) {
+          finish(new Error('Claude context usage output exceeded limit'));
+          return false;
+        }
+        return true;
+      };
+
+      const onStderr = (chunk: Buffer | string) => { if (!settled) countOutput(chunk); };
+      const onData = (chunk: Buffer | string) => {
+        if (settled || !countOutput(chunk)) return;
+        buffer += decoder.write(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let message: any;
+          try { message = JSON.parse(line); }
+          catch (_) { finish(new Error('Claude context usage returned malformed JSONL')); return; }
+          if (message?.type !== 'control_response' || message.response?.request_id !== requestId) continue;
+          if (message.response.subtype !== 'success') {
+            finish(new Error('Claude context usage request failed or denied'));
+          } else {
+            try { finish(undefined, parseNativeContextUsage(message.response.response)); }
+            catch (error) { finish(error); }
+          }
+          return;
+        }
+      };
+
+      const onClose = () => {
+        closed = true;
+        clearTimeout(killTimer);
+        if (!settled && buffer.trim()) {
+          buffer += decoder.end();
+          onData('\n');
+        }
+        if (!settled) finish(new Error('Claude context usage closed with no correlated response'));
+        cleanupListeners();
+      };
+
+      const onError = (error: Error) => finish(new Error(`Claude context usage transport error: ${error.message}`));
+
+      const timer = setTimeout(
+        () => finish(new Error('Claude context usage timed out waiting for correlated response')),
+        this.modelDiscoveryTimeoutMs
+      );
+
+      proc.on('close', onClose);
+      proc.on('error', onError);
+      (proc.stdin as any)?.on?.('error', onError);
+      (proc.stdout as any)?.on?.('error', onError);
+      (proc.stderr as any)?.on?.('error', onError);
+      (proc.stdout as any)?.on?.('data', onData);
+      (proc.stderr as any)?.on?.('data', onStderr);
+
+      try {
+        proc.stdin.write(JSON.stringify({
+          type: 'control_request', request_id: requestId,
+          request: { subtype: 'get_context_usage', detail: 'summary' },
+        }) + '\n');
+      } catch (error) { finish(error); }
+    });
+  }
 
   async getAvailableModels(serverId?: string, forceRefresh = false, cwd?: string): Promise<ClaudeModelsResult> {
     const sId = serverId || 'server-local';

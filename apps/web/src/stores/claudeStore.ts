@@ -19,6 +19,56 @@ export type {
   ClaudeSession,
 };
 
+export interface ClaudeNativeContextUsage {
+  model: string;
+  totalTokens: number;
+  maxTokens: number;
+  rawMaxTokens: number | null;
+  percentage: number;
+}
+
+export interface ClaudeContextUsageScope {
+  sessionId: string;
+  serverId: string;
+  cwd: string;
+  model: string;
+  generation: number;
+}
+
+export interface ClaudeContextUsageState {
+  scope: ClaudeContextUsageScope | null;
+  status: 'idle' | 'loading' | 'available' | 'unavailable' | 'error';
+  context: ClaudeNativeContextUsage | null;
+  source: 'native' | null;
+  error: string;
+}
+
+function trimDisplayNumber(value: number): string {
+  return value.toFixed(1).replace(/\.0$/, '');
+}
+
+export function formatContextTokenCount(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return '—';
+  if (value >= 1_000_000) return `${trimDisplayNumber(value / 1_000_000)}M`;
+  if (value >= 1_000) return `${trimDisplayNumber(value / 1_000)}k`;
+  return String(Math.round(value));
+}
+
+export function formatContextPercentage(value: number | null | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  return `${value.toFixed(1)}%`;
+}
+
+export function nativeContextLimit(context: ClaudeNativeContextUsage | null | undefined): number | null {
+  if (typeof context?.rawMaxTokens === 'number' && Number.isFinite(context.rawMaxTokens) && context.rawMaxTokens > 0) {
+    return context.rawMaxTokens;
+  }
+  if (typeof context?.maxTokens === 'number' && Number.isFinite(context.maxTokens) && context.maxTokens > 0) {
+    return context.maxTokens;
+  }
+  return null;
+}
+
 export const useClaudeStore = defineStore('claude', () => {
   const SAVED_SESSION_KEY_PREFIX = 'hugremote_active_claude_session_';
 
@@ -82,6 +132,167 @@ export const useClaudeStore = defineStore('claude', () => {
     if (!list.length) return null;
     return list.find((s) => s.id === activeSessionId.value) || list[0] || null;
   });
+
+  const contextUsageBySession = ref<Record<string, ClaudeContextUsageState>>({});
+  const contextUsageGenerations = new Map<string, number>();
+  const sessionUpdateGenerations = new Map<string, number>();
+  const sessionFieldGenerations = new Map<string, Map<keyof ClaudeSession, number>>();
+  const sessionClearGenerations = new Map<string, number>();
+  const contextUsageControllers = new Map<string, AbortController>();
+  const contextUsageRequests = new Map<string, {
+    generation: number;
+    promise: Promise<ClaudeContextUsageState>;
+  }>();
+
+  function contextScopeKey(scope: Omit<ClaudeContextUsageScope, 'generation'> | null): string {
+    if (!scope) return '';
+    return `${scope.sessionId}::${scope.serverId}::${scope.cwd}::${scope.model}`;
+  }
+
+  function selectedContextScope(generation?: number): ClaudeContextUsageScope | null {
+    const session = activeSession.value;
+    if (!session) return null;
+    return {
+      sessionId: session.id,
+      serverId: session.serverId || serverStore.currentServer.id || 'server-local',
+      cwd: session.cwd || '',
+      model: session.model || '',
+      generation: generation ?? (contextUsageGenerations.get(session.id) || 0),
+    };
+  }
+
+  function sameContextScope(a: ClaudeContextUsageScope | null, b: ClaudeContextUsageScope | null) {
+    return !!a && !!b && a.sessionId === b.sessionId && a.serverId === b.serverId
+      && a.cwd === b.cwd && a.model === b.model && a.generation === b.generation;
+  }
+
+  function blankContextUsage(scope: ClaudeContextUsageScope | null, status: ClaudeContextUsageState['status']): ClaudeContextUsageState {
+    return { scope, status, context: null, source: null, error: '' };
+  }
+
+  const currentContextUsage = computed<ClaudeContextUsageState>(() => {
+    const scope = selectedContextScope();
+    if (!scope) return blankContextUsage(null, 'idle');
+    const state = contextUsageBySession.value[scope.sessionId];
+    return state && sameContextScope(state.scope, scope) ? state : blankContextUsage(scope, 'idle');
+  });
+
+  function invalidateContextUsage(
+    sessionId?: string,
+    status: ClaudeContextUsageState['status'] = 'idle',
+    error = ''
+  ) {
+    const id = sessionId || activeSession.value?.id;
+    if (!id) return;
+    const generation = (contextUsageGenerations.get(id) || 0) + 1;
+    contextUsageGenerations.set(id, generation);
+    const oldCtrl = contextUsageControllers.get(id);
+    if (oldCtrl) {
+      oldCtrl.abort();
+      contextUsageControllers.delete(id);
+    }
+    const session = sessions.value.find((item) => item.id === id);
+    if (!session) {
+      delete contextUsageBySession.value[id];
+      return;
+    }
+    const scope = activeSession.value?.id === id ? selectedContextScope(generation) : null;
+    contextUsageBySession.value[id] = { ...blankContextUsage(scope, status), error };
+  }
+
+  function validNativeContext(value: unknown): value is ClaudeNativeContextUsage {
+    if (!value || typeof value !== 'object') return false;
+    const context = value as Record<string, unknown>;
+    return typeof context.model === 'string'
+      && typeof context.totalTokens === 'number' && Number.isFinite(context.totalTokens)
+      && typeof context.maxTokens === 'number' && Number.isFinite(context.maxTokens)
+      && (typeof context.rawMaxTokens === 'number' || context.rawMaxTokens === null)
+      && typeof context.percentage === 'number' && Number.isFinite(context.percentage);
+  }
+
+  async function fetchContextUsage(): Promise<ClaudeContextUsageState> {
+    const initial = selectedContextScope();
+    if (!initial) return blankContextUsage(null, 'idle');
+    const scopeKey = contextScopeKey(initial);
+
+    // Request coalescing by exact scope: repeated identical fetches share one request
+    const pending = contextUsageRequests.get(scopeKey);
+    if (pending && contextUsageGenerations.get(initial.sessionId) === pending.generation) {
+      return pending.promise;
+    }
+
+    // Changed scope aborts old in-flight request for this session
+    const oldController = contextUsageControllers.get(initial.sessionId);
+    if (oldController) {
+      oldController.abort();
+      contextUsageControllers.delete(initial.sessionId);
+    }
+
+    const generation = (contextUsageGenerations.get(initial.sessionId) || 0) + 1;
+    contextUsageGenerations.set(initial.sessionId, generation);
+    const scope = { ...initial, generation };
+
+    const controller = new AbortController();
+    contextUsageControllers.set(scope.sessionId, controller);
+
+    const loading = blankContextUsage(scope, 'loading');
+    contextUsageBySession.value[scope.sessionId] = loading;
+
+    const isCurrent = () => sameContextScope(selectedContextScope(), scope)
+      && contextUsageGenerations.get(scope.sessionId) === generation
+      && !controller.signal.aborted;
+
+    const promise = (async (): Promise<ClaudeContextUsageState> => {
+      try {
+        const query = new URLSearchParams({
+          serverId: scope.serverId,
+          cwd: scope.cwd,
+          model: scope.model,
+        });
+        const res = await fetch(
+          apiUrl(`/api/claude/sessions/${encodeURIComponent(scope.sessionId)}/context-usage?${query.toString()}`),
+          { signal: controller.signal }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!isCurrent()) return currentContextUsage.value;
+        if (!res.ok || data?.error) throw new Error(data?.error || 'Không thể tải ngữ cảnh native');
+        if (data?.source !== 'native' || !validNativeContext(data?.context)) {
+          const unavailable = blankContextUsage(scope, 'unavailable');
+          contextUsageBySession.value[scope.sessionId] = unavailable;
+          return unavailable;
+        }
+        const available: ClaudeContextUsageState = {
+          scope,
+          status: 'available',
+          context: data.context,
+          source: 'native',
+          error: '',
+        };
+        contextUsageBySession.value[scope.sessionId] = available;
+        return available;
+      } catch (err: any) {
+        if (!isCurrent() || err?.name === 'AbortError' || controller.signal.aborted) {
+          return currentContextUsage.value;
+        }
+        const failed: ClaudeContextUsageState = {
+          ...blankContextUsage(scope, 'error'),
+          error: err instanceof Error ? err.message : 'Không thể tải ngữ cảnh native',
+        };
+        contextUsageBySession.value[scope.sessionId] = failed;
+        return failed;
+      } finally {
+        if (contextUsageControllers.get(scope.sessionId) === controller) {
+          contextUsageControllers.delete(scope.sessionId);
+        }
+        if (contextUsageRequests.get(scopeKey)?.generation === generation) {
+          contextUsageRequests.delete(scopeKey);
+        }
+      }
+    })();
+
+    contextUsageRequests.set(scopeKey, { generation, promise });
+    return promise;
+  }
 
   type StreamOwner = {
     sessionId: string;
@@ -258,11 +469,20 @@ export const useClaudeStore = defineStore('claude', () => {
   }
 
   async function updateSession(id: string, updates: Partial<ClaudeSession>) {
-    // Optimistic local update
-    const idx = sessions.value.findIndex((s) => s.id === id);
-    if (idx !== -1) {
-      Object.assign(sessions.value[idx], updates);
+    // Never retain an array index across the request. Session lists can be
+    // reordered or the target can be deleted while PATCH is pending.
+    const initial = sessions.value.find((session) => session.id === id);
+    if (!initial) return;
+
+    const updateGen = (sessionUpdateGenerations.get(id) || 0) + 1;
+    sessionUpdateGenerations.set(id, updateGen);
+    const fieldGenerations = sessionFieldGenerations.get(id) || new Map<keyof ClaudeSession, number>();
+    sessionFieldGenerations.set(id, fieldGenerations);
+    for (const key of Object.keys(updates) as (keyof ClaudeSession)[]) {
+      fieldGenerations.set(key, updateGen);
     }
+    Object.assign(initial, updates);
+
     try {
       const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(id)}`), {
         method: 'PATCH',
@@ -270,10 +490,19 @@ export const useClaudeStore = defineStore('claude', () => {
         body: JSON.stringify(updates),
       });
       const data = await res.json();
-      if (data.session && idx !== -1) {
-        sessions.value[idx] = data.session;
-        return data.session;
+      const current = sessions.value.find((session) => session.id === id);
+      if (!data.session || !current || sessionFieldGenerations.get(id) !== fieldGenerations) return;
+
+      // PATCH responses contain full server snapshots. Merge only the fields
+      // this request owns, and only if no newer request has touched that field.
+      // This prevents a rename response carrying an old model/effort label from
+      // undoing a model selection made while requests overlap.
+      for (const key of Object.keys(updates) as (keyof ClaudeSession)[]) {
+        if (fieldGenerations.get(key) !== updateGen) continue;
+        const serverValue = data.session[key];
+        (current as any)[key] = serverValue === undefined ? updates[key] : serverValue;
       }
+      return current;
     } catch (err) {
       console.error('updateClaudeSession error:', err);
     }
@@ -286,6 +515,21 @@ export const useClaudeStore = defineStore('claude', () => {
       });
       if (res.ok) {
         sessions.value = sessions.value.filter((s) => s.id !== id);
+        delete contextUsageBySession.value[id];
+        contextUsageGenerations.delete(id);
+        sessionUpdateGenerations.delete(id);
+        sessionFieldGenerations.delete(id);
+        sessionClearGenerations.delete(id);
+        const ctrl = contextUsageControllers.get(id);
+        if (ctrl) {
+          ctrl.abort();
+          contextUsageControllers.delete(id);
+        }
+        for (const key of Array.from(contextUsageRequests.keys())) {
+          if (key.startsWith(`${id}::`)) {
+            contextUsageRequests.delete(key);
+          }
+        }
         const remaining = currentServerSessions.value;
         if (activeSessionId.value === id && remaining.length > 0) {
           activeSessionId.value = remaining[0].id;
@@ -642,28 +886,46 @@ export const useClaudeStore = defineStore('claude', () => {
   async function clearMessages(sessionId?: string) {
     const targetId = sessionId || activeSession.value?.id;
     if (!targetId) return;
+    const session = sessions.value.find((item) => item.id === targetId);
+    if (!session) return;
 
-    // Immediately clear in-memory state for instant UI response
-    const session = sessions.value.find((s) => s.id === targetId);
-    if (session) {
-      session.messages = [];
-      session.contextTokens = '0';
-      session.updatedAt = Date.now();
-    }
+    const clearGeneration = (sessionClearGenerations.get(targetId) || 0) + 1;
+    sessionClearGenerations.set(targetId, clearGeneration);
+
+    // Invalidate before starting POST so no old native total remains visible.
+    // The replacement probe starts only after the clear succeeds; otherwise it
+    // could briefly republish the pre-clear native total.
+    invalidateContextUsage(targetId, 'loading');
+
+    session.messages = [];
+    session.contextTokens = '0';
+    session.updatedAt = Date.now();
+
+    const isCurrent = () => sessionClearGenerations.get(targetId) === clearGeneration
+      && sessions.value.some((item) => item.id === targetId);
 
     try {
       const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(targetId)}/clear`), {
         method: 'POST',
       });
-      const data = await res.json();
-      if (data.session) {
-        const idx = sessions.value.findIndex((s) => s.id === targetId);
-        if (idx !== -1) {
-          sessions.value[idx] = data.session;
-        }
+      if (!res.ok) throw new Error(`Clear messages failed (${res.status || 'unknown'})`);
+      const data = await res.json().catch(() => ({}));
+      if (!isCurrent()) return;
+      const current = sessions.value.find((item) => item.id === targetId);
+      if (data.session && current) {
+        if (Array.isArray(data.session.messages)) current.messages = data.session.messages;
+        if (data.session.contextTokens !== undefined) current.contextTokens = data.session.contextTokens;
+        if (typeof data.session.updatedAt === 'number') current.updatedAt = data.session.updatedAt;
       }
+      if (activeSession.value?.id === targetId) void fetchContextUsage();
     } catch (err) {
       console.error('clearClaudeMessages error:', err);
+      if (!isCurrent()) return;
+      invalidateContextUsage(
+        targetId,
+        'error',
+        err instanceof Error ? err.message : 'Không thể xoá hội thoại'
+      );
     }
   }
 
@@ -949,6 +1211,18 @@ export const useClaudeStore = defineStore('claude', () => {
     attachActiveStream();
   }, { flush: 'sync' });
 
+  watch(() => JSON.stringify([
+    activeSession.value?.id || '',
+    activeSession.value?.serverId || serverStore.currentServer.id || 'server-local',
+    activeSession.value?.cwd || '',
+    activeSession.value?.model || '',
+  ]), () => {
+    const session = activeSession.value;
+    if (!session) return;
+    invalidateContextUsage(session.id);
+    void fetchContextUsage();
+  }, { flush: 'sync' });
+
   watch(activeSessionId, (id) => {
     if (id) {
       storeActiveSessionId(id, serverStore.currentServer.id, currentProjectId.value);
@@ -960,6 +1234,10 @@ export const useClaudeStore = defineStore('claude', () => {
     activeSessionId,
     activeSession,
     currentServerSessions,
+    contextUsageBySession,
+    currentContextUsage,
+    invalidateContextUsage,
+    fetchContextUsage,
     projectSessions,
     isLoadingProjectSessions,
     fetchProjectSessions,

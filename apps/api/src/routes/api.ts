@@ -12,7 +12,12 @@ import {
 import { fsService } from '../services/fsService.js';
 import { sessionManager } from '../services/sessionManager.js';
 import { sshPool } from '../services/sshPool.js';
-import { claudeService } from '../services/claudeService.js';
+import {
+  claudeService,
+  ContextUsageValidationError,
+  ContextUsageNotFoundError,
+  ContextUsageConcurrencyError,
+} from '../services/claudeService.js';
 import { projectService } from '../services/projectService.js';
 import { createGitService } from '../services/gitService.js';
 import { tempZipService } from '../services/tempZipService.js';
@@ -782,6 +787,34 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     const serverId = request.query.serverId || 'server-local';
     const result = await claudeService.getAvailableModels(serverId, request.query.refresh === '1', request.query.cwd);
     return result;
+  });
+
+  fastify.get<{
+    Params: { sessionId: string };
+    Querystring: { serverId?: string; cwd?: string; model?: string };
+  }>('/api/claude/sessions/:sessionId/context-usage', async (request, reply) => {
+    const { serverId, cwd, model } = request.query;
+    try {
+      const usage = await claudeService.getContextUsage(request.params.sessionId, { serverId, cwd, model });
+      const { model: nativeModel, totalTokens, maxTokens, rawMaxTokens, percentage } = usage;
+      return {
+        context: { model: nativeModel, totalTokens, maxTokens, rawMaxTokens, percentage },
+        source: 'native' as const,
+      };
+    } catch (error: unknown) {
+      if (error instanceof ContextUsageNotFoundError) {
+        return reply.status(404).send({ error: 'Claude session not found' });
+      }
+      if (error instanceof ContextUsageConcurrencyError) {
+        return reply.status(429).send({ error: 'Too many concurrent Claude context usage requests' });
+      }
+      if (error instanceof ContextUsageValidationError) {
+        return reply.status(400).send({ error: 'Invalid Claude context usage request' });
+      }
+      // Discovery is optional telemetry. Keep its absence explicit instead of
+      // fabricating a model limit or exposing transport/account diagnostics.
+      return { context: null, source: 'native' as const };
+    }
   });
 
   // --- CLAUDE CODE PROJECT SESSIONS (Real CLI sessions from ~/.claude/projects/) ---

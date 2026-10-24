@@ -116,9 +116,6 @@
                 <span class="cli-msg-count">
                   {{ s.userMsgs }} {{ t('claudeHub.messages') }}
                 </span>
-                <span v-if="s.contextTokens && s.contextTokens !== '0'" class="cli-msg-count" :title="`Context: ${s.contextTokens}`">
-                  <i class="ri-cpu-line"></i> {{ s.contextTokens }}
-                </span>
                 <span v-if="s.totalCostUSD" class="cli-msg-count" :title="`Cost: $${s.totalCostUSD.toFixed(4)}`">
                   <i class="ri-money-dollar-circle-line"></i> ${{ s.totalCostUSD.toFixed(3) }}
                 </span>
@@ -188,7 +185,8 @@
                 <i class="ri-folder-line"></i> {{ s.cwd }}
               </div>
               <div class="session-stats">
-                {{ s.messages.length }} {{ t('claudeHub.messages') }} • {{ t('claudeHub.context') }}: {{ s.messages.length === 0 ? '0' : (s.contextTokens || '0') }}/{{ getModelContextLabel(s.model) }}
+                {{ s.messages.length }} {{ t('claudeHub.messages') }} • {{ t('claudeHub.context') }}:
+                {{ sessionContextLabel(s) }} • {{ sessionEffectiveModel(s) }}
               </div>
             </div>
 
@@ -209,7 +207,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { useClaudeStore } from '../stores/claudeStore.js';
+import {
+  formatContextTokenCount,
+  nativeContextLimit,
+  useClaudeStore,
+  type ClaudeSession,
+} from '../stores/claudeStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { useI18n } from '../composables/useI18n.js';
@@ -239,10 +242,28 @@ const isSavingRename = ref(false);
 const deletingCliId = ref<string | null>(null);
 const renameInputRef = ref<HTMLInputElement | null>(null);
 
-function getModelContextLabel(modelName?: string): string {
-  const m = (modelName || '').toLowerCase();
-  if (m.includes('1m') || m.includes('1000k')) return '1000k';
-  return '200k';
+function isExactActiveContext(session: ClaudeSession): boolean {
+  const usage = claudeStore.currentContextUsage;
+  const scope = usage.scope;
+  return claudeStore.activeSession?.id === session.id
+    && usage.status === 'available'
+    && usage.source === 'native'
+    && !!usage.context
+    && scope?.sessionId === session.id
+    && scope.serverId === (session.serverId || serverStore.currentServer.id || 'server-local')
+    && scope.cwd === (session.cwd || '')
+    && scope.model === (session.model || '');
+}
+
+function sessionContextLabel(session: ClaudeSession): string {
+  const context = isExactActiveContext(session) ? claudeStore.currentContextUsage.context : null;
+  if (!context) return '— / —';
+  return `${formatContextTokenCount(context.totalTokens)} / ${formatContextTokenCount(nativeContextLimit(context))}`;
+}
+
+function sessionEffectiveModel(session: ClaudeSession): string {
+  const context = isExactActiveContext(session) ? claudeStore.currentContextUsage.context : null;
+  return context?.model || session.model || 'Chưa xác định';
 }
 
 const currentCwd = computed(() => {

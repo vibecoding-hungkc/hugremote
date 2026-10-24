@@ -8,7 +8,6 @@ server/node_modules/
 # Build outputs
 apps/*/dist/
 packages/*/dist/
-apps/api/public/assets/
 client/dist/
 server/dist/
 server/public/assets/
@@ -24,6 +23,7 @@ server/public/assets/
 
 # Local agent working context
 .hermes-context/
+.context/
 
 # Runtime data and logs
 *.log

@@ -26,6 +26,8 @@
           type="button"
           class="vlk-key"
           :class="[k.className, { active: k.isActive }]"
+          :aria-label="getAccessibleLabel(k)"
+          :title="getAccessibleLabel(k)"
           @click="handleKeyPress(k)"
         >
           <span class="vlk-label">{{ getLabel(k) }}</span>
@@ -40,6 +42,8 @@
           type="button"
           class="vlk-key"
           :class="[k.className, { active: k.isActive }]"
+          :aria-label="getAccessibleLabel(k)"
+          :title="getAccessibleLabel(k)"
           @click="handleKeyPress(k)"
         >
           <span class="vlk-label">{{ getLabel(k) }}</span>
@@ -54,6 +58,8 @@
           type="button"
           class="vlk-key"
           :class="[k.className, { active: k.isActive }]"
+          :aria-label="getAccessibleLabel(k)"
+          :title="getAccessibleLabel(k)"
           @click="handleKeyPress(k)"
         >
           <span class="vlk-label">{{ getLabel(k) }}</span>
@@ -68,6 +74,8 @@
           type="button"
           class="vlk-key"
           :class="[k.className, { active: k.isActive }]"
+          :aria-label="getAccessibleLabel(k)"
+          :title="getAccessibleLabel(k)"
           @click="handleKeyPress(k)"
         >
           <span class="vlk-label">{{ getLabel(k) }}</span>
@@ -82,6 +90,8 @@
           type="button"
           class="vlk-key"
           :class="[k.className, { active: k.isActive }]"
+          :aria-label="getAccessibleLabel(k)"
+          :title="getAccessibleLabel(k)"
           @click="handleKeyPress(k)"
         >
           <i v-if="k.icon" :class="k.icon"></i>
@@ -112,6 +122,7 @@ interface KeyDef {
   shiftVal?: string;
   className?: string;
   icon?: string;
+  accessibleLabel?: string;
   action?: 'shift' | 'caps' | 'ctrl' | 'alt' | 'backspace' | 'tab' | 'enter' | 'esc' | 'paste' | 'up' | 'down' | 'left' | 'right';
   isActive?: boolean;
 }
@@ -130,6 +141,10 @@ function getLabel(k: KeyDef): string {
   return k.defaultVal;
 }
 
+function getAccessibleLabel(k: KeyDef): string {
+  return k.accessibleLabel ?? getLabel(k);
+}
+
 // Row 1: ` 1 2 3 4 5 6 7 8 9 0 - = Backspace
 const row1Keys = computed<KeyDef[]>(() => [
   { id: 'grave', defaultVal: '`', shiftVal: '~', className: 'vlk-key-1u' },
@@ -145,12 +160,12 @@ const row1Keys = computed<KeyDef[]>(() => [
   { id: '0', defaultVal: '0', shiftVal: ')', className: 'vlk-key-1u' },
   { id: 'minus', defaultVal: '-', shiftVal: '_', className: 'vlk-key-1u' },
   { id: 'equal', defaultVal: '=', shiftVal: '+', className: 'vlk-key-1u' },
-  { id: 'bksp', defaultVal: '⌫', className: 'vlk-key-bksp vlk-key-action', action: 'backspace' },
+  { id: 'bksp', defaultVal: '⌫', accessibleLabel: 'Xóa lùi', className: 'vlk-key-bksp vlk-key-action', action: 'backspace' },
 ]);
 
 // Row 2: Tab q w e r t y u i o p [ ] \
 const row2Keys = computed<KeyDef[]>(() => [
-  { id: 'tab', defaultVal: 'Tab ↹', className: 'vlk-key-tab vlk-key-action', action: 'tab' },
+  { id: 'tab', defaultVal: '↹', accessibleLabel: 'Tab', className: 'vlk-key-tab vlk-key-action', action: 'tab' },
   { id: 'q', defaultVal: 'q', className: 'vlk-key-1u' },
   { id: 'w', defaultVal: 'w', className: 'vlk-key-1u' },
   { id: 'e', defaultVal: 'e', className: 'vlk-key-1u' },
@@ -170,7 +185,8 @@ const row2Keys = computed<KeyDef[]>(() => [
 const row3Keys = computed<KeyDef[]>(() => [
   {
     id: 'caps',
-    defaultVal: 'Caps ⇪',
+    defaultVal: '⇪',
+    accessibleLabel: 'Caps Lock',
     className: 'vlk-key-caps vlk-key-action',
     action: 'caps',
     isActive: isCapsLock.value,
@@ -186,14 +202,15 @@ const row3Keys = computed<KeyDef[]>(() => [
   { id: 'l', defaultVal: 'l', className: 'vlk-key-1u' },
   { id: 'semicolon', defaultVal: ';', shiftVal: ':', className: 'vlk-key-1u' },
   { id: 'quote', defaultVal: "'", shiftVal: '"', className: 'vlk-key-1u' },
-  { id: 'enter', defaultVal: 'Enter ↵', className: 'vlk-key-enter vlk-key-action', action: 'enter' },
+  { id: 'enter', defaultVal: '↵', accessibleLabel: 'Enter', className: 'vlk-key-enter vlk-key-action', action: 'enter' },
 ]);
 
 // Row 4: Shift z x c v b n m , . / Shift
 const row4Keys = computed<KeyDef[]>(() => [
   {
     id: 'lshift',
-    defaultVal: '⇧ Shift',
+    defaultVal: '⇧',
+    accessibleLabel: 'Shift trái',
     className: 'vlk-key-lshift vlk-key-action',
     action: 'shift',
     isActive: isShiftActive.value,
@@ -210,7 +227,8 @@ const row4Keys = computed<KeyDef[]>(() => [
   { id: 'slash', defaultVal: '/', shiftVal: '?', className: 'vlk-key-1u' },
   {
     id: 'rshift',
-    defaultVal: '⇧ Shift',
+    defaultVal: '⇧',
+    accessibleLabel: 'Shift phải',
     className: 'vlk-key-rshift vlk-key-action',
     action: 'shift',
     isActive: isShiftActive.value,
@@ -219,17 +237,19 @@ const row4Keys = computed<KeyDef[]>(() => [
 
 // Row 5: Esc Ctrl Alt Paste Space Left Down Up Right
 const row5Keys = computed<KeyDef[]>(() => [
-  { id: 'esc', defaultVal: 'ESC', className: 'vlk-key-esc vlk-key-action', action: 'esc' },
+  { id: 'esc', defaultVal: '⎋', accessibleLabel: 'Escape', className: 'vlk-key-esc vlk-key-action', action: 'esc' },
   {
     id: 'ctrl',
-    defaultVal: 'Ctrl',
+    defaultVal: '⌃',
+    accessibleLabel: 'Control',
     className: 'vlk-key-ctrl vlk-key-action',
     action: 'ctrl',
     isActive: isCtrlActive.value,
   },
   {
     id: 'alt',
-    defaultVal: 'Alt',
+    defaultVal: '⌥',
+    accessibleLabel: 'Alt',
     className: 'vlk-key-alt vlk-key-action',
     action: 'alt',
     isActive: isAltActive.value,
@@ -237,15 +257,16 @@ const row5Keys = computed<KeyDef[]>(() => [
   {
     id: 'paste',
     defaultVal: 'Dán',
+    accessibleLabel: 'Dán',
     icon: 'ri-clipboard-line',
     className: 'vlk-key-paste vlk-key-action',
     action: 'paste',
   },
-  { id: 'space', defaultVal: '␣ Space', className: 'vlk-key-space' },
-  { id: 'left', defaultVal: '◄', className: 'vlk-key-arrow vlk-key-action', action: 'left' },
-  { id: 'up', defaultVal: '▲', className: 'vlk-key-arrow vlk-key-action', action: 'up' },
-  { id: 'down', defaultVal: '▼', className: 'vlk-key-arrow vlk-key-action', action: 'down' },
-  { id: 'right', defaultVal: '►', className: 'vlk-key-arrow vlk-key-action', action: 'right' },
+  { id: 'space', defaultVal: '␣ Space', accessibleLabel: 'Phím cách', className: 'vlk-key-space' },
+  { id: 'left', defaultVal: '◄', accessibleLabel: 'Mũi tên trái', className: 'vlk-key-arrow vlk-key-action', action: 'left' },
+  { id: 'up', defaultVal: '▲', accessibleLabel: 'Mũi tên lên', className: 'vlk-key-arrow vlk-key-action', action: 'up' },
+  { id: 'down', defaultVal: '▼', accessibleLabel: 'Mũi tên xuống', className: 'vlk-key-arrow vlk-key-action', action: 'down' },
+  { id: 'right', defaultVal: '►', accessibleLabel: 'Mũi tên phải', className: 'vlk-key-arrow vlk-key-action', action: 'right' },
 ]);
 
 function handleKeyPress(k: KeyDef) {
@@ -345,8 +366,8 @@ function handleKeyPress(k: KeyDef) {
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
-  gap: 5px;
+  padding: 3px 3px calc(3px + env(safe-area-inset-bottom, 0px));
+  gap: 3px;
   width: 100%;
   box-sizing: border-box;
   z-index: 50;
@@ -358,7 +379,7 @@ function handleKeyPress(k: KeyDef) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 4px 4px;
+  padding: 1px 2px 2px;
   height: 24px;
 }
 
@@ -406,14 +427,14 @@ function handleKeyPress(k: KeyDef) {
 .vlk-rows {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   width: 100%;
 }
 
 .vlk-row {
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   width: 100%;
 }
 
@@ -429,7 +450,7 @@ function handleKeyPress(k: KeyDef) {
   border-radius: 5px;
   color: #e2e8f0;
   font-family: monospace;
-  font-size: 12.5px;
+  font-size: 18.75px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -450,6 +471,8 @@ function handleKeyPress(k: KeyDef) {
 }
 
 .vlk-label {
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -464,7 +487,7 @@ function handleKeyPress(k: KeyDef) {
   background: #2b1720;
   border-color: #552020;
   color: #fca5a5;
-  font-size: 14px;
+  font-size: 21px;
 }
 .vlk-key-tab {
   flex: 1.4;
@@ -475,10 +498,10 @@ function handleKeyPress(k: KeyDef) {
   flex: 1.4;
 }
 .vlk-key-caps {
-  flex: 1.6;
+  flex: 1.8;
   background: #1a2336;
   color: #93c5fd;
-  font-size: 11px;
+  font-size: 16.5px;
 }
 .vlk-key-enter {
   flex: 2.1;
@@ -486,19 +509,19 @@ function handleKeyPress(k: KeyDef) {
   border-color: #1c5e3d;
   color: #86efac;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 18px;
 }
 .vlk-key-lshift {
   flex: 2.1;
   background: #1a2336;
   color: #cbd5e1;
-  font-size: 11px;
+  font-size: 16.5px;
 }
 .vlk-key-rshift {
   flex: 2.4;
   background: #1a2336;
   color: #cbd5e1;
-  font-size: 11px;
+  font-size: 16.5px;
 }
 
 /* Modifier Bottom Row: Dark Charcoal & Tech Styling */
@@ -506,55 +529,55 @@ function handleKeyPress(k: KeyDef) {
   height: 34px;
 }
 .vlk-key-esc {
-  flex: 1.1;
+  flex: 1.2;
   background: #3b1825;
   border-color: #622236;
   color: #fca5a5;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 16.5px;
 }
 .vlk-key-ctrl {
-  flex: 1.2;
+  flex: 1.6;
   background: #1f1b3b;
   border-color: #3b2d6a;
   color: #c4b5fd;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 16.5px;
 }
 .vlk-key-alt {
-  flex: 1.1;
+  flex: 1.2;
   background: #1a2336;
   border-color: #2b3a55;
   color: #93c5fd;
-  font-size: 11px;
+  font-size: 16.5px;
 }
 .vlk-key-paste {
   flex: 1.1;
   background: #162a3d;
   border-color: #1e4566;
   color: #38bdf8;
-  font-size: 14px;
+  font-size: 21px;
 }
 .vlk-key-space {
   flex: 4.8;
   background: #182236;
   color: #94a3b8;
-  font-size: 11.5px;
+  font-size: 17.25px;
 }
 .vlk-key-arrow {
   flex: 1;
   background: #162035;
   color: #93c5fd;
-  font-size: 12px;
+  font-size: 18px;
 }
 
 @media (max-width: 480px) {
   .vlk-key {
     height: 31px;
-    font-size: 11px;
+    font-size: 16.5px;
   }
   .vlk-key-enter, .vlk-key-lshift, .vlk-key-rshift {
-    font-size: 10px;
+    font-size: 15px;
   }
 }
 </style>

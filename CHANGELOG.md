@@ -1,5 +1,41 @@
 # 📋 Changelog — HugRemote
 
+## [v1.5.3] - 2026-10-25
+
+Bản sửa Context Window dùng dữ liệu native từ Claude CLI, hiển thị đúng model 1M và tự phục hồi khi canonical CLI session identity thay đổi.
+
+### Native Context Window
+- Lấy effective model, token usage, raw context maximum và percentage qua native `get_context_usage` summary.
+- Xóa heuristic theo tên model và fallback `200k` trong Composer, Limits Popup và Session Hub.
+- Model 1M hiển thị đúng `1M`; unavailable hiển thị rõ ràng thay vì số liệu giả.
+
+### Session freshness và race safety
+- Theo dõi `cliSessionId` trong frontend scope identity nhưng không gửi resume ID từ client lên endpoint.
+- Khi hydration nhận CLI session identity mới, tự refetch context đúng một lần và bỏ qua response thuộc identity cũ.
+- Chặn response PATCH cũ ghi đè model/effort mới; `/clear` vô hiệu hóa context ngay và session đã xóa không bị response muộn hồi sinh.
+
+### Backend hardening
+- Ràng buộc context probe theo canonical server/CWD/session; giới hạn bốn probe, coalescing và cache LRU ngắn.
+- Cache key dạng JSON tuple; HTTP error được sanitize theo trusted error classes.
+- Cleanup SIGTERM/SIGKILL, close và EPIPE muộn an toàn.
+
+### Bàn phím ảo Terminal
+- Tăng ký tự phím đúng 1,5 lần và thu gọn padding/gap mà không giảm chiều cao vùng bấm.
+- Dùng legend gọn có accessible name đầy đủ; 62 phím không overflow tại viewport `320/360/375/390/480px`.
+
+### Kiểm chứng
+- PASS `npm run test:claude-context`: 26 backend + 24 frontend.
+- PASS model, resume, stream, UI, Git regression suites và full production build.
+- Independent reviews không còn security/logic findings.
+- Browser production hiển thị `16.7k / 1M · 2.0%` với `hermes-claude[1m]`.
+
+### Phạm vi và giới hạn
+- Account quota 5 giờ/tuần là scope riêng và chưa chuyển sang native `get_usage`.
+- Không cập nhật/restart trong lúc Claude đang generation.
+- Updater caveat có sẵn: `--dry-run` có thể restart service khi đã ở bản mới nhất.
+
+---
+
 ## [v1.5.2] - 2026-10-23
 
 Bản sửa giúp Claude Chat tiếp tục hiển thị tiến độ và giữ lịch sử nhất quán khi rời màn hình rồi quay lại.

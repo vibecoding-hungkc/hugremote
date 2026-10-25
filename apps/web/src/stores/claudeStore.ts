@@ -32,6 +32,7 @@ export interface ClaudeContextUsageScope {
   serverId: string;
   cwd: string;
   model: string;
+  cliSessionId: string;
   generation: number;
 }
 
@@ -146,7 +147,7 @@ export const useClaudeStore = defineStore('claude', () => {
 
   function contextScopeKey(scope: Omit<ClaudeContextUsageScope, 'generation'> | null): string {
     if (!scope) return '';
-    return `${scope.sessionId}::${scope.serverId}::${scope.cwd}::${scope.model}`;
+    return JSON.stringify([scope.sessionId, scope.serverId, scope.cwd, scope.model, scope.cliSessionId]);
   }
 
   function selectedContextScope(generation?: number): ClaudeContextUsageScope | null {
@@ -157,13 +158,15 @@ export const useClaudeStore = defineStore('claude', () => {
       serverId: session.serverId || serverStore.currentServer.id || 'server-local',
       cwd: session.cwd || '',
       model: session.model || '',
+      cliSessionId: session.cliSessionId || '',
       generation: generation ?? (contextUsageGenerations.get(session.id) || 0),
     };
   }
 
   function sameContextScope(a: ClaudeContextUsageScope | null, b: ClaudeContextUsageScope | null) {
     return !!a && !!b && a.sessionId === b.sessionId && a.serverId === b.serverId
-      && a.cwd === b.cwd && a.model === b.model && a.generation === b.generation;
+      && a.cwd === b.cwd && a.model === b.model && a.cliSessionId === b.cliSessionId
+      && a.generation === b.generation;
   }
 
   function blankContextUsage(scope: ClaudeContextUsageScope | null, status: ClaudeContextUsageState['status']): ClaudeContextUsageState {
@@ -525,8 +528,9 @@ export const useClaudeStore = defineStore('claude', () => {
           ctrl.abort();
           contextUsageControllers.delete(id);
         }
+        const requestKeyPrefix = `${JSON.stringify([id]).slice(0, -1)},`;
         for (const key of Array.from(contextUsageRequests.keys())) {
-          if (key.startsWith(`${id}::`)) {
+          if (key.startsWith(requestKeyPrefix)) {
             contextUsageRequests.delete(key);
           }
         }
@@ -1216,6 +1220,7 @@ export const useClaudeStore = defineStore('claude', () => {
     activeSession.value?.serverId || serverStore.currentServer.id || 'server-local',
     activeSession.value?.cwd || '',
     activeSession.value?.model || '',
+    activeSession.value?.cliSessionId || '',
   ]), () => {
     const session = activeSession.value;
     if (!session) return;

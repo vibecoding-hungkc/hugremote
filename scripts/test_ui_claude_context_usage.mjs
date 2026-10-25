@@ -140,7 +140,9 @@ try {
   const { default: ClaudeLimitsPopup } = await vite.ssrLoadModule('/src/components/ClaudeLimitsPopup.vue');
   const { default: ClaudeSessionHubModal } = await vite.ssrLoadModule('/src/components/ClaudeSessionHubModal.vue');
 
-  function fixture({ id = 'session-a', serverId = 'server-a', cwd = '/work/a', model = 'sonnet' } = {}) {
+  function fixture({
+    id = 'session-a', serverId = 'server-a', cwd = '/work/a', model = 'sonnet', cliSessionId,
+  } = {}) {
     const pinia = createPinia();
     setActivePinia(pinia);
     const server = useServerStore(pinia);
@@ -153,7 +155,7 @@ try {
     project.projects = [{ id: `project-${serverId}`, serverId, rootPath: cwd, name: 'Fixture' }];
     const store = useClaudeStore(pinia);
     store.sessions = [{
-      id, serverId, projectId: `project-${serverId}`, cwd, model, mode: 'Auto', name: id,
+      id, serverId, projectId: `project-${serverId}`, cwd, model, cliSessionId, mode: 'Auto', name: id,
       isCustomNamed: false, messages: [{ id: 'u', sender: 'user', text: 'old', time: '00:00' }],
       contextTokens: '999k', updatedAt: 1,
     }];
@@ -442,6 +444,49 @@ try {
     assert.equal(store.contextUsageBySession['session-a'], undefined);
   });
 
+  await test('hydrating a new canonical CLI identity refreshes unavailable native context exactly once without leaking identity in query', async () => {
+    let contextGets = 0;
+    respond = async (url) => {
+      if (url.pathname.endsWith('/context-usage')) {
+        contextGets++;
+        assert.equal(url.searchParams.has('cliSessionId'), false, 'canonical CLI identity is local freshness state only');
+        return {
+          ok: true,
+          json: async () => contextGets === 1
+            ? { context: null, source: 'native' }
+            : context('claude-sonnet-4-5[1m]', 16_749, 1_000_000, 1.6749),
+        };
+      }
+      if (url.pathname === '/api/claude/sessions') {
+        return {
+          ok: true,
+          json: async () => ({ sessions: [{
+            ...store.activeSession,
+            cliSessionId: 'canonical-new',
+          }] }),
+        };
+      }
+      if (url.pathname === '/api/claude/models') {
+        return { ok: true, json: async () => ({ source: 'native', defaultModel: 'sonnet', models: [] }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    };
+
+    const { store } = fixture({ cliSessionId: 'stale-old' });
+    await settle();
+    assert.equal(contextGets, 1);
+    assert.equal(store.currentContextUsage.status, 'unavailable');
+
+    await store.fetchSessions();
+    await settle();
+
+    assert.equal(store.activeSession.cliSessionId, 'canonical-new');
+    assert.equal(contextGets, 2, 'identity-only hydration must issue exactly one replacement context GET');
+    assert.equal(store.currentContextUsage.status, 'available');
+    assert.equal(store.currentContextUsage.context.totalTokens, 16_749);
+    assert.equal(store.currentContextUsage.context.maxTokens, 1_000_000);
+  });
+
   await test('hydration issues exactly one context GET per unchanged scope and coalesces concurrent fetches', async () => {
     resetFixture();
     respond = async () => ({ ok: true, json: async () => context('effective-model', 50_000, 200_000, 25) });
@@ -685,6 +730,48 @@ try {
 
     assert.equal(store.currentContextUsage.context.model, 'opus-current');
     assert.equal(store.currentContextUsage.context.totalTokens, 20);
+  });
+
+  await test('late context response from the pre-hydration CLI identity is ignored even when AbortSignal is ignored', async () => {
+    respectAbortSignal = false;
+    const pendingContext = [];
+    respond = (url) => {
+      if (url.pathname.endsWith('/context-usage')) {
+        assert.equal(url.searchParams.has('cliSessionId'), false);
+        return new Promise((resolve) => pendingContext.push({ url, resolve }));
+      }
+      if (url.pathname === '/api/claude/sessions') {
+        return {
+          ok: true,
+          json: async () => ({ sessions: [{ ...store.activeSession, cliSessionId: 'canonical-new' }] }),
+        };
+      }
+      if (url.pathname === '/api/claude/models') {
+        return { ok: true, json: async () => ({ source: 'native', defaultModel: 'sonnet', models: [] }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    };
+
+    const { store } = fixture({ cliSessionId: 'stale-old' });
+    await nextTick();
+    assert.equal(pendingContext.length, 1);
+
+    await store.fetchSessions();
+    await nextTick();
+    assert.equal(pendingContext.length, 2, 'canonical identity change must start a replacement request');
+
+    pendingContext[1].resolve({
+      ok: true,
+      json: async () => context('canonical-native-1m', 16_749, 1_000_000, 1.6749),
+    });
+    await settle();
+    assert.equal(store.currentContextUsage.status, 'available');
+
+    pendingContext[0].resolve({ ok: true, json: async () => ({ context: null, source: 'native' }) });
+    await settle();
+    assert.equal(store.currentContextUsage.status, 'available');
+    assert.equal(store.currentContextUsage.context.model, 'canonical-native-1m');
+    assert.equal(store.currentContextUsage.context.maxTokens, 1_000_000);
   });
 
   await test('usage is isolated by target and session even when responses complete out of order', async () => {

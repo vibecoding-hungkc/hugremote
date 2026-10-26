@@ -1,0 +1,1 @@
+{"kind": "frame", "data": {"type": "control_response", "response": {"subtype": "success", "request_id": "request-Z1", "response": {"claude_code_version": "2.1.308", "capabilities": ["ui_surface_v1", "mcp_call_result_not_for_model_v1"], "models": [], "agents": [], "commands": [], "session_state": "idle"}, "pending_permission_requests": [], "pending_user_dialog_requests": []}}}

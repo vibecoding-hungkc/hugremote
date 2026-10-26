@@ -1,0 +1,1 @@
+{"kind": "frame", "data": {"type": "result", "subtype": "error_during_execution", "session_id": "session-K", "uuid": "result-K-execution", "is_error": true, "errors": ["sanitized fixture error"], "duration_ms": 50, "num_turns": 1}}

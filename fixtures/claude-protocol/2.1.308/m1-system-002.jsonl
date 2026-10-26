@@ -1,0 +1,5 @@
+{"kind": "frame", "data": {"type": "system", "subtype": "api_retry", "session_id": "session-AB", "uuid": "system-AB1", "attempt": 2, "delay_ms": 10}}
+{"kind": "frame", "data": {"type": "system", "subtype": "api_error", "session_id": "session-AB", "uuid": "system-AB2", "error": "sanitized API error"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "model_fallback", "session_id": "session-AB", "uuid": "system-AB3", "from_model": "fixture-A", "to_model": "fixture-B"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "model_refusal_fallback", "session_id": "session-AB", "uuid": "system-AB4", "from_model": "fixture-B", "to_model": "fixture-C"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "thinking_tokens", "session_id": "session-AB", "uuid": "system-AB5", "token_count": 5}}

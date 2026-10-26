@@ -1,0 +1,2 @@
+{"kind": "frame", "data": {"type": "tool_progress", "session_id": "session-I", "uuid": "progress-I1", "tool_use_id": "tool-I", "tool_name": "GenericLongTask", "parent_tool_use_id": null, "elapsed_time_seconds": 2, "task_id": "task-I", "heartbeat": true}}
+{"kind": "frame", "data": {"type": "tool_use_summary", "session_id": "session-I", "uuid": "summary-I1", "tool_use_id": "tool-I", "summary": "fixture summary"}}

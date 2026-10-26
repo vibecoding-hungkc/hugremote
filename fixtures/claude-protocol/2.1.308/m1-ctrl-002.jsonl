@@ -1,0 +1,1 @@
+{"kind": "frame", "data": {"type": "control_response", "response": {"subtype": "success", "request_id": "request-Z2", "response": {"totalTokens": 120, "percentage": 12, "maxTokens": 1000, "rawMaxTokens": 1000, "model": "fixture-model"}}}}

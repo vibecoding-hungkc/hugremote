@@ -1,0 +1,2 @@
+{"kind": "frame", "data": {"type": "control_request", "request_id": "request-X", "request": {"subtype": "request_user_dialog", "title": "Fixture question", "message": "Choose a fixture option", "options": [{"id": "one", "label": "One"}, {"id": "two", "label": "Two"}]}}}
+{"kind": "frame", "data": {"type": "control_response", "response": {"subtype": "success", "request_id": "request-X", "response": {"selected_option_id": "two"}}}}

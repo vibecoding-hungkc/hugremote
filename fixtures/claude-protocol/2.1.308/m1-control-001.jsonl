@@ -1,0 +1,4 @@
+{"kind": "frame", "data": {"type": "control_request", "request_id": "request-AF", "request": {"subtype": "get_context_usage", "detail": "summary"}}}
+{"kind": "frame", "data": {"type": "keep_alive"}}
+{"kind": "frame", "data": {"type": "control_cancel_request", "request_id": "request-AF"}}
+{"kind": "frame", "data": {"type": "control_response", "response": {"subtype": "error", "request_id": "request-AF", "error": "sanitized cancelled", "error_code": "cancelled", "pending_permission_requests": [], "pending_user_dialog_requests": []}}}

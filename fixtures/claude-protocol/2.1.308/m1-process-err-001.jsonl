@@ -1,0 +1,4 @@
+{"kind": "frame", "data": {"type": "stream_event", "session_id": "session-L", "uuid": "frame-L1", "parent_tool_use_id": null, "event": {"type": "message_start", "message": {"id": "message-L", "content": []}}}}
+{"kind": "frame", "data": {"type": "stream_event", "session_id": "session-L", "uuid": "frame-L2", "parent_tool_use_id": null, "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": "partial"}}}}
+{"kind": "frame", "data": {"transport_event": "stderr", "text": "sanitized provider failure"}}
+{"kind": "frame", "data": {"transport_event": "close", "exit_code": 1, "signal": null}}

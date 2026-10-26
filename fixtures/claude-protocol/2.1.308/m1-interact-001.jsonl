@@ -1,0 +1,2 @@
+{"kind": "frame", "data": {"type": "control_request", "request_id": "request-W", "request": {"subtype": "can_use_tool", "tool_name": "FixtureTool", "input": {"target": "fixture-resource"}, "permission_suggestions": []}}}
+{"kind": "frame", "data": {"type": "control_response", "response": {"subtype": "success", "request_id": "request-W", "response": {"behavior": "allow"}}}}

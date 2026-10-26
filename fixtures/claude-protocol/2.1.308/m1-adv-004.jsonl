@@ -1,0 +1,2 @@
+{"kind": "frame", "data": {"transport_event": "stdout-line", "raw": "{\"type\":\"assistant\", malformed"}}
+{"kind": "frame", "data": {"type": "assistant", "session_id": "session-S", "uuid": "snapshot-S", "parent_tool_use_id": null, "message": {"id": "message-S", "content": [{"type": "text", "text": "survives"}]}}}

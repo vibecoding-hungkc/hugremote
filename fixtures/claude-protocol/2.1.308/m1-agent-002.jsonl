@@ -1,0 +1,5 @@
+{"kind": "frame", "data": {"type": "system", "subtype": "task_started", "session_id": "session-O", "uuid": "system-O1", "task_id": "task-O", "tool_use_id": "parent-tool-O", "description": "fixture child task", "task_type": "local_agent"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "task_progress", "session_id": "session-O", "uuid": "system-O2", "task_id": "task-O", "usage": {"total_tokens": 5}, "last_tool_name": "FixtureTool", "summary": "working"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "task_updated", "session_id": "session-O", "uuid": "system-O3", "task_id": "task-O", "status": "running"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "background_tasks_changed", "session_id": "session-O", "uuid": "system-O4", "task_ids": ["task-O"]}}
+{"kind": "frame", "data": {"type": "system", "subtype": "task_notification", "session_id": "session-O", "uuid": "system-O5", "task_id": "task-O", "status": "completed", "summary": "done"}}

@@ -1,0 +1,5 @@
+{"kind": "frame", "data": {"type": "auth_status", "session_id": "session-V", "uuid": "auth-V", "status": "authenticated"}}
+{"kind": "frame", "data": {"type": "command_lifecycle", "session_id": "session-V", "uuid": "command-V", "command_id": "command-V1", "status": "completed"}}
+{"kind": "frame", "data": {"type": "conversation_reset", "session_id": "session-V", "uuid": "reset-V", "reason": "fixture"}}
+{"kind": "frame", "data": {"type": "prompt_suggestion", "session_id": "session-V", "uuid": "suggestion-V", "suggestion": "sanitized suggestion"}}
+{"kind": "frame", "data": {"type": "rate_limit_event", "session_id": "session-V", "uuid": "rate-V", "rate_limit_type": "fixture-window", "status": "allowed"}}

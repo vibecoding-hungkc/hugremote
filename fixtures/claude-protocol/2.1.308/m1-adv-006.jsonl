@@ -1,0 +1,2 @@
+{"kind": "frame", "data": {"transport_event": "stdout-trailing-bytes", "utf8": "{\"type\":\"assistant\",\"message\":{\"id\":\"message-U\",\"content\":["}}
+{"kind": "frame", "data": {"transport_event": "close", "exit_code": 0, "signal": null}}

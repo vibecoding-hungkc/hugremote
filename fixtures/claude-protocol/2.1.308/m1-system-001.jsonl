@@ -1,0 +1,8 @@
+{"kind": "frame", "data": {"type": "system", "subtype": "init", "session_id": "session-AA", "uuid": "system-AA1", "model": "fixture-model", "permissionMode": "manual"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "status", "session_id": "session-AA", "uuid": "system-AA2", "status": "working"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "compact_boundary", "session_id": "session-AA", "uuid": "system-AA3", "compact_metadata": {"trigger": "fixture"}}}
+{"kind": "frame", "data": {"type": "system", "subtype": "post_turn_summary", "session_id": "session-AA", "uuid": "system-AA4", "summary": "sanitized summary"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "session_metadata", "session_id": "session-AA", "uuid": "system-AA5", "metadata": {"fixture": true}}}
+{"kind": "frame", "data": {"type": "system", "subtype": "session_state_changed", "session_id": "session-AA", "uuid": "system-AA6", "state": "idle"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "conversation_reset", "session_id": "session-AA", "uuid": "system-AA7", "reason": "fixture"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "turn_preempted", "session_id": "session-AA", "uuid": "system-AA8", "reason": "fixture"}}

@@ -1,0 +1,1 @@
+{"kind": "frame", "data": {"type": "result", "subtype": "error_max_budget_usd", "session_id": "session-K", "uuid": "result-K-max-budget", "is_error": true, "errors": ["sanitized fixture error"], "duration_ms": 50, "num_turns": 1}}

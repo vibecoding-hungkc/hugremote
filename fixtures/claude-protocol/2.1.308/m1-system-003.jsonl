@@ -1,0 +1,6 @@
+{"kind": "frame", "data": {"type": "system", "subtype": "hook_started", "session_id": "session-AC", "uuid": "system-AC1", "hook_id": "hook-AC", "hook_name": "FixtureHook"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "hook_progress", "session_id": "session-AC", "uuid": "system-AC2", "hook_id": "hook-AC", "progress": "working"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "hook_response", "session_id": "session-AC", "uuid": "system-AC3", "hook_id": "hook-AC", "status": "success"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "plugin_install", "session_id": "session-AC", "uuid": "system-AC4", "plugin_name": "fixture-plugin", "status": "installed"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "files_persisted", "session_id": "session-AC", "uuid": "system-AC5", "count": 1}}
+{"kind": "frame", "data": {"type": "system", "subtype": "file_snapshot", "session_id": "session-AC", "uuid": "system-AC6", "snapshot_id": "file-snapshot-AC"}}

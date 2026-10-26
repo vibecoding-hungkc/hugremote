@@ -1,0 +1,1 @@
+{"kind": "frame", "data": {"type": "control_request", "request_id": "request-Y", "request": {"subtype": "elicitation", "server_name": "fixture-server", "message": "sanitized elicitation", "requested_schema": {"type": "object", "properties": {"choice": {"type": "string"}}}}}}

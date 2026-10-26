@@ -1,0 +1,6 @@
+{"kind": "frame", "data": {"type": "system", "subtype": "permission_retry", "session_id": "session-AD", "uuid": "system-AD1", "request_id": "request-AD"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "permission_denied", "session_id": "session-AD", "uuid": "system-AD2", "request_id": "request-AD"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "permission_check_status", "session_id": "session-AD", "uuid": "system-AD3", "request_id": "request-AD", "status": "denied"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "elicitation_complete", "session_id": "session-AD", "uuid": "system-AD4", "request_id": "request-AD2"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "commands_changed", "session_id": "session-AD", "uuid": "system-AD5"}}
+{"kind": "frame", "data": {"type": "system", "subtype": "local_command_output", "session_id": "session-AD", "uuid": "system-AD6", "content": "sanitized output"}}

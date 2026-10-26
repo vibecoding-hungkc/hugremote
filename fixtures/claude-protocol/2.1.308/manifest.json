@@ -1,0 +1,2743 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "2.1.308",
+  "sanitizedAtProducerBoundary": true,
+  "fixtures": [
+    {
+      "id": "m1-text-001",
+      "file": "m1-text-001.jsonl",
+      "title": "Incremental text with message metadata and final snapshot",
+      "category": "text",
+      "evidenceClass": "static-derived",
+      "recordCount": 8,
+      "sha256": "702f601d1184b0401fcc998e29ba2ec55e3259f5ec4f16fc33d3f5d721d16033",
+      "coverage": [
+        "text"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3850477
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3674622
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3676294
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3869902
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241260872
+        }
+      ],
+      "expectedClassifications": [
+        "frame.stream-event",
+        "stream.message-lifecycle",
+        "delta.text",
+        "frame.assistant",
+        "reconcile.authoritative"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.stream-event",
+          "stream.message-lifecycle",
+          "delta.text",
+          "frame.assistant",
+          "reconcile.authoritative"
+        ],
+        "state": {
+          "rootMessages": [
+            {
+              "messageId": "message-A",
+              "blocks": [
+                {
+                  "index": 0,
+                  "type": "text",
+                  "text": "alpha beta",
+                  "status": "complete"
+                }
+              ],
+              "stopReason": "end_turn"
+            }
+          ],
+          "visibleText": "alpha beta",
+          "diagnostics": [],
+          "deduplicatedSnapshot": true
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "message_delta stop/usage metadata is silently ignored",
+          "session/frame UUID identity is not retained",
+          "normalized state cannot round-trip block lifecycle"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.assistant",
+        "stream.message-start",
+        "stream.message-delta",
+        "stream.content-block-start",
+        "stream.content-block-delta",
+        "stream.content-block-stop",
+        "stream.message-stop",
+        "delta.text",
+        "block.text"
+      ]
+    },
+    {
+      "id": "m1-text-002",
+      "file": "m1-text-002.jsonl",
+      "title": "Authoritative non-prefix correction and reconnect snapshot",
+      "category": "text",
+      "evidenceClass": "static-derived",
+      "recordCount": 4,
+      "sha256": "4cccacae5fd583ad0561e09fcde28fdfc2d9bb33172719be4e9f237fdea4fdfd",
+      "coverage": [
+        "text"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3869902
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3850477
+        }
+      ],
+      "expectedClassifications": [
+        "frame.stream-event",
+        "frame.assistant",
+        "reconcile.replace",
+        "reconnect.snapshot"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.stream-event",
+          "frame.assistant",
+          "reconcile.replace",
+          "reconnect.snapshot"
+        ],
+        "state": {
+          "visibleText": "final",
+          "messageCount": 1,
+          "duplicateFramesIgnored": 1,
+          "canonicalSnapshotId": "snapshot-B",
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "text correction passes, but canonical snapshot UUID/reconnect identity is not represented"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "reconnect.snapshot-future"
+      ]
+    },
+    {
+      "id": "m1-think-001",
+      "file": "m1-think-001.jsonl",
+      "title": "Thinking and text interleaved by block index",
+      "category": "thinking",
+      "evidenceClass": "static-derived",
+      "recordCount": 6,
+      "sha256": "1c9b55427a313199819db49d359e89d13732ca0ac9ce79d51560a2495f64f61b",
+      "coverage": [
+        "thinking"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3676810
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241079928
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3869902
+        }
+      ],
+      "expectedClassifications": [
+        "delta.thinking",
+        "block.thinking",
+        "delta.text",
+        "block.text",
+        "reconcile.authoritative"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "delta.thinking",
+          "block.thinking",
+          "delta.text",
+          "block.text",
+          "reconcile.authoritative"
+        ],
+        "state": {
+          "messages": [
+            {
+              "messageId": "message-C",
+              "blocks": [
+                {
+                  "index": 0,
+                  "type": "thinking",
+                  "text": "reason one",
+                  "visibility": "collapsible"
+                },
+                {
+                  "index": 1,
+                  "type": "text",
+                  "text": "answer done"
+                }
+              ]
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "visible thinking/text passes, but signature and typed block identity are dropped"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "delta.thinking",
+        "block.thinking"
+      ]
+    },
+    {
+      "id": "m1-think-002",
+      "file": "m1-think-002.jsonl",
+      "title": "Thinking signature plus redacted thinking placeholder",
+      "category": "thinking",
+      "evidenceClass": "static-derived",
+      "recordCount": 4,
+      "sha256": "efe6dd6882d9f43027d8e97ac912e38f238f896454c263323952b68db93da0c2",
+      "coverage": [
+        "thinking"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3676987
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241079989
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3676845
+        }
+      ],
+      "expectedClassifications": [
+        "delta.signature",
+        "block.redacted-thinking",
+        "content.sensitive-placeholder"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "delta.signature",
+          "block.redacted-thinking",
+          "content.sensitive-placeholder"
+        ],
+        "state": {
+          "messages": [
+            {
+              "messageId": "message-D",
+              "blocks": [
+                {
+                  "index": 0,
+                  "type": "redacted_thinking",
+                  "status": "complete",
+                  "display": "redacted-placeholder"
+                }
+              ]
+            }
+          ],
+          "signaturesStoredAsOpaqueMetadata": true,
+          "hiddenDataRendered": false,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "signature_delta is ignored",
+          "redacted_thinking is silently dropped instead of represented safely"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "delta.signature",
+        "block.redacted-thinking"
+      ]
+    },
+    {
+      "id": "m1-snapshot-001",
+      "file": "m1-snapshot-001.jsonl",
+      "title": "Split single-block snapshots retain stream indices",
+      "category": "split-snapshots",
+      "evidenceClass": "static-derived",
+      "recordCount": 7,
+      "sha256": "cc82c00e19315634ee29a6504e388b821bf5d53c44c0b10546fdd8170ba29078",
+      "coverage": [
+        "split-snapshot"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3869902
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3674706
+        }
+      ],
+      "expectedClassifications": [
+        "snapshot.split",
+        "reconcile.by-message-block",
+        "block.thinking",
+        "block.text"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "snapshot.split",
+          "reconcile.by-message-block",
+          "block.thinking",
+          "block.text"
+        ],
+        "state": {
+          "messages": [
+            {
+              "messageId": "message-E",
+              "blocks": [
+                {
+                  "index": 0,
+                  "type": "thinking",
+                  "text": "reason"
+                },
+                {
+                  "index": 1,
+                  "type": "text",
+                  "text": "answer"
+                }
+              ]
+            }
+          ],
+          "visibleText": "answer",
+          "thinkingText": "reason",
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "pass",
+        "failingAssertions": []
+      },
+      "coversMatrixCapabilities": [
+        "frame.assistant",
+        "block.text",
+        "block.thinking"
+      ]
+    },
+    {
+      "id": "m1-tool-001",
+      "file": "m1-tool-001.jsonl",
+      "title": "Sequential tool turns preserve message and tool identity",
+      "category": "tools-sequential",
+      "evidenceClass": "static-derived",
+      "recordCount": 4,
+      "sha256": "b3f06ef1bc49d9ad5f737bb37bbda25e062e46d8bf910f82fd74782ae571e5a9",
+      "coverage": [
+        "sequential-tools"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241169685
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241142064
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241079670
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3869902
+        }
+      ],
+      "expectedClassifications": [
+        "frame.assistant",
+        "frame.user",
+        "block.tool-use",
+        "block.tool-result",
+        "tool.lifecycle.sequential"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.assistant",
+          "frame.user",
+          "block.tool-use",
+          "block.tool-result",
+          "tool.lifecycle.sequential"
+        ],
+        "state": {
+          "tools": [
+            {
+              "id": "tool-F1",
+              "nativeName": "Bash",
+              "input": {
+                "command": "printf fixture-one"
+              },
+              "status": "done",
+              "result": "fixture-one"
+            },
+            {
+              "id": "tool-F2",
+              "nativeName": "Read",
+              "input": {
+                "file_path": "fixture://document-A"
+              },
+              "status": "done",
+              "result": [
+                {
+                  "type": "text",
+                  "text": "fixture-two"
+                }
+              ]
+            }
+          ],
+          "messageOrder": [
+            "message-F1",
+            "message-F2"
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "structured tool result is stringified",
+          "native tool name and complete structured input cannot round-trip"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.user",
+        "block.tool-use",
+        "block.tool-result"
+      ]
+    },
+    {
+      "id": "m1-tool-002",
+      "file": "m1-tool-002.jsonl",
+      "title": "Parallel tool blocks assemble independently",
+      "category": "tools-parallel",
+      "evidenceClass": "static-derived",
+      "recordCount": 8,
+      "sha256": "cc97f8549d2a6a63dac02633d1a6a96e3c53be8baf8e7c7288f027f1606766a5",
+      "coverage": [
+        "parallel-tools"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3676553
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 243507464
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5233113
+        }
+      ],
+      "expectedClassifications": [
+        "delta.input-json",
+        "tool.lifecycle.parallel",
+        "tool.receiving-input",
+        "tool.generic"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "delta.input-json",
+          "tool.lifecycle.parallel",
+          "tool.receiving-input",
+          "tool.generic"
+        ],
+        "state": {
+          "tools": [
+            {
+              "id": "tool-G1",
+              "blockIndex": 0,
+              "nativeName": "GenericOne",
+              "input": {
+                "value": "one"
+              },
+              "status": "running"
+            },
+            {
+              "id": "tool-G2",
+              "blockIndex": 1,
+              "nativeName": "GenericTwo",
+              "input": {
+                "value": "two"
+              },
+              "status": "running"
+            }
+          ],
+          "partialInputNeverExecutable": true,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "no receiving-input state is emitted",
+          "partial inputs are intentionally discarded",
+          "generic tools are coerced to bash and lose native identity/input"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "delta.input-json",
+        "tool.lifecycle",
+        "tool.generic-renderer"
+      ]
+    },
+    {
+      "id": "m1-tool-003",
+      "file": "m1-tool-003.jsonl",
+      "title": "Server tool and structured specialized result",
+      "category": "tools-server",
+      "evidenceClass": "static-derived",
+      "recordCount": 2,
+      "sha256": "21122522ce069f8d133760ec9e7ac2e4438e265fcd60870e94ce78906d040a42",
+      "coverage": [
+        "sequential-tools"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241076286
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 4145993
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5311579
+        }
+      ],
+      "expectedClassifications": [
+        "block.server-tool-use",
+        "block.tool-result.specialized",
+        "tool.generic"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "block.server-tool-use",
+          "block.tool-result.specialized",
+          "tool.generic"
+        ],
+        "state": {
+          "tools": [
+            {
+              "id": "tool-H",
+              "kind": "server_tool_use",
+              "nativeName": "web_search",
+              "input": {
+                "query": "synthetic prompt"
+              },
+              "status": "done",
+              "resultType": "web_search_tool_result"
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "server_tool_use is silently dropped",
+          "result has no matching tool and structured content is stringified"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "block.server-tool-use",
+        "tool.generic-renderer"
+      ]
+    },
+    {
+      "id": "m1-tool-004",
+      "file": "m1-tool-004.jsonl",
+      "title": "Tool progress and tool-use summary remain typed",
+      "category": "tools-progress",
+      "evidenceClass": "static-derived",
+      "recordCount": 2,
+      "sha256": "fe72884bd9eabdf779131a78d83cb30188ba815cfce0ab361d3dbc7c215f385f",
+      "coverage": [
+        "sequential-tools"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241296126
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3750465
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3750482
+        }
+      ],
+      "expectedClassifications": [
+        "frame.tool-progress",
+        "frame.tool-use-summary",
+        "tool.progress"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.tool-progress",
+          "frame.tool-use-summary",
+          "tool.progress"
+        ],
+        "state": {
+          "tools": [
+            {
+              "id": "tool-I",
+              "nativeName": "GenericLongTask",
+              "elapsedSeconds": 2,
+              "heartbeat": true,
+              "summary": "fixture summary"
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "both top-level frames are silently ignored"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.tool-progress",
+        "frame.tool-use-summary"
+      ]
+    },
+    {
+      "id": "m1-result-001",
+      "file": "m1-result-001.jsonl",
+      "title": "Successful result retains subtype, usage, cost and duration",
+      "category": "result",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "5adb20354969bad527d6a9273448b9f4047694f2b1afb0ede61ea5f6d56ddf35",
+      "coverage": [
+        "text"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241209112
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3856547
+        }
+      ],
+      "expectedClassifications": [
+        "frame.result",
+        "result.success",
+        "usage.turn"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.result",
+          "result.success",
+          "usage.turn"
+        ],
+        "state": {
+          "terminal": true,
+          "status": "success",
+          "text": "final answer",
+          "durationMs": 120,
+          "apiDurationMs": 100,
+          "costUsd": 0.01,
+          "turns": 2,
+          "usage": {
+            "input_tokens": 10,
+            "output_tokens": 3
+          },
+          "modelUsageKeys": [
+            "fixture-model"
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "result subtype, cost, duration, turn count and model breakdown are dropped"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.result"
+      ]
+    },
+    {
+      "id": "m1-result-err-execution",
+      "file": "m1-result-err-execution.jsonl",
+      "title": "Result error subtype error_during_execution",
+      "category": "errors",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "57dd9e3229f16e88d9514ecd0f62e8e486d543d6f231d9d3168a3a54173c8ada",
+      "coverage": [
+        "tool-error"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241235148
+        }
+      ],
+      "expectedClassifications": [
+        "frame.result",
+        "result.error_during_execution",
+        "terminal.error"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.result",
+          "result.error_during_execution",
+          "terminal.error"
+        ],
+        "state": {
+          "terminal": true,
+          "status": "error",
+          "errorSubtype": "error_during_execution",
+          "messages": [
+            "sanitized fixture error"
+          ],
+          "durationMs": 50,
+          "turns": 1,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "frame is emitted as a normal done event rather than a typed error",
+          "error subtype and metadata are lost"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.result"
+      ]
+    },
+    {
+      "id": "m1-result-err-max-turns",
+      "file": "m1-result-err-max-turns.jsonl",
+      "title": "Result error subtype error_max_turns",
+      "category": "errors",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "79804b53be96931d134f42c6b7b163d2cf248c80a1edf234350d6b58cb93a224",
+      "coverage": [
+        "tool-error"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241235148
+        }
+      ],
+      "expectedClassifications": [
+        "frame.result",
+        "result.error_max_turns",
+        "terminal.error"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.result",
+          "result.error_max_turns",
+          "terminal.error"
+        ],
+        "state": {
+          "terminal": true,
+          "status": "error",
+          "errorSubtype": "error_max_turns",
+          "messages": [
+            "sanitized fixture error"
+          ],
+          "durationMs": 50,
+          "turns": 1,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "frame is emitted as a normal done event rather than a typed error",
+          "error subtype and metadata are lost"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.result"
+      ]
+    },
+    {
+      "id": "m1-result-err-max-budget",
+      "file": "m1-result-err-max-budget.jsonl",
+      "title": "Result error subtype error_max_budget_usd",
+      "category": "errors",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "0d0ed01c0744a2b308afe03a62866d7f1a5559704bddd986f89532a75d1e87b2",
+      "coverage": [
+        "tool-error"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241235148
+        }
+      ],
+      "expectedClassifications": [
+        "frame.result",
+        "result.error_max_budget_usd",
+        "terminal.error"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.result",
+          "result.error_max_budget_usd",
+          "terminal.error"
+        ],
+        "state": {
+          "terminal": true,
+          "status": "error",
+          "errorSubtype": "error_max_budget_usd",
+          "messages": [
+            "sanitized fixture error"
+          ],
+          "durationMs": 50,
+          "turns": 1,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "frame is emitted as a normal done event rather than a typed error",
+          "error subtype and metadata are lost"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.result"
+      ]
+    },
+    {
+      "id": "m1-result-err-structured-retries",
+      "file": "m1-result-err-structured-retries.jsonl",
+      "title": "Result error subtype error_max_structured_output_retries",
+      "category": "errors",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "2d985d4a04e576711c0a22f3b40f35239133d29aecaf944a274d554126536c3f",
+      "coverage": [
+        "tool-error"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241235148
+        }
+      ],
+      "expectedClassifications": [
+        "frame.result",
+        "result.error_max_structured_output_retries",
+        "terminal.error"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.result",
+          "result.error_max_structured_output_retries",
+          "terminal.error"
+        ],
+        "state": {
+          "terminal": true,
+          "status": "error",
+          "errorSubtype": "error_max_structured_output_retries",
+          "messages": [
+            "sanitized fixture error"
+          ],
+          "durationMs": 50,
+          "turns": 1,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "frame is emitted as a normal done event rather than a typed error",
+          "error subtype and metadata are lost"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.result"
+      ]
+    },
+    {
+      "id": "m1-process-err-001",
+      "file": "m1-process-err-001.jsonl",
+      "title": "Nonzero process exit after partial output",
+      "category": "errors",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 4,
+      "sha256": "e9bc022549e62efe9e3c47d176295315a3511487df42db7e9144dff8e11d1ace",
+      "coverage": [
+        "tool-error"
+      ],
+      "provenance": [
+        {
+          "source": "hugremote-v1.5.3",
+          "synthetic": true
+        }
+      ],
+      "expectedClassifications": [
+        "transport.stderr",
+        "transport.nonzero-exit",
+        "terminal.error"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "transport.stderr",
+          "transport.nonzero-exit",
+          "terminal.error"
+        ],
+        "state": {
+          "terminal": true,
+          "status": "error",
+          "partialText": "partial",
+          "errorText": "sanitized provider failure",
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "pass",
+        "failingAssertions": []
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-cancel-001",
+      "file": "m1-cancel-001.jsonl",
+      "title": "Cancellation closes running tools without success",
+      "category": "cancel",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 2,
+      "sha256": "1a3e78e9a0e08ce22a1d771e53eef282c4ed991e4416676782ea449914301bd4",
+      "coverage": [
+        "cancellation"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241622107
+        },
+        {
+          "source": "hugremote-v1.5.3",
+          "synthetic": true
+        }
+      ],
+      "expectedClassifications": [
+        "transport.cancel",
+        "terminal.cancelled",
+        "tool.cancelled"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "transport.cancel",
+          "terminal.cancelled",
+          "tool.cancelled"
+        ],
+        "state": {
+          "terminal": true,
+          "status": "cancelled",
+          "tools": [
+            {
+              "id": "tool-M",
+              "status": "cancelled"
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "running tool is downgraded to generic error instead of cancelled",
+          "terminal text is localized presentation text rather than typed cancellation state"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "tool.lifecycle"
+      ]
+    },
+    {
+      "id": "m1-agent-001",
+      "file": "m1-agent-001.jsonl",
+      "title": "Root and child streams with colliding message IDs stay isolated",
+      "category": "child-agents",
+      "evidenceClass": "static-derived",
+      "recordCount": 6,
+      "sha256": "eda5741d6d9d43a715e7e069f664c2fc3e2bcab9cc67c4ccb51e5a0d74a3fbda",
+      "coverage": [
+        "child-agent"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3673608
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3850477
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241260872
+        }
+      ],
+      "expectedClassifications": [
+        "agent.parent-namespace",
+        "frame.stream-event",
+        "frame.assistant"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "agent.parent-namespace",
+          "frame.stream-event",
+          "frame.assistant"
+        ],
+        "state": {
+          "namespaces": {
+            "root": {
+              "visibleText": "root"
+            },
+            "parent-tool-N": {
+              "visibleText": "child"
+            }
+          },
+          "rootContaminated": false,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "child namespace is intentionally dropped; only root survives"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "agent.parent-namespace"
+      ]
+    },
+    {
+      "id": "m1-agent-002",
+      "file": "m1-agent-002.jsonl",
+      "title": "Child task lifecycle and progress state",
+      "category": "child-agents",
+      "evidenceClass": "static-derived",
+      "recordCount": 5,
+      "sha256": "a168a516592bd10ea8238909464007b63ff21e102a97c066a49016c3de8752a0",
+      "coverage": [
+        "child-agent"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3858356
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3861556
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3862247
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241300824
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241323445
+        }
+      ],
+      "expectedClassifications": [
+        "system.task-started",
+        "system.task-progress",
+        "system.task-updated",
+        "system.background-tasks-changed",
+        "system.task-notification",
+        "agent.task-lifecycle"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "system.task-started",
+          "system.task-progress",
+          "system.task-updated",
+          "system.background-tasks-changed",
+          "system.task-notification",
+          "agent.task-lifecycle"
+        ],
+        "state": {
+          "agents": [
+            {
+              "taskId": "task-O",
+              "parentToolUseId": "parent-tool-O",
+              "status": "completed",
+              "summary": "done",
+              "recentTools": [
+                "FixtureTool"
+              ],
+              "totalTokens": 5
+            }
+          ],
+          "activeTaskIds": [],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "all native task lifecycle frames are ignored; no child-agent state exists"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "agent.task-lifecycle",
+        "system.task-progress"
+      ]
+    },
+    {
+      "id": "m1-adv-001",
+      "file": "m1-adv-001.jsonl",
+      "title": "Unknown top-level frame produces bounded diagnostic",
+      "category": "unknown-malformed",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 1,
+      "sha256": "0742e3e440db894e0c8caf0edfa1c069bb76370b3fbab6f442da3e7306eff1f2",
+      "coverage": [
+        "unknown-frame"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5234029
+        },
+        {
+          "source": "protocol-report",
+          "synthetic": true
+        }
+      ],
+      "expectedClassifications": [
+        "unknown.top-level",
+        "diagnostic.protocol-unknown"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "unknown.top-level",
+          "diagnostic.protocol-unknown"
+        ],
+        "state": {
+          "messages": [],
+          "diagnostics": [
+            {
+              "code": "unknown-top-level-frame",
+              "frameType": "future_frame",
+              "bounded": true,
+              "rawPayloadPersisted": false
+            }
+          ],
+          "continued": true
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "unknown frame is silently dropped with no diagnostic"
+        ]
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-adv-002",
+      "file": "m1-adv-002.jsonl",
+      "title": "Unknown assistant content block produces placeholder",
+      "category": "unknown-malformed",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 1,
+      "sha256": "b4aeb3ae8cea3255c526f3104d0bd818b2681654cf2e1ed4b84e9103528d853a",
+      "coverage": [
+        "malformed-frame"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5234029
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5311176
+        }
+      ],
+      "expectedClassifications": [
+        "frame.assistant",
+        "unknown.content-block",
+        "diagnostic.protocol-unknown"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.assistant",
+          "unknown.content-block",
+          "diagnostic.protocol-unknown"
+        ],
+        "state": {
+          "messages": [
+            {
+              "messageId": "message-Q",
+              "blocks": [
+                {
+                  "index": 0,
+                  "type": "unknown",
+                  "originalType": "future_content",
+                  "display": "Unsupported content"
+                }
+              ]
+            }
+          ],
+          "diagnostics": [
+            {
+              "code": "unknown-content-block",
+              "originalType": "future_content",
+              "bounded": true,
+              "rawPayloadPersisted": false
+            }
+          ]
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "unknown block is silently dropped"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "block.unknown-fallback"
+      ]
+    },
+    {
+      "id": "m1-adv-003",
+      "file": "m1-adv-003.jsonl",
+      "title": "Unknown stream event and delta do not corrupt known blocks",
+      "category": "unknown-malformed",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 4,
+      "sha256": "f0078f6da024a2d84e838bc76ad431f2627bc3948f2d6492c89091866ca37d64",
+      "coverage": [
+        "truncated-frame"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3676247
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3850477
+        }
+      ],
+      "expectedClassifications": [
+        "unknown.stream-event",
+        "unknown.delta",
+        "diagnostic.protocol-unknown"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "unknown.stream-event",
+          "unknown.delta",
+          "diagnostic.protocol-unknown"
+        ],
+        "state": {
+          "visibleText": "kept",
+          "diagnostics": [
+            {
+              "code": "unknown-stream-event",
+              "eventType": "future_event",
+              "bounded": true
+            },
+            {
+              "code": "unknown-delta",
+              "deltaType": "future_delta",
+              "bounded": true
+            }
+          ],
+          "continued": true
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "unknown event and delta are silently ignored without diagnostics"
+        ]
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-adv-004",
+      "file": "m1-adv-004.jsonl",
+      "title": "Malformed NDJSON line is diagnosed and following frame survives",
+      "category": "unknown-malformed",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 2,
+      "sha256": "180528d8e03e41d62a6e12558382798461a93921d6a9b6b6ae888987cbcc7f47",
+      "coverage": [
+        "unknown-malformed"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2698729
+        }
+      ],
+      "expectedClassifications": [
+        "transport.malformed-json",
+        "diagnostic.parse-error",
+        "frame.assistant"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "transport.malformed-json",
+          "diagnostic.parse-error",
+          "frame.assistant"
+        ],
+        "state": {
+          "visibleText": "survives",
+          "diagnostics": [
+            {
+              "code": "malformed-json-line",
+              "lineNumber": 1,
+              "bounded": true,
+              "rawLinePersisted": false
+            }
+          ],
+          "continued": true
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "malformed line is silently dropped with no diagnostic"
+        ]
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-adv-005",
+      "file": "m1-adv-005.jsonl",
+      "title": "Valid final JSON frame without newline is parsed on close",
+      "category": "unknown-malformed",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 2,
+      "sha256": "8c104c3a8c7009778e402f2285988da9a33159848d1f14af284ec6a340927a3f",
+      "coverage": [
+        "unknown-malformed"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2698729
+        },
+        {
+          "source": "hugremote-v1.5.3",
+          "synthetic": true
+        }
+      ],
+      "expectedClassifications": [
+        "transport.trailing-frame",
+        "frame.assistant"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "transport.trailing-frame",
+          "frame.assistant"
+        ],
+        "state": {
+          "visibleText": "tail",
+          "diagnostics": [],
+          "terminal": true
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "pass",
+        "failingAssertions": []
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-adv-006",
+      "file": "m1-adv-006.jsonl",
+      "title": "Truncated final JSON is reported without fabricated state",
+      "category": "unknown-malformed",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 2,
+      "sha256": "de7dcadfb57d19cdfcdb7f0e7ecb4adbe8b1478ade823bfc24bb478e674f4b59",
+      "coverage": [
+        "unknown-malformed"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2698729
+        }
+      ],
+      "expectedClassifications": [
+        "transport.truncated-json",
+        "diagnostic.parse-error"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "transport.truncated-json",
+          "diagnostic.parse-error"
+        ],
+        "state": {
+          "messages": [],
+          "diagnostics": [
+            {
+              "code": "truncated-json-on-close",
+              "bounded": true,
+              "rawLinePersisted": false
+            }
+          ],
+          "terminal": true,
+          "fabricatedContent": false
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "truncated tail is silently dropped and successful close can appear clean"
+        ]
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-frame-001",
+      "file": "m1-frame-001.jsonl",
+      "title": "Auxiliary top-level status families classify independently",
+      "category": "top-level-families",
+      "evidenceClass": "static-derived",
+      "recordCount": 5,
+      "sha256": "998e209f1df6b35db353825022b678323ae3e708b6a4fca6f3fd9ad8fa8c1b30",
+      "coverage": [
+        "top-level-families"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3750330
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3750345
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3750366
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3750388
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3750409
+        }
+      ],
+      "expectedClassifications": [
+        "frame.auth-status",
+        "frame.command-lifecycle",
+        "frame.conversation-reset",
+        "frame.prompt-suggestion",
+        "frame.rate-limit-event"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.auth-status",
+          "frame.command-lifecycle",
+          "frame.conversation-reset",
+          "frame.prompt-suggestion",
+          "frame.rate-limit-event"
+        ],
+        "state": {
+          "auth": {
+            "status": "authenticated"
+          },
+          "commands": [
+            {
+              "id": "command-V1",
+              "status": "completed"
+            }
+          ],
+          "conversation": {
+            "reset": true
+          },
+          "promptSuggestion": "sanitized suggestion",
+          "rateLimit": {
+            "status": "allowed"
+          },
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "all five frames are silently ignored"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.auth-status",
+        "frame.command-lifecycle",
+        "frame.conversation-reset",
+        "frame.prompt-suggestion",
+        "frame.rate-limit-event"
+      ]
+    },
+    {
+      "id": "m1-interact-001",
+      "file": "m1-interact-001.jsonl",
+      "title": "Permission request is owned, answerable and cancellable",
+      "category": "interaction",
+      "evidenceClass": "static-derived",
+      "recordCount": 2,
+      "sha256": "678bae480eb827f70ce3c8e8311a7dcb0b4d04ed042556ac99226f622e099f7b",
+      "coverage": [
+        "interaction-permission"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241411218
+        },
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2712752
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3477305
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241621930
+        }
+      ],
+      "expectedClassifications": [
+        "control.request",
+        "interaction.permission",
+        "control.response"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.request",
+          "interaction.permission",
+          "control.response"
+        ],
+        "state": {
+          "pendingInteractions": [],
+          "resolvedInteractions": [
+            {
+              "requestId": "request-W",
+              "kind": "permission",
+              "decision": "allow"
+            }
+          ],
+          "ownership": {
+            "requestId": "request-W"
+          },
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "no control request parser, pending interaction state, answer transport or response correlation exists"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "interaction.permission",
+        "interaction.runtime-roundtrip"
+      ]
+    },
+    {
+      "id": "m1-interact-002",
+      "file": "m1-interact-002.jsonl",
+      "title": "User dialog request preserves options and response ownership",
+      "category": "interaction",
+      "evidenceClass": "static-derived",
+      "recordCount": 2,
+      "sha256": "60433e7c4ea6585ec9626f5915c4c0ad79585755889e03b3f3a9505dd68b010b",
+      "coverage": [
+        "interaction-user-dialog"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241548518
+        },
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2715476
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3478369
+        }
+      ],
+      "expectedClassifications": [
+        "control.request",
+        "interaction.user-dialog",
+        "control.response"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.request",
+          "interaction.user-dialog",
+          "control.response"
+        ],
+        "state": {
+          "pendingInteractions": [],
+          "resolvedInteractions": [
+            {
+              "requestId": "request-X",
+              "kind": "user-dialog",
+              "selectedOptionId": "two"
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "no dialog representation, route, writable channel or correlation exists"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "interaction.user-dialog",
+        "interaction.runtime-roundtrip"
+      ]
+    },
+    {
+      "id": "m1-interact-003",
+      "file": "m1-interact-003.jsonl",
+      "title": "Elicitation request is classified without claiming live semantics",
+      "category": "interaction",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "fa3ff1d07a9714162316bb12dbeef16b76a3b7d3a2cfe644b16ed9187abc85db",
+      "coverage": [
+        "interaction"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241547119
+        }
+      ],
+      "expectedClassifications": [
+        "control.request",
+        "interaction.elicitation",
+        "interaction.pending"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.request",
+          "interaction.elicitation",
+          "interaction.pending"
+        ],
+        "state": {
+          "pendingInteractions": [
+            {
+              "requestId": "request-Y",
+              "kind": "elicitation",
+              "status": "pending"
+            }
+          ],
+          "diagnostics": [],
+          "runtimeSemanticsClaimed": false
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "frame is silently ignored; no elicitation state exists"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "interaction.runtime-roundtrip"
+      ]
+    },
+    {
+      "id": "m1-ctrl-001",
+      "file": "m1-ctrl-001.jsonl",
+      "title": "Runtime-verified initialize control response",
+      "category": "control-runtime",
+      "evidenceClass": "runtime-verified",
+      "recordCount": 1,
+      "sha256": "d827f2f1af7efd8bea35fe2fb4263cbb364a8d6a623c9366f81b61758536d8c8",
+      "coverage": [
+        "control-runtime"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:runtime-probe",
+          "synthetic": true
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241367968
+        }
+      ],
+      "expectedClassifications": [
+        "control.response",
+        "control.initialize",
+        "reconnect.pending-interactions"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.response",
+          "control.initialize",
+          "reconnect.pending-interactions"
+        ],
+        "state": {
+          "controls": {
+            "request-Z1": {
+              "status": "success",
+              "subtype": "initialize"
+            }
+          },
+          "pendingInteractions": [],
+          "catalogs": {
+            "models": [],
+            "agents": [],
+            "commands": []
+          },
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "primary response parser ignores control_response and cannot hydrate pending interactions/catalogs"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "reconnect.pending-interactions"
+      ]
+    },
+    {
+      "id": "m1-ctrl-002",
+      "file": "m1-ctrl-002.jsonl",
+      "title": "Runtime-verified context usage control response",
+      "category": "control-runtime",
+      "evidenceClass": "runtime-verified",
+      "recordCount": 1,
+      "sha256": "3d3b982a692c72a73113f98e76794720f25d72882fce80708470fb7ac58b6878",
+      "coverage": [
+        "control-runtime"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:runtime-probe",
+          "synthetic": true
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241428793
+        }
+      ],
+      "expectedClassifications": [
+        "control.response",
+        "control.get-context-usage",
+        "system.context-usage"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.response",
+          "control.get-context-usage",
+          "system.context-usage"
+        ],
+        "state": {
+          "controls": {
+            "request-Z2": {
+              "status": "success",
+              "subtype": "get_context_usage"
+            }
+          },
+          "contextUsage": {
+            "totalTokens": 120,
+            "percentage": 12,
+            "maxTokens": 1000,
+            "rawMaxTokens": 1000,
+            "model": "fixture-model"
+          },
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "the dedicated context probe supports this family, but the primary response classifier ignores this frame"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "system.native-context-usage",
+        "transport.control-duplex"
+      ]
+    },
+    {
+      "id": "m1-ctrl-003",
+      "file": "m1-ctrl-003.jsonl",
+      "title": "Runtime-verified account usage shape with redacted values",
+      "category": "control-runtime",
+      "evidenceClass": "runtime-verified",
+      "recordCount": 1,
+      "sha256": "48a99c5fd9ed1a7c3c8c9cfff4cfedbd53d412ea9b5c4502f4b78a7a2b07f9d0",
+      "coverage": [
+        "control-runtime"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:runtime-probe",
+          "synthetic": true
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241430130
+        }
+      ],
+      "expectedClassifications": [
+        "control.response",
+        "control.get-usage",
+        "system.account-usage"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.response",
+          "control.get-usage",
+          "system.account-usage"
+        ],
+        "state": {
+          "controls": {
+            "request-Z3": {
+              "status": "success",
+              "subtype": "get_usage"
+            }
+          },
+          "usageShapePreserved": true,
+          "sensitiveValuesAbsent": true,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "primary response parser ignores control response; no account-usage semantic state exists"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "system.account-usage"
+      ]
+    },
+    {
+      "id": "m1-ctrl-004",
+      "file": "m1-ctrl-004.jsonl",
+      "title": "Runtime-verified model catalog shape",
+      "category": "control-runtime",
+      "evidenceClass": "runtime-verified",
+      "recordCount": 1,
+      "sha256": "554aafdeeb245f49cfc89a17270348450d599cab4b444d7c135d3c71db03c5e4",
+      "coverage": [
+        "control-runtime"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:runtime-probe",
+          "synthetic": true
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241429492
+        }
+      ],
+      "expectedClassifications": [
+        "control.response",
+        "control.list-models",
+        "system.model-catalog"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.response",
+          "control.list-models",
+          "system.model-catalog"
+        ],
+        "state": {
+          "controls": {
+            "request-Z4": {
+              "status": "success",
+              "subtype": "list_models"
+            }
+          },
+          "models": [
+            {
+              "value": "fixture-model",
+              "resolvedModel": "fixture-model-resolved",
+              "supportsEffort": true,
+              "supportsAdaptiveThinking": true
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "separate model discovery may support catalogs, but the primary response parser ignores this correlated frame"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "transport.control-duplex"
+      ]
+    },
+    {
+      "id": "m1-ctrl-005",
+      "file": "m1-ctrl-005.jsonl",
+      "title": "Runtime-verified formatted session-cost shape",
+      "category": "control-runtime",
+      "evidenceClass": "runtime-verified",
+      "recordCount": 1,
+      "sha256": "810b11b1c8b67eeffd0b1b623dac01db03f6acfdc195191cc63e009d29994d1f",
+      "coverage": [
+        "control-runtime"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:runtime-probe",
+          "synthetic": true
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241429156
+        }
+      ],
+      "expectedClassifications": [
+        "control.response",
+        "control.get-session-cost",
+        "system.session-cost"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.response",
+          "control.get-session-cost",
+          "system.session-cost"
+        ],
+        "state": {
+          "controls": {
+            "request-Z5": {
+              "status": "success",
+              "subtype": "get_session_cost"
+            }
+          },
+          "sessionCost": {
+            "text": "sanitized cost summary"
+          },
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "primary response parser ignores the frame and retains no cost state"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "transport.control-duplex"
+      ]
+    },
+    {
+      "id": "m1-system-001",
+      "file": "m1-system-001.jsonl",
+      "title": "Session and turn system family",
+      "category": "system",
+      "evidenceClass": "static-derived",
+      "recordCount": 8,
+      "sha256": "323ffa7c184b1730eb62a99d943799fd61f013e1670cc99a98083588279ddd3c",
+      "coverage": [
+        "system-status"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241242027
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241271143
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241268121
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241271927
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241272570
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241305335
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241331485
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241351620
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3853943
+        }
+      ],
+      "expectedClassifications": [
+        "frame.system",
+        "system.init",
+        "system.status",
+        "system.compact-boundary",
+        "system.post-turn-summary",
+        "system.session-metadata",
+        "system.session-state-changed",
+        "system.conversation-reset",
+        "system.turn-preempted"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.system",
+          "system.init",
+          "system.status",
+          "system.compact-boundary",
+          "system.post-turn-summary",
+          "system.session-metadata",
+          "system.session-state-changed",
+          "system.conversation-reset",
+          "system.turn-preempted"
+        ],
+        "state": {
+          "session": {
+            "id": "session-AA",
+            "model": "fixture-model",
+            "permissionMode": "manual",
+            "state": "idle"
+          },
+          "turn": {
+            "status": "preempted",
+            "summary": "sanitized summary"
+          },
+          "compactions": 1,
+          "conversationReset": true,
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "partial",
+        "failingAssertions": [
+          "only init session_id is retained; status/compact/summary/metadata/reset/preemption semantics are dropped"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "frame.system",
+        "system.status",
+        "system.compact-boundary"
+      ]
+    },
+    {
+      "id": "m1-system-002",
+      "file": "m1-system-002.jsonl",
+      "title": "API and model system family",
+      "category": "system",
+      "evidenceClass": "static-derived",
+      "recordCount": 5,
+      "sha256": "44ab5df89162f336348e935a71ec4430a17752a438b51451c0b943fb9b8a2485",
+      "coverage": [
+        "system-compact-boundary"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241281704
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241294080
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241287302
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241283169
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241324167
+        }
+      ],
+      "expectedClassifications": [
+        "frame.system",
+        "system.api-retry",
+        "system.api-error",
+        "system.model-fallback",
+        "system.model-refusal-fallback",
+        "system.thinking-tokens"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.system",
+          "system.api-retry",
+          "system.api-error",
+          "system.model-fallback",
+          "system.model-refusal-fallback",
+          "system.thinking-tokens"
+        ],
+        "state": {
+          "api": {
+            "retryAttempt": 2,
+            "status": "error",
+            "error": "sanitized API error"
+          },
+          "model": {
+            "current": "fixture-C",
+            "fallbacks": [
+              {
+                "from": "fixture-A",
+                "to": "fixture-B"
+              },
+              {
+                "from": "fixture-B",
+                "to": "fixture-C"
+              }
+            ]
+          },
+          "thinking": {
+            "tokenCount": 5
+          },
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "thinking_tokens only emits an untyped thinking_start; all other fields/events are dropped"
+        ]
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-system-003",
+      "file": "m1-system-003.jsonl",
+      "title": "Hook, plugin and file system family",
+      "category": "system",
+      "evidenceClass": "static-derived",
+      "recordCount": 6,
+      "sha256": "9819c3837fa01282a8fbe9c162eaef16545af827633d236086d4d21353190e51",
+      "coverage": [
+        "system-task-progress"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241295275
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241295398
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241295555
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241295786
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241296657
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241289423
+        }
+      ],
+      "expectedClassifications": [
+        "frame.system",
+        "system.hook-started",
+        "system.hook-progress",
+        "system.hook-response",
+        "system.plugin-install",
+        "system.files-persisted",
+        "system.file-snapshot"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.system",
+          "system.hook-started",
+          "system.hook-progress",
+          "system.hook-response",
+          "system.plugin-install",
+          "system.files-persisted",
+          "system.file-snapshot"
+        ],
+        "state": {
+          "hooks": [
+            {
+              "id": "hook-AC",
+              "name": "FixtureHook",
+              "status": "success",
+              "progress": "working"
+            }
+          ],
+          "plugins": [
+            {
+              "name": "fixture-plugin",
+              "status": "installed"
+            }
+          ],
+          "files": {
+            "persistedCount": 1,
+            "snapshots": [
+              "file-snapshot-AC"
+            ]
+          },
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "all frames are silently ignored"
+        ]
+      },
+      "coversMatrixCapabilities": []
+    },
+    {
+      "id": "m1-system-004",
+      "file": "m1-system-004.jsonl",
+      "title": "Interaction and UI signal system family",
+      "category": "system",
+      "evidenceClass": "static-derived",
+      "recordCount": 6,
+      "sha256": "2a77b95851f9339c6301fecff5159464196a9a376b256398fe8790e1c7e0af42",
+      "coverage": [
+        "system-status",
+        "system-compact-boundary",
+        "system-task-progress"
+      ],
+      "provenance": [
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241277362
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241326889
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241328932
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241326671
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241322657
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241295047
+        }
+      ],
+      "expectedClassifications": [
+        "frame.system",
+        "system.permission-retry",
+        "system.permission-denied",
+        "system.permission-check-status",
+        "system.elicitation-complete",
+        "system.commands-changed",
+        "system.local-command-output"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "frame.system",
+          "system.permission-retry",
+          "system.permission-denied",
+          "system.permission-check-status",
+          "system.elicitation-complete",
+          "system.commands-changed",
+          "system.local-command-output"
+        ],
+        "state": {
+          "interactions": [
+            {
+              "requestId": "request-AD",
+              "status": "denied"
+            },
+            {
+              "requestId": "request-AD2",
+              "status": "complete"
+            }
+          ],
+          "commandCatalogDirty": true,
+          "localCommandOutput": [
+            "sanitized output"
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "all system interaction/UI signal frames are silently ignored"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "interaction.permission",
+        "interaction.user-dialog"
+      ]
+    },
+    {
+      "id": "m1-transport-001",
+      "file": "m1-transport-001.jsonl",
+      "title": "Local and SSH partial-message invocation policy is explicit",
+      "category": "transport",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "7a142af544e5676b1874eaa414ddf342eaa838c3fde9a035a6013d532d69bc1c",
+      "coverage": [
+        "text"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2692176
+        },
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 3438724
+        },
+        {
+          "source": "official-cli:runtime-probe",
+          "synthetic": true
+        }
+      ],
+      "expectedClassifications": [
+        "transport.partial-messages",
+        "transport.local",
+        "transport.ssh"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "transport.partial-messages",
+          "transport.local",
+          "transport.ssh"
+        ],
+        "state": {
+          "profiles": [
+            {
+              "target": "local",
+              "includePartialMessages": true,
+              "expectedFrameClass": "stream_event"
+            },
+            {
+              "target": "ssh",
+              "includePartialMessages": true,
+              "expectedFrameClass": "stream_event",
+              "productDifference": "official remote-host extension disables partial messages"
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "pass",
+        "failingAssertions": []
+      },
+      "coversMatrixCapabilities": [
+        "transport.partial-local",
+        "transport.partial-ssh"
+      ]
+    },
+    {
+      "id": "m1-control-001",
+      "file": "m1-control-001.jsonl",
+      "title": "Duplex control envelope correlation, cancellation and keep-alive",
+      "category": "control",
+      "evidenceClass": "static-derived",
+      "recordCount": 4,
+      "sha256": "427f9068f885e86a6de4798dd26ed0386185ac013c06093da99fc35e865acfc1",
+      "coverage": [
+        "control"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2729825
+        },
+        {
+          "source": "official-vsix:extension-host",
+          "byteOffset": 2707941
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241616083
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241618425
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241622107
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 241622811
+        }
+      ],
+      "expectedClassifications": [
+        "control.request",
+        "control.keep-alive",
+        "control.cancel-request",
+        "control.response.error"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "control.request",
+          "control.keep-alive",
+          "control.cancel-request",
+          "control.response.error"
+        ],
+        "state": {
+          "controls": {
+            "request-AF": {
+              "status": "cancelled",
+              "errorCode": "cancelled"
+            }
+          },
+          "keepAliveCount": 1,
+          "pendingInteractions": [],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "primary response parser has no duplex control envelope state or correlation"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "transport.control-duplex"
+      ]
+    },
+    {
+      "id": "m1-reconnect-001",
+      "file": "m1-reconnect-001.jsonl",
+      "title": "Sequence replay deduplicates and detects gaps",
+      "category": "reconnect",
+      "evidenceClass": "synthetic-adversarial",
+      "recordCount": 3,
+      "sha256": "7516aa70d74615638fd6f1328cf2cfb19f74e265d90f34bba308b06d69c19764",
+      "coverage": [
+        "text"
+      ],
+      "provenance": [
+        {
+          "source": "protocol-report",
+          "synthetic": true
+        },
+        {
+          "source": "hugremote-v1.5.3",
+          "synthetic": true
+        }
+      ],
+      "expectedClassifications": [
+        "reconnect.sequence",
+        "reconnect.duplicate",
+        "reconnect.gap",
+        "reconnect.canonical-snapshot"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "reconnect.sequence",
+          "reconnect.duplicate",
+          "reconnect.gap",
+          "reconnect.canonical-snapshot"
+        ],
+        "state": {
+          "lastSequence": 12,
+          "duplicateSequences": [
+            10
+          ],
+          "gaps": [
+            {
+              "after": 10,
+              "before": 12
+            }
+          ],
+          "visibleText": "canonical",
+          "messageCount": 1,
+          "diagnostics": [
+            {
+              "code": "sequence-gap",
+              "after": 10,
+              "before": 12
+            }
+          ]
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "no sequence/event ID exists; duplicate and gap semantics cannot be represented"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "reconnect.sequence-replay"
+      ]
+    },
+    {
+      "id": "m1-block-001",
+      "file": "m1-block-001.jsonl",
+      "title": "Image and document blocks retain safe media metadata",
+      "category": "content-blocks",
+      "evidenceClass": "static-derived",
+      "recordCount": 1,
+      "sha256": "749e52c5e1e3c4c9b1a0a4e4e5a706db26e70d74d16b7ae15d778994d6eac504",
+      "coverage": [
+        "content-blocks"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5232470
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5232724
+        },
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 5311176
+        }
+      ],
+      "expectedClassifications": [
+        "block.image",
+        "block.document",
+        "frame.assistant"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "block.image",
+          "block.document",
+          "frame.assistant"
+        ],
+        "state": {
+          "messages": [
+            {
+              "messageId": "message-AH",
+              "blocks": [
+                {
+                  "index": 0,
+                  "type": "image",
+                  "mediaType": "image/png",
+                  "dataPolicy": "opaque-placeholder"
+                },
+                {
+                  "index": 1,
+                  "type": "document",
+                  "mediaType": "text/plain",
+                  "text": "sanitized document"
+                }
+              ]
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "both blocks are silently dropped"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "block.image",
+        "block.document"
+      ]
+    },
+    {
+      "id": "m1-delta-001",
+      "file": "m1-delta-001.jsonl",
+      "title": "Citation delta appends citation without changing text",
+      "category": "deltas",
+      "evidenceClass": "static-derived",
+      "recordCount": 3,
+      "sha256": "835dd6a4999c25e17967e1ce48f15cb0d986c2c3df990aa5fa4e1554f299bdd1",
+      "coverage": [
+        "text",
+        "thinking"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3676417
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 243507360
+        }
+      ],
+      "expectedClassifications": [
+        "delta.citations",
+        "block.text"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "delta.citations",
+          "block.text"
+        ],
+        "state": {
+          "messages": [
+            {
+              "messageId": "message-AI",
+              "blocks": [
+                {
+                  "index": 0,
+                  "type": "text",
+                  "text": "claim",
+                  "citations": [
+                    {
+                      "url": "https://example.invalid/source",
+                      "title": "Fixture source"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "citation delta is ignored and citation model does not exist"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "delta.citations"
+      ]
+    },
+    {
+      "id": "m1-delta-002",
+      "file": "m1-delta-002.jsonl",
+      "title": "Compaction delta is explicitly classified as no-op metadata",
+      "category": "deltas",
+      "evidenceClass": "static-derived",
+      "recordCount": 3,
+      "sha256": "09b93faa0530cbbfbf5a9d6074eb4ac7c1f71745b592c675c5d36cad8e76665e",
+      "coverage": [
+        "text",
+        "thinking"
+      ],
+      "provenance": [
+        {
+          "source": "official-vsix:webview",
+          "byteOffset": 3677128
+        },
+        {
+          "source": "official-cli:2.1.308",
+          "byteOffset": 243507872
+        }
+      ],
+      "expectedClassifications": [
+        "delta.compaction",
+        "delta.explicit-no-op"
+      ],
+      "expectedSemantic": {
+        "classifications": [
+          "delta.compaction",
+          "delta.explicit-no-op"
+        ],
+        "state": {
+          "visibleText": "kept",
+          "recognizedNoOps": [
+            {
+              "messageId": "message-AJ",
+              "blockIndex": 0,
+              "deltaType": "compaction_delta"
+            }
+          ],
+          "diagnostics": []
+        }
+      },
+      "v1_5_3Expected": {
+        "outcome": "fail",
+        "failingAssertions": [
+          "delta is silently ignored rather than classified as a known no-op"
+        ]
+      },
+      "coversMatrixCapabilities": [
+        "delta.compaction"
+      ]
+    }
+  ]
+}

@@ -28,6 +28,8 @@ const SUPPORTED_EVENT_TYPES: Record<ClaudeNormalizedEvent['type'], true> = {
   'agent.progress': true,
   'agent.completed': true,
   'interaction.requested': true,
+  'interaction.responded': true,
+  'interaction.cancelled': true,
   'system.status': true,
   'system.compact_boundary': true,
   'system.task_progress': true,
@@ -195,14 +197,31 @@ export class ClaudeRunAssembler {
         if (event.summary) agent.summary = event.summary;
         return true;
       }
-      case 'interaction.requested':
-        state.interactions.push({
-          interactionId: event.interactionId,
-          type: event.interactionType,
-          status: 'pending',
-          request: event.request
-        });
+      case 'interaction.requested': {
+        const existing = state.interactions.find(i => i.interactionId === event.interactionId);
+        if (!existing) {
+          state.interactions.push({
+            interactionId: event.interactionId,
+            type: event.interactionType,
+            status: 'pending',
+            request: event.request
+          });
+        }
         return true;
+      }
+      case 'interaction.responded': {
+        const interaction = state.interactions.find(i => i.interactionId === event.interactionId);
+        if (!interaction || interaction.status !== 'pending') return false;
+        interaction.status = 'responded';
+        interaction.response = event.response;
+        return true;
+      }
+      case 'interaction.cancelled': {
+        const interaction = state.interactions.find(i => i.interactionId === event.interactionId);
+        if (!interaction || interaction.status !== 'pending') return false;
+        interaction.status = 'cancelled';
+        return true;
+      }
       case 'system.status':
         state.systemMetadata.status = event.payload;
         return true;

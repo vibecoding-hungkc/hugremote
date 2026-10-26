@@ -771,6 +771,30 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     return { success: true, cancelled };
   });
 
+  fastify.post<{ Params: { id: string; interactionId: string }; Body: { response?: any } }>(
+    '/api/claude/sessions/:id/interactions/:interactionId/respond',
+    async (request, reply) => {
+      const { id, interactionId } = request.params;
+      const success = claudeService.respondInteraction(id, interactionId, request.body?.response);
+      if (!success) {
+        return reply.status(404).send({ error: 'Interaction or active session not found or already settled' });
+      }
+      return { success: true };
+    }
+  );
+
+  fastify.post<{ Params: { id: string; interactionId: string } }>(
+    '/api/claude/sessions/:id/interactions/:interactionId/cancel',
+    async (request, reply) => {
+      const { id, interactionId } = request.params;
+      const success = claudeService.cancelInteraction(id, interactionId);
+      if (!success) {
+        return reply.status(404).send({ error: 'Interaction or active session not found or already settled' });
+      }
+      return { success: true };
+    }
+  );
+
   fastify.post<{ Params: { id: string } }>('/api/claude/sessions/:id/clear', async (request, reply) => {
     const session = claudeService.clearMessages(request.params.id);
     if (!session) return reply.status(404).send({ error: 'Session not found' });

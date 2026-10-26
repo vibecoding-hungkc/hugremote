@@ -627,6 +627,42 @@ export const useClaudeStore = defineStore('claude', () => {
         }
         break;
       }
+      case 'interaction_requested':
+      case 'interaction.requested': {
+        reactiveMsg.interactions = reactiveMsg.interactions || [];
+        const interaction = event.interaction || {
+          interactionId: event.interactionId,
+          type: event.interactionType || 'permission',
+          status: 'pending',
+          request: event.request,
+        };
+        const idx = reactiveMsg.interactions.findIndex((i) => i.interactionId === interaction.interactionId);
+        if (idx !== -1) {
+          reactiveMsg.interactions[idx] = { ...reactiveMsg.interactions[idx], ...interaction };
+        } else {
+          reactiveMsg.interactions.push(interaction);
+        }
+        break;
+      }
+      case 'interaction_responded':
+      case 'interaction.responded': {
+        reactiveMsg.interactions = reactiveMsg.interactions || [];
+        const interaction = reactiveMsg.interactions.find((i) => i.interactionId === event.interactionId);
+        if (interaction) {
+          interaction.status = 'responded';
+          interaction.response = event.response;
+        }
+        break;
+      }
+      case 'interaction_cancelled':
+      case 'interaction.cancelled': {
+        reactiveMsg.interactions = reactiveMsg.interactions || [];
+        const interaction = reactiveMsg.interactions.find((i) => i.interactionId === event.interactionId);
+        if (interaction) {
+          interaction.status = 'cancelled';
+        }
+        break;
+      }
       case 'content_sync':
         reactiveMsg.text = event.text ?? '';
         reactiveMsg.thinking = event.thinking ?? '';
@@ -916,6 +952,47 @@ export const useClaudeStore = defineStore('claude', () => {
       return res.ok;
     } catch (err) {
       console.error('cancelClaudeGeneration error:', err);
+      return false;
+    }
+  }
+
+  async function respondInteraction(sessionId: string, interactionId: string, response: any): Promise<boolean> {
+    try {
+      const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(sessionId)}/interactions/${encodeURIComponent(interactionId)}/respond`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ response }),
+      });
+      if (!res.ok) return false;
+      const session = sessions.value.find((s) => s.id === sessionId);
+      const lastMsg = session?.messages[session.messages.length - 1];
+      const interaction = lastMsg?.interactions?.find((i) => i.interactionId === interactionId);
+      if (interaction) {
+        interaction.status = 'responded';
+        interaction.response = response;
+      }
+      return true;
+    } catch (err) {
+      console.error('respondInteraction error:', err);
+      return false;
+    }
+  }
+
+  async function cancelInteraction(sessionId: string, interactionId: string): Promise<boolean> {
+    try {
+      const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(sessionId)}/interactions/${encodeURIComponent(interactionId)}/cancel`), {
+        method: 'POST',
+      });
+      if (!res.ok) return false;
+      const session = sessions.value.find((s) => s.id === sessionId);
+      const lastMsg = session?.messages[session.messages.length - 1];
+      const interaction = lastMsg?.interactions?.find((i) => i.interactionId === interactionId);
+      if (interaction) {
+        interaction.status = 'cancelled';
+      }
+      return true;
+    } catch (err) {
+      console.error('cancelInteraction error:', err);
       return false;
     }
   }
@@ -1297,6 +1374,8 @@ export const useClaudeStore = defineStore('claude', () => {
     deleteSession,
     sendMessage,
     cancelGeneration,
+    respondInteraction,
+    cancelInteraction,
     clearMessages,
     clearSession: clearMessages,
     fetchLimits,

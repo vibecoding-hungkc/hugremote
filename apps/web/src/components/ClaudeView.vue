@@ -174,6 +174,54 @@
                 </div>
               </div>
 
+              <!-- Interactive Dialog / Permission Banner -->
+              <div v-if="msg.interactions && msg.interactions.length" class="claude-interactions">
+                <div
+                  v-for="(interaction, iIdx) in msg.interactions"
+                  :key="interaction.interactionId || iIdx"
+                  class="claude-interaction-card"
+                  :class="[interaction.status, interaction.type]"
+                >
+                  <div class="claude-interaction-header">
+                    <span class="claude-interaction-badge" :class="interaction.status">
+                      <i :class="interaction.type === 'permission' ? 'ri-shield-keyhole-line' : 'ri-question-answer-line'"></i>
+                      {{ interaction.type.toUpperCase() }}
+                    </span>
+                    <span class="claude-interaction-status-tag">{{ interaction.status }}</span>
+                  </div>
+                  <div class="claude-interaction-body">
+                    <div v-if="interaction.type === 'permission'" class="claude-interaction-perm">
+                      <div class="claude-perm-tool">Tool: <strong>{{ interaction.request?.tool_name || interaction.request?.tool || 'Action' }}</strong></div>
+                      <pre v-if="interaction.request?.input" class="claude-perm-input">{{ JSON.stringify(interaction.request.input, null, 2) }}</pre>
+                    </div>
+                    <div v-else class="claude-interaction-dialog">
+                      <div class="claude-dialog-question">{{ interaction.request?.question || interaction.request?.message || 'Action required' }}</div>
+                    </div>
+                  </div>
+                  <div v-if="interaction.status === 'pending'" class="claude-interaction-actions">
+                    <button
+                      type="button"
+                      class="btn-action allow"
+                      :disabled="isSubmittingInteraction(interaction.interactionId)"
+                      @click="submitInteractionResponse(interaction.interactionId, { behavior: 'allow' })"
+                    >
+                      <i class="ri-check-line"></i> Allow
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-action deny"
+                      :disabled="isSubmittingInteraction(interaction.interactionId)"
+                      @click="submitInteractionResponse(interaction.interactionId, { behavior: 'deny' })"
+                    >
+                      <i class="ri-close-line"></i> Deny
+                    </button>
+                  </div>
+                  <div v-else class="claude-interaction-settled">
+                    <span>Resolved ({{ interaction.status }})</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- Streaming/final assistant answer -->
               <div v-if="msg.text" class="claude-asst-text" v-html="formatMarkdown(msg.text)"></div>
             </div>
@@ -829,6 +877,26 @@ function handleKeyDown(e: KeyboardEvent) {
 async function handleStop() {
   if (!claudeStore.isGenerating) return;
   await claudeStore.cancelGeneration();
+}
+
+const submittingInteractions = ref(new Set<string>());
+
+function isSubmittingInteraction(id: string): boolean {
+  return submittingInteractions.value.has(id);
+}
+
+async function submitInteractionResponse(id: string, response: any) {
+  if (submittingInteractions.value.has(id)) return;
+  submittingInteractions.value.add(id);
+  try {
+    if (activeSession.value) {
+      await claudeStore.respondInteraction(activeSession.value.id, id, response);
+    }
+  } catch (err) {
+    console.error('Failed to respond interaction', err);
+  } finally {
+    submittingInteractions.value.delete(id);
+  }
 }
 
 function replaceInputSelection(text: string) {
@@ -2182,6 +2250,85 @@ function showUsageToast() {
 .claude-toast-fade-leave-to {
   opacity: 0;
   transform: translate(-50%, -8px) scale(0.98);
+}
+
+.claude-interactions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+.claude-interaction-card {
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  background: var(--bg-surface-secondary, rgba(255, 255, 255, 0.03));
+  padding: 10px 14px;
+}
+.claude-interaction-card.pending {
+  border-color: #f59e0b;
+}
+.claude-interaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.claude-interaction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #f59e0b;
+}
+.claude-interaction-status-tag {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.claude-interaction-body {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.claude-perm-input {
+  max-height: 140px;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.claude-interaction-actions {
+  display: flex;
+  gap: 8px;
+}
+.claude-interaction-actions .btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.claude-interaction-actions .btn-action.allow {
+  background: #10b981;
+  color: #fff;
+}
+.claude-interaction-actions .btn-action.deny {
+  background: #ef4444;
+  color: #fff;
+}
+.claude-interaction-actions .btn-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.claude-interaction-settled {
+  font-size: 12px;
+  opacity: 0.6;
 }
 
 </style>

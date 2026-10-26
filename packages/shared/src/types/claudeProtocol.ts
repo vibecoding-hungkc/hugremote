@@ -18,6 +18,8 @@ export type ClaudeNormalizedEventType =
   | 'agent.progress'
   | 'agent.completed'
   | 'interaction.requested'
+  | 'interaction.responded'
+  | 'interaction.cancelled'
   | 'system.status'
   | 'system.compact_boundary'
   | 'system.task_progress'
@@ -138,6 +140,17 @@ export interface ClaudeInteractionRequestedEvent extends ClaudeNormalizedEventBa
   request: any;
 }
 
+export interface ClaudeInteractionRespondedEvent extends ClaudeNormalizedEventBase {
+  type: 'interaction.responded';
+  interactionId: string;
+  response: any;
+}
+
+export interface ClaudeInteractionCancelledEvent extends ClaudeNormalizedEventBase {
+  type: 'interaction.cancelled';
+  interactionId: string;
+}
+
 export interface ClaudeDiagnosticUnsupportedEvent extends ClaudeNormalizedEventBase {
   type: 'diagnostic.unsupported_native_event';
   nativeFrameType: string;
@@ -164,6 +177,8 @@ export type ClaudeNormalizedEvent =
   | ClaudeAgentCompletedEvent
   | SplitEventType<ClaudeSystemEvent>
   | ClaudeInteractionRequestedEvent
+  | ClaudeInteractionRespondedEvent
+  | ClaudeInteractionCancelledEvent
   | ClaudeDiagnosticUnsupportedEvent;
 
 /** Compile-time guard: every declared event type must be represented in the union. */
@@ -221,12 +236,20 @@ export interface ClaudeChildAgentState {
   messages: ClaudeCanonicalMessage[];
 }
 
+export interface ClaudeCanonicalInteraction {
+  interactionId: string;
+  type: 'permission' | 'user_dialog';
+  status: 'pending' | 'responded' | 'cancelled';
+  request: any;
+  response?: any;
+}
+
 export interface ClaudeRunSnapshot {
   runId: string;
   sessionId: string;
   rootMessages: ClaudeCanonicalMessage[];
   childAgents: ClaudeChildAgentState[];
-  interactions: any[];
+  interactions: ClaudeCanonicalInteraction[];
   systemMetadata: Record<string, any>;
   lastSequence?: number;
 }

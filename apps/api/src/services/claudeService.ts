@@ -270,6 +270,7 @@ export function classifyToolFamily(name: string): ClaudeToolFamily {
 }
 
 export interface ClaudeProcessHandle {
+  stdin?: NodeJS.WritableStream;
   stdout: NodeJS.ReadableStream;
   stderr: NodeJS.ReadableStream;
   on(event: 'error', cb: (err: Error) => void): this | void;
@@ -286,6 +287,8 @@ export interface ClaudeTaskState {
   liveMessage: ClaudeMessage;
   events: any[];
   listeners: Set<(event: any) => void>;
+  normalizer?: ClaudeEventNormalizer;
+  assembler?: ClaudeRunAssembler;
   promise?: Promise<{ text: string; thinking?: string; tools?: ClaudeToolCall[] }>;
 }
 
@@ -1863,6 +1866,71 @@ export class ClaudeService {
       setTimeout(() => {
         if (!child.killed) child.kill('SIGTERM');
       }, 1200).unref();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  respondInteraction(sessionId: string, interactionId: string, response?: any): boolean {
+    const task = this.activeTasks.get(sessionId);
+    if (!task || task.status !== 'running') return false;
+    const proc = this.activeProcesses.get(sessionId);
+    if (!proc || !proc.stdin) return false;
+
+    if (task.assembler) {
+      const ok = task.assembler.applyNormalizedEvent({
+        schemaVersion: 1,
+        runId: task.sessionId,
+        sessionId: task.sessionId,
+        type: 'interaction.responded',
+        interactionId,
+        response: response ?? {},
+        timestamp: Date.now()
+      });
+      if (!ok) return false;
+    }
+
+    try {
+      const payload = JSON.stringify({
+        type: 'control_response',
+        response: {
+          subtype: 'success',
+          request_id: interactionId,
+          response: response ?? {}
+        }
+      }) + '\n';
+      proc.stdin.write(payload);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  cancelInteraction(sessionId: string, interactionId: string): boolean {
+    const task = this.activeTasks.get(sessionId);
+    if (!task || task.status !== 'running') return false;
+    const proc = this.activeProcesses.get(sessionId);
+    if (!proc || !proc.stdin) return false;
+
+    if (task.assembler) {
+      const ok = task.assembler.applyNormalizedEvent({
+        schemaVersion: 1,
+        runId: task.sessionId,
+        sessionId: task.sessionId,
+        type: 'interaction.cancelled',
+        interactionId,
+        timestamp: Date.now()
+      });
+      if (!ok) return false;
+    }
+
+    try {
+      const payload = JSON.stringify({
+        type: 'control_cancel_request',
+        request_id: interactionId
+      }) + '\n';
+      proc.stdin.write(payload);
       return true;
     } catch (_) {
       return false;

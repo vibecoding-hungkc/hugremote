@@ -25,6 +25,14 @@ export interface ClaudeToolCall {
   parentToolUseId?: string;
 }
 
+export interface ClaudeInteraction {
+  interactionId: string;
+  type: 'permission' | 'user_dialog';
+  status: 'pending' | 'responded' | 'cancelled';
+  request: any;
+  response?: any;
+}
+
 export interface ClaudeMessage {
   id: string;
   sender: 'user' | 'assistant';
@@ -44,6 +52,7 @@ export interface ClaudeMessage {
     totalTokens?: number;
     messages?: Array<{ sender: string; text: string }>;
   }>;
+  interactions?: ClaudeInteraction[];
 }
 
 export interface ClaudeLimits {

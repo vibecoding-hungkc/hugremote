@@ -42,6 +42,7 @@
     "test:claude-tool-agent-core": "tsx scripts/test_claude_tool_agent_core.ts",
     "test:claude-duplex-spike": "tsx scripts/spike_claude_duplex_transport.ts",
     "test:claude-interaction-core": "tsx scripts/test_claude_interaction_core.ts",
+    "test:claude-replay-migration": "tsx scripts/test_claude_replay_migration.ts",
     "build:api": "npm run build --prefix apps/api",
     "build:client": "npm run build:web",
     "build:server": "npm run build:api",

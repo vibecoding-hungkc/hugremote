@@ -303,6 +303,7 @@ export const useClaudeStore = defineStore('claude', () => {
     controller: AbortController;
     reconnecting: boolean;
     awaitingSync?: boolean;
+    lastSequence?: number;
   };
   const streams = new Map<string, StreamOwner>();
   const resumes = new Map<string, Promise<void>>();
@@ -765,6 +766,11 @@ export const useClaudeStore = defineStore('claude', () => {
           if (raw === '[DONE]') { terminal = true; return true; }
           let event: any;
           try { event = JSON.parse(raw); } catch { continue; }
+          if (typeof event.sequence === 'number') {
+            owner.lastSequence = event.sequence;
+          } else if (typeof event.lastSequence === 'number') {
+            owner.lastSequence = event.lastSequence;
+          }
           if (streams.get(owner.sessionId) !== owner || owner.controller.signal.aborted) return false;
           const { session, message } = streamRow(owner);
           if (!session || !message) return false;
@@ -818,9 +824,14 @@ export const useClaudeStore = defineStore('claude', () => {
         if (signal.aborted) { abort(); return; }
         // Explicit settlement bounds even noncompliant fetch implementations
         // that ignore AbortSignal; late bodies never become orphaned readers.
-        void fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(owner.sessionId)}/stream`), {
+        const lastSeq = owner.lastSequence;
+        const query = typeof lastSeq === 'number' && lastSeq > 0 ? `?after=${lastSeq}` : '';
+        void fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(owner.sessionId)}/stream${query}`), {
           signal: connection.signal,
-          headers: { Accept: 'text/event-stream' },
+          headers: {
+            Accept: 'text/event-stream',
+            ...(typeof lastSeq === 'number' && lastSeq > 0 ? { 'Last-Event-ID': String(lastSeq) } : {}),
+          },
         }).then((result) => {
           if (settled) { discard(result); return; }
           settled = true;

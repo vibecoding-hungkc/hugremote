@@ -8,6 +8,7 @@ import { sshPool } from './sshPool.js';
 import { ClaudeEventNormalizer } from './claude/eventNormalizer.js';
 import { ClaudeRunAssembler } from './claude/runAssembler.js';
 import { NativeFrameDecoder } from './claude/nativeFrameDecoder.js';
+import { ClaudeReplayBuffer, migrateSessionRecord } from './claude/sessionMigration.js';
 export class ContextUsageValidationError extends Error {
     statusCode = 400;
     constructor(message) {
@@ -279,6 +280,11 @@ export class ClaudeService {
                 if (Array.isArray(list)) {
                     let changed = false;
                     list.forEach((s) => {
+                        const rawVersion = s.schemaVersion;
+                        s = migrateSessionRecord(s);
+                        if (rawVersion !== s.schemaVersion) {
+                            changed = true;
+                        }
                         const isAutoDefault = !s.isCustomNamed &&
                             (!s.messages || s.messages.length === 0) &&
                             (s.name === 'hugcode' || s.name === 'hugremote');
@@ -1949,9 +1955,15 @@ export class ClaudeService {
             liveMessage: liveAsstMsg,
             events: [],
             listeners: new Set(),
+            replayBuffer: new ClaudeReplayBuffer(1000),
         };
         this.activeTasks.set(session.id, task);
         const onEvent = (event) => {
+            if (!task.replayBuffer) {
+                task.replayBuffer = new ClaudeReplayBuffer(1000);
+            }
+            const sequenced = task.replayBuffer.append(event);
+            event.sequence = sequenced.sequence;
             if (event.type === 'thinking_start') {
                 task.liveMessage.isThinking = true;
                 task.liveMessage.isThinkingExpanded = true;

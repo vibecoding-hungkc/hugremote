@@ -703,6 +703,10 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     };
 
     const task = claudeService.getTask(id);
+    const afterParam = (request.query as any)?.after ?? request.headers['last-event-id'];
+    const after = typeof afterParam === 'string' && afterParam.trim() ? parseInt(afterParam, 10) : undefined;
+    const hasValidCursor = after !== undefined && !isNaN(after);
+
     if (!task || task.status !== 'running') {
       const lastMsg = session.messages[session.messages.length - 1];
       sendEvent({
@@ -710,18 +714,33 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         status: task?.status || 'done',
         liveMessage: task?.liveMessage || lastMsg,
         contextTokens: session.contextTokens,
+        lastSequence: task?.replayBuffer?.getLastSequence() || 0,
       });
       reply.raw.write('data: [DONE]\n\n');
       return reply.raw.end();
     }
 
-    // Send initial snapshot of live background message
-    sendEvent({
-      type: 'sync',
-      status: task.status,
-      liveMessage: task.liveMessage,
-      contextTokens: session.contextTokens,
-    });
+    let replayMode = false;
+    if (hasValidCursor && task.replayBuffer) {
+      const replayResult = task.replayBuffer.getEventsAfter(after!);
+      if (replayResult.type === 'replay') {
+        replayMode = true;
+        for (const item of replayResult.events) {
+          sendEvent(item.event);
+        }
+      }
+    }
+
+    if (!replayMode) {
+      // Send initial snapshot of live background message
+      sendEvent({
+        type: 'sync',
+        status: task.status,
+        liveMessage: task.liveMessage,
+        contextTokens: session.contextTokens,
+        lastSequence: task.replayBuffer?.getLastSequence() || 0,
+      });
+    }
 
     let heartbeat: ReturnType<typeof setInterval> | undefined;
     const cleanup = () => {

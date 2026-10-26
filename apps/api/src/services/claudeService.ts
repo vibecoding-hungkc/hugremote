@@ -8,6 +8,7 @@ import { sshPool } from './sshPool.js';
 import { ClaudeEventNormalizer } from './claude/eventNormalizer.js';
 import { ClaudeRunAssembler } from './claude/runAssembler.js';
 import { NativeFrameDecoder, NativeFrameRecord } from './claude/nativeFrameDecoder.js';
+import { ClaudeReplayBuffer, migrateSessionRecord } from './claude/sessionMigration.js';
 
 export interface ClaudeLimits {
   fiveHour: {
@@ -289,6 +290,7 @@ export interface ClaudeTaskState {
   listeners: Set<(event: any) => void>;
   normalizer?: ClaudeEventNormalizer;
   assembler?: ClaudeRunAssembler;
+  replayBuffer?: ClaudeReplayBuffer;
   promise?: Promise<{ text: string; thinking?: string; tools?: ClaudeToolCall[] }>;
 }
 
@@ -369,6 +371,11 @@ export class ClaudeService {
         if (Array.isArray(list)) {
           let changed = false;
           list.forEach((s) => {
+            const rawVersion = (s as any).schemaVersion;
+            s = migrateSessionRecord(s);
+            if (rawVersion !== (s as any).schemaVersion) {
+              changed = true;
+            }
             const isAutoDefault =
               !s.isCustomNamed &&
               (!s.messages || s.messages.length === 0) &&
@@ -2056,11 +2063,18 @@ export class ClaudeService {
       liveMessage: liveAsstMsg,
       events: [],
       listeners: new Set(),
+      replayBuffer: new ClaudeReplayBuffer(1000),
     };
 
     this.activeTasks.set(session.id, task);
 
     const onEvent = (event: any) => {
+      if (!task.replayBuffer) {
+        task.replayBuffer = new ClaudeReplayBuffer(1000);
+      }
+      const sequenced = task.replayBuffer.append(event);
+      event.sequence = sequenced.sequence;
+
       if (event.type === 'thinking_start') {
         task.liveMessage.isThinking = true;
         task.liveMessage.isThinkingExpanded = true;

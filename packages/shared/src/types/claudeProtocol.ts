@@ -13,6 +13,10 @@ export type ClaudeNormalizedEventType =
   | 'content.block_delta'
   | 'content.block_completed'
   | 'tool.completed'
+  | 'tool.cancelled'
+  | 'agent.started'
+  | 'agent.progress'
+  | 'agent.completed'
   | 'interaction.requested'
   | 'system.status'
   | 'system.compact_boundary'
@@ -94,6 +98,33 @@ export interface ClaudeToolCompletedEvent extends ClaudeNormalizedEventBase {
   isError?: boolean;
 }
 
+export interface ClaudeToolCancelledEvent extends ClaudeNormalizedEventBase {
+  type: 'tool.cancelled';
+  toolUseId: string;
+}
+
+export interface ClaudeAgentStartedEvent extends ClaudeNormalizedEventBase {
+  type: 'agent.started';
+  agentId: string;
+  parentToolUseId: string;
+  summary?: string;
+}
+
+export interface ClaudeAgentProgressEvent extends ClaudeNormalizedEventBase {
+  type: 'agent.progress';
+  agentId: string;
+  summary?: string;
+  recentTool?: string;
+  totalTokens?: number;
+}
+
+export interface ClaudeAgentCompletedEvent extends ClaudeNormalizedEventBase {
+  type: 'agent.completed';
+  agentId: string;
+  status: 'completed' | 'error';
+  summary?: string;
+}
+
 export interface ClaudeSystemEvent extends ClaudeNormalizedEventBase {
   type: 'system.status' | 'system.compact_boundary' | 'system.task_progress';
   subtype: string;
@@ -127,6 +158,10 @@ export type ClaudeNormalizedEvent =
   | ClaudeContentBlockDeltaEvent
   | ClaudeContentBlockCompletedEvent
   | ClaudeToolCompletedEvent
+  | ClaudeToolCancelledEvent
+  | ClaudeAgentStartedEvent
+  | ClaudeAgentProgressEvent
+  | ClaudeAgentCompletedEvent
   | SplitEventType<ClaudeSystemEvent>
   | ClaudeInteractionRequestedEvent
   | ClaudeDiagnosticUnsupportedEvent;
@@ -145,6 +180,8 @@ type ClaudeNormalizedEventMembersAreExact = false extends {
 }[ClaudeNormalizedEventType] ? never : true;
 export const CLAUDE_NORMALIZED_EVENT_MEMBERS_ARE_EXACT: ClaudeNormalizedEventMembersAreExact = true;
 
+export type ClaudeToolStatus = 'pending' | 'receiving-input' | 'ready' | 'running' | 'progress' | 'done' | 'error' | 'cancelled';
+
 export interface ClaudeCanonicalBlock {
   index: number;
   type: string;
@@ -153,6 +190,10 @@ export interface ClaudeCanonicalBlock {
   tool_name?: string;
   tool_id?: string;
   input?: any;
+  partialInput?: string;
+  toolStatus?: ClaudeToolStatus;
+  toolProgress?: unknown;
+  toolSummary?: string;
   toolResult?: {
     content: any;
     isError?: boolean;
@@ -174,6 +215,9 @@ export interface ClaudeChildAgentState {
   agentId: string;
   parentToolUseId: string;
   status: 'running' | 'completed' | 'error';
+  summary?: string;
+  recentTools?: string[];
+  totalTokens?: number;
   messages: ClaudeCanonicalMessage[];
 }
 

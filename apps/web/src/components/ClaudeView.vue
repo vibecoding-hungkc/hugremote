@@ -94,10 +94,12 @@
                       <i :class="toolIcon(tool.type)"></i> BASH
                     </span>
                     <span class="claude-tool-title">{{ tool.title }}</span>
-                    <span class="claude-tool-status" :class="msg.isWorking ? (tool.status || 'running') : (tool.status === 'done' ? 'done' : 'error')">
-                      <span v-if="msg.isWorking && (!tool.status || tool.status === 'running')" class="tool-spinner"></span>
-                      <i v-else-if="tool.status === 'done'" class="ri-check-line"></i>
-                      <i v-else class="ri-close-line"></i>
+                    <span class="claude-tool-status" :class="tool.status || (msg.isWorking ? 'running' : 'done')">
+                      <span v-if="tool.status === 'receiving-input' || tool.status === 'running' || (!tool.status && msg.isWorking)" class="tool-spinner"></span>
+                      <i v-else-if="tool.status === 'ready'" class="ri-time-line" title="Ready"></i>
+                      <i v-else-if="tool.status === 'done'" class="ri-check-line" title="Completed"></i>
+                      <i v-else-if="tool.status === 'cancelled'" class="ri-close-circle-line" title="Cancelled"></i>
+                      <i v-else class="ri-close-line" title="Error"></i>
                     </span>
                     <i :class="tool.isExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'" class="bash-expand-icon"></i>
                   </button>
@@ -107,10 +109,12 @@
                       <i :class="toolIcon(tool.type)"></i> {{ tool.type.toUpperCase() }}
                     </span>
                     <span class="claude-tool-title">{{ tool.title }}</span>
-                    <span class="claude-tool-status" :class="msg.isWorking ? (tool.status || 'running') : (tool.status === 'done' ? 'done' : 'error')">
-                      <span v-if="msg.isWorking && (!tool.status || tool.status === 'running')" class="tool-spinner"></span>
-                      <i v-else-if="tool.status === 'done'" class="ri-check-line"></i>
-                      <i v-else class="ri-close-line"></i>
+                    <span class="claude-tool-status" :class="tool.status || (msg.isWorking ? 'running' : 'done')">
+                      <span v-if="tool.status === 'receiving-input' || tool.status === 'running' || (!tool.status && msg.isWorking)" class="tool-spinner"></span>
+                      <i v-else-if="tool.status === 'ready'" class="ri-time-line" title="Ready"></i>
+                      <i v-else-if="tool.status === 'done'" class="ri-check-line" title="Completed"></i>
+                      <i v-else-if="tool.status === 'cancelled'" class="ri-close-circle-line" title="Cancelled"></i>
+                      <i v-else class="ri-close-line" title="Error"></i>
                     </span>
                   </div>
 
@@ -126,6 +130,45 @@
                       :class="dLine.startsWith('+') ? 'diff-add' : dLine.startsWith('-') ? 'diff-del' : 'diff-ctx'"
                     >
                       {{ dLine }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Child Agent Cards: expandable child agent transcript -->
+              <div v-if="msg.childAgents && msg.childAgents.length" class="claude-child-agents">
+                <div
+                  v-for="(agent, aIdx) in msg.childAgents"
+                  :key="agent.agentId || aIdx"
+                  class="claude-agent-card"
+                >
+                  <div class="claude-agent-header">
+                    <span class="claude-agent-badge" :class="agent.status">
+                      <i class="ri-robot-line"></i> SUBAGENT
+                    </span>
+                    <span class="claude-agent-title">{{ agent.summary || agent.agentId }}</span>
+                    <div class="claude-agent-meta">
+                      <span v-if="agent.totalTokens" class="claude-agent-tokens">{{ agent.totalTokens }} tokens</span>
+                      <span v-if="agent.recentTools && agent.recentTools.length" class="claude-agent-tools">
+                        {{ agent.recentTools.join(', ') }}
+                      </span>
+                    </div>
+                    <span class="claude-agent-status" :class="agent.status">
+                      <span v-if="agent.status === 'running'" class="tool-spinner"></span>
+                      <i v-else-if="agent.status === 'completed'" class="ri-check-line"></i>
+                      <i v-else class="ri-close-line"></i>
+                    </span>
+                  </div>
+                  <!-- Child transcript messages -->
+                  <div v-if="agent.messages && agent.messages.length" class="claude-agent-transcript">
+                    <div
+                      v-for="(cMsg, cIdx) in agent.messages"
+                      :key="cIdx"
+                      class="claude-agent-msg"
+                      :class="cMsg.sender"
+                    >
+                      <span class="claude-agent-sender">{{ cMsg.sender }}:</span>
+                      <span class="claude-agent-text">{{ cMsg.text }}</span>
                     </div>
                   </div>
                 </div>
@@ -1065,6 +1108,16 @@ function toolIcon(type: string) {
       return 'ri-edit-2-line';
     case 'bash':
       return 'ri-terminal-line';
+    case 'search':
+      return 'ri-search-eye-line';
+    case 'web':
+      return 'ri-global-line';
+    case 'todo':
+      return 'ri-task-line';
+    case 'agent':
+      return 'ri-robot-line';
+    case 'mcp':
+      return 'ri-plug-line';
     default:
       return 'ri-tools-line';
   }
@@ -1420,6 +1473,105 @@ function showUsageToast() {
 .claude-tool-badge.bash {
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
+}
+
+.claude-tool-badge.search {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
+.claude-tool-badge.web {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+}
+
+.claude-tool-badge.todo {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+}
+
+.claude-tool-badge.agent {
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+}
+
+.claude-tool-badge.mcp {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
+
+.claude-tool-badge.generic {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.claude-child-agents {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.claude-agent-card {
+  background: #141416;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.claude-agent-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.claude-agent-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(236, 72, 153, 0.15);
+  color: #f472b6;
+}
+
+.claude-agent-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #e2e8f0;
+  flex: 1;
+}
+
+.claude-agent-meta {
+  font-size: 11px;
+  color: #71717a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.claude-agent-transcript {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #1f1f23;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.claude-agent-msg {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+.claude-agent-sender {
+  font-weight: 600;
+  margin-right: 4px;
+  color: #a1a1aa;
 }
 
 .claude-tool-title {

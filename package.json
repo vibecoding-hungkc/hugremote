@@ -39,6 +39,7 @@
     "test:claude-differential": "tsx scripts/test_claude_protocol_differential.mjs",
     "test:claude-protocol-core": "tsx scripts/test_claude_protocol_core.ts",
     "test:claude-protocol-fuzz": "tsx scripts/test_claude_protocol_fuzz.ts",
+    "test:claude-tool-agent-core": "tsx scripts/test_claude_tool_agent_core.ts",
     "build:api": "npm run build --prefix apps/api",
     "build:client": "npm run build:web",
     "build:server": "npm run build:api",

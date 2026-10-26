@@ -562,6 +562,9 @@ export const useClaudeStore = defineStore('claude', () => {
           if (Array.isArray(event.liveMessage.tools)) {
             reactiveMsg.tools = event.liveMessage.tools;
           }
+          if (Array.isArray(event.liveMessage.childAgents)) {
+            reactiveMsg.childAgents = event.liveMessage.childAgents;
+          }
         }
         if (['done', 'cancelled', 'error'].includes(event.status)) {
           reactiveMsg.isThinking = false;
@@ -577,20 +580,50 @@ export const useClaudeStore = defineStore('claude', () => {
         reactiveMsg.isThinking = true;
         reactiveMsg.thinking = (reactiveMsg.thinking || '') + (event.text || '');
         break;
-      case 'tool_use':
+      case 'tool_use': {
         reactiveMsg.isThinking = false;
         reactiveMsg.tools = reactiveMsg.tools || [];
-        reactiveMsg.tools.push({
-          ...event.tool,
-          isExpanded: event.tool?.type === 'bash' ? false : undefined,
-        });
+        const existingIdx = event.tool?.id ? reactiveMsg.tools.findIndex((t) => t.id === event.tool.id) : -1;
+        if (existingIdx !== -1) {
+          const prev = reactiveMsg.tools[existingIdx];
+          reactiveMsg.tools[existingIdx] = {
+            ...prev,
+            ...event.tool,
+            isExpanded: prev.isExpanded ?? (event.tool?.type === 'bash' ? false : undefined),
+          };
+        } else {
+          reactiveMsg.tools.push({
+            ...event.tool,
+            isExpanded: event.tool?.type === 'bash' ? false : undefined,
+          });
+        }
         break;
+      }
       case 'tool_result': {
         reactiveMsg.tools = reactiveMsg.tools || [];
-        const tool = reactiveMsg.tools.find((t) => t.id === event.tool_use_id);
+        const tool = [...reactiveMsg.tools].reverse().find((t) => t.id === event.tool_use_id);
         if (tool) {
           tool.output = event.output;
           tool.status = event.status || 'done';
+        }
+        break;
+      }
+      case 'child_agent':
+      case 'agent_update': {
+        const agent = event.agent;
+        if (agent) {
+          reactiveMsg.childAgents = reactiveMsg.childAgents || [];
+          const idx = reactiveMsg.childAgents.findIndex(
+            (a) => a.agentId === agent.agentId || (agent.parentToolUseId && a.parentToolUseId === agent.parentToolUseId)
+          );
+          if (idx !== -1) {
+            reactiveMsg.childAgents[idx] = {
+              ...reactiveMsg.childAgents[idx],
+              ...agent,
+            };
+          } else {
+            reactiveMsg.childAgents.push(agent);
+          }
         }
         break;
       }

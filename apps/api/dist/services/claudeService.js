@@ -189,6 +189,26 @@ export function parseNativeModels(models) {
         throw invalid();
     return { source: 'cli', defaultModel: nativeDefault.resolvedModel, models: items };
 }
+export function classifyToolFamily(name) {
+    const lower = (name || '').toLowerCase();
+    if (lower === 'bash' || lower === 'command' || lower.startsWith('bash_'))
+        return 'bash';
+    if (lower === 'read' || lower === 'view' || lower.includes('file_read') || lower === 'cat')
+        return 'read';
+    if (lower.includes('edit') || lower.includes('replace') || lower.includes('write'))
+        return 'edit';
+    if (lower.includes('search') || lower.includes('grep') || lower.includes('glob') || lower.includes('find'))
+        return 'search';
+    if (lower.includes('web') || lower.includes('fetch') || lower.includes('browser') || lower.includes('curl'))
+        return 'web';
+    if (lower.includes('todo') || lower.includes('task_list') || lower.includes('checklist'))
+        return 'todo';
+    if (lower === 'task' || lower === 'agent' || lower.includes('subagent'))
+        return 'agent';
+    if (lower.startsWith('mcp_') || lower.startsWith('mcp__') || lower.includes('mcp'))
+        return 'mcp';
+    return 'generic';
+}
 export class ClaudeService {
     sessions = new Map();
     activeProcesses = new Map();
@@ -1716,6 +1736,13 @@ export class ClaudeService {
             task.liveMessage.text = task.liveMessage.text
                 ? (task.liveMessage.text + '\n\n[Đã dừng yêu cầu]')
                 : 'Đã dừng yêu cầu.';
+            if (task.liveMessage.tools) {
+                for (const tool of task.liveMessage.tools) {
+                    if (!tool.status || tool.status === 'running' || tool.status === 'receiving-input' || tool.status === 'ready') {
+                        tool.status = 'cancelled';
+                    }
+                }
+            }
             const session = this.sessions.get(sessionId);
             if (session) {
                 const idx = session.messages.findIndex((m) => m.id === task.liveMessage.id);
@@ -2343,25 +2370,21 @@ export class ClaudeService {
                                 if (toolBlocks.has(blockKey))
                                     continue;
                                 toolBlocks.add(blockKey);
-                                const nameLower = (c.name || '').toLowerCase();
-                                let toolType = 'bash';
+                                const toolType = classifyToolFamily(c.name || '');
                                 let title = `${c.name}`;
                                 let content = '';
                                 let diff = undefined;
-                                if (nameLower === 'bash') {
-                                    toolType = 'bash';
+                                if (toolType === 'bash') {
                                     const cmd = c.input?.command || '';
                                     title = `Chạy lệnh: ${cmd.length > 50 ? cmd.slice(0, 47) + '...' : cmd}`;
                                     content = cmd;
                                 }
-                                else if (nameLower === 'view' || nameLower === 'read') {
-                                    toolType = 'read';
+                                else if (toolType === 'read') {
                                     const p = c.input?.path || c.input?.file_path || '';
                                     title = `Đọc file: ${path.basename(p) || p}`;
                                     content = p;
                                 }
-                                else if (nameLower.includes('edit') || nameLower.includes('replace')) {
-                                    toolType = 'edit';
+                                else if (toolType === 'edit') {
                                     const p = c.input?.path || c.input?.file_path || '';
                                     title = `Chỉnh sửa: ${path.basename(p) || p}`;
                                     if (c.input?.old_str || c.input?.new_str) {
@@ -2374,12 +2397,36 @@ export class ClaudeService {
                                         }
                                     }
                                 }
+                                else if (toolType === 'search') {
+                                    const query = c.input?.query || c.input?.pattern || c.input?.regex || '';
+                                    title = `Tìm kiếm: ${query.length > 50 ? query.slice(0, 47) + '...' : query}`;
+                                    content = query;
+                                }
+                                else if (toolType === 'web') {
+                                    const url = c.input?.url || '';
+                                    title = `Web: ${url.length > 50 ? url.slice(0, 47) + '...' : url}`;
+                                    content = url;
+                                }
+                                else if (toolType === 'todo') {
+                                    title = `Task: ${c.input?.task || c.name}`;
+                                    content = JSON.stringify(c.input || {}, null, 2);
+                                }
+                                else if (toolType === 'agent') {
+                                    title = `Agent: ${c.input?.task || c.input?.description || c.name}`;
+                                    content = c.input?.task || c.input?.description || '';
+                                }
+                                else if (toolType === 'mcp') {
+                                    title = `MCP (${c.name}): ${JSON.stringify(c.input || {}).slice(0, 40)}`;
+                                    content = JSON.stringify(c.input || {}, null, 2);
+                                }
                                 else {
                                     title = `${c.name}: ${JSON.stringify(c.input || {}).slice(0, 40)}`;
+                                    content = typeof c.input === 'object' ? JSON.stringify(c.input, null, 2) : String(c.input || '');
                                 }
                                 const toolCall = {
                                     id: c.id,
                                     type: toolType,
+                                    nativeName: c.name,
                                     title,
                                     status: 'running',
                                     content: content || undefined,

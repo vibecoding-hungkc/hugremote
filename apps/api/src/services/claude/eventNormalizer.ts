@@ -323,6 +323,49 @@ export class ClaudeEventNormalizer {
         return [this.diagnostic('invalid_schema.system', this.diagnosticPreview(frame), sequence, parentToolUseId)];
       }
       const subtype = frame.subtype;
+      if (subtype === 'task_started') {
+        const agentId = typeof frame.task_id === 'string' ? frame.task_id : `agent-${Date.now()}`;
+        const parentId = typeof frame.tool_use_id === 'string' ? frame.tool_use_id : (parentToolUseId ?? '');
+        return [
+          {
+            ...base,
+            type: 'agent.started',
+            agentId,
+            parentToolUseId: parentId,
+            summary: typeof frame.description === 'string' ? frame.description : undefined
+          }
+        ];
+      }
+      if (subtype === 'task_progress') {
+        const agentId = typeof frame.task_id === 'string' ? frame.task_id : `agent-${Date.now()}`;
+        return [
+          {
+            ...base,
+            type: 'agent.progress',
+            agentId,
+            summary: typeof frame.summary === 'string' ? frame.summary : undefined,
+            recentTool: typeof frame.last_tool_name === 'string' ? frame.last_tool_name : undefined,
+            totalTokens: typeof frame.usage?.total_tokens === 'number' ? frame.usage.total_tokens : undefined
+          }
+        ];
+      }
+      if (subtype === 'task_notification' || subtype === 'task_updated') {
+        const agentId = typeof frame.task_id === 'string' ? frame.task_id : `agent-${Date.now()}`;
+        const isCompleted = frame.status === 'completed';
+        const isError = frame.status === 'error' || frame.status === 'failed';
+        if (isCompleted || isError) {
+          return [
+            {
+              ...base,
+              type: 'agent.completed',
+              agentId,
+              status: isError ? 'error' : 'completed',
+              summary: typeof frame.summary === 'string' ? frame.summary : undefined
+            }
+          ];
+        }
+      }
+
       let eventType: 'system.status' | 'system.compact_boundary' | 'system.task_progress' = 'system.status';
       if (subtype === 'compact_boundary') eventType = 'system.compact_boundary';
       else if (subtype.startsWith('task_')) eventType = 'system.task_progress';

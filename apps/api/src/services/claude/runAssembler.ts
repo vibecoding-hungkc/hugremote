@@ -14,6 +14,7 @@ interface MutableRunSnapshot extends ClaudeRunSnapshot {
 }
 
 const MAX_DIAGNOSTICS = 100;
+const MAX_PARTIAL_JSON_BYTES = 1024 * 1024;
 const SUPPORTED_EVENT_TYPES: Record<ClaudeNormalizedEvent['type'], true> = {
   'message.started': true,
   'message.delta': true,
@@ -22,6 +23,10 @@ const SUPPORTED_EVENT_TYPES: Record<ClaudeNormalizedEvent['type'], true> = {
   'content.block_delta': true,
   'content.block_completed': true,
   'tool.completed': true,
+  'tool.cancelled': true,
+  'agent.started': true,
+  'agent.progress': true,
+  'agent.completed': true,
   'interaction.requested': true,
   'system.status': true,
   'system.compact_boundary': true,
@@ -118,12 +123,8 @@ export class ClaudeRunAssembler {
         const block = message?.blocks[event.blockIndex];
         if (!block) return false;
         block.isPartial = false;
-        if ((block.type === 'tool_use' || block.type === 'server_tool_use') && typeof block.input === 'string') {
-          try {
-            block.input = JSON.parse(block.input);
-          } catch {
-            // Keep the bounded raw partial input for a future explicit tool error diagnostic.
-          }
+        if (block.type === 'tool_use' || block.type === 'server_tool_use') {
+          block.toolStatus = 'ready';
         }
         return true;
       }
@@ -131,7 +132,69 @@ export class ClaudeRunAssembler {
         this.applySnapshot(event.messageId ?? this.syntheticMessageId(), event.parentToolUseId, event.uuid, event.content);
         return true;
       case 'tool.completed':
-        return this.applyToolResult(event.toolUseId, event.output, event.isError);
+        return this.applyToolResult(event.toolUseId, event.output, event.isError, false);
+      case 'tool.cancelled':
+        return this.applyToolResult(event.toolUseId, undefined, false, true);
+      case 'agent.started': {
+        let agent = state.childAgents.find(
+          item => item.agentId === event.agentId || (event.parentToolUseId && item.parentToolUseId === event.parentToolUseId)
+        );
+        if (!agent) {
+          agent = {
+            agentId: event.agentId,
+            parentToolUseId: event.parentToolUseId,
+            status: 'running',
+            summary: event.summary,
+            messages: []
+          };
+          state.childAgents.push(agent);
+        } else {
+          agent.agentId = event.agentId;
+          agent.parentToolUseId = event.parentToolUseId || agent.parentToolUseId;
+          agent.status = 'running';
+          if (event.summary) agent.summary = event.summary;
+        }
+        return true;
+      }
+      case 'agent.progress': {
+        let agent = state.childAgents.find(item => item.agentId === event.agentId);
+        if (!agent) {
+          agent = {
+            agentId: event.agentId,
+            parentToolUseId: '',
+            status: 'running',
+            messages: []
+          };
+          state.childAgents.push(agent);
+        }
+        if (event.summary) agent.summary = event.summary;
+        if (event.recentTool) {
+          agent.recentTools = agent.recentTools ?? [];
+          if (!agent.recentTools.includes(event.recentTool)) {
+            agent.recentTools.push(event.recentTool);
+          }
+        }
+        if (typeof event.totalTokens === 'number') {
+          agent.totalTokens = event.totalTokens;
+        }
+        return true;
+      }
+      case 'agent.completed': {
+        let agent = state.childAgents.find(item => item.agentId === event.agentId);
+        if (!agent) {
+          agent = {
+            agentId: event.agentId,
+            parentToolUseId: '',
+            status: event.status,
+            messages: []
+          };
+          state.childAgents.push(agent);
+        } else {
+          agent.status = event.status;
+        }
+        if (event.summary) agent.summary = event.summary;
+        return true;
+      }
       case 'interaction.requested':
         state.interactions.push({
           interactionId: event.interactionId,
@@ -240,7 +303,21 @@ export class ClaudeRunAssembler {
       this.messageOrder.push(message);
     }
     message.uuid = uuid ?? message.uuid;
-    message.blocks = content.map((block, index) => this.blockFromNative(index, block.type ?? 'unknown', block, false));
+    const oldBlocks = message.blocks;
+    message.blocks = content.map((block, index) => {
+      const canonical = this.blockFromNative(index, block.type ?? 'unknown', block, false);
+      const existing = oldBlocks.find(b => b?.tool_id && b.tool_id === canonical.tool_id);
+      if (existing) {
+        if (existing.partialInput) canonical.partialInput = existing.partialInput;
+        if (existing.toolResult) canonical.toolResult = existing.toolResult;
+        if (existing.toolStatus === 'done' || existing.toolStatus === 'error' || existing.toolStatus === 'cancelled') {
+          canonical.toolStatus = existing.toolStatus;
+        }
+        if (existing.toolProgress) canonical.toolProgress = existing.toolProgress;
+        if (existing.toolSummary) canonical.toolSummary = existing.toolSummary;
+      }
+      return canonical;
+    });
     this.rebuildMessageText(message);
   }
 
@@ -251,7 +328,14 @@ export class ClaudeRunAssembler {
     if (type === 'tool_use' || type === 'server_tool_use') {
       block.tool_id = native?.id;
       block.tool_name = native?.name;
-      block.input = native?.input ?? '';
+      if (partial) {
+        block.toolStatus = 'receiving-input';
+        block.partialInput = '';
+        block.input = {};
+      } else {
+        block.toolStatus = 'running';
+        block.input = (native?.input && typeof native.input === 'object') ? native.input : {};
+      }
     }
     return block;
   }
@@ -268,7 +352,12 @@ export class ClaudeRunAssembler {
     } else if (event.deltaType === 'thinking_delta' && event.thinking !== undefined) {
       block.thinking = `${block.thinking ?? ''}${event.thinking}`;
     } else if (event.deltaType === 'input_json_delta' && event.partialJson !== undefined) {
-      block.input = `${typeof block.input === 'string' ? block.input : ''}${event.partialJson}`;
+      const current = block.partialInput ?? '';
+      if (current.length + event.partialJson.length <= MAX_PARTIAL_JSON_BYTES) {
+        block.partialInput = `${current}${event.partialJson}`;
+      }
+      block.toolStatus = 'receiving-input';
+      if (!block.input || typeof block.input !== 'object') block.input = {};
     } else if (event.deltaType === 'signature_delta' && event.signature !== undefined) {
       (block as any).signature = event.signature;
     } else if (event.deltaType === 'citations_delta' && event.citation !== undefined) {
@@ -277,13 +366,19 @@ export class ClaudeRunAssembler {
     }
   }
 
-  private applyToolResult(toolUseId: string, output: any, isError?: boolean): boolean {
+  private applyToolResult(toolUseId: string, output: any, isError?: boolean, isCancelled?: boolean): boolean {
     for (let messageIndex = this.messageOrder.length - 1; messageIndex >= 0; messageIndex--) {
       const blocks = this.messageOrder[messageIndex].blocks;
       for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
-        if (blocks[blockIndex]?.tool_id === toolUseId) {
-          blocks[blockIndex].toolResult = { content: output, isError };
-          blocks[blockIndex].isPartial = false;
+        const block = blocks[blockIndex];
+        if (block?.tool_id === toolUseId) {
+          if (isCancelled) {
+            block.toolStatus = 'cancelled';
+          } else {
+            block.toolStatus = isError ? 'error' : 'done';
+            block.toolResult = { content: output, isError };
+          }
+          block.isPartial = false;
           return true;
         }
       }

@@ -1,12 +1,18 @@
+export type ClaudeToolFamily = 'bash' | 'read' | 'edit' | 'search' | 'web' | 'todo' | 'agent' | 'mcp' | 'generic';
 export interface ClaudeToolCall {
     id?: string;
-    type: 'read' | 'edit' | 'bash';
+    type: ClaudeToolFamily;
+    nativeName?: string;
     title: string;
-    status?: 'running' | 'done' | 'error';
+    status?: 'pending' | 'receiving-input' | 'ready' | 'running' | 'progress' | 'done' | 'error' | 'cancelled';
     isExpanded?: boolean;
     content?: string;
+    input?: any;
+    partialInput?: string;
     diff?: string[];
     output?: string;
+    summary?: string;
+    parentToolUseId?: string;
 }
 export interface ClaudeMessage {
     id: string;
@@ -18,6 +24,18 @@ export interface ClaudeMessage {
     isWorking?: boolean;
     isThinkingExpanded?: boolean;
     tools?: ClaudeToolCall[];
+    childAgents?: Array<{
+        agentId: string;
+        parentToolUseId: string;
+        status: 'running' | 'completed' | 'error';
+        summary?: string;
+        recentTools?: string[];
+        totalTokens?: number;
+        messages?: Array<{
+            sender: string;
+            text: string;
+        }>;
+    }>;
 }
 export interface ClaudeLimits {
     fiveHour: {

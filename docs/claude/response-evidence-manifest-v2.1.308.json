@@ -1,0 +1,412 @@
+{
+  "schemaVersion": 1,
+  "baseline": "Claude Code and Anthropic.claude-code 2.1.308 linux-x64",
+  "cliSha256": "356733f185fa988e6bf3aa9a555269fdd167982a2e2a80d3c8a78037bb92ad58",
+  "vsixSha256": "59c875324e0d0cfcc0977896096ad36eb448d002e86bb54494d2a65fabf80df2",
+  "sourceHashes": {
+    "apps/api/src/routes/api.ts": "88aadf0f2aeedd055bc75974b9fff1ade26e9a99e1426c63a75a2f8266f87e17",
+    "apps/api/src/services/claudeService.ts": "2e0eb3c7399efbb318becceb86d3f93b8e9e4d8999df845a1517739803cadb26",
+    "official-cli:claude-2.1.308": "356733f185fa988e6bf3aa9a555269fdd167982a2e2a80d3c8a78037bb92ad58",
+    "official-vsix:extension/extension.js": "f0e1eb4ca34b00edcaebba7544d67df31317aefee726698efa24a07083ebec81",
+    "official-vsix:extension/webview/index.js": "c1f17b25dcc10e1d22290f2bbd960d7dd9016907adf50e12db1206a929d61f9c",
+    "packages/shared/src/types/claude.ts": "86f0a75135508c9478bccd2c68c255f46fa24ddd04bca26dd96ac93e9d449666"
+  },
+  "expectedCapabilityIds": [
+    "agent.parent-namespace",
+    "agent.task-lifecycle",
+    "block.document",
+    "block.image",
+    "block.redacted-thinking",
+    "block.server-tool-use",
+    "block.text",
+    "block.thinking",
+    "block.tool-result",
+    "block.tool-use",
+    "block.unknown-fallback",
+    "delta.citations",
+    "delta.compaction",
+    "delta.input-json",
+    "delta.signature",
+    "delta.text",
+    "delta.thinking",
+    "frame.assistant",
+    "frame.auth-status",
+    "frame.command-lifecycle",
+    "frame.conversation-reset",
+    "frame.prompt-suggestion",
+    "frame.rate-limit-event",
+    "frame.result",
+    "frame.system",
+    "frame.tool-progress",
+    "frame.tool-use-summary",
+    "frame.user",
+    "interaction.permission",
+    "interaction.runtime-roundtrip",
+    "interaction.user-dialog",
+    "reconnect.pending-interactions",
+    "reconnect.sequence-replay",
+    "reconnect.snapshot-future",
+    "stream.content-block-delta",
+    "stream.content-block-start",
+    "stream.content-block-stop",
+    "stream.message-delta",
+    "stream.message-start",
+    "stream.message-stop",
+    "system.account-usage",
+    "system.compact-boundary",
+    "system.native-context-usage",
+    "system.status",
+    "system.task-progress",
+    "tool.generic-renderer",
+    "tool.lifecycle",
+    "transport.control-duplex",
+    "transport.partial-local",
+    "transport.partial-ssh"
+  ],
+  "runtimeFixtures": [
+    "CLI-CTRL-CONTEXT-001",
+    "CLI-CTRL-COST-001",
+    "CLI-CTRL-INIT-001",
+    "CLI-CTRL-MODELS-001",
+    "CLI-CTRL-USAGE-001",
+    "CLI-HELP-001",
+    "CLI-VERSION-001"
+  ],
+  "artifactAnchors": {
+    "official-vsix:extension/webview/index.js": {
+      "3477305": {
+        "needle": "async handleToolPermissionRequest($,J,Z){let X=v",
+        "verified": true
+      },
+      "3478369": {
+        "needle": "async handleUserDialogRequest($,J,Z){if(J.dialog",
+        "verified": true
+      },
+      "3673608": {
+        "needle": "processStreamEvent($,J){let Z=J??\"root\",X=this.a",
+        "verified": true
+      },
+      "3674438": {
+        "needle": "case\"message_start\":this.onMessageStart?.($.mess",
+        "verified": true
+      },
+      "3674622": {
+        "needle": "case\"message_delta\":if(!this.currentMessage)retu",
+        "verified": true
+      },
+      "3674706": {
+        "needle": "case\"content_block_start\":if(!this.currentMessag",
+        "verified": true
+      },
+      "3674903": {
+        "needle": "case\"content_block_delta\":{if(!this.currentMessa",
+        "verified": true
+      },
+      "3675270": {
+        "needle": "case\"content_block_stop\":{if(!this.currentMessag",
+        "verified": true
+      },
+      "3675486": {
+        "needle": "case\"message_stop\":if(!this.currentMessage)retur",
+        "verified": true
+      },
+      "3676294": {
+        "needle": "case\"text_delta\":{if($.type!==\"text\")throw Error",
+        "verified": true
+      },
+      "3676417": {
+        "needle": "case\"citations_delta\":{switch($.type){case\"text\"",
+        "verified": true
+      },
+      "3676553": {
+        "needle": "case\"input_json_delta\":if($.type===\"tool_use\"){l",
+        "verified": true
+      },
+      "3676810": {
+        "needle": "case\"thinking_delta\":{if($.type===\"redacted_thin",
+        "verified": true
+      },
+      "3676845": {
+        "needle": "redacted_thinking\")break;if($.type!==\"thinking\")",
+        "verified": true
+      },
+      "3676987": {
+        "needle": "case\"signature_delta\":{if($.type!==\"thinking\")th",
+        "verified": true
+      },
+      "3677128": {
+        "needle": "case\"compaction_delta\":break}}var mF=Symbol(\"par",
+        "verified": true
+      },
+      "3750330": {
+        "needle": "auth_status:!0,command_lifecycle:!0,conversation",
+        "verified": true
+      },
+      "3750345": {
+        "needle": "command_lifecycle:!0,conversation_reset:!0,promp",
+        "verified": true
+      },
+      "3750366": {
+        "needle": "conversation_reset:!0,prompt_suggestion:!0,rate_",
+        "verified": true
+      },
+      "3750455": {
+        "needle": "system:!0,tool_progress:!0,tool_use_summary:!0,u",
+        "verified": true
+      },
+      "3750465": {
+        "needle": "tool_progress:!0,tool_use_summary:!0,user:!0},xt",
+        "verified": true
+      },
+      "3750482": {
+        "needle": "tool_use_summary:!0,user:!0},xt0={message_start:",
+        "verified": true
+      },
+      "3750502": {
+        "needle": "user:!0},xt0={message_start:!0,message_delta:!0,",
+        "verified": true
+      },
+      "3842729": {
+        "needle": "if($.type===\"prompt_suggestion\"){this.promptSugg",
+        "verified": true
+      },
+      "3853943": {
+        "needle": "else if($.type===\"system\"&&$.subtype===\"status\")",
+        "verified": true
+      },
+      "3855739": {
+        "needle": "$.subtype===\"compact_boundary\")this.usageData.va",
+        "verified": true
+      },
+      "3856547": {
+        "needle": "else if($.type===\"result\"){if(this.sendStartedAt",
+        "verified": true
+      },
+      "3857219": {
+        "needle": "else if($.type===\"rate_limit_event\"){let Z=$.rat",
+        "verified": true
+      },
+      "3858356": {
+        "needle": "handleTaskStarted($){if(!(\"task_id\"in $))return;",
+        "verified": true
+      },
+      "3861556": {
+        "needle": "handleTaskProgress($){if(!(\"task_id\"in $))return",
+        "verified": true
+      },
+      "3869902": {
+        "needle": "function SR($,J,Z,{foldedIntoTurn:X=!1,hiddenFro",
+        "verified": true
+      },
+      "5232470": {
+        "needle": "else if($.content.type===\"image\"){let q=$.conten",
+        "verified": true
+      },
+      "5232724": {
+        "needle": "else if($.content.type===\"document\"){let q=$.con",
+        "verified": true
+      },
+      "5233113": {
+        "needle": "else if($.content.type===\"tool_use\"){if($.isPart",
+        "verified": true
+      },
+      "5234029": {
+        "needle": "className:iW.unknownContent,children:[\"Unsupport",
+        "verified": true
+      },
+      "5311430": {
+        "needle": "case\"text\":return typeof Z.text===\"string\";case\"",
+        "verified": true
+      },
+      "5311473": {
+        "needle": "case\"thinking\":return typeof Z.thinking===\"strin",
+        "verified": true
+      },
+      "5311579": {
+        "needle": "case\"tool_use\":case\"server_tool_use\":return type",
+        "verified": true
+      },
+      "5311897": {
+        "needle": "case\"tool_result\":return Z.content===void 0||typ",
+        "verified": true
+      }
+    },
+    "official-vsix:extension/extension.js": {
+      "2692176": {
+        "needle": "if(y)a.push(\"--include-partial-messages\");if(thi",
+        "verified": true
+      },
+      "2707941": {
+        "needle": "if($.type===\"control_response\"){let J=this.pendi",
+        "verified": true
+      },
+      "2712752": {
+        "needle": "can_use_tool\"){if(!this.canUseTool)throw Error(\"",
+        "verified": true
+      },
+      "2715476": {
+        "needle": "request_user_dialog\"){if(this.onUserDialog){let ",
+        "verified": true
+      },
+      "3438724": {
+        "needle": "includePartialMessages:!D1.env.remoteName,agentP",
+        "verified": true
+      }
+    },
+    "official-cli:claude-2.1.308": {
+      "241411218": {
+        "needle": "subtype:A(\"can_use_tool\"),tool_name:o(),mcp_serv",
+        "verified": true
+      }
+    }
+  },
+  "hugremoteAnchors": {
+    "apps/api/src/services/claudeService.ts": {
+      "2383": {
+        "needle": "// 3. Assistant content",
+        "verified": true
+      },
+      "2473": {
+        "needle": "// 4. User tool results",
+        "verified": true,
+        "lineEnd": 2489
+      },
+      "2493": {
+        "needle": "// 5. Result",
+        "verified": true
+      },
+      "2341": {
+        "needle": "// 1. Session Init",
+        "verified": true
+      },
+      "37": {
+        "needle": "export type ClaudeStreamEvent =",
+        "verified": true,
+        "lineEnd": 45
+      },
+      "2331": {
+        "needle": "const processLine = (line: string) => {",
+        "verified": true,
+        "lineEnd": 2534
+      },
+      "2356": {
+        "needle": "if (event.type === 'message_start') {",
+        "verified": true
+      },
+      "2354": {
+        "needle": "if (obj.type === 'stream_event' && obj.event) {",
+        "verified": true,
+        "lineEnd": 2381
+      },
+      "2360": {
+        "needle": "} else if (currentMessageId && event.type === 'content_block_start') {",
+        "verified": true
+      },
+      "2369": {
+        "needle": "} else if (currentMessageId && event.type === 'content_block_delta') {",
+        "verified": true,
+        "lineEnd": 2375
+      },
+      "2376": {
+        "needle": "} else if (event.type === 'content_block_stop') {",
+        "verified": true,
+        "lineEnd": 2378
+      },
+      "2378": {
+        "needle": "} else if (event.type === 'message_stop') {",
+        "verified": true
+      },
+      "2372": {
+        "needle": "if (event.delta?.type === 'text_delta') block.value += event.delta.text || '';",
+        "verified": true
+      },
+      "2373": {
+        "needle": "if (event.delta?.type === 'thinking_delta') block.value += event.delta.thinking || '';",
+        "verified": true
+      },
+      "2417": {
+        "needle": "message.blocks.set(index, { type: c.type, value: c.text || c.thinking || '', committed: true });",
+        "verified": true
+      },
+      "2420": {
+        "needle": "} else if (c.type === 'tool_use') {",
+        "verified": true,
+        "lineEnd": 2467
+      },
+      "2407": {
+        "needle": "for (const [contentIndex, c] of obj.message.content.entries()) {",
+        "verified": true,
+        "lineEnd": 2467
+      },
+      "2424": {
+        "needle": "const nameLower = (c.name || '').toLowerCase();",
+        "verified": true,
+        "lineEnd": 2466
+      },
+      "2351": {
+        "needle": "// Child agents have independent assemblers in the official client. This",
+        "verified": true
+      },
+      "2202": {
+        "needle": "const modeKey = (session.mode || 'Auto').toLowerCase().replace(/[^a-z]/g, '');",
+        "verified": true,
+        "lineEnd": 2228
+      },
+      "263": {
+        "needle": "export interface ClaudeTaskState {",
+        "verified": true,
+        "lineEnd": 271
+      },
+      "2213": {
+        "needle": "const args = [",
+        "verified": true,
+        "lineEnd": 2224
+      },
+      "1630": {
+        "needle": "let message: any;",
+        "verified": true,
+        "lineEnd": 1675
+      },
+      "2000": {
+        "needle": "task.events.push(event);",
+        "verified": true,
+        "lineEnd": 2003
+      },
+      "1369": {
+        "needle": "async getContextUsage(",
+        "verified": true,
+        "lineEnd": 1505
+      },
+      "9": {
+        "needle": "export interface ClaudeLimits {",
+        "verified": true,
+        "lineEnd": 19
+      }
+    },
+    "packages/shared/src/types/claude.ts": {
+      "12": {
+        "needle": "export interface ClaudeMessage {",
+        "verified": true,
+        "lineEnd": 22
+      },
+      "1": {
+        "needle": "export interface ClaudeToolCall {",
+        "verified": true,
+        "lineEnd": 22
+      }
+    },
+    "apps/api/src/routes/api.ts": {
+      "601": {
+        "needle": "fastify.post<{",
+        "verified": true,
+        "lineEnd": 817
+      },
+      "698": {
+        "needle": "const sendEvent = (data: any) => {",
+        "verified": true,
+        "lineEnd": 750
+      }
+    }
+  },
+  "boundary": "Artifact anchors are exact byte windows bound to pinned whole-file hashes. HugRemote anchors are exact source lines bound to committed whole-file hashes. Runtime fixtures are producer-sanitized IDs from bounded no-user probes."
+}

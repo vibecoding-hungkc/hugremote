@@ -1,0 +1,1191 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-26",
+  "baseline": {
+    "cli": {
+      "version": "2.1.308",
+      "sha256": "356733f185fa988e6bf3aa9a555269fdd167982a2e2a80d3c8a78037bb92ad58",
+      "platform": "linux-x64",
+      "source": "installed binary and bundled VSIX binary; byte-identical"
+    },
+    "extension": {
+      "id": "Anthropic.claude-code",
+      "version": "2.1.308",
+      "platform": "linux-x64",
+      "sha256": "59c875324e0d0cfcc0977896096ad36eb448d002e86bb54494d2a65fabf80df2",
+      "sourceUrl": "https://open-vsx.org/api/Anthropic/claude-code/linux-x64/2.1.308",
+      "marketplaceUrl": "https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code",
+      "registryDigestsMatch": true,
+      "bundledCliByteIdentical": true
+    },
+    "hugremote": {
+      "version": "1.5.3",
+      "commit": "d4c50e71fcd1d3a801207e4db24a9ed988b3ab38"
+    }
+  },
+  "statusMeaning": {
+    "supported": "implemented and focused-test supported in HugRemote",
+    "partially-supported": "lossy or incomplete HugRemote implementation",
+    "unsupported": "no HugRemote semantic path",
+    "not-applicable": "verified official capability intentionally outside product scope",
+    "unverified": "primary runtime semantics not yet established"
+  },
+  "evidenceBoundaries": {
+    "staticArtifact": "control-flow/schema evidence, not live emission",
+    "runtimeProbe": "bounded no-user isolated controls only",
+    "extensionE2E": "not run in M0",
+    "signature": "registry attestation and digest consistency verified; independent cryptographic signature unverified"
+  },
+  "capabilities": [
+    {
+      "id": "frame.assistant",
+      "family": "frame",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official final assistant frames reconcile streamed rows; HugRemote preserves text/thinking/tool_use but drops other fields.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3869902
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2383
+        }
+      ]
+    },
+    {
+      "id": "frame.user",
+      "family": "frame",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official user frames include prompts and tool results; HugRemote live parser consumes tool_result only.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3750502
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2473,
+          "lineEnd": 2489
+        }
+      ]
+    },
+    {
+      "id": "frame.result",
+      "family": "frame",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official result closes turns with cost/model usage; HugRemote keeps final text and collapsed usage.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3856547
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2493
+        }
+      ]
+    },
+    {
+      "id": "frame.system",
+      "family": "frame",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official system frames cover init/status/compact/tasks; HugRemote primary parser handles init and thinking_tokens only.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3750455
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2341
+        }
+      ]
+    },
+    {
+      "id": "frame.auth-status",
+      "family": "frame",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official webview recognizes auth_status; HugRemote normalized stream has no auth-status event.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3750330
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 37,
+          "lineEnd": 45
+        }
+      ]
+    },
+    {
+      "id": "frame.command-lifecycle",
+      "family": "frame",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official webview recognizes command lifecycle; HugRemote has no representation.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3750345
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 37,
+          "lineEnd": 45
+        }
+      ]
+    },
+    {
+      "id": "frame.conversation-reset",
+      "family": "frame",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official webview recognizes conversation_reset; HugRemote has no native frame path.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3750366
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2331,
+          "lineEnd": 2534
+        }
+      ]
+    },
+    {
+      "id": "frame.prompt-suggestion",
+      "family": "frame",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official webview updates prompt suggestions; HugRemote ignores this top-level frame.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3842729
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2331,
+          "lineEnd": 2534
+        }
+      ]
+    },
+    {
+      "id": "frame.rate-limit-event",
+      "family": "frame",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer handles unified windows/warnings; HugRemote stream does not preserve the frame.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3857219
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 37,
+          "lineEnd": 45
+        }
+      ]
+    },
+    {
+      "id": "frame.tool-progress",
+      "family": "frame",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official type table recognizes tool_progress; no dedicated conventional reducer branch was proven and HugRemote ignores it.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3750465
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2331,
+          "lineEnd": 2534
+        }
+      ]
+    },
+    {
+      "id": "frame.tool-use-summary",
+      "family": "frame",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official type table recognizes tool_use_summary; HugRemote ignores it.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3750482
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2331,
+          "lineEnd": 2534
+        }
+      ]
+    },
+    {
+      "id": "stream.message-start",
+      "family": "stream-event",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Both implementations establish message assembly identity.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3674438
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2356
+        }
+      ]
+    },
+    {
+      "id": "stream.message-delta",
+      "family": "stream-event",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official assembler updates stop reason/sequence/usage; HugRemote has no branch.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3674622
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2354,
+          "lineEnd": 2381
+        }
+      ]
+    },
+    {
+      "id": "stream.content-block-start",
+      "family": "stream-event",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote starts text/thinking/tool blocks but uses a narrow block representation.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3674706
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2360
+        }
+      ]
+    },
+    {
+      "id": "stream.content-block-delta",
+      "family": "stream-event",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote applies text/thinking only; official reducer supports six delta families.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3674903
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2369,
+          "lineEnd": 2375
+        }
+      ]
+    },
+    {
+      "id": "stream.content-block-stop",
+      "family": "stream-event",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official assembler finalizes and parses tool JSON; HugRemote intentionally waits for final snapshot.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3675270
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2376,
+          "lineEnd": 2378
+        }
+      ]
+    },
+    {
+      "id": "stream.message-stop",
+      "family": "stream-event",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Both implementations close current incremental message state.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3675486
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2378
+        }
+      ]
+    },
+    {
+      "id": "delta.text",
+      "family": "delta",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Incremental text and authoritative corrections are implemented and tested.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3676294
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2372
+        }
+      ]
+    },
+    {
+      "id": "delta.citations",
+      "family": "delta",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer appends citations; HugRemote has no citation model.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3676417
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 12,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "delta.input-json",
+      "family": "delta",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer accumulates partial tool JSON; HugRemote drops partial input and waits for final snapshot.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3676553
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2376,
+          "lineEnd": 2378
+        }
+      ]
+    },
+    {
+      "id": "delta.thinking",
+      "family": "delta",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Thinking streams and reconciles in both semantic models.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3676810
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2373
+        }
+      ]
+    },
+    {
+      "id": "delta.signature",
+      "family": "delta",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer stores thinking signature; HugRemote drops it.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3676987
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 12,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "delta.compaction",
+      "family": "delta",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer explicitly recognizes compaction_delta; HugRemote has no branch.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3677128
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2369,
+          "lineEnd": 2375
+        }
+      ]
+    },
+    {
+      "id": "block.text",
+      "family": "content-block",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Text blocks stream, snapshot-reconcile, persist and render.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5311430
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2417
+        }
+      ]
+    },
+    {
+      "id": "block.thinking",
+      "family": "content-block",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Thinking blocks stream, snapshot-reconcile, persist and render.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5311473
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2417
+        }
+      ]
+    },
+    {
+      "id": "block.tool-use",
+      "family": "content-block",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote flattens complete tool input to read/edit/bash presentation cards.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5311579
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2420,
+          "lineEnd": 2467
+        }
+      ]
+    },
+    {
+      "id": "block.server-tool-use",
+      "family": "content-block",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official assembler accepts server_tool_use; HugRemote has no distinct representation.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5311579
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 1,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "block.tool-result",
+      "family": "content-block",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote links results by tool_use_id but stringifies structured output and drops unmatched results.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5311897
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2473,
+          "lineEnd": 2489
+        }
+      ]
+    },
+    {
+      "id": "block.image",
+      "family": "content-block",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official conventional UI renders image blocks; HugRemote assistant schema has text-only body.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5232470
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 12,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "block.document",
+      "family": "content-block",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official conventional UI renders document blocks; HugRemote has no block representation.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5232724
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 12,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "block.redacted-thinking",
+      "family": "content-block",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official thinking-delta branch explicitly tolerates redacted_thinking without exposing hidden content; HugRemote has no safe placeholder/state.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3676845
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 12,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "block.unknown-fallback",
+      "family": "content-block",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official UI has unknown-content fallback; HugRemote silently drops unknown blocks.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5234029
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2407,
+          "lineEnd": 2467
+        }
+      ]
+    },
+    {
+      "id": "tool.lifecycle",
+      "family": "tool",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote models running/done/error only, without receiving-input/progress/cancelled fidelity.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3676553
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 1,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "tool.generic-renderer",
+      "family": "tool",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official content keeps native tool identity; HugRemote coerces unknown tools to bash presentation type.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 5233113
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2424,
+          "lineEnd": 2466
+        }
+      ]
+    },
+    {
+      "id": "agent.parent-namespace",
+      "family": "agent",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official assemblers key by parent_tool_use_id/root; HugRemote explicitly returns for child frames.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3673608
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2351
+        }
+      ]
+    },
+    {
+      "id": "agent.task-lifecycle",
+      "family": "agent",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer handles task start/progress/update/notification/background changes; HugRemote has no child-agent state.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3858356
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 12,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "interaction.permission",
+      "family": "interaction",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official static flow connects can_use_tool to permission UI/response/cancel; HugRemote only configures permission mode.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/extension.js",
+          "certainty": "verified",
+          "byteOffset": 2712752
+        },
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3477305
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2202,
+          "lineEnd": 2228
+        }
+      ]
+    },
+    {
+      "id": "interaction.user-dialog",
+      "family": "interaction",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official static flow connects request_user_dialog to response/cancel UI; HugRemote has no question transport.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/extension.js",
+          "certainty": "verified",
+          "byteOffset": 2715476
+        },
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3478369
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/routes/api.ts",
+          "certainty": "verified",
+          "line": 601,
+          "lineEnd": 817
+        }
+      ]
+    },
+    {
+      "id": "interaction.runtime-roundtrip",
+      "family": "interaction",
+      "status": "unverified",
+      "releaseScope": false,
+      "packageEvidence": "static-only",
+      "summary": "Live permission/question answering, timeout and replay were deliberately not triggered in M0.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-cli:claude-2.1.308",
+          "certainty": "inferred",
+          "byteOffset": 241411218
+        }
+      ]
+    },
+    {
+      "id": "system.status",
+      "family": "system",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer maps native status/busy/hook/permission snapshot; HugRemote synthesizes app status instead.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3853943
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 263,
+          "lineEnd": 271
+        }
+      ]
+    },
+    {
+      "id": "system.compact-boundary",
+      "family": "system",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official reducer resets usage at compact boundary; HugRemote ignores the native event.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3855739
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2331,
+          "lineEnd": 2534
+        }
+      ]
+    },
+    {
+      "id": "system.task-progress",
+      "family": "system",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official task progress tracks token/tool/duration/recent tools; HugRemote drops child task frames.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3861556
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2351
+        }
+      ]
+    },
+    {
+      "id": "transport.partial-local",
+      "family": "transport",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote requests partial messages for local CLI and handles them.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/extension.js",
+          "certainty": "verified",
+          "byteOffset": 2692176
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2213,
+          "lineEnd": 2224
+        }
+      ]
+    },
+    {
+      "id": "transport.partial-ssh",
+      "family": "transport",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote requests partial messages over SSH; official VS Code path disables them when remoteName is truthy, an intentional product difference requiring tests.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/extension.js",
+          "certainty": "verified",
+          "byteOffset": 3438724
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2213,
+          "lineEnd": 2224
+        }
+      ]
+    },
+    {
+      "id": "transport.control-duplex",
+      "family": "transport",
+      "status": "partially-supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "Official SDK supports control request/response/cancel; HugRemote uses bounded controls for discovery/context but not active interaction.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/extension.js",
+          "certainty": "verified",
+          "byteOffset": 2707941
+        },
+        {
+          "kind": "runtime",
+          "source": "cli-probe",
+          "certainty": "verified",
+          "fixtureId": "CLI-CTRL-INIT-001"
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 1630,
+          "lineEnd": 1675
+        }
+      ]
+    },
+    {
+      "id": "reconnect.snapshot-future",
+      "family": "reconnect",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote reconnects with current task snapshot plus future events while API process survives.",
+      "evidence": [
+        {
+          "kind": "artifact",
+          "source": "official-vsix:extension/webview/index.js",
+          "certainty": "verified",
+          "byteOffset": 3869902
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/routes/api.ts",
+          "certainty": "verified",
+          "line": 698,
+          "lineEnd": 750
+        }
+      ]
+    },
+    {
+      "id": "reconnect.sequence-replay",
+      "family": "reconnect",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "hugremote-only",
+      "summary": "HugRemote exposes no event cursor/Last-Event-ID replay; it sends a current snapshot plus future events while its bounded task.events buffer is not consumed by the SSE route. No official Extension replay-parity claim is made in M0.",
+      "evidence": [
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 2000,
+          "lineEnd": 2003
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/routes/api.ts",
+          "certainty": "verified",
+          "line": 698,
+          "lineEnd": 750
+        }
+      ]
+    },
+    {
+      "id": "reconnect.pending-interactions",
+      "family": "reconnect",
+      "status": "unsupported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "CLI initialize exposes pending permission/dialog arrays; HugRemote does not hydrate them.",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "source": "cli-probe",
+          "certainty": "verified",
+          "fixtureId": "CLI-CTRL-INIT-001"
+        },
+        {
+          "kind": "hugremote",
+          "source": "packages/shared/src/types/claude.ts",
+          "certainty": "verified",
+          "line": 12,
+          "lineEnd": 22
+        }
+      ]
+    },
+    {
+      "id": "system.native-context-usage",
+      "family": "system",
+      "status": "supported",
+      "releaseScope": true,
+      "packageEvidence": "verified",
+      "summary": "HugRemote has a separately verified native get_context_usage flow.",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "source": "cli-probe",
+          "certainty": "verified",
+          "fixtureId": "CLI-CTRL-CONTEXT-001"
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 1369,
+          "lineEnd": 1505
+        }
+      ]
+    },
+    {
+      "id": "system.account-usage",
+      "family": "system",
+      "status": "unsupported",
+      "releaseScope": false,
+      "packageEvidence": "verified",
+      "summary": "CLI get_usage shape is runtime verified but account quota UI is outside current response-parity release slice.",
+      "evidence": [
+        {
+          "kind": "runtime",
+          "source": "cli-probe",
+          "certainty": "verified",
+          "fixtureId": "CLI-CTRL-USAGE-001"
+        },
+        {
+          "kind": "hugremote",
+          "source": "apps/api/src/services/claudeService.ts",
+          "certainty": "verified",
+          "line": 9,
+          "lineEnd": 19
+        }
+      ]
+    }
+  ]
+}

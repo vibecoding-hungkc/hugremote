@@ -34,6 +34,7 @@
     "test:git": "tsx scripts/test_git_remote.ts",
     "test:claude-models": "tsx scripts/test_claude_models.ts && node scripts/test_ui_claude_models.mjs",
     "test:claude-context": "tsx scripts/test_claude_context_usage.ts && node scripts/test_ui_claude_context_usage.mjs",
+    "test:claude-capability-matrix": "node scripts/test_claude_capability_matrix.mjs",
     "build:api": "npm run build --prefix apps/api",
     "build:client": "npm run build:web",
     "build:server": "npm run build:api",

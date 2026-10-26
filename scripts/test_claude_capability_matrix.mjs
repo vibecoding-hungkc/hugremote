@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -17,6 +18,7 @@ const expectedPins = {
   cli: '356733f185fa988e6bf3aa9a555269fdd167982a2e2a80d3c8a78037bb92ad58',
   extension: '59c875324e0d0cfcc0977896096ad36eb448d002e86bb54494d2a65fabf80df2',
 };
+const hugremoteBaselineCommit = 'd4c50e71fcd1d3a801207e4db24a9ed988b3ab38';
 const expectedSourceHashes = {
   'apps/api/src/routes/api.ts': '88aadf0f2aeedd055bc75974b9fff1ade26e9a99e1426c63a75a2f8266f87e17',
   'apps/api/src/services/claudeService.ts': '2e0eb3c7399efbb318becceb86d3f93b8e9e4d8999df845a1517739803cadb26',
@@ -177,14 +179,17 @@ await test('matrix validates against exact pins, IDs, scope policy and evidence 
   validateMatrix(matrix, manifest);
 });
 
-await test('compact evidence anchors remain bound to repository sources', async () => {
+await test('compact evidence anchors remain bound to pinned HugRemote baseline sources', async () => {
   for (const [source, sourceInfo] of Object.entries(manifest.hugremoteAnchors)) {
-    const data = await readFile(resolve(root, source));
-    assert.equal(sha256(data), expectedSourceHashes[source], `${source}: source hash drift`);
+    const data = execFileSync('git', ['show', `${hugremoteBaselineCommit}:${source}`], {
+      cwd: root,
+      maxBuffer: 2 * 1024 * 1024,
+    });
+    assert.equal(sha256(data), expectedSourceHashes[source], `${source}: pinned baseline source hash drift`);
     const lines = data.toString('utf8').split('\n');
     for (const [line, anchor] of Object.entries(sourceInfo)) {
       const start = Number(line);
-      assert.ok(lines[start - 1]?.includes(anchor.needle), `${source}:${line}: line needle mismatch`);
+      assert.ok(lines[start - 1]?.includes(anchor.needle), `${source}:${line}: baseline line needle mismatch`);
       if (anchor.lineEnd !== undefined) {
         assert.ok(Number.isInteger(anchor.lineEnd) && anchor.lineEnd >= start && anchor.lineEnd <= lines.length, `${source}:${line}: invalid audited range`);
       }

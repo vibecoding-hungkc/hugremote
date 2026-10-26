@@ -5,6 +5,8 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const { OfficialReducerOracle } = require('./claude_oracle_engine.cjs');
+const { ClaudeEventNormalizer } = await import('../apps/api/src/services/claude/eventNormalizer.js');
+const { ClaudeRunAssembler } = await import('../apps/api/src/services/claude/runAssembler.js');
 
 const root = resolve('.');
 const manifestPath = resolve(root, 'fixtures/claude-protocol/2.1.308/manifest.json');
@@ -55,6 +57,105 @@ await test('official oracle processes all 43 fixtures and preserves expected sem
       assert.ok(oracle.systemEvents.length > 0, `${fixtureMeta.id}: system events must be captured`);
     }
   }
+});
+
+function canonicalMessages(messages, official) {
+  const groups = new Map();
+  for (const message of messages) {
+    const namespace = message.parentToolUseId ?? message.namespace ?? null;
+    const messageId = message.betaMessageId ?? message.messageId;
+    const groupKey = `${namespace ?? 'root'}\u0000${messageId}`;
+    let group = groups.get(groupKey);
+    if (!group) {
+      group = { namespace, messageId, blocks: new Map() };
+      groups.set(groupKey, group);
+    }
+
+    const typeCounts = new Map();
+    const blocks = official ? message.blocks : message.blocks.filter(Boolean);
+    for (const wrapper of blocks) {
+      const block = official ? wrapper : (wrapper.content ?? wrapper);
+      const typeCount = typeCounts.get(block.type) ?? 0;
+      typeCounts.set(block.type, typeCount + 1);
+      const toolId = block.tool_id ?? block.id ?? null;
+      const blockKey = toolId ? `${block.type}:${toolId}` : `${block.type}:${typeCount}`;
+      const toolResult = official ? wrapper.toolResult : block.toolResult;
+      const toolResultValue = toolResult?.value ?? toolResult;
+      group.blocks.set(blockKey, {
+        type: block.type,
+        text: block.text ?? null,
+        thinking: block.thinking ?? null,
+        toolId,
+        toolName: block.tool_name ?? block.name ?? null,
+        input: block.input ?? null,
+        result: toolResultValue?.content ?? null,
+        isError: Boolean(toolResultValue?.isError),
+        partial: Boolean(official ? wrapper.partial : block.isPartial)
+      });
+    }
+  }
+
+  return [...groups.values()]
+    .map(group => ({
+      namespace: group.namespace,
+      messageId: group.messageId,
+      blocks: [...group.blocks.values()]
+    }))
+    .sort((left, right) =>
+      JSON.stringify(left.namespace ?? '').localeCompare(JSON.stringify(right.namespace ?? '')) ||
+      left.messageId.localeCompare(right.messageId)
+    );
+}
+
+await test('M2 normalizer and assembler match the official canonical message model across all 43 fixtures', async () => {
+  assert.equal(manifest.fixtures.length, 43, 'fixture count is an independent coverage root');
+  let frameCount = 0;
+
+  for (const fixtureMeta of manifest.fixtures) {
+    const fixturePath = resolve(root, 'fixtures/claude-protocol/2.1.308', fixtureMeta.file);
+    const lines = (await readFile(fixturePath, 'utf8')).split('\n').filter(Boolean);
+    const oracle = new OfficialReducerOracle();
+    const normalizer = new ClaudeEventNormalizer({ sessionId: 'differential-session', runId: 'differential-run' });
+    const assembler = new ClaudeRunAssembler();
+    let lastAcceptedSequence;
+
+    for (const line of lines) {
+      const record = JSON.parse(line);
+      if (record.kind !== 'frame') continue;
+      frameCount += 1;
+      const nativeFrame = record.data;
+      const officialFrame = nativeFrame.transport_event === 'semantic-envelope'
+        ? nativeFrame.frame
+        : nativeFrame;
+      oracle.processMessage(officialFrame);
+      const events = normalizer.normalizeFrame(nativeFrame);
+      assert.ok(events.length > 0, `${fixtureMeta.id}: every frame must be classified`);
+      for (const event of events) {
+        const staleOrDuplicate = event.sequence !== undefined &&
+          lastAcceptedSequence !== undefined &&
+          event.sequence <= lastAcceptedSequence;
+        const accepted = assembler.applyNormalizedEvent(event);
+        assert.equal(
+          accepted,
+          !staleOrDuplicate,
+          `${fixtureMeta.id}: ${event.type} acceptance must match sequence freshness`
+        );
+        if (accepted && event.sequence !== undefined) lastAcceptedSequence = event.sequence;
+      }
+    }
+
+    const officialMessages = canonicalMessages(oracle.getCanonicalState().messages, true);
+    const m2State = assembler.getSnapshot();
+    const m2Messages = canonicalMessages([
+      ...m2State.rootMessages.map(message => ({ ...message, namespace: null })),
+      ...m2State.childAgents.flatMap(agent =>
+        agent.messages.map(message => ({ ...message, namespace: agent.parentToolUseId }))
+      )
+    ], false);
+    assert.deepEqual(m2Messages, officialMessages, `${fixtureMeta.id}: canonical messages differ`);
+  }
+
+  assert.equal(frameCount, 134, 'all corpus frames must pass through both implementations');
 });
 
 await test('oracle enforces strict schema and rejects invalid frame mutations', () => {

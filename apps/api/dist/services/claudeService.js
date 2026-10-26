@@ -5,6 +5,9 @@ import { spawn } from 'child_process';
 import { StringDecoder } from 'string_decoder';
 import { ALLOWED_ROOT, normalizeWorkspacePath, parseSshConfig } from '../config.js';
 import { sshPool } from './sshPool.js';
+import { ClaudeEventNormalizer } from './claude/eventNormalizer.js';
+import { ClaudeRunAssembler } from './claude/runAssembler.js';
+import { NativeFrameDecoder } from './claude/nativeFrameDecoder.js';
 export class ContextUsageValidationError extends Error {
     statusCode = 400;
     constructor(message) {
@@ -2146,17 +2149,34 @@ export class ClaudeService {
                 isSettled = true;
                 resolve(result);
             };
-            const stdoutDecoder = new StringDecoder('utf8');
+            const nativeFrameDecoder = new NativeFrameDecoder();
             const stderrDecoder = new StringDecoder('utf8');
-            let lineBuffer = '';
-            let fullStdout = '';
-            let fullStderr = '';
+            const maxCapturedOutputBytes = 1024 * 1024;
+            const stderrBuffer = Buffer.allocUnsafe(maxCapturedOutputBytes);
+            let stderrBytes = 0;
+            const captureStderr = (chunk) => {
+                if (stderrBytes >= maxCapturedOutputBytes || !chunk)
+                    return;
+                const bytes = Buffer.from(chunk, 'utf8');
+                const retainedBytes = Math.min(bytes.length, maxCapturedOutputBytes - stderrBytes);
+                bytes.copy(stderrBuffer, stderrBytes, 0, retainedBytes);
+                stderrBytes += retainedBytes;
+            };
+            const getCapturedStderr = () => stderrBuffer.subarray(0, stderrBytes).toString('utf8');
             let thinkingText = '';
             let fullText = '';
             const tools = [];
             const messages = new Map();
             const toolBlocks = new Set();
             const snapshotBlocks = new Map();
+            const normalizedShadowEnabled = process.env.HUGREMOTE_CLAUDE_NORMALIZED_PROTOCOL === 'true';
+            const normalizedRunId = `${session.id}:${Date.now()}`;
+            const normalizedShadow = normalizedShadowEnabled
+                ? {
+                    normalizer: new ClaudeEventNormalizer({ sessionId: session.id, runId: normalizedRunId }),
+                    assembler: new ClaudeRunAssembler(),
+                }
+                : undefined;
             let currentMessageId;
             let anonymousMessage = 0;
             const getMessage = (id) => {
@@ -2217,6 +2237,21 @@ export class ClaudeService {
                 }
                 catch (_) {
                     return;
+                }
+                if (normalizedShadow) {
+                    if (obj.type === 'system' && obj.subtype === 'init' && typeof obj.session_id === 'string') {
+                        normalizedShadow.normalizer.bindNativeSession(obj.session_id);
+                    }
+                    if (typeof obj.run_id === 'string')
+                        normalizedShadow.normalizer.bindNativeRun(obj.run_id);
+                    try {
+                        for (const event of normalizedShadow.normalizer.normalizeFrame(obj)) {
+                            normalizedShadow.assembler.applyNormalizedEvent(event);
+                        }
+                    }
+                    catch {
+                        // Shadow validation must never interrupt the stable legacy stream path.
+                    }
                 }
                 // 1. Session Init
                 if (obj.type === 'system' && obj.subtype === 'init' && obj.session_id) {
@@ -2417,17 +2452,32 @@ export class ClaudeService {
                     });
                 }
             };
+            const processNativeRecord = (record) => {
+                if (record.kind === 'frame') {
+                    processLine(JSON.stringify(record.frame));
+                    return;
+                }
+                if (normalizedShadow) {
+                    try {
+                        for (const event of normalizedShadow.normalizer.normalizeFrame({
+                            type: `transport.${record.code}`,
+                            diagnostic: record.preview,
+                        })) {
+                            normalizedShadow.assembler.applyNormalizedEvent(event);
+                        }
+                    }
+                    catch {
+                        // Diagnostics remain isolated from the legacy event stream.
+                    }
+                }
+            };
             handle.stdout.on('data', (d) => {
-                const chunk = typeof d === 'string' ? d : stdoutDecoder.write(d);
-                fullStdout += chunk;
-                lineBuffer += chunk;
-                const lines = lineBuffer.split('\n');
-                lineBuffer = lines.pop() || '';
-                for (const line of lines)
-                    processLine(line);
+                const chunk = typeof d === 'string' ? d : Buffer.from(d);
+                for (const record of nativeFrameDecoder.push(chunk))
+                    processNativeRecord(record);
             });
             handle.stderr.on('data', (d) => {
-                fullStderr += typeof d === 'string' ? d : stderrDecoder.write(d);
+                captureStderr(typeof d === 'string' ? d : stderrDecoder.write(d));
             });
             handle.on('error', (err) => {
                 this.activeProcesses.delete(session.id);
@@ -2444,10 +2494,8 @@ export class ClaudeService {
                 const wasCancelled = this.cancelledSessions.delete(session.id);
                 if (isSettled)
                     return;
-                const trailingStdout = stdoutDecoder.end();
-                fullStdout += trailingStdout;
-                lineBuffer += trailingStdout;
-                fullStderr += stderrDecoder.end();
+                const trailingRecords = nativeFrameDecoder.finish();
+                captureStderr(stderrDecoder.end());
                 if (wasCancelled || signal === 'SIGINT' || signal === 'SIGTERM') {
                     const cancelledText = 'Đã dừng yêu cầu.';
                     tools.forEach((tool) => {
@@ -2462,8 +2510,8 @@ export class ClaudeService {
                     });
                 }
                 // Process a final JSON record even when the CLI omits its newline.
-                processLine(lineBuffer);
-                lineBuffer = '';
+                for (const record of trailingRecords)
+                    processNativeRecord(record);
                 if (fullText && (code === 0 || code === null)) {
                     return settle({
                         text: fullText,
@@ -2471,14 +2519,16 @@ export class ClaudeService {
                         tools: tools.length ? tools : undefined,
                     });
                 }
-                const cliError = fullStderr.trim() || fullStdout.trim() || `Claude Code exited with code ${code ?? 'unknown'}`;
-                let errorText = `Claude Code không trả về kết quả: ${cliError.slice(0, 500)}`;
+                const capturedStderr = getCapturedStderr();
+                let errorText = capturedStderr.trim()
+                    ? `Claude Code không trả về kết quả: ${capturedStderr.trim().slice(0, 500)}`
+                    : `Claude Code không trả về kết quả. Tiến trình thoát với mã ${code ?? 'unknown'}.`;
                 if (isRemote &&
                     server &&
-                    (cliError.includes('claude: not found') ||
-                        cliError.includes('claude: command not found') ||
+                    (capturedStderr.includes('claude: not found') ||
+                        capturedStderr.includes('claude: command not found') ||
                         code === 127)) {
-                    errorText = `Không tìm thấy lệnh "claude" trên máy chủ remote "${server.label || server.name}". Vui lòng cài đặt Claude Code trên máy chủ đó (ví dụ: npm install -g @anthropic-ai/claude-code hoặc curl -fsSL https://claude.ai/install.sh) và đảm bảo đã đăng nhập.`;
+                    errorText = `Không tìm thấy lệnh "claude" trên máy chủ remote "${server.label || server.name}". Vui lòng cài đặt Claude Code trên máy chủ đó và đảm bảo đã đăng nhập.`;
                 }
                 onEvent({ type: 'error', error: errorText });
                 settle({ text: errorText });

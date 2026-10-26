@@ -37,6 +37,8 @@
     "test:claude-capability-matrix": "node scripts/test_claude_capability_matrix.mjs",
     "test:claude-fixture-safety": "node scripts/test_claude_fixture_safety.mjs",
     "test:claude-differential": "tsx scripts/test_claude_protocol_differential.mjs",
+    "test:claude-protocol-core": "tsx scripts/test_claude_protocol_core.ts",
+    "test:claude-protocol-fuzz": "tsx scripts/test_claude_protocol_fuzz.ts",
     "build:api": "npm run build --prefix apps/api",
     "build:client": "npm run build:web",
     "build:server": "npm run build:api",

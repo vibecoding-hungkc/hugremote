@@ -307,3 +307,57 @@ test('local and SSH invocations request partial messages', async () => {
     assert.equal(h.args[h.args.indexOf('--output-format') + 1], 'stream-json');
   }
 });
+
+test('normalized protocol shadow mode is exactly event/result equivalent and isolated from malformed native schemas', async () => {
+  const previous = process.env.HUGREMOTE_CLAUDE_NORMALIZED_PROTOCOL;
+  const run = async (enabled: boolean) => {
+    if (enabled) process.env.HUGREMOTE_CLAUDE_NORMALIZED_PROTOCOL = 'true';
+    else delete process.env.HUGREMOTE_CLAUDE_NORMALIZED_PROTOCOL;
+    const h = await harness();
+    h.send(start('shadow-message'));
+    h.send(block(0, { type: 'thinking', thinking: '' }));
+    h.send(delta(0, 'reason', true));
+    h.send(block(1, { type: 'text', text: '' }));
+    h.send(delta(1, 'answer'));
+    h.send({ type: 'system', subtype: { malformed: true } });
+    h.send(snapshot('shadow-message', [
+      { type: 'thinking', thinking: 'reason' },
+      { type: 'text', text: 'answer' },
+      { type: 'tool_use', id: 'shadow-tool', name: 'Bash', input: { command: 'printf ok' } },
+    ]));
+    h.send({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'shadow-tool', content: 'ok' }] } });
+    h.close();
+    return { events: h.events, result: await h.result };
+  };
+  try {
+    const disabled = await run(false);
+    const enabled = await run(true);
+    assert.deepEqual(enabled, disabled);
+    assert.equal(enabled.result.text, 'answer');
+    assert.equal(enabled.result.thinking, 'reason');
+    assert.equal(enabled.result.tools?.[0]?.output, 'ok');
+  } finally {
+    if (previous === undefined) delete process.env.HUGREMOTE_CLAUDE_NORMALIZED_PROTOCOL;
+    else process.env.HUGREMOTE_CLAUDE_NORMALIZED_PROTOCOL = previous;
+  }
+});
+
+test('live stdout decoder drops an oversized native record and resumes at the next valid frame', async () => {
+  const h = await harness();
+  h.child.stdout.write(JSON.stringify({ type: 'unknown', payload: 'x'.repeat(1024 * 1024 + 100) }) + '\n');
+  h.send(snapshot('after-oversize', [{ type: 'text', text: 'recovered' }]));
+  h.close();
+  assert.equal((await h.result).text, 'recovered');
+  assert.equal(text(h.events), 'recovered');
+});
+
+test('native stdout payload is never reflected into browser errors or final text', async () => {
+  const h = await harness();
+  const sensitive = 'private-native-payload-must-not-leak';
+  h.send({ type: 'future_native_frame', payload: sensitive });
+  h.close(1);
+  const result = await h.result;
+  assert.doesNotMatch(result.text, new RegExp(sensitive));
+  assert.doesNotMatch(JSON.stringify(h.events), new RegExp(sensitive));
+  assert.match(result.text, /exited with code 1|không trả về kết quả/i);
+});

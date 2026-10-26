@@ -240,6 +240,9 @@
             <span class="current-task-label">{{ currentLiveTask.label }}</span>
             <span v-if="currentLiveTask.title" class="current-task-title">{{ currentLiveTask.title }}</span>
           </div>
+          <div v-if="claudeStore.currentSystemNotice" class="claude-system-notice-badge">
+            <i class="ri-information-line"></i> {{ claudeStore.currentSystemNotice }}
+          </div>
         </div>
         <div class="current-task-meta">
           <span v-if="currentLiveTask.phase">{{ currentLiveTask.phase }}</span>
@@ -2329,6 +2332,18 @@ function showUsageToast() {
 .claude-interaction-settled {
   font-size: 12px;
   opacity: 0.6;
+}
+
+.claude-system-notice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 </style>

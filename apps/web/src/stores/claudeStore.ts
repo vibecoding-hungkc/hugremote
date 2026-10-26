@@ -92,8 +92,9 @@ export const useClaudeStore = defineStore('claude', () => {
 
   const sessions = ref<ClaudeSession[]>([]);
   const activeSessionId = ref<string>('');
-  const isGenerating = ref<boolean>(false);
-  const isReconnecting = ref<boolean>(false);
+  const isGenerating = ref(false);
+  const isReconnecting = ref(false);
+  const currentSystemNotice = ref<string | null>(null);
   const compactTaskMode = ref<boolean>(localStorage.getItem('hugcode_claude_compact_task_mode') === 'true');
   const isLimitsPopupOpen = ref<boolean>(false);
   const limits = ref<ClaudeLimits>({
@@ -664,6 +665,17 @@ export const useClaudeStore = defineStore('claude', () => {
         }
         break;
       }
+      case 'system.status':
+      case 'system_status': {
+        const subtype = event.subtype || event.status || '';
+        if (subtype) currentSystemNotice.value = subtype;
+        break;
+      }
+      case 'system.compact_boundary':
+      case 'system_compact_boundary': {
+        currentSystemNotice.value = 'Compacting context…';
+        break;
+      }
       case 'content_sync':
         reactiveMsg.text = event.text ?? '';
         reactiveMsg.thinking = event.thinking ?? '';
@@ -673,6 +685,7 @@ export const useClaudeStore = defineStore('claude', () => {
         reactiveMsg.text = (reactiveMsg.text || '') + (event.text || '');
         break;
       case 'done':
+        currentSystemNotice.value = null;
         reactiveMsg.isThinking = false;
         reactiveMsg.isWorking = false;
         reactiveMsg.tools?.forEach((tool) => {
@@ -682,6 +695,7 @@ export const useClaudeStore = defineStore('claude', () => {
         if (event.contextTokens) session.contextTokens = event.contextTokens;
         break;
       case 'finish':
+        currentSystemNotice.value = null;
         reactiveMsg.isThinking = false;
         reactiveMsg.isWorking = false;
         if (event.assistantMessage) {
@@ -696,6 +710,7 @@ export const useClaudeStore = defineStore('claude', () => {
         if (event.contextTokens) session.contextTokens = event.contextTokens;
         break;
       case 'error':
+        currentSystemNotice.value = null;
         reactiveMsg.isThinking = false;
         reactiveMsg.isWorking = false;
         reactiveMsg.tools?.forEach((tool) => {
@@ -1372,6 +1387,7 @@ export const useClaudeStore = defineStore('claude', () => {
     deleteProjectSession,
     isGenerating,
     isReconnecting,
+    currentSystemNotice,
     compactTaskMode,
     toggleCompactTaskMode,
     isLimitsPopupOpen,

@@ -469,6 +469,7 @@ import ModelSelectorPopup from './ModelSelectorPopup.vue';
 import ClaudeLimitsPopup from './ClaudeLimitsPopup.vue';
 import ContextAttachmentPicker from './ContextAttachmentPicker.vue';
 import { useI18n } from '../composables/useI18n.js';
+import { watchClaudeLiveMessageForAutoScroll } from '../composables/useClaudeAutoScroll.js';
 
 const props = withDefaults(defineProps<{ isActive?: boolean }>(), { isActive: true });
 
@@ -794,6 +795,8 @@ watch(
     scrollToBottom();
   }
 );
+
+watchClaudeLiveMessageForAutoScroll(currentLiveMessage, scrollToBottom);
 
 function closeModelPopupOnDocumentClick(e?: MouseEvent) {
   isModelPopupOpen.value = false;

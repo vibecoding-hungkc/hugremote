@@ -2204,6 +2204,11 @@ export class ClaudeService {
         task.liveMessage.isThinking = false;
         task.liveMessage.text = (task.liveMessage.text || '') + (event.text || '');
       } else if (event.type === 'done') {
+        // Claude's native result frame is terminal even though the child process
+        // may emit close on a later tick. Publish the terminal task state before
+        // SSE listeners observe `done`, otherwise the client can rehydrate a
+        // stale `isRunning: true` snapshot and leave the Stop button stuck.
+        if (task.status === 'running') task.status = 'done';
         task.liveMessage.isThinking = false;
         task.liveMessage.isWorking = false;
         if (event.text) {
@@ -2485,6 +2490,11 @@ export class ClaudeService {
 
     this.cancelledSessions.delete(session.id);
     this.activeProcesses.set(session.id, handle);
+    const releaseOwnedProcess = () => {
+      if (this.activeProcesses.get(session.id) !== handle) return false;
+      this.activeProcesses.delete(session.id);
+      return true;
+    };
     try {
       if (!handle.stdin) throw new Error('Claude duplex transport did not expose stdin');
       const promptFrame = {
@@ -2496,7 +2506,7 @@ export class ClaudeService {
       };
       handle.stdin.write(`${JSON.stringify(promptFrame)}\n`);
     } catch (err: any) {
-      this.activeProcesses.delete(session.id);
+      releaseOwnedProcess();
       try { handle.kill('SIGTERM'); } catch (_) {}
       const errorText = `Không thể gửi yêu cầu qua Claude duplex transport: ${err.message || err}`;
       onEvent({ type: 'error', error: errorText });
@@ -2873,8 +2883,8 @@ export class ClaudeService {
       });
 
       handle.on('error', (err: any) => {
-        this.activeProcesses.delete(session.id);
-        this.cancelledSessions.delete(session.id);
+        const ownedProcess = releaseOwnedProcess();
+        if (ownedProcess) this.cancelledSessions.delete(session.id);
         if (isSettled) return;
         const targetLabel = isRemote && server ? `máy chủ remote "${server.label || server.name}"` : 'máy chủ nội bộ';
         const errorText = `Không thể khởi chạy Claude Code trên ${targetLabel}: ${err.message || err}`;
@@ -2883,8 +2893,8 @@ export class ClaudeService {
       });
 
       handle.on('close', (code: any, signal: any) => {
-        this.activeProcesses.delete(session.id);
-        const wasCancelled = this.cancelledSessions.delete(session.id);
+        const ownedProcess = releaseOwnedProcess();
+        const wasCancelled = ownedProcess ? this.cancelledSessions.delete(session.id) : false;
         if (isSettled) return;
 
         const trailingRecords = nativeFrameDecoder.finish();

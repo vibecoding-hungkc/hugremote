@@ -2107,6 +2107,12 @@ export class ClaudeService {
                 task.liveMessage.text = (task.liveMessage.text || '') + (event.text || '');
             }
             else if (event.type === 'done') {
+                // Claude's native result frame is terminal even though the child process
+                // may emit close on a later tick. Publish the terminal task state before
+                // SSE listeners observe `done`, otherwise the client can rehydrate a
+                // stale `isRunning: true` snapshot and leave the Stop button stuck.
+                if (task.status === 'running')
+                    task.status = 'done';
                 task.liveMessage.isThinking = false;
                 task.liveMessage.isWorking = false;
                 if (event.text) {
@@ -2374,6 +2380,12 @@ export class ClaudeService {
         }
         this.cancelledSessions.delete(session.id);
         this.activeProcesses.set(session.id, handle);
+        const releaseOwnedProcess = () => {
+            if (this.activeProcesses.get(session.id) !== handle)
+                return false;
+            this.activeProcesses.delete(session.id);
+            return true;
+        };
         try {
             if (!handle.stdin)
                 throw new Error('Claude duplex transport did not expose stdin');
@@ -2387,7 +2399,7 @@ export class ClaudeService {
             handle.stdin.write(`${JSON.stringify(promptFrame)}\n`);
         }
         catch (err) {
-            this.activeProcesses.delete(session.id);
+            releaseOwnedProcess();
             try {
                 handle.kill('SIGTERM');
             }
@@ -2780,8 +2792,9 @@ export class ClaudeService {
                 captureStderr(typeof d === 'string' ? d : stderrDecoder.write(d));
             });
             handle.on('error', (err) => {
-                this.activeProcesses.delete(session.id);
-                this.cancelledSessions.delete(session.id);
+                const ownedProcess = releaseOwnedProcess();
+                if (ownedProcess)
+                    this.cancelledSessions.delete(session.id);
                 if (isSettled)
                     return;
                 const targetLabel = isRemote && server ? `máy chủ remote "${server.label || server.name}"` : 'máy chủ nội bộ';
@@ -2790,8 +2803,8 @@ export class ClaudeService {
                 settle({ text: errorText });
             });
             handle.on('close', (code, signal) => {
-                this.activeProcesses.delete(session.id);
-                const wasCancelled = this.cancelledSessions.delete(session.id);
+                const ownedProcess = releaseOwnedProcess();
+                const wasCancelled = ownedProcess ? this.cancelledSessions.delete(session.id) : false;
                 if (isSettled)
                     return;
                 const trailingRecords = nativeFrameDecoder.finish();

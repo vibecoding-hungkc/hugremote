@@ -394,8 +394,51 @@ test('live background task forwards native interaction and exact response throug
   child.stdout.write(JSON.stringify({ type: 'result', result: 'done' }) + '\n');
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(stdin.writableEnded, true, 'terminal result must close duplex stdin');
+  assert.equal(task.status, 'done', 'terminal result must mark task done before its SSE done event is observed');
+  assert.equal(service.isTaskRunning(session.id), false, 'terminal result must release public running state before process close');
   child.emit('close', 0, null);
   await task.promise;
+});
+
+test('old terminal process close cannot delete the replacement run process handle', async () => {
+  const service = new ClaudeService();
+  const children: any[] = [];
+  (service as any).spawnLocalClaude = () => {
+    const child = Object.assign(new EventEmitter(), {
+      stdin: new PassThrough(),
+      stdout: new PassThrough(),
+      stderr: new PassThrough(),
+      killed: false,
+      kill() { this.killed = true; },
+    });
+    children.push(child);
+    return child;
+  };
+
+  const session = {
+    id: 'session-process-owner', serverId: 'server-local', name: 'test', cwd: process.cwd(),
+    model: 'Default', mode: 'Auto', bypassPermissions: false, timer: '60m',
+    contextTokens: '0', messages: [], updatedAt: Date.now(),
+  } as any;
+
+  const first = service.startBackgroundPrompt(session, 'first');
+  await new Promise(resolve => setImmediate(resolve));
+  children[0].stdout.write(JSON.stringify({ type: 'result', result: 'first done' }) + '\n');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(first.status, 'done');
+
+  const second = service.startBackgroundPrompt(session, 'second');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(second.status, 'running');
+  assert.equal((service as any).activeProcesses.get(session.id), children[1]);
+
+  children[0].emit('close', 0, null);
+  await first.promise;
+  assert.equal((service as any).activeProcesses.get(session.id), children[1], 'old close must preserve replacement handle');
+  assert.equal(service.cancelRun(session.id), true);
+  assert.equal(children[1].killed, true, 'cancel must kill the replacement child');
+  children[1].emit('close', null, 'SIGINT');
+  await second.promise;
 });
 
 test('cancelling a live task terminally cancels pending interactions', async () => {

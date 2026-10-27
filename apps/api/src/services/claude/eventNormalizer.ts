@@ -68,6 +68,52 @@ export class ClaudeEventNormalizer {
     return `${this.namespaceKey(parentToolUseId)}:${messageId}:${blockIndex}`;
   }
 
+  private sanitizeControlRequest(subtype: string, request: unknown): Record<string, unknown> {
+    if (!request || typeof request !== 'object') return {};
+    const req = request as Record<string, unknown>;
+
+    if (subtype === 'request_user_dialog') {
+      const sanitized: Record<string, unknown> = {
+        subtype: 'request_user_dialog',
+      };
+      if (typeof req.question === 'string') sanitized.question = req.question.slice(0, 4096);
+      if (typeof req.message === 'string') sanitized.message = req.message.slice(0, 4096);
+      if (typeof req.title === 'string') sanitized.title = req.title.slice(0, 256);
+      if (Array.isArray(req.options)) {
+        sanitized.options = req.options
+          .filter((opt): opt is Record<string, unknown> => Boolean(opt && typeof opt === 'object'))
+          .slice(0, 50)
+          .map((opt) => ({
+            id: typeof opt.id === 'string' ? opt.id.slice(0, 128) : String(opt.id || ''),
+            label: typeof opt.label === 'string' ? opt.label.slice(0, 256) : String(opt.label || ''),
+          }));
+      }
+      return sanitized;
+    }
+
+    const toolName = typeof req.tool_name === 'string' ? req.tool_name.slice(0, 128) : (typeof req.tool === 'string' ? req.tool.slice(0, 128) : undefined);
+    const sanitized: Record<string, unknown> = {
+      subtype: typeof req.subtype === 'string' ? req.subtype.slice(0, 64) : 'can_use_tool',
+    };
+    if (toolName !== undefined) sanitized.tool_name = toolName;
+    if (req.input !== undefined) sanitized.input = this.boundInput(req.input);
+    if (Array.isArray(req.permission_suggestions)) {
+      sanitized.permission_suggestions = req.permission_suggestions.slice(0, 10).map((s) => (typeof s === 'string' ? s.slice(0, 256) : s));
+    }
+    return sanitized;
+  }
+
+  private boundInput(input: unknown): unknown {
+    if (input === null || input === undefined) return input;
+    try {
+      const serialized = JSON.stringify(input);
+      if (serialized.length <= 64 * 1024) return input;
+      return { _truncated: true, preview: serialized.slice(0, 2048) };
+    } catch (_) {
+      return String(input).slice(0, 2048);
+    }
+  }
+
   private diagnostic(
     nativeFrameType: string,
     preview: string,
@@ -389,7 +435,7 @@ export class ClaudeEventNormalizer {
           type: 'interaction.requested',
           interactionId: frame.request_id || frame.uuid || `req-${Date.now()}`,
           interactionType: subtype === 'request_user_dialog' ? 'user_dialog' : 'permission',
-          request: frame
+          request: this.sanitizeControlRequest(subtype, frame.request)
         }
       ];
     }

@@ -210,6 +210,7 @@ await test('differential evaluation against HugRemote v1.5.3 baseline proves non
 
   // Feed through a mock spawn harness like test_claude_streaming.ts
   const child = new (await import('node:events')).EventEmitter();
+  child.stdin = new (await import('node:stream')).PassThrough();
   child.stdout = new (await import('node:stream')).PassThrough();
   child.stderr = new (await import('node:stream')).PassThrough();
   child.kill = () => {};
@@ -247,6 +248,7 @@ await test('differential evaluation against HugRemote v1.5.3 baseline proves non
 
   let interactEvents = [];
   const child2 = new (await import('node:events')).EventEmitter();
+  child2.stdin = new (await import('node:stream')).PassThrough();
   child2.stdout = new (await import('node:stream')).PassThrough();
   child2.stderr = new (await import('node:stream')).PassThrough();
   child2.kill = () => {};

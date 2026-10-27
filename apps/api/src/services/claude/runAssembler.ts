@@ -199,14 +199,13 @@ export class ClaudeRunAssembler {
       }
       case 'interaction.requested': {
         const existing = state.interactions.find(i => i.interactionId === event.interactionId);
-        if (!existing) {
-          state.interactions.push({
-            interactionId: event.interactionId,
-            type: event.interactionType,
-            status: 'pending',
-            request: event.request
-          });
-        }
+        if (existing) return false;
+        state.interactions.push({
+          interactionId: event.interactionId,
+          type: event.interactionType,
+          status: 'pending',
+          request: event.request
+        });
         return true;
       }
       case 'interaction.responded': {

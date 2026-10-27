@@ -18,8 +18,11 @@ const { ClaudeService } = await import('../apps/api/src/services/claudeService.j
 type Event = import('../apps/api/src/services/claudeService.js').ClaudeStreamEvent;
 async function harness(remote = false, model = 'Default') {
   const service = new ClaudeService();
+  let stdinText = '';
+  const stdin = new PassThrough();
+  stdin.on('data', (chunk) => { stdinText += chunk.toString(); });
   const child = Object.assign(new EventEmitter(), {
-    stdout: new PassThrough(), stderr: new PassThrough(), kill() {},
+    stdin, stdout: new PassThrough(), stderr: new PassThrough(), kill() {},
   });
   let args: string[] = [];
   const capture = (...values: any[]) => { args = values[remote ? 2 : 1]; return child; };
@@ -38,6 +41,7 @@ async function harness(remote = false, model = 'Default') {
   await new Promise(resolve => setImmediate(resolve));
   return {
     service, session, child, args, events, result,
+    get stdinText() { return stdinText; },
     send: (obj: unknown) => child.stdout.write(JSON.stringify(obj) + '\n'),
     close: (code = 0, signal: string | null = null) => child.emit('close', code, signal),
   };
@@ -297,15 +301,196 @@ test('native model values are passed exactly; Default omits model and legacy tit
   }
 });
 
-test('local and SSH invocations request partial messages', async () => {
+test('local and SSH invocations use SDK duplex stream-json and send the prompt over stdin', async () => {
   for (const remote of [false, true]) {
     const h = await harness(remote);
+    assert.ok(h.args.includes('--include-partial-messages'), `${remote ? 'SSH' : 'local'} missing partial flag`);
+    assert.equal(h.args[h.args.indexOf('--input-format') + 1], 'stream-json');
+    assert.equal(h.args[h.args.indexOf('--output-format') + 1], 'stream-json');
+    assert.equal(h.args.includes('test prompt'), false, 'prompt must not be passed as argv');
+    assert.equal(h.args.at(0), '-p');
+
+    const frames = h.stdinText.split('\n').filter(Boolean).map(line => JSON.parse(line));
+    assert.equal(frames.length, 1);
+    assert.deepEqual(frames[0], {
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: 'test prompt' }]
+      }
+    });
+
     h.send(snapshot('m', [{ type: 'text', text: 'ok' }]));
     h.close();
     await h.result;
-    assert.ok(h.args.includes('--include-partial-messages'), `${remote ? 'SSH' : 'local'} missing partial flag`);
-    assert.equal(h.args[h.args.indexOf('--output-format') + 1], 'stream-json');
   }
+});
+
+test('live background task forwards native interaction and exact response through child stdin', async () => {
+  const service = new ClaudeService();
+  let stdinText = '';
+  const stdin = new PassThrough();
+  stdin.on('data', (chunk) => { stdinText += chunk.toString(); });
+  const child = Object.assign(new EventEmitter(), {
+    stdin,
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+    kill() {},
+  });
+  (service as any).spawnLocalClaude = () => child;
+
+  const session = {
+    id: 'session-live-interaction',
+    serverId: 'server-local',
+    name: 'test',
+    cwd: process.cwd(),
+    model: 'Default',
+    mode: 'Auto',
+    bypassPermissions: false,
+    timer: '60m',
+    contextTokens: '0',
+    messages: [],
+    updatedAt: Date.now(),
+  } as any;
+
+  const task = service.startBackgroundPrompt(session, 'test prompt');
+  await new Promise(resolve => setImmediate(resolve));
+  child.stdout.write(JSON.stringify({
+    type: 'control_request',
+    request_id: 'request-live-1',
+    request: {
+      subtype: 'can_use_tool',
+      tool_name: 'Bash',
+      input: { command: 'printf fixture' },
+    },
+  }) + '\n');
+  await new Promise(resolve => setImmediate(resolve));
+
+  const requested = task.events.find((event) => event.type === 'interaction_requested');
+  assert.equal(requested?.interaction?.interactionId, 'request-live-1');
+  assert.equal(requested?.interaction?.status, 'pending');
+  assert.equal(requested?.interaction?.request?.tool_name, 'Bash');
+
+  assert.equal(service.respondInteraction(session.id, 'request-live-1', { behavior: 'allow' }), true);
+  const frames = stdinText.split('\n').filter(Boolean).map(line => JSON.parse(line));
+  assert.deepEqual(frames[0], {
+    type: 'user',
+    message: {
+      role: 'user',
+      content: [{ type: 'text', text: 'test prompt' }],
+    },
+  });
+  assert.deepEqual(frames[1], {
+    type: 'control_response',
+    response: {
+      subtype: 'success',
+      request_id: 'request-live-1',
+      response: { behavior: 'allow' },
+    },
+  });
+  assert.equal(task.events.at(-1)?.type, 'interaction_responded');
+  assert.equal(task.liveMessage.interactions?.[0]?.status, 'responded');
+
+  child.stdout.write(JSON.stringify({ type: 'result', result: 'done' }) + '\n');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(stdin.writableEnded, true, 'terminal result must close duplex stdin');
+  child.emit('close', 0, null);
+  await task.promise;
+});
+
+test('cancelling a live task terminally cancels pending interactions', async () => {
+  const service = new ClaudeService();
+  const stdin = new PassThrough();
+  const child = Object.assign(new EventEmitter(), {
+    stdin,
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+    killed: false,
+    kill() { this.killed = true; },
+  });
+  (service as any).spawnLocalClaude = () => child;
+
+  const session = {
+    id: 'session-live-cancel', serverId: 'server-local', name: 'test', cwd: process.cwd(),
+    model: 'Default', mode: 'Auto', bypassPermissions: false, timer: '60m',
+    contextTokens: '0', messages: [], updatedAt: Date.now(),
+  } as any;
+  const task = service.startBackgroundPrompt(session, 'cancel fixture');
+  await new Promise(resolve => setImmediate(resolve));
+  child.stdout.write(JSON.stringify({
+    type: 'control_request', request_id: 'request-cancel-live',
+    request: { subtype: 'can_use_tool', tool_name: 'Edit', input: { file_path: 'fixture.txt' } },
+  }) + '\n');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(task.liveMessage.interactions?.[0]?.status, 'pending');
+
+  assert.equal(service.cancelRun(session.id), true);
+  assert.equal(task.status, 'cancelled');
+  assert.equal(task.liveMessage.interactions?.[0]?.status, 'cancelled');
+  assert.equal(task.events.at(-1)?.type, 'interaction_cancelled');
+
+  child.emit('close', null, 'SIGINT');
+  await task.promise;
+  assert.equal(task.status, 'cancelled', 'completion handler must not overwrite cancelled terminal state');
+});
+
+test('M5 LOGIC-001: cancel during in-flight remote spawn prevents prompt write and stops child', async () => {
+  const service = new ClaudeService();
+  service.setServerConfigResolver(() => ({
+    id: 'server-ssh-test',
+    name: 'ssh-test',
+    label: 'Remote SSH',
+    type: 'ssh',
+    host: 'example.invalid',
+    user: 'root',
+    port: 22,
+  }));
+
+  let remoteSpawnResolve: (handle: any) => void = () => {};
+  const remoteSpawnPromise = new Promise((resolve) => { remoteSpawnResolve = resolve; });
+  (service as any).spawnRemoteClaude = () => remoteSpawnPromise;
+
+  const session = {
+    id: 'session-ssh-cancel-inflight',
+    serverId: 'server-ssh-test',
+    name: 'test',
+    cwd: '/root',
+    model: 'Default',
+    mode: 'Auto',
+    bypassPermissions: false,
+    timer: '60m',
+    contextTokens: '0',
+    messages: [],
+    updatedAt: Date.now(),
+  } as any;
+
+  const task = service.startBackgroundPrompt(session, 'ssh prompt');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(task.status, 'running');
+
+  // Cancel while remote spawn is still pending
+  const cancelled = service.cancelRun(session.id);
+  assert.equal(cancelled, true, 'cancelRun must return true when active task is cancelled');
+  assert.equal(task.status, 'cancelled');
+
+  let killedSignal = '';
+  let promptWritten = false;
+  const stdin = new PassThrough();
+  stdin.on('data', () => { promptWritten = true; });
+  const remoteHandle = Object.assign(new EventEmitter(), {
+    stdin,
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+    kill(sig: string) { killedSignal = sig; },
+  });
+
+  // Now the async remote spawn resolves
+  remoteSpawnResolve(remoteHandle);
+  await task.promise;
+
+  assert.equal(promptWritten, false, 'prompt must not be written if task was cancelled before spawn resolved');
+  assert.equal(killedSignal, 'SIGTERM', 'remote handle must be terminated if cancelled before spawn resolved');
+  assert.equal(task.status, 'cancelled');
 });
 
 test('normalized protocol shadow mode is exactly event/result equivalent and isolated from malformed native schemas', async () => {

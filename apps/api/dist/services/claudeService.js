@@ -8,7 +8,7 @@ import { sshPool } from './sshPool.js';
 import { ClaudeEventNormalizer } from './claude/eventNormalizer.js';
 import { ClaudeRunAssembler } from './claude/runAssembler.js';
 import { NativeFrameDecoder } from './claude/nativeFrameDecoder.js';
-import { ClaudeReplayBuffer, migrateSessionRecord } from './claude/sessionMigration.js';
+import { ClaudeReplayBuffer, CURRENT_SESSION_SCHEMA_VERSION, migrateSessionRecord } from './claude/sessionMigration.js';
 export class ContextUsageValidationError extends Error {
     statusCode = 400;
     constructor(message) {
@@ -317,6 +317,23 @@ export class ClaudeService {
             if (!fs.existsSync(dir))
                 fs.mkdirSync(dir, { recursive: true });
             const list = Array.from(this.sessions.values());
+            for (const session of list) {
+                session.schemaVersion = CURRENT_SESSION_SCHEMA_VERSION;
+                if (!Array.isArray(session.messages))
+                    session.messages = [];
+                for (const message of session.messages) {
+                    if (!Array.isArray(message.childAgents))
+                        message.childAgents = [];
+                    if (!Array.isArray(message.interactions))
+                        message.interactions = [];
+                    for (const tool of message.tools || []) {
+                        if (!tool.status)
+                            tool.status = 'done';
+                        if (!tool.type)
+                            tool.type = 'generic';
+                    }
+                }
+            }
             fs.writeFileSync(STORAGE_FILE, JSON.stringify(list, null, 2), 'utf8');
         }
         catch (e) {
@@ -1749,6 +1766,23 @@ export class ClaudeService {
                     }
                 }
             }
+            for (const interaction of task.liveMessage.interactions || []) {
+                if (interaction.status !== 'pending')
+                    continue;
+                if (task.assembler) {
+                    task.assembler.applyNormalizedEvent({
+                        schemaVersion: 1,
+                        runId: task.runId || task.sessionId,
+                        sessionId: task.sessionId,
+                        type: 'interaction.cancelled',
+                        interactionId: interaction.interactionId,
+                        timestamp: Date.now()
+                    });
+                }
+                this.publishInteractionTaskEvent(task, {
+                    type: 'interaction_cancelled', interactionId: interaction.interactionId
+                });
+            }
             const session = this.sessions.get(sessionId);
             if (session) {
                 const idx = session.messages.findIndex((m) => m.id === task.liveMessage.id);
@@ -1765,11 +1799,11 @@ export class ClaudeService {
                 catch (_) { }
             }
         }
+        this.cancelledSessions.add(sessionId);
         const child = this.activeProcesses.get(sessionId);
         if (!child)
-            return false;
+            return Boolean(task && task.status === 'cancelled');
         try {
-            this.cancelledSessions.add(sessionId);
             child.kill('SIGINT');
             setTimeout(() => {
                 if (!child.killed)
@@ -1781,36 +1815,84 @@ export class ClaudeService {
             return false;
         }
     }
+    publishInteractionTaskEvent(task, event) {
+        if (!task.replayBuffer)
+            task.replayBuffer = new ClaudeReplayBuffer(1000);
+        const sequenced = task.replayBuffer.append(event);
+        event.sequence = sequenced.sequence;
+        if (event.type === 'interaction_responded') {
+            const interaction = task.liveMessage.interactions?.find((item) => item.interactionId === event.interactionId);
+            if (interaction) {
+                interaction.status = 'responded';
+                interaction.response = event.response;
+            }
+        }
+        else if (event.type === 'interaction_cancelled') {
+            const interaction = task.liveMessage.interactions?.find((item) => item.interactionId === event.interactionId);
+            if (interaction)
+                interaction.status = 'cancelled';
+        }
+        task.events.push(event);
+        if (task.events.length > 1000)
+            task.events.shift();
+        for (const listener of task.listeners) {
+            try {
+                listener(event);
+            }
+            catch (_) { }
+        }
+    }
     respondInteraction(sessionId, interactionId, response) {
         const task = this.activeTasks.get(sessionId);
-        if (!task || task.status !== 'running')
+        if (!task || task.status !== 'running' || !task.assembler)
             return false;
         const proc = this.activeProcesses.get(sessionId);
         if (!proc || !proc.stdin)
             return false;
-        if (task.assembler) {
-            const ok = task.assembler.applyNormalizedEvent({
-                schemaVersion: 1,
-                runId: task.sessionId,
-                sessionId: task.sessionId,
-                type: 'interaction.responded',
-                interactionId,
-                response: response ?? {},
-                timestamp: Date.now()
-            });
-            if (!ok)
-                return false;
-        }
+        const stdin = proc.stdin;
+        if (stdin.writableEnded || stdin.destroyed || stdin.writable === false)
+            return false;
+        const interaction = task.assembler.getSnapshot().interactions.find((item) => item.interactionId === interactionId);
+        if (!interaction || interaction.status !== 'pending')
+            return false;
         try {
+            const rawResponse = response && typeof response === 'object' ? response : {};
+            const resolvedResponse = {};
+            if (typeof rawResponse.behavior === 'string')
+                resolvedResponse.behavior = rawResponse.behavior.slice(0, 64);
+            if (typeof rawResponse.optionId === 'string')
+                resolvedResponse.optionId = rawResponse.optionId.slice(0, 128);
+            if (typeof rawResponse.selected_option_id === 'string')
+                resolvedResponse.selected_option_id = rawResponse.selected_option_id.slice(0, 128);
+            if (rawResponse.input !== undefined)
+                resolvedResponse.input = rawResponse.input;
+            if (rawResponse.response !== undefined)
+                resolvedResponse.response = rawResponse.response;
             const payload = JSON.stringify({
                 type: 'control_response',
                 response: {
                     subtype: 'success',
                     request_id: interactionId,
-                    response: response ?? {}
+                    response: resolvedResponse
                 }
             }) + '\n';
-            proc.stdin.write(payload);
+            const writeOk = proc.stdin.write(payload);
+            if (writeOk === false && (stdin.writableEnded || stdin.destroyed))
+                return false;
+            const ok = task.assembler.applyNormalizedEvent({
+                schemaVersion: 1,
+                runId: task.runId || task.sessionId,
+                sessionId: task.sessionId,
+                type: 'interaction.responded',
+                interactionId,
+                response: resolvedResponse,
+                timestamp: Date.now()
+            });
+            if (!ok)
+                return false;
+            this.publishInteractionTaskEvent(task, {
+                type: 'interaction_responded', interactionId, response: resolvedResponse
+            });
             return true;
         }
         catch (_) {
@@ -1819,15 +1901,28 @@ export class ClaudeService {
     }
     cancelInteraction(sessionId, interactionId) {
         const task = this.activeTasks.get(sessionId);
-        if (!task || task.status !== 'running')
+        if (!task || task.status !== 'running' || !task.assembler)
             return false;
         const proc = this.activeProcesses.get(sessionId);
         if (!proc || !proc.stdin)
             return false;
-        if (task.assembler) {
+        const stdin = proc.stdin;
+        if (stdin.writableEnded || stdin.destroyed || stdin.writable === false)
+            return false;
+        const interaction = task.assembler.getSnapshot().interactions.find((item) => item.interactionId === interactionId);
+        if (!interaction || interaction.status !== 'pending')
+            return false;
+        try {
+            const payload = JSON.stringify({
+                type: 'control_cancel_request',
+                request_id: interactionId
+            }) + '\n';
+            const writeOk = proc.stdin.write(payload);
+            if (writeOk === false && (stdin.writableEnded || stdin.destroyed))
+                return false;
             const ok = task.assembler.applyNormalizedEvent({
                 schemaVersion: 1,
-                runId: task.sessionId,
+                runId: task.runId || task.sessionId,
                 sessionId: task.sessionId,
                 type: 'interaction.cancelled',
                 interactionId,
@@ -1835,13 +1930,7 @@ export class ClaudeService {
             });
             if (!ok)
                 return false;
-        }
-        try {
-            const payload = JSON.stringify({
-                type: 'control_cancel_request',
-                request_id: interactionId
-            }) + '\n';
-            proc.stdin.write(payload);
+            this.publishInteractionTaskEvent(task, { type: 'interaction_cancelled', interactionId });
             return true;
         }
         catch (_) {
@@ -1852,7 +1941,7 @@ export class ClaudeService {
         const bin = getClaudeBinaryPath();
         const child = spawn(bin, args, {
             cwd: session.cwd || process.cwd(),
-            stdio: ['ignore', 'pipe', 'pipe'],
+            stdio: ['pipe', 'pipe', 'pipe'],
             env: {
                 ...process.env,
                 ...claudeSettingsEnv,
@@ -1860,6 +1949,7 @@ export class ClaudeService {
             },
         });
         return {
+            stdin: child.stdin,
             stdout: child.stdout,
             stderr: child.stderr,
             on: (event, cb) => {
@@ -1897,6 +1987,7 @@ export class ClaudeService {
             exitSignal = sig || null;
         });
         return {
+            stdin: stream,
             stdout: stream,
             stderr: stream.stderr,
             on: (event, cb) => {
@@ -1947,14 +2038,18 @@ export class ClaudeService {
         session.messages.push(liveAsstMsg);
         session.updatedAt = Date.now();
         this.saveSessions();
+        const taskRunId = `${session.id}:${Date.now()}`;
         const task = {
             sessionId: session.id,
+            runId: taskRunId,
             userPrompt,
             status: 'running',
             startTime: Date.now(),
             liveMessage: liveAsstMsg,
             events: [],
             listeners: new Set(),
+            normalizer: new ClaudeEventNormalizer({ sessionId: session.id, runId: taskRunId }),
+            assembler: new ClaudeRunAssembler(),
             replayBuffer: new ClaudeReplayBuffer(1000),
         };
         this.activeTasks.set(session.id, task);
@@ -1982,6 +2077,26 @@ export class ClaudeService {
                     found.output = event.output;
                     found.status = event.status;
                 }
+            }
+            else if (event.type === 'interaction_requested') {
+                task.liveMessage.interactions = task.liveMessage.interactions || [];
+                const index = task.liveMessage.interactions.findIndex((interaction) => interaction.interactionId === event.interaction.interactionId);
+                if (index >= 0)
+                    task.liveMessage.interactions[index] = event.interaction;
+                else
+                    task.liveMessage.interactions.push(event.interaction);
+            }
+            else if (event.type === 'interaction_responded') {
+                const interaction = task.liveMessage.interactions?.find((item) => item.interactionId === event.interactionId);
+                if (interaction) {
+                    interaction.status = 'responded';
+                    interaction.response = event.response;
+                }
+            }
+            else if (event.type === 'interaction_cancelled') {
+                const interaction = task.liveMessage.interactions?.find((item) => item.interactionId === event.interactionId);
+                if (interaction)
+                    interaction.status = 'cancelled';
             }
             else if (event.type === 'content_sync') {
                 task.liveMessage.text = event.text ?? '';
@@ -2011,7 +2126,8 @@ export class ClaudeService {
         };
         task.promise = this.streamClaudePrompt(session, userPrompt, onEvent)
             .then((finalResult) => {
-            task.status = 'done';
+            if (task.status !== 'cancelled')
+                task.status = 'done';
             task.liveMessage.isWorking = false;
             task.liveMessage.isThinking = false;
             if (finalResult.text) {
@@ -2063,11 +2179,12 @@ export class ClaudeService {
             return { text: task.liveMessage.text };
         })
             .finally(() => {
-            setTimeout(() => {
+            const cleanupTimer = setTimeout(() => {
                 if (this.activeTasks.get(session.id) === task) {
                     this.activeTasks.delete(session.id);
                 }
             }, 10 * 60 * 1000);
+            cleanupTimer.unref();
         });
         return task;
     }
@@ -2196,7 +2313,8 @@ export class ClaudeService {
             : (permissionModeMap[modeKey] || 'auto');
         const args = [
             '-p',
-            userPrompt,
+            '--input-format',
+            'stream-json',
             ...(modelArg ? ['--model', modelArg] : []),
             '--effort',
             effortArg,
@@ -2245,8 +2363,39 @@ export class ClaudeService {
             onEvent({ type: 'error', error: errorText });
             return { text: errorText };
         }
+        const currentTask = this.activeTasks.get(session.id);
+        if (this.cancelledSessions.has(session.id) || currentTask?.status === 'cancelled') {
+            this.cancelledSessions.delete(session.id);
+            try {
+                handle.kill('SIGTERM');
+            }
+            catch (_) { }
+            return { text: 'Đã dừng yêu cầu.' };
+        }
         this.cancelledSessions.delete(session.id);
         this.activeProcesses.set(session.id, handle);
+        try {
+            if (!handle.stdin)
+                throw new Error('Claude duplex transport did not expose stdin');
+            const promptFrame = {
+                type: 'user',
+                message: {
+                    role: 'user',
+                    content: [{ type: 'text', text: userPrompt }],
+                },
+            };
+            handle.stdin.write(`${JSON.stringify(promptFrame)}\n`);
+        }
+        catch (err) {
+            this.activeProcesses.delete(session.id);
+            try {
+                handle.kill('SIGTERM');
+            }
+            catch (_) { }
+            const errorText = `Không thể gửi yêu cầu qua Claude duplex transport: ${err.message || err}`;
+            onEvent({ type: 'error', error: errorText });
+            return { text: errorText };
+        }
         return new Promise((resolve) => {
             let isSettled = false;
             const settle = (result) => {
@@ -2357,6 +2506,25 @@ export class ClaudeService {
                     }
                     catch {
                         // Shadow validation must never interrupt the stable legacy stream path.
+                    }
+                }
+                if (obj.type === 'control_request' && typeof obj.request_id === 'string') {
+                    const activeTask = this.activeTasks.get(session.id);
+                    const normalizer = activeTask?.normalizer;
+                    const assembler = activeTask?.assembler;
+                    if (normalizer && assembler) {
+                        try {
+                            const requestedEvent = normalizer.normalizeFrame(obj).find((event) => event.type === 'interaction.requested');
+                            if (requestedEvent && assembler.applyNormalizedEvent(requestedEvent)) {
+                                const interaction = assembler.getSnapshot().interactions.find((item) => item.interactionId === requestedEvent.interactionId);
+                                if (interaction) {
+                                    onEvent({ type: 'interaction_requested', interaction });
+                                }
+                            }
+                        }
+                        catch {
+                            // A malformed control request must not break the active stream.
+                        }
                     }
                 }
                 // 1. Session Init
@@ -2540,6 +2708,12 @@ export class ClaudeService {
                 }
                 // 5. Result
                 if (obj.type === 'result') {
+                    // One browser prompt maps to one SDK stream-json turn. Closing stdin
+                    // after its terminal result lets the persistent CLI exit cleanly.
+                    try {
+                        handle.stdin?.end?.();
+                    }
+                    catch (_) { }
                     if (obj.result && typeof obj.result === 'string') {
                         fullText = obj.result;
                     }

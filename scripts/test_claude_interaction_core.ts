@@ -208,3 +208,92 @@ test('M5 AC19: HTTP API routes respond and cancel active interactions with proce
   (claudeService as any).activeProcesses.delete(sessionId);
   await app.close();
 });
+
+test('M5 SEC-001: normalizer allowlists and bounds control_request fields, dropping arbitrary secrets and huge payloads', () => {
+  const normalizer = new ClaudeEventNormalizer({ sessionId: 'session-sec', runId: 'run-sec' });
+  const rawFrame = {
+    type: 'control_request',
+    request_id: 'req-sec-1',
+    request: {
+      subtype: 'can_use_tool',
+      tool_name: 'Bash',
+      input: { command: 'echo hello' },
+      secret_token: 'SUPER_SECRET_TOKEN',
+      arbitrary_env: { PATH: '/bin' },
+      large_blob: 'x'.repeat(100_000),
+    }
+  };
+
+  const [event] = normalizer.normalizeFrame(rawFrame);
+  assert.equal(event.type, 'interaction.requested');
+  assert.equal(event.interactionId, 'req-sec-1');
+  assert.equal(event.request.tool_name, 'Bash');
+  assert.deepEqual(event.request.input, { command: 'echo hello' });
+  assert.equal((event.request as any).secret_token, undefined, 'un-allowlisted secrets must be stripped');
+  assert.equal((event.request as any).arbitrary_env, undefined, 'un-allowlisted env must be stripped');
+  assert.equal((event.request as any).large_blob, undefined, 'un-allowlisted large blobs must be stripped');
+});
+
+test('M5 LOGIC-003: duplicate interaction.requested with same id is rejected by assembler', () => {
+  const assembler = new ClaudeRunAssembler();
+  const event = {
+    schemaVersion: 1 as const,
+    sessionId: 'session-dup',
+    runId: 'run-dup',
+    type: 'interaction.requested' as const,
+    interactionId: 'req-dup-1',
+    interactionType: 'permission' as const,
+    request: { tool_name: 'Bash' }
+  };
+
+  assert.equal(assembler.applyNormalizedEvent(event), true);
+  // Duplicate application MUST return false
+  assert.equal(assembler.applyNormalizedEvent(event), false, 'assembler must reject duplicate interaction.requested');
+  assert.equal(assembler.getSnapshot().interactions.length, 1);
+});
+
+test('M5 LOGIC-002: respondInteraction and cancelInteraction reject when stdin is ended or destroyed', async () => {
+  const { claudeService } = await import('../apps/api/src/services/claudeService.js');
+  const sessionId = 'session-ended-stdin';
+  const assembler = new ClaudeRunAssembler();
+  assembler.applyNormalizedEvent({
+    schemaVersion: 1,
+    sessionId,
+    runId: sessionId,
+    type: 'interaction.requested',
+    interactionId: 'int-ended-1',
+    interactionType: 'permission',
+    request: { tool_name: 'Bash' }
+  });
+
+  const endedStdin = {
+    writable: false,
+    writableEnded: true,
+    write() { return true; }
+  };
+
+  (claudeService as any).activeTasks.set(sessionId, {
+    sessionId,
+    userPrompt: 'test',
+    status: 'running',
+    startTime: Date.now(),
+    liveMessage: { id: 'msg-ended', sender: 'assistant', text: '' },
+    events: [],
+    listeners: new Set(),
+    assembler
+  });
+
+  (claudeService as any).activeProcesses.set(sessionId, {
+    stdin: endedStdin,
+    stdout: {} as any,
+    stderr: {} as any,
+    on: () => {},
+    kill: () => {}
+  });
+
+  assert.equal(claudeService.respondInteraction(sessionId, 'int-ended-1', { behavior: 'allow' }), false);
+  assert.equal(claudeService.cancelInteraction(sessionId, 'int-ended-1'), false);
+
+  (claudeService as any).activeTasks.delete(sessionId);
+  (claudeService as any).activeProcesses.delete(sessionId);
+});

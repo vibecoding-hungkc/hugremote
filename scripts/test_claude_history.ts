@@ -16,7 +16,7 @@ after(()=>{for(const t of timers)clearTimeout(t);globalThis.setTimeout=originalT
 test('background run through public session snapshot persists CLI identity, tokens and final history',async()=>{
  const service=new ClaudeService();
  const created=service.createSession('server-local','','Fixture',home,'Default');
- const child=Object.assign(new EventEmitter(),{stdout:new PassThrough(),stderr:new PassThrough(),kill(){}});
+ const child=Object.assign(new EventEmitter(),{stdin:new PassThrough(),stdout:new PassThrough(),stderr:new PassThrough(),kill(){}});
  (service as any).spawnLocalClaude=()=>child;
  service.addMessage(created.id,{id:'u1',sender:'user',text:'fixture',time:'00:00'});
  const snapshot=service.getSession(created.id)!;

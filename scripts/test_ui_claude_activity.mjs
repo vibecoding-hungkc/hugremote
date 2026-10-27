@@ -16,14 +16,24 @@ try {
  const pinia = createPinia(); setActivePinia(pinia);
  const server = useServerStore(pinia); server.servers = [{ id: 'local', name: 'Fixture', type: 'local', workspace: '/fixture' }]; server.currentServerId = 'local';
  const store = useClaudeStore(pinia);
- store.sessions = [{ id: 's', serverId: 'local', cwd: '/fixture', model: 'Default', name: 'Test', messages: [{ id: 'a', sender: 'assistant', text: 'Earlier text', isWorking: true, isThinking: false, tools: [{ id: 't', type: 'bash', title: 'Old completed task', status: 'done' }] }] }]; store.activeSessionId = 's';
+ store.sessions = [{ id: 's', serverId: 'local', cwd: '/fixture', model: 'Default', name: 'Test', messages: [{ id: 'a', sender: 'assistant', text: '', thinking: '', isWorking: true, isThinking: true, tools: [{ id: 't', type: 'bash', title: 'Old completed task', status: 'done' }] }] }]; store.activeSessionId = 's';
  let state; const component = { ...View, setup(p,c) { state = View.setup(p,c); return state; } };
  async function render(props = {}) { const app = createSSRApp(component, props); app.use(pinia); return renderToString(app); }
  store.isGenerating = true; store.compactTaskMode = false;
  let html = await render();
- assert.match(html, /class="claude-current-task"/, 'running task must show activity even in normal noncompact mode after tools complete');
- assert.doesNotMatch(state.currentLiveTask.value.title, /Old completed task/, 'completed task must not look running');
- console.log('PASS normal mode displays activity independent of thinking/tools');
+ assert.match(html, /class="claude-thinking-panel"/, 'thinking must remain visible in the live assistant message');
+ assert.doesNotMatch(html, /class="claude-current-task"/, 'plain thinking must not render a duplicate bottom activity row');
+ assert.equal(state.currentLiveTask.value, null, 'plain thinking must not be exposed as a second current task');
+ assert.equal((html.match(/Thinking…/g) || []).length, 1, 'exactly one Thinking… label must render');
+ console.log('PASS normal mode renders exactly one thinking indicator');
+ store.activeSession.messages[0].isThinking = false;
+ store.activeSession.messages[0].tools = [{ id: 'running', type: 'bash', title: 'Run: npm test', status: 'running' }];
+ html = await render();
+ assert.match(html, /class="claude-current-task"/, 'a real running tool must keep the bottom activity row');
+ assert.match(html, /npm test/, 'running tool details must remain visible');
+ console.log('PASS running tools retain the bottom activity row');
+ store.activeSession.messages[0].tools = [{ id: 't', type: 'bash', title: 'Old completed task', status: 'done' }];
+ assert.doesNotMatch(state.currentLiveTask.value?.title || '', /Old completed task/, 'completed task must not look running');
  store.isReconnecting = true; html = await render(); assert.match(html,/role="status"/); assert.match(html,/aria-live="polite"/);
  console.log('PASS reconnect banner is an accessible live status');
  let resumed = 0; store.resumeActiveStream = async () => { resumed++; }; store.fetchSessions = async () => {};

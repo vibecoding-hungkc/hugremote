@@ -761,7 +761,10 @@ const currentLiveTask = computed(() => {
     return { title: cleanTitle, label, phase };
   }
 
-  return { title: '', label: 'Thinking…', phase: '' };
+  // The live assistant message already owns the thinking indicator. The bottom
+  // activity row is reserved for a concrete running tool to avoid rendering two
+  // simultaneous "Thinking…" rows for the same generation.
+  return null;
 });
 
 watch(() => claudeStore.isGenerating, (running) => {

@@ -777,6 +777,12 @@ function scrollToBottom() {
   });
 }
 
+function isNearBottom(): boolean {
+  if (!streamRef.value) return true;
+  const { scrollTop, scrollHeight, clientHeight } = streamRef.value;
+  return scrollHeight - scrollTop - clientHeight <= 120;
+}
+
 watch(
   () => activeSession.value?.messages.length,
   () => {
@@ -784,7 +790,7 @@ watch(
   }
 );
 
-watchClaudeLiveMessageForAutoScroll(currentLiveMessage, scrollToBottom);
+watchClaudeLiveMessageForAutoScroll(currentLiveMessage, scrollToBottom, isNearBottom);
 
 function closeModelPopupOnDocumentClick(e?: MouseEvent) {
   isModelPopupOpen.value = false;

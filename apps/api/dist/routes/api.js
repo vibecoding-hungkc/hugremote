@@ -8,6 +8,17 @@ import { claudeService, ContextUsageValidationError, ContextUsageNotFoundError, 
 import { projectService } from '../services/projectService.js';
 import { createGitService } from '../services/gitService.js';
 import { tempZipService } from '../services/tempZipService.js';
+import { sessionStore, authConfig } from '../auth.js';
+function canAccessSession(request, reply, session) {
+    if (authConfig.mode === 'google' && session?.ownerEmail) {
+        const user = sessionStore.getUser(request);
+        if (user?.email && user.email.toLowerCase() !== session.ownerEmail.toLowerCase()) {
+            reply.status(403).send({ error: 'forbidden' });
+            return false;
+        }
+    }
+    return true;
+}
 export const apiRoutes = async (fastify) => {
     // --- SERVER ROUTES ---
     fastify.get('/api/servers', async () => {
@@ -478,16 +489,27 @@ export const apiRoutes = async (fastify) => {
         if (!serverId) {
             return reply.status(400).send({ error: 'serverId is required' });
         }
-        const session = claudeService.createSession(serverId, projectId || '', name || 'chat', cwd || '', model, mode, initialPrompt, Boolean(bypassPermissions));
+        const user = sessionStore.getUser(request);
+        const session = claudeService.createSession(serverId, projectId || '', name || 'chat', cwd || '', model, mode, initialPrompt, Boolean(bypassPermissions), user?.email);
         return { success: true, session };
     });
     fastify.patch('/api/claude/sessions/:id', async (request, reply) => {
+        const existing = claudeService.getSession(request.params.id);
+        if (!existing)
+            return reply.status(404).send({ error: 'Session not found' });
+        if (!canAccessSession(request, reply, existing))
+            return;
         const session = claudeService.updateSession(request.params.id, request.body || {});
         if (!session)
             return reply.status(404).send({ error: 'Session not found' });
         return { success: true, session };
     });
     fastify.delete('/api/claude/sessions/:id', async (request, reply) => {
+        const existing = claudeService.getSession(request.params.id);
+        if (!existing)
+            return reply.status(404).send({ error: 'Session not found' });
+        if (!canAccessSession(request, reply, existing))
+            return;
         const ok = claudeService.deleteSession(request.params.id);
         if (!ok)
             return reply.status(404).send({ error: 'Session not found' });
@@ -502,6 +524,8 @@ export const apiRoutes = async (fastify) => {
         const session = claudeService.getSession(id);
         if (!session)
             return reply.status(404).send({ error: 'Session not found' });
+        if (!canAccessSession(request, reply, session))
+            return;
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         // 1. Add user message
@@ -539,6 +563,8 @@ export const apiRoutes = async (fastify) => {
         const session = claudeService.getSession(id);
         if (!session)
             return reply.status(404).send({ error: 'Session not found' });
+        if (!canAccessSession(request, reply, session))
+            return;
         // The response, not the consumed IncomingMessage, owns this SSE connection.
         reply.hijack();
         reply.raw.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -612,6 +638,8 @@ export const apiRoutes = async (fastify) => {
         const session = claudeService.getSession(id);
         if (!session)
             return reply.status(404).send({ error: 'Session not found' });
+        if (!canAccessSession(request, reply, session))
+            return;
         // The response, not the consumed IncomingMessage, owns this SSE connection.
         reply.hijack();
         reply.raw.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -707,12 +735,18 @@ export const apiRoutes = async (fastify) => {
             liveMessage: task.liveMessage,
         };
     });
-    fastify.post('/api/claude/sessions/:id/cancel', async (request) => {
+    fastify.post('/api/claude/sessions/:id/cancel', async (request, reply) => {
+        const session = claudeService.getSession(request.params.id);
+        if (!canAccessSession(request, reply, session))
+            return;
         const cancelled = claudeService.cancelRun(request.params.id);
         return { success: true, cancelled };
     });
     fastify.post('/api/claude/sessions/:id/interactions/:interactionId/respond', async (request, reply) => {
         const { id, interactionId } = request.params;
+        const session = claudeService.getSession(id);
+        if (!canAccessSession(request, reply, session))
+            return;
         const success = claudeService.respondInteraction(id, interactionId, request.body?.response);
         if (!success) {
             return reply.status(404).send({ error: 'Interaction or active session not found or already settled' });
@@ -721,6 +755,9 @@ export const apiRoutes = async (fastify) => {
     });
     fastify.post('/api/claude/sessions/:id/interactions/:interactionId/cancel', async (request, reply) => {
         const { id, interactionId } = request.params;
+        const session = claudeService.getSession(id);
+        if (!canAccessSession(request, reply, session))
+            return;
         const success = claudeService.cancelInteraction(id, interactionId);
         if (!success) {
             return reply.status(404).send({ error: 'Interaction or active session not found or already settled' });
@@ -728,10 +765,13 @@ export const apiRoutes = async (fastify) => {
         return { success: true };
     });
     fastify.post('/api/claude/sessions/:id/clear', async (request, reply) => {
-        const session = claudeService.clearMessages(request.params.id);
-        if (!session)
+        const session = claudeService.getSession(request.params.id);
+        if (!canAccessSession(request, reply, session))
+            return;
+        const cleared = claudeService.clearMessages(request.params.id);
+        if (!cleared)
             return reply.status(404).send({ error: 'Session not found' });
-        return { success: true, session };
+        return { success: true, session: cleared };
     });
     fastify.get('/api/claude/limits', async () => {
         return {

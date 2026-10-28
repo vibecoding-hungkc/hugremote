@@ -9,7 +9,8 @@ import type { ClaudeMessage } from '@hugremote/shared';
  */
 export function watchClaudeLiveMessageForAutoScroll(
   liveMessage: ComputedRef<ClaudeMessage | null>,
-  scrollToBottom: () => void
+  scrollToBottom: () => void,
+  isNearBottom?: () => boolean
 ) {
   return watch(
     () => {
@@ -26,7 +27,9 @@ export function watchClaudeLiveMessageForAutoScroll(
       };
     },
     () => {
-      scrollToBottom();
+      if (!isNearBottom || isNearBottom()) {
+        scrollToBottom();
+      }
     },
     { deep: true, flush: 'post' }
   );

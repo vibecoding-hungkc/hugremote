@@ -108,10 +108,32 @@ export class ClaudeEventNormalizer {
     try {
       const serialized = JSON.stringify(input);
       if (serialized.length <= 64 * 1024) return input;
-      return { _truncated: true, preview: serialized.slice(0, 2048) };
-    } catch (_) {
-      return String(input).slice(0, 2048);
+      return { _truncated: true, preview: serialized.slice(0, 1024) };
+    } catch {
+      return { _unserializable: true };
     }
+  }
+
+  private sanitizeSystemPayload(frame: unknown): Record<string, unknown> {
+    if (!frame || typeof frame !== 'object') return {};
+    const f = frame as Record<string, unknown>;
+    const sanitized: Record<string, unknown> = {};
+    const safeKeys = new Set([
+      'status', 'subtype', 'summary', 'task_id', 'duration_ms', 'compact_tokens',
+      'model', 'tokens', 'session_id', 'total_tokens', 'cost_usd'
+    ]);
+    for (const [key, value] of Object.entries(f)) {
+      if (safeKeys.has(key)) {
+        if (typeof value === 'string') {
+          sanitized[key] = value.slice(0, 1024);
+        } else if (typeof value === 'number' || typeof value === 'boolean') {
+          sanitized[key] = value;
+        } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+          sanitized[key] = this.diagnosticPreview(value as Record<string, unknown>);
+        }
+      }
+    }
+    return sanitized;
   }
 
   private diagnostic(
@@ -157,18 +179,24 @@ export class ClaudeEventNormalizer {
       frame = input.frame;
     }
 
-    if (typeof frame.session_id === 'string' && this.nativeSessionId === undefined) {
-      this.nativeSessionId = frame.session_id;
-    }
-    if (typeof frame.run_id === 'string' && this.nativeRunId === undefined) {
-      this.nativeRunId = frame.run_id;
-    }
+    const candidateSessionId = typeof frame.session_id === 'string' ? frame.session_id : undefined;
+    const candidateRunId = typeof frame.run_id === 'string' ? frame.run_id : undefined;
+
     if (
-      (typeof frame.session_id === 'string' && this.nativeSessionId && frame.session_id !== this.nativeSessionId) ||
-      (typeof frame.run_id === 'string' && this.nativeRunId && frame.run_id !== this.nativeRunId)
+      (candidateSessionId && this.nativeSessionId && candidateSessionId !== this.nativeSessionId) ||
+      (candidateRunId && this.nativeRunId && candidateRunId !== this.nativeRunId)
     ) {
       return [this.diagnostic('scope_mismatch', this.diagnosticPreview(frame), sequence)];
     }
+
+    const bindScope = () => {
+      if (candidateSessionId && this.nativeSessionId === undefined) {
+        this.nativeSessionId = candidateSessionId;
+      }
+      if (candidateRunId && this.nativeRunId === undefined) {
+        this.nativeRunId = candidateRunId;
+      }
+    };
 
     const parentToolUseId: string | null = typeof frame.parent_tool_use_id === 'string'
       ? frame.parent_tool_use_id
@@ -183,6 +211,20 @@ export class ClaudeEventNormalizer {
       timestamp: Date.now()
     };
 
+    const events = this.resolveFrameEvents(frame, sequence, parentToolUseId, namespaceKey, base);
+    if (events.some(e => !e.type.startsWith('diagnostic.'))) {
+      bindScope();
+    }
+    return events;
+  }
+
+  private resolveFrameEvents(
+    frame: any,
+    sequence: number | undefined,
+    parentToolUseId: string | null,
+    namespaceKey: string,
+    base: any
+  ): ClaudeNormalizedEvent[] {
     // 1. Stream events
     if (frame.type === 'stream_event' && frame.event) {
       const ev = frame.event;
@@ -421,7 +463,7 @@ export class ClaudeEventNormalizer {
           ...base,
           type: eventType,
           subtype,
-          payload: frame
+          payload: this.sanitizeSystemPayload(frame)
         }
       ];
     }
@@ -447,7 +489,7 @@ export class ClaudeEventNormalizer {
           ...base,
           type: 'system.status',
           subtype: 'result',
-          payload: frame
+          payload: this.sanitizeSystemPayload(frame)
         }
       ];
     }

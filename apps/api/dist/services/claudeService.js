@@ -376,7 +376,7 @@ export class ClaudeService {
             isRunning: this.isTaskRunning(s.id),
         };
     }
-    createSession(serverId, projectIdOrName, nameOrCwd, cwdOrModel, modelOrMode = 'Sonnet 5.5 Medium', modeOrInitialPrompt = 'Auto', initialPromptOrBypass, bypassPermissions = false) {
+    createSession(serverId, projectIdOrName, nameOrCwd, cwdOrModel, modelOrMode = 'Sonnet 5.5 Medium', modeOrInitialPrompt = 'Auto', initialPromptOrBypass, bypassPermissions = false, ownerEmail) {
         let projectId = projectIdOrName;
         let name = nameOrCwd;
         let cwd = cwdOrModel;
@@ -420,6 +420,7 @@ export class ClaudeService {
             isCustomNamed: Boolean(name && name !== 'chat' && name !== 'hugcode'),
             model,
             mode,
+            ownerEmail,
             bypassPermissions,
             timer: '60m',
             contextTokens: '0',
@@ -1806,8 +1807,12 @@ export class ClaudeService {
         try {
             child.kill('SIGINT');
             setTimeout(() => {
-                if (!child.killed)
-                    child.kill('SIGTERM');
+                if (this.activeProcesses.get(sessionId) === child) {
+                    try {
+                        child.kill('SIGTERM');
+                    }
+                    catch (_) { }
+                }
             }, 1200).unref();
             return true;
         }

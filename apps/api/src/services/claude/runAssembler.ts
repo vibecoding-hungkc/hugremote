@@ -15,6 +15,7 @@ interface MutableRunSnapshot extends ClaudeRunSnapshot {
 
 const MAX_DIAGNOSTICS = 100;
 const MAX_PARTIAL_JSON_BYTES = 1024 * 1024;
+const MAX_BLOCK_TEXT_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_EVENT_TYPES: Record<ClaudeNormalizedEvent['type'], true> = {
   'message.started': true,
   'message.delta': true,
@@ -366,9 +367,15 @@ export class ClaudeRunAssembler {
 
   private applyBlockDelta(block: ClaudeCanonicalBlock, event: Extract<ClaudeNormalizedEvent, { type: 'content.block_delta' }>): void {
     if (event.deltaType === 'text_delta' && event.text !== undefined) {
-      block.text = `${block.text ?? ''}${event.text}`;
+      const current = block.text ?? '';
+      if (current.length + event.text.length <= MAX_BLOCK_TEXT_BYTES) {
+        block.text = `${current}${event.text}`;
+      }
     } else if (event.deltaType === 'thinking_delta' && event.thinking !== undefined) {
-      block.thinking = `${block.thinking ?? ''}${event.thinking}`;
+      const current = block.thinking ?? '';
+      if (current.length + event.thinking.length <= MAX_BLOCK_TEXT_BYTES) {
+        block.thinking = `${current}${event.thinking}`;
+      }
     } else if (event.deltaType === 'input_json_delta' && event.partialJson !== undefined) {
       const current = block.partialInput ?? '';
       if (current.length + event.partialJson.length <= MAX_PARTIAL_JSON_BYTES) {
@@ -390,6 +397,10 @@ export class ClaudeRunAssembler {
       for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
         const block = blocks[blockIndex];
         if (block?.tool_id === toolUseId) {
+          if (block.toolStatus === 'cancelled' && !isCancelled) {
+            // Terminal cancelled state must not be overwritten by late completion or error
+            return false;
+          }
           if (isCancelled) {
             block.toolStatus = 'cancelled';
           } else {

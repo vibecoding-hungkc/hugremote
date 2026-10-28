@@ -95,6 +95,7 @@ export interface ClaudeSession {
   isCustomNamed: boolean;
   model: string;
   mode: string;
+  ownerEmail?: string;
   bypassPermissions?: boolean;
   timer?: string;
   contextTokens?: string;

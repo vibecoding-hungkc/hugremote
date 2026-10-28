@@ -58,6 +58,7 @@ import { json } from '@codemirror/lang-json';
 import { python } from '@codemirror/lang-python';
 import { html } from '@codemirror/lang-html';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { useFileStore } from '../stores/fileStore.js';
 
 const fileStore = useFileStore();
@@ -71,9 +72,28 @@ const isMarkdown = computed(() => {
   return name.endsWith('.md') || name.endsWith('.markdown');
 });
 
+function sanitizeMarkdownHtml(html: string): string {
+  try {
+    const purify = (DOMPurify as any)?.sanitize
+      ? DOMPurify
+      : (typeof DOMPurify === 'function' && typeof window !== 'undefined' && (window as any).document ? (DOMPurify as any)(window) : null);
+    if (purify && typeof purify.sanitize === 'function') {
+      return purify.sanitize(html);
+    }
+  } catch (_) {}
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/<embed\b[^>]*>/gi, '')
+    .replace(/<object\b[^>]*>/gi, '')
+    .replace(/\s*on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/href\s*=\s*("[^"]*javascript:[^"]*"|'[^']*javascript:[^']*')/gi, 'href="#"');
+}
+
 const renderedMarkdown = computed(() => {
   if (!fileStore.activeFile?.content) return '';
-  return marked.parse(fileStore.activeFile.content);
+  const parsed = marked.parse(fileStore.activeFile.content);
+  return typeof parsed === 'string' ? sanitizeMarkdownHtml(parsed) : '';
 });
 
 function handlePreviewClick(e: MouseEvent) {

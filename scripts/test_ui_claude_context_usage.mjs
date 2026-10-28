@@ -804,7 +804,7 @@ try {
     assert.equal(store.currentContextUsage.context, null);
   });
 
-  await test('composer and popup render native human totals, raw max, percentage, and effective model', async () => {
+  await test('composer and popup render Context Window by native token totals only', async () => {
     respond = async () => ({ ok: true, json: async () => context('effective/custom-v4', 123_456, 900_000, 12.3456, 1_000_000) });
     const { store, pinia } = fixture({ model: 'team-alias Medium' });
     await settle();
@@ -812,14 +812,16 @@ try {
     const viewHtml = await renderToString(viewApp);
     assert.equal(selectText(viewHtml, 'ctx-used'), '123.5k');
     assert.match(selectText(viewHtml, 'ctx-max') || '', /1M/);
-    assert.equal(selectText(viewHtml, 'ctx-percent'), '12.3%');
+    assert.equal(selectText(viewHtml, 'ctx-percent'), null, 'composer must not render Context Window percentage');
+    assert.doesNotMatch(viewHtml, /12\.3%/, 'composer and tooltip must expose token counts only');
     assert.doesNotMatch(viewHtml, /999k/, 'legacy assistant estimate must not be rendered as verified context');
     store.isLimitsPopupOpen = true;
     const popupHtml = await renderPopup(pinia);
     const contextCard = selectCard(popupHtml, 'ri-cpu-line');
     assert.ok(contextCard, 'popup must contain native context window card');
     assert.equal(selectText(contextCard, 'limit-tokens-detail'), '123.5k / 1M tokens');
-    assert.equal(selectText(contextCard, 'limit-pct-val'), '12.3%');
+    assert.equal(selectText(contextCard, 'limit-pct-val'), null, 'context card must not render a percentage value');
+    assert.doesNotMatch(contextCard, /limit-progress-bar|12\.3%/, 'context card must not encode usage as a percentage bar');
     assert.equal(selectText(contextCard, 'limit-model-tag'), 'effective/custom-v4');
   });
 
@@ -844,7 +846,7 @@ try {
     const unavailableComposer = await renderToString(viewApp);
     assert.equal(selectText(unavailableComposer, 'ctx-used'), '—');
     assert.match(selectText(unavailableComposer, 'ctx-max') || '', /—/);
-    assert.equal(selectText(unavailableComposer, 'ctx-percent'), 'Chưa xác định');
+    assert.equal(selectText(unavailableComposer, 'ctx-percent'), null);
 
     respond = async () => ({ ok: false, status: 500, json: async () => ({ error: 'probe failed' }) });
     await store.fetchContextUsage();
@@ -855,7 +857,7 @@ try {
 
     viewApp = createSSRApp(ClaudeView); viewApp.use(pinia);
     const failedComposer = await renderToString(viewApp);
-    assert.equal(selectText(failedComposer, 'ctx-percent'), 'Không thể tải');
+    assert.equal(selectText(failedComposer, 'ctx-percent'), null);
   });
 
   await test('all context usage UI components contain no model-name inference or fixed context fallback', async () => {
@@ -868,6 +870,11 @@ try {
       const source = await readFile(fileURLToPath(new URL(relative, import.meta.url)), 'utf8');
       assert.doesNotMatch(source, /getModelContext(?:Window|Label)|includes\(['"](?:1m|1000k)|\b(?:200k|1000k|200000|1000000)\b/i, relative);
     }
+    const view = await readFile(fileURLToPath(new URL('../apps/web/src/components/ClaudeView.vue', import.meta.url)), 'utf8');
+    assert.doesNotMatch(view, /currentContextPercentLabel|contextPillStatusLabel|ctx-percent|vượt quá 70%/, 'Context Window surfaces and /cost must remain token-only');
+    assert.match(view, /Context Window:\*\*.*contextLine/, '/cost must continue to report Context Window token totals');
+    const popup = await readFile(fileURLToPath(new URL('../apps/web/src/components/ClaudeLimitsPopup.vue', import.meta.url)), 'utf8');
+    assert.doesNotMatch(popup, /contextPercentLabel|contextProgressPercent/, 'Context Window card must not compute or render percentage');
     const hub = await readFile(fileURLToPath(new URL('../apps/web/src/components/ClaudeSessionHubModal.vue', import.meta.url)), 'utf8');
     assert.doesNotMatch(hub, /s\.contextTokens/, 'session hub must not claim legacy estimates as native context');
     assert.match(hub, /formatContextTokenCount/, 'session hub must use shared native formatting');

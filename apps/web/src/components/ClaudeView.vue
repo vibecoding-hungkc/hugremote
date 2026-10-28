@@ -369,8 +369,7 @@
               @click.stop="openLimits"
             >
               <span class="ctx-used">{{ currentContextTotalLabel }}</span>
-              <span class="ctx-max"> / {{ currentContextMaxLabel }}</span>
-              <span class="ctx-percent">{{ contextPillStatusLabel }}</span>
+              <span class="ctx-max"> / {{ currentContextMaxLabel }} tokens</span>
             </span>
 
             <!-- Model selector badge: Sonnet 5.5 Medium -->
@@ -458,7 +457,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
 import {
-  formatContextPercentage,
   formatContextTokenCount,
   nativeContextLimit,
   useClaudeStore,
@@ -712,22 +710,12 @@ const currentContextTotalLabel = computed(() =>
 const currentContextMaxLabel = computed(() =>
   formatContextTokenCount(nativeContextLimit(nativeContextUsage.value.context))
 );
-const currentContextPercentLabel = computed(() =>
-  formatContextPercentage(nativeContextUsage.value.context?.percentage)
-);
-const contextPillStatusLabel = computed(() => {
-  const usage = nativeContextUsage.value;
-  if (usage.status === 'loading') return 'Đang tải';
-  if (usage.status === 'error') return 'Không thể tải';
-  if (usage.status !== 'available') return 'Chưa xác định';
-  return currentContextPercentLabel.value;
-});
 const contextUsageTitle = computed(() => {
   const usage = nativeContextUsage.value;
   if (usage.status === 'loading') return 'Đang tải ngữ cảnh native…';
   if (usage.status === 'error') return `Không thể tải ngữ cảnh native: ${usage.error}`;
   if (usage.status !== 'available' || !usage.context) return 'Chưa xác định ngữ cảnh native';
-  return `Ngữ cảnh native · ${usage.context.model} · ${currentContextPercentLabel.value}`;
+  return `Ngữ cảnh native · ${usage.context.model} · ${currentContextTotalLabel.value} / ${currentContextMaxLabel.value} tokens`;
 });
 
 const elapsedSeconds = ref(0);
@@ -991,7 +979,7 @@ async function handleSend() {
     const s = activeSession.value;
     const usage = nativeContextUsage.value;
     const contextLine = usage.status === 'available' && usage.context
-      ? `\`${currentContextTotalLabel.value} / ${currentContextMaxLabel.value}\` tokens (${currentContextPercentLabel.value} dung lượng)`
+      ? `\`${currentContextTotalLabel.value} / ${currentContextMaxLabel.value}\` tokens`
       : '`— / —` tokens (Chưa xác định)';
     addLocalExchange(
       '/cost',
@@ -1001,7 +989,7 @@ async function handleSend() {
       `• **Context Window:** ${contextLine}\n` +
       `• **Số tin nhắn trong phiên:** \`${s?.messages?.length || 0}\` tin nhắn\n` +
       `• **Chế độ thực thi:** \`${currentMode.value}\`\n\n` +
-      `💡 *Mẹo: Gõ \`/compact\` nếu context window vượt quá 70% để nén bớt lịch sử.*`
+      `💡 *Mẹo: Gõ \`/compact\` khi số token ngữ cảnh tiến gần giới hạn để nén bớt lịch sử.*`
     );
     return;
   }
@@ -1302,11 +1290,45 @@ function showUsageToast() {
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 119, 87, 0.44) transparent;
   padding: 16px 14px 12px;
   display: flex;
   flex-direction: column;
   gap: 14px;
   box-sizing: border-box;
+}
+
+.claude-ext-stream::-webkit-scrollbar {
+  width: 10px;
+}
+
+.claude-ext-stream::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.claude-ext-stream::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 87, 0.44);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+  min-height: 40px;
+}
+
+.claude-ext-stream::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 87, 0.68);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.claude-ext-stream::-webkit-scrollbar-thumb:active {
+  background: rgba(217, 119, 87, 0.82);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.claude-ext-stream::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* User Message Card */
@@ -2077,12 +2099,6 @@ function showUsageToast() {
 
 .claude-context-pill .ctx-max {
   color: #6b7280;
-}
-
-.claude-context-pill .ctx-percent {
-  margin-left: 3px;
-  color: #93c5fd;
-  font-size: 10px;
 }
 
 /* Model Badge */

@@ -76,10 +76,6 @@
                 <i class="ri-cpu-line"></i>
                 <span>{{ t('limits.contextWindow') }}</span>
               </div>
-              <div class="limit-pct-val">{{ contextPercentLabel }}</div>
-            </div>
-            <div class="limit-progress-bar">
-              <div class="limit-progress-fill" :style="{ width: `${contextProgressPercent}%` }"></div>
             </div>
             <div class="limit-card-bottom">
               <span class="limit-tokens-detail">{{ currentTokensLabel }} / {{ contextLimitLabel }} tokens</span>
@@ -98,7 +94,6 @@
 <script setup lang="ts">
 import { computed, watch, onMounted, onUnmounted } from 'vue';
 import {
-  formatContextPercentage,
   formatContextTokenCount,
   nativeContextLimit,
   useClaudeStore,
@@ -128,15 +123,6 @@ const currentTokensLabel = computed(() =>
 const contextLimitLabel = computed(() =>
   formatContextTokenCount(nativeContextLimit(contextUsage.value.context))
 );
-const contextPercentLabel = computed(() =>
-  formatContextPercentage(contextUsage.value.context?.percentage)
-);
-const contextProgressPercent = computed(() => {
-  const value = contextUsage.value.context?.percentage;
-  return typeof value === 'number' && Number.isFinite(value)
-    ? Math.min(100, Math.max(0, value))
-    : 0;
-});
 const effectiveModel = computed(() => contextUsage.value.context?.model || 'Chưa xác định');
 const contextStatusLabel = computed(() => {
   if (contextUsage.value.status === 'loading') return 'Đang tải ngữ cảnh native…';

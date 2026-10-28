@@ -369,7 +369,7 @@
               @click.stop="openLimits"
             >
               <span class="ctx-used">{{ currentContextTotalLabel }}</span>
-              <span class="ctx-max"> / {{ currentContextMaxLabel }} tokens</span>
+              <span class="ctx-max"> / {{ currentContextMaxLabel }}</span>
             </span>
 
             <!-- Model selector badge: Sonnet 5.5 Medium -->

@@ -811,7 +811,7 @@ try {
     const viewApp = createSSRApp(ClaudeView); viewApp.use(pinia);
     const viewHtml = await renderToString(viewApp);
     assert.equal(selectText(viewHtml, 'ctx-used'), '123.5k');
-    assert.match(selectText(viewHtml, 'ctx-max') || '', /1M/);
+    assert.equal(selectText(viewHtml, 'ctx-max'), '/ 1M', 'compact composer pill must omit the tokens suffix');
     assert.equal(selectText(viewHtml, 'ctx-percent'), null, 'composer must not render Context Window percentage');
     assert.doesNotMatch(viewHtml, /12\.3%/, 'composer and tooltip must expose token counts only');
     assert.doesNotMatch(viewHtml, /999k/, 'legacy assistant estimate must not be rendered as verified context');

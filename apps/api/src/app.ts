@@ -25,6 +25,37 @@ export async function createApp(): Promise<FastifyInstance> {
 
   validateAuthConfig();
 
+  function normalizeRequestPath(url: string): string {
+    const pathname = new URL(url, 'http://local').pathname;
+    try {
+      return decodeURIComponent(pathname).toLowerCase();
+    } catch {
+      return pathname.toLowerCase();
+    }
+  }
+
+  function isBlockedPublicProbe(url: string): boolean {
+    let pathname = normalizeRequestPath(url);
+    if (BASE_PATH && (pathname === BASE_PATH || pathname.startsWith(`${BASE_PATH}/`))) {
+      pathname = pathname.slice(BASE_PATH.length) || '/';
+    }
+    return (
+      pathname.startsWith('/@vite/') ||
+      pathname.startsWith('/@fs/') ||
+      pathname.startsWith('/__webpack') ||
+      pathname.startsWith('/_next/webpack-hmr') ||
+      /(?:^|\/)\./.test(pathname) ||
+      /^\/(?:src|node_modules)(?:\/|$)/.test(pathname) ||
+      /^\/(?:package(?:-lock)?\.json|vite\.config\.[^/]+|tsconfig(?:\.[^/]+)?\.json)$/.test(pathname)
+    );
+  }
+
+  fastify.addHook('onRequest', async (req, reply) => {
+    if (isBlockedPublicProbe(req.url)) {
+      return reply.status(404).send({ error: 'Endpoint or asset not found' });
+    }
+  });
+
   await fastify.register(cors, {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
@@ -47,9 +78,25 @@ export async function createApp(): Promise<FastifyInstance> {
 
   // Global Security Headers
   fastify.addHook('onSend', async (_req, reply) => {
+    reply.header(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "font-src 'self' data: https://cdn.jsdelivr.net",
+        "img-src 'self' data: https:",
+        "connect-src 'self' ws: wss:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'self'",
+      ].join('; ')
+    );
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('X-Frame-Options', 'SAMEORIGIN');
     reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   });
 
   await fastify.register(fastifyWs);
@@ -87,18 +134,21 @@ export async function createApp(): Promise<FastifyInstance> {
       if (!fs.existsSync(indexPath)) return 'Frontend not built yet';
       const raw = fs.readFileSync(indexPath, 'utf8');
       return raw.replace(
-        '</head>',
-        `<script>window.__BASE_PATH__ = ${JSON.stringify(BASE_PATH)};</script></head>`
+        /<meta name="hugremote-base-path" content="[^"]*">/,
+        `<meta name="hugremote-base-path" content="${BASE_PATH}">`
       );
     }
 
-    // Root HTML entry
-    fastify.get('/', async (req, reply) => {
+    function sendIndexHtml(reply: any) {
       reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       reply.header('Pragma', 'no-cache');
       reply.header('Expires', '0');
       return reply.type('text/html').send(getIndexHtml());
-    });
+    }
+
+    // Root and authentication HTML entries. Application navigation uses hashes.
+    fastify.get('/', async (_req, reply) => sendIndexHtml(reply));
+    fastify.get('/login', async (_req, reply) => sendIndexHtml(reply));
 
     await fastify.register(fastifyStatic, {
       root: publicDir,
@@ -107,13 +157,8 @@ export async function createApp(): Promise<FastifyInstance> {
     });
 
     if (BASE_PATH) {
-      // Subpath HTML entry
-      fastify.get(`${BASE_PATH}/`, async (req, reply) => {
-        reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        reply.header('Pragma', 'no-cache');
-        reply.header('Expires', '0');
-        return reply.type('text/html').send(getIndexHtml());
-      });
+      fastify.get(`${BASE_PATH}/`, async (_req, reply) => sendIndexHtml(reply));
+      fastify.get(`${BASE_PATH}/login`, async (_req, reply) => sendIndexHtml(reply));
 
       await fastify.register(fastifyStatic, {
         root: publicDir,
@@ -123,22 +168,8 @@ export async function createApp(): Promise<FastifyInstance> {
       });
     }
 
-    fastify.setNotFoundHandler((req, reply) => {
-      const u = req.url;
-      const isApiOrWs =
-        u.startsWith('/api') ||
-        u.startsWith('/ws') ||
-        (BASE_PATH && (u.startsWith(`${BASE_PATH}/api`) || u.startsWith(`${BASE_PATH}/ws`)));
-
-      const isStaticAsset =
-        u.startsWith('/assets/') ||
-        (BASE_PATH && u.startsWith(`${BASE_PATH}/assets/`));
-
-      if (isApiOrWs || isStaticAsset) {
-        reply.status(404).send({ error: 'Endpoint or asset not found' });
-      } else {
-        reply.type('text/html').send(getIndexHtml());
-      }
+    fastify.setNotFoundHandler((_req, reply) => {
+      return reply.status(404).send({ error: 'Endpoint or asset not found' });
     });
   }
 

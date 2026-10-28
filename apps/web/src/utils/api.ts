@@ -1,12 +1,13 @@
 // Dynamic Base Path Resolver
-// Reads BASE_PATH injected by server (via BASE_PATH environment variable).
+// Reads the server-provided meta value so the production shell needs no inline script.
 // Defaults to empty string when not set.
 
 export function getBasePath(): string {
-  if (typeof window !== 'undefined' && typeof (window as any).__BASE_PATH__ === 'string') {
-    return (window as any).__BASE_PATH__;
-  }
-  return '';
+  if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return '';
+  const value = document
+    .querySelector<HTMLMetaElement>('meta[name="hugremote-base-path"]')
+    ?.content;
+  return typeof value === 'string' ? value : '';
 }
 
 export function apiUrl(endpoint: string): string {

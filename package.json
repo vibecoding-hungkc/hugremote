@@ -43,6 +43,7 @@
     "test:claude-duplex-spike": "tsx scripts/spike_claude_duplex_transport.ts",
     "test:claude-interaction-core": "tsx scripts/test_claude_interaction_core.ts",
     "test:claude-replay-migration": "tsx scripts/test_claude_replay_migration.ts",
+    "test:security": "tsx scripts/test_http_security.ts",
     "build:api": "npm run build --prefix apps/api",
     "build:client": "npm run build:web",
     "build:server": "npm run build:api",
@@ -65,7 +66,7 @@
     "@fastify/cors": "^10.0.1",
     "@fastify/static": "^10.1.6",
     "@fastify/websocket": "^11.0.1",
-    "fastify": "^5.2.1",
+    "fastify": "^5.12.7",
     "grammy": "^1.46.0",
     "node-pty": "^1.1.0",
     "ssh2": "^1.16.0"

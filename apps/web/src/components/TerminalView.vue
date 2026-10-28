@@ -162,6 +162,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { wsUrl as buildWsUrl } from '../utils/api.js';
+import { attachTerminalTouchScrolling, dispatchTerminalWheel } from '../utils/terminalScroll.js';
 import InputModal from './InputModal.vue';
 import VirtualLaptopKeyboard from './VirtualLaptopKeyboard.vue';
 import { useI18n } from '../composables/useI18n.js';
@@ -359,49 +360,11 @@ function cleanupCurrentTerminal() {
 function setupTouchScrolling() {
   if (!terminalRef.value || !term) return;
 
-  const container = terminalRef.value;
-  let startY = 0;
-  let accumulatedDelta = 0;
-  const rowHeight = 18; // approximate line height threshold
-
-  const onTouchStart = (e: TouchEvent) => {
-    if (e.touches.length === 1) {
-      startY = e.touches[0].clientY;
-      accumulatedDelta = 0;
-    }
-  };
-
-  const onTouchMove = (e: TouchEvent) => {
-    if (e.touches.length !== 1 || !term) return;
-    const currentY = e.touches[0].clientY;
-    const deltaY = startY - currentY; // swipe up (positive) = scroll down, swipe down (negative) = scroll up
-    accumulatedDelta += deltaY;
-    startY = currentY;
-
-    const linesToScroll = Math.trunc(accumulatedDelta / rowHeight);
-    if (linesToScroll !== 0) {
-      term.scrollLines(linesToScroll);
-      accumulatedDelta -= linesToScroll * rowHeight;
-      e.preventDefault();
-    }
-  };
-
-  const onWheel = (e: WheelEvent) => {
-    if (!term) return;
-    const lines = e.deltaY > 0 ? Math.max(1, Math.round(e.deltaY / 30)) : Math.min(-1, Math.round(e.deltaY / 30));
-    term.scrollLines(lines);
-    e.preventDefault();
-  };
-
-  container.addEventListener('touchstart', onTouchStart, { passive: true });
-  container.addEventListener('touchmove', onTouchMove, { passive: false });
-  container.addEventListener('wheel', onWheel, { passive: false });
-
-  cleanupTouch = () => {
-    container.removeEventListener('touchstart', onTouchStart);
-    container.removeEventListener('touchmove', onTouchMove);
-    container.removeEventListener('wheel', onWheel);
-  };
+  // Wheel/trackpad events are intentionally left to xterm itself. Xterm v6
+  // distinguishes normal scrollback, alternate-buffer cursor scrolling, and
+  // tmux mouse tracking. Touch drags are translated to the same native wheel
+  // path so all three modes retain identical protocol behavior.
+  cleanupTouch = attachTerminalTouchScrolling(terminalRef.value, () => term);
 }
 
 function initTerminal() {
@@ -427,9 +390,14 @@ function initTerminal() {
       magenta: '#a855f7',
       cyan: '#06b6d4',
       white: '#f8fafc',
+      scrollbarSliderBackground: '#64748b',
+      scrollbarSliderHoverBackground: '#60a5fa',
+      scrollbarSliderActiveBackground: '#93c5fd',
     },
     convertEol: true,
     scrollback: 10000,
+    scrollSensitivity: 1,
+    smoothScrollDuration: 80,
     allowTransparency: true,
     macOptionIsMeta: true,
     macOptionClickForcesSelection: true,
@@ -586,7 +554,7 @@ function focusTerminal() {
 function scrollTerminal(lines: number) {
   hapticFeedback();
   if (term) {
-    term.scrollLines(lines);
+    dispatchTerminalWheel(term, lines * 18);
   }
 }
 
@@ -749,6 +717,60 @@ defineExpose({
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   width: 100% !important;
+  scrollbar-width: thin;
+  scrollbar-color: #334e68cc transparent;
+}
+
+/* Xterm v6 owns scrolling through this VS Code-style scroll surface. */
+.terminal-view-container .xterm-scrollable-element > .scrollbar.vertical {
+  width: 14px !important;
+  right: 0 !important;
+  border-radius: 999px;
+  background: transparent !important;
+}
+
+.terminal-view-container .xterm-scrollable-element > .scrollbar > .slider {
+  min-height: 34px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box !important;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.1);
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.terminal-view-container .xterm-scrollable-element > .scrollbar > .slider:hover {
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.34), 0 0 10px rgba(59, 130, 246, 0.22);
+}
+
+.terminal-view-container .xterm-scrollable-element > .scrollbar > .slider.active {
+  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.5), 0 0 12px rgba(96, 165, 250, 0.34);
+}
+
+.terminal-view-container .xterm-viewport::-webkit-scrollbar {
+  width: 10px;
+}
+
+.terminal-view-container .xterm-viewport::-webkit-scrollbar-track,
+.terminal-view-container .xterm-viewport::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.terminal-view-container .xterm-viewport::-webkit-scrollbar-thumb {
+  min-height: 34px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #64748b;
+  background-clip: padding-box;
+}
+
+.terminal-view-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: #60a5fa;
+  background-clip: padding-box;
+}
+
+.terminal-view-container .xterm-viewport::-webkit-scrollbar-thumb:active {
+  background: #93c5fd;
+  background-clip: padding-box;
 }
 
 .terminal-touch-bar-container {

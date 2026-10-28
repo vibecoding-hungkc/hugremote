@@ -9,9 +9,9 @@ const root = resolve('.');
 const evidenceRoot = process.env.CLAUDE_PARITY_EVIDENCE_ROOT
   ? resolve(process.env.CLAUDE_PARITY_EVIDENCE_ROOT)
   : resolve(homedir(), '.hermes/cache/scratch/claude-parity-m0');
-const matrixPath = resolve(root, 'docs/claude/response-parity-matrix.json');
-const reportPath = resolve(root, 'docs/claude/response-protocol-v2.1.308.md');
-const manifestPath = resolve(root, 'docs/claude/response-evidence-manifest-v2.1.308.json');
+const matrixPath = resolve(root, 'analysis/claude-protocol/docs/response-parity-matrix.json');
+const reportPath = resolve(root, 'analysis/claude-protocol/docs/response-protocol-v2.1.308.md');
+const manifestPath = resolve(root, 'analysis/claude-protocol/docs/response-evidence-manifest-v2.1.308.json');
 const allowedStatuses = new Set(['supported', 'partially-supported', 'unsupported', 'not-applicable', 'unverified']);
 const allowedEvidenceKinds = new Set(['artifact', 'runtime', 'hugremote']);
 const expectedPins = {

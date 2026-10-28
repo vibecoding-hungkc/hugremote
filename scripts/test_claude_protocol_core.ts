@@ -18,7 +18,7 @@ try {
 }
 
 const root = resolve('.');
-const manifestPath = resolve(root, 'fixtures/claude-protocol/2.1.308/manifest.json');
+const manifestPath = resolve(root, 'analysis/claude-protocol/fixtures/2.1.308/manifest.json');
 
 test('T2.1 & T2.2: Normalizer exists and implements schemaVersion 1 with full corpus coverage (AC5)', async () => {
   assert.ok(ClaudeEventNormalizer, 'ClaudeEventNormalizer must be implemented');
@@ -30,7 +30,7 @@ test('T2.1 & T2.2: Normalizer exists and implements schemaVersion 1 with full co
   let normalizedEvents = 0;
 
   for (const fixtureMeta of manifest.fixtures) {
-    const fixturePath = resolve(root, 'fixtures/claude-protocol/2.1.308', fixtureMeta.file);
+    const fixturePath = resolve(root, 'analysis/claude-protocol/fixtures/2.1.308', fixtureMeta.file);
     const lines = (await readFile(fixturePath, 'utf8')).split('\n').filter(Boolean);
 
     for (const line of lines) {

@@ -4,7 +4,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { resolve, relative, sep } from 'node:path';
 
 const root = resolve('.');
-const corpusRoot = resolve(root, 'fixtures/claude-protocol/2.1.308');
+const corpusRoot = resolve(root, 'analysis/claude-protocol/fixtures/2.1.308');
 const manifestPath = resolve(corpusRoot, 'manifest.json');
 const sha256 = value => createHash('sha256').update(value).digest('hex');
 const requiredCoverage = new Set([

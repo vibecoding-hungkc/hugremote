@@ -9,7 +9,7 @@ const { ClaudeEventNormalizer } = await import('../apps/api/src/services/claude/
 const { ClaudeRunAssembler } = await import('../apps/api/src/services/claude/runAssembler.js');
 
 const root = resolve('.');
-const manifestPath = resolve(root, 'fixtures/claude-protocol/2.1.308/manifest.json');
+const manifestPath = resolve(root, 'analysis/claude-protocol/fixtures/2.1.308/manifest.json');
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 
 let failed = 0;
@@ -25,7 +25,7 @@ async function test(name, fn) {
 
 await test('official oracle processes all 43 fixtures and preserves expected semantic states', async () => {
   for (const fixtureMeta of manifest.fixtures) {
-    const fixturePath = resolve(root, 'fixtures/claude-protocol/2.1.308', fixtureMeta.file);
+    const fixturePath = resolve(root, 'analysis/claude-protocol/fixtures/2.1.308', fixtureMeta.file);
     const lines = (await readFile(fixturePath, 'utf8')).split('\n').filter(Boolean);
     const oracle = new OfficialReducerOracle();
 
@@ -112,7 +112,7 @@ await test('M2 normalizer and assembler match the official canonical message mod
   let frameCount = 0;
 
   for (const fixtureMeta of manifest.fixtures) {
-    const fixturePath = resolve(root, 'fixtures/claude-protocol/2.1.308', fixtureMeta.file);
+    const fixturePath = resolve(root, 'analysis/claude-protocol/fixtures/2.1.308', fixtureMeta.file);
     const lines = (await readFile(fixturePath, 'utf8')).split('\n').filter(Boolean);
     const oracle = new OfficialReducerOracle();
     const normalizer = new ClaudeEventNormalizer({ sessionId: 'differential-session', runId: 'differential-run' });
@@ -202,7 +202,7 @@ await test('differential evaluation against HugRemote v1.5.3 baseline proves non
   // Test 1: Child agent namespace gap (v1.5.3 drops parent_tool_use_id != null)
   const agentFixture = manifest.fixtures.find(f => f.id === 'm1-agent-001');
   assert.ok(agentFixture);
-  const agentLines = (await readFile(resolve(root, 'fixtures/claude-protocol/2.1.308', agentFixture.file), 'utf8'))
+  const agentLines = (await readFile(resolve(root, 'analysis/claude-protocol/fixtures/2.1.308', agentFixture.file), 'utf8'))
     .split('\n').filter(Boolean);
 
   let hugEvents = [];
@@ -243,7 +243,7 @@ await test('differential evaluation against HugRemote v1.5.3 baseline proves non
   // Test 2: Tool permission interaction gap (v1.5.3 ignores control_request)
   const interactFixture = manifest.fixtures.find(f => f.id === 'm1-interact-001');
   assert.ok(interactFixture);
-  const interactLines = (await readFile(resolve(root, 'fixtures/claude-protocol/2.1.308', interactFixture.file), 'utf8'))
+  const interactLines = (await readFile(resolve(root, 'analysis/claude-protocol/fixtures/2.1.308', interactFixture.file), 'utf8'))
     .split('\n').filter(Boolean);
 
   let interactEvents = [];

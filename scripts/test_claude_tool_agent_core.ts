@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { ClaudeEventNormalizer } from '../apps/api/src/services/claude/eventNormalizer.js';
 import { ClaudeRunAssembler } from '../apps/api/src/services/claude/runAssembler.js';
 
-const fixtureRoot = resolve('fixtures/claude-protocol/2.1.308');
+const fixtureRoot = resolve('analysis/claude-protocol/fixtures/2.1.308');
 
 async function frames(name: string): Promise<any[]> {
   return (await readFile(resolve(fixtureRoot, name), 'utf8'))

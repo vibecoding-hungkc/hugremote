@@ -129,13 +129,22 @@ let failures = 0;
     assert.equal(toggle.props['aria-expanded'], false);
     assert.equal(buttons().some(el => el.props.title === 'Insert !=='), false);
   });
-  await test('Markdown preview keeps rendering and links without exposing editing controls', async ({ view, root, store, buttons, nextTick }) => {
-    store.activeFile = { relPath: 'readme.md', name: 'readme.md', content: '[Docs](https://example.com)', originalContent: '', isDirty: false };
+  await test('Markdown preview keeps rendering, sanitizes hostile HTML and hides editing controls', async ({ view, root, store, buttons, nextTick }) => {
+    store.activeFile = {
+      relPath: 'readme.md',
+      name: 'readme.md',
+      content: '[Docs](https://example.com)\n<img src="x" onerror="alert(1)">\n<script>alert(2)</script>\n[Bad](javascript:alert(3))',
+      originalContent: '',
+      isDirty: false
+    };
     store.fileMode = 'preview';
     await nextTick();
     const preview = descendants(root).find(el => el.props.class === 'markdown-preview-box');
     assert.ok(preview);
     assert.match(preview.props.innerHTML, /href="https:\/\/example.com"/);
+    assert.doesNotMatch(preview.props.innerHTML, /<img[^>]+onerror/i);
+    assert.doesNotMatch(preview.props.innerHTML, /<script/i);
+    assert.doesNotMatch(preview.props.innerHTML, /href="javascript:/i);
     assert.equal(buttons().length, 0, 'preview must not expose commands for the hidden editor');
     assert.equal(descendants(root).find(el => el.props.class === 'cm-wrapper').style.display, 'none');
     let opened, prevented = false;

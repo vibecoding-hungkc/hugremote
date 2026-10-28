@@ -57,8 +57,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { json } from '@codemirror/lang-json';
 import { python } from '@codemirror/lang-python';
 import { html } from '@codemirror/lang-html';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import { marked, Renderer } from 'marked';
 import { useFileStore } from '../stores/fileStore.js';
 
 const fileStore = useFileStore();
@@ -72,28 +71,36 @@ const isMarkdown = computed(() => {
   return name.endsWith('.md') || name.endsWith('.markdown');
 });
 
-function sanitizeMarkdownHtml(html: string): string {
-  try {
-    const purify = (DOMPurify as any)?.sanitize
-      ? DOMPurify
-      : (typeof DOMPurify === 'function' && typeof window !== 'undefined' && (window as any).document ? (DOMPurify as any)(window) : null);
-    if (purify && typeof purify.sanitize === 'function') {
-      return purify.sanitize(html);
-    }
-  } catch (_) {}
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<embed\b[^>]*>/gi, '')
-    .replace(/<object\b[^>]*>/gi, '')
-    .replace(/\s*on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/href\s*=\s*("[^"]*javascript:[^"]*"|'[^']*javascript:[^']*')/gi, 'href="#"');
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
+
+function safeHref(value: string): string {
+  const href = value.trim();
+  if (/^(?:https?:|mailto:|tel:|\/|#)/i.test(href)) return escapeHtml(href);
+  return '#';
+}
+
+const markdownRenderer = new Renderer();
+markdownRenderer.html = ({ text }: { text: string }) => escapeHtml(text);
+markdownRenderer.link = function ({ href, title, tokens }: { href: string; title?: string | null; tokens: any[] }) {
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+  return `<a href="${safeHref(href)}"${titleAttr}>${this.parser.parseInline(tokens)}</a>`;
+};
+markdownRenderer.image = ({ href, title, text }: { href: string; title?: string | null; text: string }) => {
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+  return `<img src="${safeHref(href)}" alt="${escapeHtml(text)}"${titleAttr}>`;
+};
 
 const renderedMarkdown = computed(() => {
   if (!fileStore.activeFile?.content) return '';
-  const parsed = marked.parse(fileStore.activeFile.content);
-  return typeof parsed === 'string' ? sanitizeMarkdownHtml(parsed) : '';
+  const parsed = marked.parse(fileStore.activeFile.content, { renderer: markdownRenderer });
+  return typeof parsed === 'string' ? parsed : '';
 });
 
 function handlePreviewClick(e: MouseEvent) {

@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -87,6 +88,68 @@ export function detectChannel(projectRoot, options = []) {
   } catch (_) {}
 
   return 'beta';
+}
+
+export function installProjectDependencies(projectRoot, run = execSync) {
+  run('npm install --foreground-scripts', {
+    cwd: projectRoot,
+    stdio: 'inherit',
+  });
+}
+
+export function stashLocalChanges(projectRoot, run = execSync, createMarker = () => crypto.randomUUID()) {
+  const dirty = String(run('git status --porcelain', {
+    cwd: projectRoot,
+    encoding: 'utf8',
+  }) || '').trim();
+  if (!dirty) return null;
+
+  const marker = String(createMarker());
+  if (!/^[0-9A-Za-z-]{8,128}$/.test(marker)) {
+    throw new Error('Marker backup không hợp lệ.');
+  }
+  const message = `hugremote-update-backup-${marker}`;
+  run(`git stash push --include-untracked -m "${message}"`, {
+    cwd: projectRoot,
+    stdio: 'inherit',
+  });
+  const stashList = String(run('git stash list --format="%H%x00%gs"', {
+    cwd: projectRoot,
+    encoding: 'utf8',
+  }) || '');
+  const matchingCommits = stashList
+    .split(/\r?\n/)
+    .map(line => line.split('\u0000'))
+    .filter(([commit, subject]) => /^[0-9a-f]{40,64}$/.test(commit) && subject?.endsWith(message))
+    .map(([commit]) => commit);
+  if (matchingCommits.length !== 1) {
+    throw new Error('Không xác định duy nhất được commit backup vừa tạo.');
+  }
+  return matchingCommits[0];
+}
+
+export function restoreLocalChanges(projectRoot, stashCommit, run = execSync) {
+  if (!/^[0-9a-f]{40,64}$/.test(stashCommit)) {
+    throw new Error('Commit backup không hợp lệ.');
+  }
+  run(`git stash apply --index ${stashCommit}`, {
+    cwd: projectRoot,
+    stdio: 'inherit',
+  });
+}
+
+export function assertBetaUpdateBranch(branch) {
+  if (branch !== 'main') {
+    throw new Error(`Kênh Beta chỉ cập nhật trực tiếp trên branch main; branch hiện tại: ${branch}`);
+  }
+  return branch;
+}
+
+export function assertSafeReleaseTag(tag) {
+  if (!/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(tag)) {
+    throw new Error(`Release tag không hợp lệ: ${tag}`);
+  }
+  return tag;
 }
 
 export async function fetchLatestGitHubRelease(repo = `${REPO_OWNER}/${REPO_NAME}`) {
@@ -205,6 +268,8 @@ Tùy chọn:
     console.log(`📡 Kênh cập nhật      : \x1b[35m\x1b[1m${channel === 'stable' ? 'Stable (Bản Release chính thức từ GitHub)' : 'Beta (Nhánh main)'}\x1b[0m`);
     console.log(`📂 Thư mục cài đặt    : ${rootDir}\n`);
 
+    let localBackupCommit = null;
+
     if (channel === 'stable') {
       // STABLE CHANNEL: Check against official GitHub Releases
       console.log('🔍 Đang kiểm tra bản Release chính thức mới nhất từ GitHub...');
@@ -237,6 +302,13 @@ Tùy chọn:
         process.exit(1);
       }
 
+      try {
+        targetReleaseTag = assertSafeReleaseTag(targetReleaseTag);
+      } catch (err) {
+        console.error(`❌ ${err.message}`);
+        process.exit(1);
+      }
+
       console.log(`🏷️  Bản Release mới nhất : \x1b[32m\x1b[1m${targetReleaseTag}\x1b[0m${release && release.name ? ` (${release.name})` : ''}`);
 
       let targetCommit = '';
@@ -263,29 +335,18 @@ Tùy chọn:
       }
 
       console.log(`\n⬇️  Đang tải và chuyển sang bản Release \x1b[32m${targetReleaseTag}\x1b[0m...`);
-      let stashed = false;
-      const isDirty = execSync('git status --porcelain', { cwd: rootDir, encoding: 'utf8' }).trim();
-      if (isDirty) {
-        try {
-          execSync('git stash', { cwd: rootDir, stdio: 'inherit' });
-          stashed = true;
-        } catch (_) {}
-      }
-
       try {
+        localBackupCommit = stashLocalChanges(rootDir);
         execSync(`git checkout tags/${targetReleaseTag} 2>/dev/null || git checkout -B release tags/${targetReleaseTag}`, {
           cwd: rootDir,
           stdio: 'inherit',
         });
       } catch (err) {
+        if (localBackupCommit) {
+          console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
+        }
         console.error(`❌ Lỗi khi checkout release ${targetReleaseTag}:`, err.message);
         process.exit(1);
-      } finally {
-        if (stashed) {
-          try {
-            execSync('git stash pop', { cwd: rootDir, stdio: 'inherit' });
-          } catch (_) {}
-        }
       }
     } else {
       // BETA CHANNEL: Check against latest main branch
@@ -319,11 +380,13 @@ Tùy chọn:
 
       console.log('⬇️  Đang tải mã nguồn mới nhất từ nhánh main...');
       try {
-        if (currentBranch !== 'main') {
-          execSync('git checkout main', { cwd: rootDir, stdio: 'inherit' });
-        }
+        assertBetaUpdateBranch(currentBranch);
+        localBackupCommit = stashLocalChanges(rootDir);
         execSync('git pull origin main', { cwd: rootDir, stdio: 'inherit' });
       } catch (err) {
+        if (localBackupCommit) {
+          console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
+        }
         console.error('❌ Lỗi khi git pull:', err.message);
         process.exit(1);
       }
@@ -343,13 +406,40 @@ Tùy chọn:
       encoding: 'utf8',
     }).trim();
 
+    console.log('\n📦 Đang đồng bộ thư viện theo mã nguồn vừa cập nhật (npm install)...');
+    try {
+      installProjectDependencies(rootDir);
+      console.log('✓ Thư viện đã được đồng bộ!');
+    } catch (err) {
+      if (localBackupCommit) {
+        console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
+      }
+      console.error('❌ Lỗi khi cài đặt thư viện (npm install):', err.message);
+      process.exit(1);
+    }
+
     console.log('\n📦 Đang biên dịch Client & Server (npm run build)...');
     try {
       execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
       console.log('✓ Biên dịch hoàn tất!');
     } catch (err) {
+      if (localBackupCommit) {
+        console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
+      }
       console.error('❌ Lỗi khi biên dịch mã nguồn (npm run build):', err.message);
       process.exit(1);
+    }
+
+    if (localBackupCommit) {
+      try {
+        restoreLocalChanges(rootDir, localBackupCommit);
+        console.log('✓ Đã khôi phục chính xác nội dung và trạng thái staged trước khi cập nhật.');
+        console.log(`✓ Backup an toàn vẫn được giữ trong git stash tại commit ${localBackupCommit}.`);
+      } catch (err) {
+        console.error('❌ Mã nguồn đã build nhưng không thể khôi phục đầy đủ thay đổi cục bộ.');
+        console.error(`   Backup vẫn được giữ tại commit ${localBackupCommit}; dịch vụ chưa được restart.`);
+        process.exit(1);
+      }
     }
 
     ensureCliSymlinks(rootDir);

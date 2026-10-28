@@ -1,6 +1,6 @@
 {
   "name": "hugremote",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Mobile-First Web IDE, Terminal Emulator & AI Coding Assistant for Smartphones",
   "type": "module",
   "workspaces": [

@@ -322,15 +322,15 @@ Tùy chọn:
         ('v' + currentVersion === targetReleaseTag) ||
         (targetCommit && localHead === targetCommit);
 
+      if (dryRun) {
+        console.log(`\n🧪 [Dry-Run] Kênh Stable: Mục tiêu Release ${targetReleaseTag}. Bỏ qua checkout, build và restart dịch vụ.`);
+        return;
+      }
+
       if (isAlreadyLatestRelease && !force) {
         console.log(`\n\x1b[32m✓ HugRemote đã ở bản Release mới nhất (${targetReleaseTag})!\x1b[0m`);
         console.log('💡 Dùng \x1b[1mhugremote update --force\x1b[0m nếu bạn muốn ép buộc tải & biên dịch lại.');
         restartServiceIfRunning();
-        return;
-      }
-
-      if (dryRun) {
-        console.log(`\n🧪 [Dry-Run] Kênh Stable: Mục tiêu Release ${targetReleaseTag}. Bỏ qua checkout và build.`);
         return;
       }
 
@@ -366,15 +366,15 @@ Tùy chọn:
 
       const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: rootDir, encoding: 'utf8' }).trim();
 
+      if (dryRun) {
+        console.log(`\n🧪 [Dry-Run] Kênh Beta: Nhánh main (remote ${remoteHash.slice(0, 7) || 'N/A'}, local ${localHash.slice(0, 7)}). Bỏ qua checkout, build và restart dịch vụ.`);
+        return;
+      }
+
       if (currentBranch === 'main' && localHash && remoteHash && localHash === remoteHash && !force) {
         console.log(`\n\x1b[32m✓ HugRemote đã ở bản Beta mới nhất trên nhánh main (${currentCommit})!\x1b[0m`);
         console.log('💡 Dùng \x1b[1mhugremote update --force\x1b[0m nếu bạn muốn ép buộc pull & biên dịch lại.');
         restartServiceIfRunning();
-        return;
-      }
-
-      if (dryRun) {
-        console.log(`\n🧪 [Dry-Run] Kênh Beta: Nhánh main (remote ${remoteHash.slice(0, 7) || 'N/A'}, local ${localHash.slice(0, 7)}). Bỏ qua checkout và build.`);
         return;
       }
 

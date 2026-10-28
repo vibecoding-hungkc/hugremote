@@ -64,20 +64,24 @@ test('CLI update --help prints updater help and exits 0', () => {
   assert.match(res.stdout, /--beta/);
 });
 
-test('CLI update --stable detects release channel', () => {
+test('CLI update --stable dry-run never restarts an already-current service', () => {
   const res = spawnSync(process.execPath, [cliPath, 'update', '--stable', '--dry-run'], {
     encoding: 'utf8',
   });
   assert.equal(res.status, 0);
   assert.match(res.stdout, /Release chính thức/i);
+  assert.match(res.stdout, /\[Dry-Run\]/i);
+  assert.doesNotMatch(res.stdout, /khởi động lại.*dịch vụ/i);
 });
 
-test('CLI update --beta detects main branch channel', () => {
+test('CLI update --beta dry-run never restarts an already-current service', () => {
   const res = spawnSync(process.execPath, [cliPath, 'update', '--beta', '--dry-run'], {
     encoding: 'utf8',
   });
   assert.equal(res.status, 0);
   assert.match(res.stdout, /Nhánh main/i);
+  assert.match(res.stdout, /\[Dry-Run\]/i);
+  assert.doesNotMatch(res.stdout, /khởi động lại.*dịch vụ/i);
 });
 
 test('updater installs the checked-out lockfile dependencies before build', () => {

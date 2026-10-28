@@ -91,7 +91,7 @@ export function detectChannel(projectRoot, options = []) {
 }
 
 export function installProjectDependencies(projectRoot, run = execSync) {
-  run('npm install --foreground-scripts', {
+  run('npm ci --foreground-scripts', {
     cwd: projectRoot,
     stdio: 'inherit',
   });

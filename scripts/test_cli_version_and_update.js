@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, execSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +21,36 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const cliPath = path.resolve(__dirname, '../bin/hugremote.js');
 const rootDir = path.resolve(__dirname, '..');
+const reconcileLockfileScript = path.resolve(rootDir, 'scripts/reconcile_updater_lockfile.js');
+
+function createLockfileRestoreFixture() {
+  const root = mkdtempSync(path.join(tmpdir(), 'hugremote-lockfile-restore-'));
+  const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
+  git('init', '-q');
+  git('config', 'user.name', 'fixture');
+  git('config', 'user.email', 'fixture@example.invalid');
+  const lockfile = {
+    name: 'fixture',
+    version: '1.0.0',
+    lockfileVersion: 3,
+    packages: {
+      '': { name: 'fixture', version: '1.0.0' },
+      'node_modules/esbuild-platform': {
+        version: '1.0.0',
+        resolved: 'https://registry.example.invalid/esbuild-platform.tgz',
+        integrity: 'sha512-safe',
+        optional: true,
+        dev: true,
+        libc: ['glibc'],
+      },
+    },
+  };
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(lockfile, null, 2)}\n`);
+  git('add', 'package-lock.json');
+  git('commit', '-qm', 'target');
+  git('tag', 'v1.0.0');
+  return { root, git, lockfile };
+}
 
 test('CLI --version, -v, and mobile dash variations print version and exit 0', () => {
   const variations = ['--version', '-v', '-V', 'version', '—version', '–version', '—v'];
@@ -89,7 +119,7 @@ test('updater installs the checked-out lockfile dependencies before build', () =
   installProjectDependencies('/tmp/hugremote-update-fixture', (command, options) => {
     commands.push({ command, options });
   });
-  assert.deepEqual(commands.map(item => item.command), ['npm install --foreground-scripts']);
+  assert.deepEqual(commands.map(item => item.command), ['npm ci --foreground-scripts']);
   assert.equal(commands[0].options.cwd, '/tmp/hugremote-update-fixture');
   assert.equal(commands[0].options.stdio, 'inherit');
 });
@@ -130,6 +160,50 @@ test('release tags accept semver only and reject shell metacharacters', () => {
   for (const tag of ['v1.6.1;touch /tmp/pwned', 'v1.6.1$(id)', 'release/latest', '']) {
     assert.throws(() => assertSafeReleaseTag(tag), /không hợp lệ/);
   }
+});
+
+test('release build reconciles npm 8-10 lock metadata before exact backup restore', () => {
+  const { root, git, lockfile } = createLockfileRestoreFixture();
+  const localLockfile = structuredClone(lockfile);
+  localLockfile.localNote = 'preserve me';
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(localLockfile, null, 2)}\n`);
+  writeFileSync(path.join(root, '.gitconfig'), 'local config\n');
+  writeFileSync(path.join(root, 'merge_assets.cjs'), 'local merge script\n');
+  const backup = stashLocalChanges(root);
+
+  git('checkout', '-q', '--detach', 'v1.0.0');
+  const npm10Lockfile = structuredClone(lockfile);
+  npm10Lockfile.packages['node_modules/esbuild-platform'].peer = true;
+  delete npm10Lockfile.packages['node_modules/esbuild-platform'].libc;
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(npm10Lockfile, null, 2)}\n`);
+
+  const result = spawnSync(process.execPath, [reconcileLockfileScript], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(git('status', '--short'), '');
+
+  restoreLocalChanges(root, backup);
+  assert.deepEqual(JSON.parse(readFileSync(path.join(root, 'package-lock.json'), 'utf8')), localLockfile);
+  assert.equal(readFileSync(path.join(root, '.gitconfig'), 'utf8'), 'local config\n');
+  assert.equal(readFileSync(path.join(root, 'merge_assets.cjs'), 'utf8'), 'local merge script\n');
+});
+
+test('release build refuses to hide a real lock graph change', () => {
+  const { root, git, lockfile } = createLockfileRestoreFixture();
+  const localLockfile = structuredClone(lockfile);
+  localLockfile.localNote = 'user edit';
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(localLockfile, null, 2)}\n`);
+  const backup = stashLocalChanges(root);
+  assert.ok(backup, 'fixture must create a real updater backup');
+
+  git('checkout', '-q', '--detach', 'v1.0.0');
+  const changed = structuredClone(lockfile);
+  changed.packages['node_modules/esbuild-platform'].integrity = 'sha512-changed';
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(changed, null, 2)}\n`);
+
+  const result = spawnSync(process.execPath, [reconcileLockfileScript], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1, `Expected exit 1, got ${result.status}; out: ${result.stdout}; err: ${result.stderr}`);
+  assert.match(result.stderr, /không phải metadata tương thích/i);
+  assert.equal(JSON.parse(readFileSync(path.join(root, 'package-lock.json'), 'utf8')).packages['node_modules/esbuild-platform'].integrity, 'sha512-changed');
 });
 
 test('real git restore preserves exact stash, index, untracked files, and intervening stash', () => {

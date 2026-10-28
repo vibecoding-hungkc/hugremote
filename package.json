@@ -1,6 +1,6 @@
 {
   "name": "hugremote",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "Mobile-First Web IDE, Terminal Emulator & AI Coding Assistant for Smartphones",
   "type": "module",
   "workspaces": [
@@ -24,6 +24,7 @@
     "README.md"
   ],
   "scripts": {
+    "prebuild": "node scripts/reconcile_updater_lockfile.js",
     "build": "npm run build:shared && npm run build:web && npm run build:api",
     "build:shared": "npm run build --prefix packages/shared",
     "build:web": "npm run typecheck:web && npm run build --prefix apps/web",

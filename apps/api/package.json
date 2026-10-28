@@ -1,6 +1,6 @@
 {
   "name": "@hugremote/api",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "HugRemote Mobile Web IDE Backend Server",
   "type": "module",
   "main": "dist/index.js",

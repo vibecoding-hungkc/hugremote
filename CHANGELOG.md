@@ -1,5 +1,44 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.0] - 2026-10-28
+
+Bản phát hành nâng cấp toàn diện Claude Protocol Parity theo quy chuẩn Claude Code CLI / Extension 2.1.308, hoàn thiện interactive controls duplex, stream/reconnect replay buffer, child-agent namespaces, và tăng cường bảo mật HTTP CSP.
+
+### Claude Protocol Parity (M0–M7)
+- Chuẩn hóa toàn bộ schema sự kiện theo `schemaVersion: 1` dựa trên oracle artifacts VSIX và CLI `2.1.308`.
+- Bộ phân tích `eventNormalizer` và `runAssembler` hỗ trợ đầy đủ các họ delta (`text_delta`, `thinking_delta`, `input_json_delta`), deduplication snapshot và message identity.
+- Unknown native events sinh bounded diagnostic có giới hạn thay vì crash hoặc drop thầm lặng.
+- Quản lý vòng đời tool hoàn chỉnh (`receiving-input`, `running`, `done`, `cancelled`, `error`) kèm structured output.
+- Hỗ trợ child agents độc lập thông qua namespace `parent_tool_use_id`, tách biệt luồng subagent khỏi root transcript.
+
+### Duplex Controls & Interactive Transport (M4–M5)
+- Tích hợp transport hai chiều qua SDK stream-json, điều khiển quy trình qua child process stdin.
+- Hỗ trợ đầy đủ các yêu cầu tương tác `can_use_tool` (permission) và `request_user_dialog`, chống double-submit và hỗ trợ cancellation.
+
+### Sequenced Replay & Stream Migration (M6)
+- `ClaudeReplayBuffer` với chuỗi số monotonic sequence, cho phép client khôi phục luồng sự kiện qua `?after=N`.
+- Cơ chế fallback về snapshot canonical an toàn khi client bị mất kết nối quá thời hạn đệm.
+- Idempotent migration helper nâng cấp các phiên lưu trữ từ `v1.5.3` lên `v1.6.0`.
+
+### Tinh chỉnh UI & Trải nghiệm (M7 & Bugfixes)
+- Chỉ hiển thị một thinking indicator duy nhất trong chế độ bình thường.
+- Tinh chỉnh Context Window pill hiển thị dạng gọn current/max (vd: `27.2k / 1M`) mà vẫn giữ quota 5 giờ/tuần và percentage native.
+- Tự động cuộn theo dõi tiến độ phản hồi trực tiếp (`useClaudeAutoScroll`).
+- Giải phóng trạng thái Stop đúng lúc khi nhận terminal result từ backend.
+
+### Tăng cường bảo mật (Security Hardening)
+- Thiết lập Content Security Policy (CSP) chặt chẽ (`default-src 'self'`, `script-src 'self'`, không có `unsafe-eval` hay script inline).
+- Thay thế cơ chế inject inline script toàn cục bằng thẻ meta `<meta name="hugremote-base-path">`.
+- Chặn toàn diện các probe nhạy cảm và công cụ dev (`/.env`, `/@vite/`, `/@fs/`, `/package.json`, v.v.), trả về 404 JSON fail-closed.
+- Nâng cấp `fastify` và `fast-uri`, đưa `npm audit` về 0 lỗ hổng bảo mật.
+
+### Kiểm chứng
+- PASS full regression suite: protocol core, fuzz, differential (43 fixtures), duplex spike, replay migration, security headers, streaming, models, context, git, và UI.
+- PASS `npm audit`: 0 vulnerabilities (kể cả low/moderate).
+- PASS live HTTP posture and leakage scanners trên runtime `http://127.0.0.1:8099`.
+
+---
+
 ## [v1.5.3] - 2026-10-25
 
 Bản sửa Context Window dùng dữ liệu native từ Claude CLI, hiển thị đúng model 1M và tự phục hồi khi canonical CLI session identity thay đổi.

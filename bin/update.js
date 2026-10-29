@@ -4,6 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { installIsolatedRelease, isolatedUpdatePaths } from './isolated-update.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,14 +68,16 @@ export function detectChannel(projectRoot, options = []) {
     if (ch === 'stable' || ch === 'release') return 'stable';
   }
 
-  // 3. Check .channel file in projectRoot
-  const channelFile = path.join(projectRoot, '.channel');
-  if (fs.existsSync(channelFile)) {
-    try {
-      const ch = fs.readFileSync(channelFile, 'utf8').trim().toLowerCase();
-      if (ch === 'beta' || ch === 'main') return 'beta';
-      if (ch === 'stable' || ch === 'release') return 'stable';
-    } catch (_) {}
+  // 3. Check shared channel state first, then legacy project-local state.
+  const channelFiles = [isolatedUpdatePaths().channelFile, path.join(projectRoot, '.channel')];
+  for (const channelFile of channelFiles) {
+    if (fs.existsSync(channelFile)) {
+      try {
+        const ch = fs.readFileSync(channelFile, 'utf8').trim().toLowerCase();
+        if (ch === 'beta' || ch === 'main') return 'beta';
+        if (ch === 'stable' || ch === 'release') return 'stable';
+      } catch (_) {}
+    }
   }
 
   // 4. Inferred from git state:
@@ -215,13 +218,6 @@ Tùy chọn:
 
   const channel = detectChannel(rootDir, options);
 
-  // If user explicitly specified channel flag, persist to .channel file
-  if (!dryRun && options.some((o) => ['--beta', '—beta', '--main', '--stable', '—stable', '--release'].includes(o))) {
-    try {
-      fs.writeFileSync(path.join(rootDir, '.channel'), channel, 'utf8');
-    } catch (_) {}
-  }
-
   console.log('\x1b[38;5;209m\x1b[1m');
   console.log('  _    _             _____                      _       ');
   console.log(' | |  | |           |  __ \\                    | |      ');
@@ -334,18 +330,18 @@ Tùy chọn:
         return;
       }
 
-      console.log(`\n⬇️  Đang tải và chuyển sang bản Release \x1b[32m${targetReleaseTag}\x1b[0m...`);
+      console.log(`\n⬇️  Đang cài Release \x1b[32m${targetReleaseTag}\x1b[0m trong thư mục tách biệt...`);
       try {
-        localBackupCommit = stashLocalChanges(rootDir);
-        execSync(`git checkout tags/${targetReleaseTag} 2>/dev/null || git checkout -B release tags/${targetReleaseTag}`, {
-          cwd: rootDir,
-          stdio: 'inherit',
+        const result = installIsolatedRelease({
+          sourceRoot: rootDir,
+          ref: targetReleaseTag,
+          channel: 'stable',
+          expectedCommit: targetCommit || undefined,
         });
+        console.log(`\n\x1b[32m✓ Đã switch atomically sang HugRemote v${result.version} (${result.commit.slice(0, 7)}).\x1b[0m`);
+        return;
       } catch (err) {
-        if (localBackupCommit) {
-          console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
-        }
-        console.error(`❌ Lỗi khi checkout release ${targetReleaseTag}:`, err.message);
+        console.error(`❌ Không thể cài Release ${targetReleaseTag}:`, err.message);
         process.exit(1);
       }
     } else {
@@ -378,94 +374,36 @@ Tùy chọn:
         return;
       }
 
-      console.log('⬇️  Đang tải mã nguồn mới nhất từ nhánh main...');
+      console.log('⬇️  Đang cài bản Beta từ nhánh main trong thư mục tách biệt...');
       try {
-        assertBetaUpdateBranch(currentBranch);
-        localBackupCommit = stashLocalChanges(rootDir);
-        execSync('git pull origin main', { cwd: rootDir, stdio: 'inherit' });
+        const result = installIsolatedRelease({
+          sourceRoot: rootDir,
+          ref: 'main',
+          channel: 'beta',
+          expectedCommit: remoteHash || undefined,
+        });
+        console.log(`\n\x1b[32m✓ Đã switch atomically sang HugRemote Beta v${result.version} (${result.commit.slice(0, 7)}).\x1b[0m`);
+        return;
       } catch (err) {
-        if (localBackupCommit) {
-          console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
-        }
-        console.error('❌ Lỗi khi git pull:', err.message);
+        console.error('❌ Không thể cài bản Beta:', err.message);
         process.exit(1);
       }
     }
-
-    // Read updated package.json
-    let newVersion = currentVersion;
-    try {
-      const pkg = JSON.parse(
-        fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')
-      );
-      newVersion = pkg.version || currentVersion;
-    } catch (_) {}
-
-    let newCommit = execSync('git rev-parse --short HEAD', {
-      cwd: rootDir,
-      encoding: 'utf8',
-    }).trim();
-
-    console.log('\n📦 Đang đồng bộ thư viện theo mã nguồn vừa cập nhật (npm install)...');
-    try {
-      installProjectDependencies(rootDir);
-      console.log('✓ Thư viện đã được đồng bộ!');
-    } catch (err) {
-      if (localBackupCommit) {
-        console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
-      }
-      console.error('❌ Lỗi khi cài đặt thư viện (npm install):', err.message);
-      process.exit(1);
-    }
-
-    console.log('\n📦 Đang biên dịch Client & Server (npm run build)...');
-    try {
-      execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
-      console.log('✓ Biên dịch hoàn tất!');
-    } catch (err) {
-      if (localBackupCommit) {
-        console.warn(`⚠️  Thay đổi cục bộ được giữ an toàn trong backup ${localBackupCommit}.`);
-      }
-      console.error('❌ Lỗi khi biên dịch mã nguồn (npm run build):', err.message);
-      process.exit(1);
-    }
-
-    if (localBackupCommit) {
-      try {
-        restoreLocalChanges(rootDir, localBackupCommit);
-        console.log('✓ Đã khôi phục chính xác nội dung và trạng thái staged trước khi cập nhật.');
-        console.log(`✓ Backup an toàn vẫn được giữ trong git stash tại commit ${localBackupCommit}.`);
-      } catch (err) {
-        console.error('❌ Mã nguồn đã build nhưng không thể khôi phục đầy đủ thay đổi cục bộ.');
-        console.error(`   Backup vẫn được giữ tại commit ${localBackupCommit}; dịch vụ chưa được restart.`);
-        process.exit(1);
-      }
-    }
-
-    ensureCliSymlinks(rootDir);
-    restartServiceIfRunning();
-
-    console.log(
-      '\n\x1b[32m\x1b[1m========================================================\x1b[0m'
-    );
-    console.log(
-      `\x1b[32m\x1b[1m 🎉 CẬP NHẬT HUGREMOTE THÀNH CÔNG LÊN v${newVersion} (${channel === 'stable' ? 'Release' : 'Beta'} - ${newCommit})!\x1b[0m`
-    );
-    console.log(
-      '\x1b[32m\x1b[1m========================================================\x1b[0m\n'
-    );
   } else {
     console.log('⚠️  Thư mục cài đặt hiện tại không phải là Git repository.');
-    const scriptUrl =
-      channel === 'stable'
-        ? 'https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh'
-        : 'https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/beta.sh';
-    console.log(`⬇️  Đang chạy script cập nhật từ GitHub (${scriptUrl})...`);
+    console.log(`⬇️  Đang cài đặt bản ${channel === 'stable' ? 'Release' : 'Beta'} qua updater tách biệt an toàn...`);
     try {
-      const cmd = `curl -fsSL ${scriptUrl} | bash`;
-      execSync(cmd, { stdio: 'inherit', shell: '/bin/bash' });
+      const release = channel === 'stable' ? await fetchLatestGitHubRelease() : null;
+      const ref = channel === 'stable' ? (release?.tag || 'v1.6.4') : 'main';
+      const result = installIsolatedRelease({
+        sourceRoot: rootDir,
+        ref,
+        channel,
+      });
+      console.log(`\n\x1b[32m✓ Đã switch atomically sang HugRemote v${result.version} (${result.commit.slice(0, 7)}).\x1b[0m`);
+      return;
     } catch (err) {
-      console.error('❌ Lỗi khi thực thi script cập nhật:', err.message);
+      console.error('❌ Không thể cài đặt bản cập nhật:', err.message);
       process.exit(1);
     }
   }

@@ -1,6 +1,6 @@
 {
   "name": "hugremote",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Mobile-First Web IDE, Terminal Emulator & AI Coding Assistant for Smartphones",
   "type": "module",
   "workspaces": [
@@ -24,12 +24,13 @@
     "README.md"
   ],
   "scripts": {
-    "prebuild": "node scripts/reconcile_updater_lockfile.js",
     "build": "npm run build:shared && npm run build:web && npm run build:api",
+    "postbuild": "node scripts/reconcile_updater_lockfile.js && node scripts/recover_interrupted_update.js",
     "build:shared": "npm run build --prefix packages/shared",
     "build:web": "npm run typecheck:web && npm run build --prefix apps/web",
     "typecheck:web": "vue-tsc --noEmit -p apps/web/tsconfig.json",
     "test:ui": "node scripts/test_ui_unsaved.mjs && node scripts/test_ui_terminal.mjs && node scripts/test_ui_terminal_scroll.mjs && node scripts/test_ui_virtual_keyboard.mjs && node scripts/test_ui_editor_keys.mjs && node scripts/test_ui_claude_context.mjs && node scripts/test_ui_workspace_git.mjs && node scripts/test_ui_workspace_components.mjs && node scripts/test_ui_review_terminal.mjs && node scripts/test_ui_review_project.mjs",
+    "test:update": "node scripts/test_cli_version_and_update.js && node --test scripts/test_isolated_updater.js",
     "test:claude-stream": "tsx scripts/test_claude_streaming.ts && node scripts/test_ui_claude_stream.mjs",
     "test:claude-resume": "tsx scripts/test_claude_history.ts && tsx scripts/test_claude_sse_lifecycle.ts && node scripts/test_ui_claude_resume.mjs && node scripts/test_ui_claude_activity.mjs",
     "test:git": "tsx scripts/test_git_remote.ts",

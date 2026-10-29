@@ -22,6 +22,7 @@ const __dirname = path.dirname(__filename);
 const cliPath = path.resolve(__dirname, '../bin/hugremote.js');
 const rootDir = path.resolve(__dirname, '..');
 const reconcileLockfileScript = path.resolve(rootDir, 'scripts/reconcile_updater_lockfile.js');
+const recoverInterruptedUpdateScript = path.resolve(rootDir, 'scripts/recover_interrupted_update.js');
 
 function createLockfileRestoreFixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'hugremote-lockfile-restore-'));
@@ -46,7 +47,8 @@ function createLockfileRestoreFixture() {
     },
   };
   writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(lockfile, null, 2)}\n`);
-  git('add', 'package-lock.json');
+  writeFileSync(path.join(root, 'tracked.txt'), 'base\n');
+  git('add', 'package-lock.json', 'tracked.txt');
   git('commit', '-qm', 'target');
   git('tag', 'v1.0.0');
   return { root, git, lockfile };
@@ -187,6 +189,131 @@ test('release build reconciles npm 8-10 lock metadata before exact backup restor
   assert.equal(readFileSync(path.join(root, 'merge_assets.cjs'), 'utf8'), 'local merge script\n');
 });
 
+test('retry update recovers the original user backup without supplementary git commands', () => {
+  const { root, git, lockfile } = createLockfileRestoreFixture();
+  const originalUserLockfile = structuredClone(lockfile);
+  originalUserLockfile.localNote = 'preserve original user edit';
+  const originalUserBytes = Buffer.from(JSON.stringify(originalUserLockfile, null, '\t'));
+  writeFileSync(path.join(root, 'package-lock.json'), originalUserBytes);
+  writeFileSync(path.join(root, '.gitconfig'), 'local config\n');
+  writeFileSync(path.join(root, 'merge_assets.cjs'), 'local merge script\n');
+  const originalBackup = stashLocalChanges(root, undefined, () => 'original-user-backup');
+
+  const retryDrift = structuredClone(lockfile);
+  retryDrift.packages['node_modules/esbuild-platform'].peer = true;
+  delete retryDrift.packages['node_modules/esbuild-platform'].libc;
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(retryDrift, null, 2)}\n`);
+  writeFileSync(path.join(root, '.gitconfig'), 'local config\n');
+  writeFileSync(path.join(root, 'merge_assets.cjs'), 'local merge script\n');
+  const retryBackup = stashLocalChanges(root, undefined, () => 'retry-metadata-backup');
+
+  const targetLockfile = structuredClone(lockfile);
+  targetLockfile.version = '1.0.1';
+  targetLockfile.packages[''].version = '1.0.1';
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(targetLockfile, null, 2)}\n`);
+  git('add', 'package-lock.json');
+  git('commit', '-qm', 'target release');
+  git('tag', 'v1.0.1');
+  git('checkout', '-q', '--detach', 'v1.0.1');
+  const targetRetryDrift = structuredClone(targetLockfile);
+  targetRetryDrift.packages['node_modules/esbuild-platform'].peer = true;
+  delete targetRetryDrift.packages['node_modules/esbuild-platform'].libc;
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(targetRetryDrift, null, 2)}\n`);
+  const reconcile = spawnSync(process.execPath, [reconcileLockfileScript], { cwd: root, encoding: 'utf8' });
+  assert.equal(reconcile.status, 0, reconcile.stderr);
+  const recover = spawnSync(process.execPath, [recoverInterruptedUpdateScript], { cwd: root, encoding: 'utf8' });
+  assert.equal(recover.status, 0, recover.stderr);
+  assert.deepEqual(readFileSync(path.join(root, 'package-lock.json')), originalUserBytes);
+  assert.equal(git('diff', '--cached', '--name-only'), '');
+  assert.equal(git('diff', '--name-only'), 'package-lock.json');
+
+  restoreLocalChanges(root, retryBackup);
+  assert.deepEqual(readFileSync(path.join(root, 'package-lock.json')), originalUserBytes);
+  assert.equal(readFileSync(path.join(root, '.gitconfig'), 'utf8'), 'local config\n');
+  assert.equal(readFileSync(path.join(root, 'merge_assets.cjs'), 'utf8'), 'local merge script\n');
+  assert.equal(git('diff', '--cached', '--name-only'), '');
+  assert.equal(git('diff', '--name-only'), 'package-lock.json');
+  assert.equal(git('show', ':package-lock.json'), `${JSON.stringify(targetLockfile, null, 2)}`);
+  assert.equal(git('ls-files', '--others', '--exclude-standard'), '.gitconfig\nmerge_assets.cjs');
+  const stashHashes = git('stash', 'list', '--format=%H').split(/\r?\n/);
+  assert.ok(stashHashes.includes(originalBackup));
+  assert.ok(stashHashes.includes(retryBackup));
+  assert.throws(() => git('config', '--get', 'merge.hugremote-updater.driver'));
+  assert.notEqual(git('check-attr', 'merge', '--', 'package-lock.json'), 'package-lock.json: merge: hugremote-updater');
+});
+
+test('retry update fails closed on ambiguous or corrupt backup arrangement', () => {
+  const cases = [
+    {
+      name: 'extra tracked file in retry backup',
+      mutateRetry(root) { writeFileSync(path.join(root, 'tracked.txt'), 'corrupt\n'); },
+    },
+    {
+      name: 'untracked blob hash mismatch',
+      mutateRetry(root) { writeFileSync(path.join(root, '.gitconfig'), 'different\n'); },
+    },
+  ];
+
+  for (const tc of cases) {
+    const { root, git, lockfile } = createLockfileRestoreFixture();
+    writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(lockfile, null, 2)}\n`);
+    writeFileSync(path.join(root, '.gitconfig'), 'local\n');
+    writeFileSync(path.join(root, 'merge_assets.cjs'), 'local\n');
+    stashLocalChanges(root, undefined, () => 'marker-orig-1');
+
+    const retryDrift = structuredClone(lockfile);
+    retryDrift.packages['node_modules/esbuild-platform'].peer = true;
+    delete retryDrift.packages['node_modules/esbuild-platform'].libc;
+    writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(retryDrift, null, 2)}\n`);
+    writeFileSync(path.join(root, '.gitconfig'), 'local\n');
+    writeFileSync(path.join(root, 'merge_assets.cjs'), 'local\n');
+    tc.mutateRetry(root);
+    stashLocalChanges(root, undefined, () => 'marker-retry-1');
+
+    git('checkout', '-q', '--detach', 'v1.0.0');
+    writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(retryDrift, null, 2)}\n`);
+    spawnSync(process.execPath, [reconcileLockfileScript], { cwd: root, encoding: 'utf8' });
+    const recover = spawnSync(process.execPath, [recoverInterruptedUpdateScript], { cwd: root, encoding: 'utf8' });
+    assert.equal(recover.status, 1, `Case "${tc.name}" must exit 1, got ${recover.status}: ${recover.stderr}`);
+  }
+});
+
+test('retry update rejects pre-existing merge driver configuration', () => {
+  const { root, git, lockfile } = createLockfileRestoreFixture();
+  const originalLockfile = structuredClone(lockfile);
+  originalLockfile.userNote = 'orig';
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(originalLockfile, null, 2)}\n`);
+  writeFileSync(path.join(root, '.gitconfig'), 'local\n');
+  writeFileSync(path.join(root, 'merge_assets.cjs'), 'local\n');
+  stashLocalChanges(root, undefined, () => 'marker-orig-2');
+
+  const retryDrift = structuredClone(lockfile);
+  retryDrift.packages['node_modules/esbuild-platform'].peer = true;
+  delete retryDrift.packages['node_modules/esbuild-platform'].libc;
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(retryDrift, null, 2)}\n`);
+  writeFileSync(path.join(root, '.gitconfig'), 'local\n');
+  writeFileSync(path.join(root, 'merge_assets.cjs'), 'local\n');
+  stashLocalChanges(root, undefined, () => 'marker-retry-2');
+
+  const targetLockfile = structuredClone(lockfile);
+  targetLockfile.version = '1.0.1';
+  targetLockfile.packages[''].version = '1.0.1';
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(targetLockfile, null, 2)}\n`);
+  git('add', 'package-lock.json');
+  git('commit', '-qm', 'target');
+  git('tag', 'v1.0.1');
+  git('checkout', '-q', '--detach', 'v1.0.1');
+  const targetRetryDrift = structuredClone(targetLockfile);
+  targetRetryDrift.packages['node_modules/esbuild-platform'].peer = true;
+  delete targetRetryDrift.packages['node_modules/esbuild-platform'].libc;
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(targetRetryDrift, null, 2)}\n`);
+  git('config', 'merge.hugremote-updater.driver', 'echo pre-existing');
+  spawnSync(process.execPath, [reconcileLockfileScript], { cwd: root, encoding: 'utf8' });
+  const recover = spawnSync(process.execPath, [recoverInterruptedUpdateScript], { cwd: root, encoding: 'utf8' });
+  assert.equal(recover.status, 1);
+  assert.match(recover.stderr, /từ chối ghi đè/i);
+});
+
 test('release build refuses to hide a real lock graph change', () => {
   const { root, git, lockfile } = createLockfileRestoreFixture();
   const localLockfile = structuredClone(lockfile);
@@ -233,4 +360,40 @@ test('real git restore preserves exact stash, index, untracked files, and interv
   const stashList = git('stash', 'list');
   assert.match(stashList, /intervening/);
   assert.match(stashList, /hugremote-update-backup/);
+});
+
+test('retry update recovers original user backup when 0 untracked files are present', () => {
+  const { root, git, lockfile } = createLockfileRestoreFixture();
+  const originalUserLockfile = structuredClone(lockfile);
+  originalUserLockfile.localNote = 'preserve original user edit with 0 untracked';
+  const originalUserBytes = Buffer.from(JSON.stringify(originalUserLockfile, null, '\t'));
+  writeFileSync(path.join(root, 'package-lock.json'), originalUserBytes);
+  stashLocalChanges(root, undefined, () => 'marker-orig-zero-untracked');
+
+  const retryDrift = structuredClone(lockfile);
+  retryDrift.packages['node_modules/esbuild-platform'].peer = true;
+  delete retryDrift.packages['node_modules/esbuild-platform'].libc;
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(retryDrift, null, 2)}\n`);
+  stashLocalChanges(root, undefined, () => 'marker-retry-zero-untracked');
+
+  const targetLockfile = structuredClone(lockfile);
+  targetLockfile.version = '1.0.1';
+  targetLockfile.packages[''].version = '1.0.1';
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(targetLockfile, null, 2)}\n`);
+  git('add', 'package-lock.json');
+  git('commit', '-qm', 'target');
+  git('tag', 'v1.0.1');
+
+  git('checkout', '-q', '--detach', 'v1.0.1');
+  const targetRetryDrift = structuredClone(targetLockfile);
+  targetRetryDrift.packages['node_modules/esbuild-platform'].peer = true;
+  delete targetRetryDrift.packages['node_modules/esbuild-platform'].libc;
+  writeFileSync(path.join(root, 'package-lock.json'), `${JSON.stringify(targetRetryDrift, null, 2)}\n`);
+
+  const reconcile = spawnSync(process.execPath, [reconcileLockfileScript], { cwd: root, encoding: 'utf8' });
+  assert.equal(reconcile.status, 0);
+
+  const recover = spawnSync(process.execPath, [recoverInterruptedUpdateScript], { cwd: root, encoding: 'utf8' });
+  assert.equal(recover.status, 0, `Expected recover exit 0, got ${recover.status}: ${recover.stderr}`);
+  assert.deepEqual(readFileSync(path.join(root, 'package-lock.json')), originalUserBytes);
 });

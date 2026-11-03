@@ -3868,10 +3868,26 @@
     .quick-tree-row[data-kind="file"] .quick-tree-icon { color:#9bb4d4; }
     .quick-tree-row .quick-tree-name { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     .quick-tree-row .quick-tree-kind { color:#7086a4; font:10px var(--font-mono); }
+    .quick-tree-row.is-active { background:#274469; border-color:#5786bf; color:#fff; }
     .quick-tree-empty { padding:12px; color:#90a7c6; font-size:12px; line-height:1.5; }
     .quick-tree-foot { padding:10px 14px; border-top:1px solid #2b3c54; color:#8298b6; font-size:11px; }
-    #quick-tree-files[hidden], #quick-tree-git[hidden] { display:none !important; }
-    #quick-tree-files, #quick-tree-git { flex:1; min-height:0; display:flex; flex-direction:column; }
+    #quick-tree-files[hidden], #quick-tree-git[hidden], #quick-tree-browser[hidden], #quick-file-workbench[hidden], #quick-file-preview[hidden], #quick-file-editor-box[hidden], #quick-file-md-toggle[hidden], #quick-file-dirty[hidden] { display:none !important; }
+    #quick-tree-files, #quick-tree-git, #quick-tree-browser, #quick-file-workbench { flex:1; min-height:0; display:flex; flex-direction:column; }
+    .quick-file-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 10px; border-bottom:1px solid #2e415e; background:#0d1728; }
+    .quick-file-meta { display:flex; align-items:center; gap:6px; min-width:0; flex:1; }
+    .quick-file-back, .quick-file-actions button { display:inline-flex; align-items:center; gap:4px; height:28px; padding:0 9px; border-radius:6px; border:1px solid #3f587c; background:#1c2e48; color:#e4eeff; font:600 11px var(--font-sans); cursor:pointer; flex:none; }
+    .quick-file-back:hover, .quick-file-actions button:hover:not(:disabled) { background:#2b476e; border-color:#6895cf; }
+    .quick-file-actions { display:flex; align-items:center; gap:5px; flex:none; }
+    .quick-file-actions #quick-file-save { background:#1d5a42; border-color:#35946e; color:#dcffef; }
+    .quick-file-actions #quick-file-save:disabled { opacity:.42; cursor:not-allowed; }
+    .quick-file-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#eef5ff; font:700 12px var(--font-mono); }
+    .quick-file-dirty { padding:2px 6px; border-radius:999px; background:#593b14; border:1px solid #b5792a; color:#ffd596; font:700 10px var(--font-sans); flex:none; }
+    .quick-file-body { flex:1; min-height:0; display:flex; flex-direction:column; background:#09111f; }
+    .quick-file-editor-box { flex:1; min-height:0; display:flex; overflow:hidden; }
+    .quick-file-gutter { padding:12px 8px 12px 10px; min-width:36px; text-align:right; background:#070e1a; border-right:1px solid #1e2d45; color:#5d7599; font:12px/1.6 var(--font-mono); user-select:none; overflow:hidden; }
+    .quick-file-textarea { flex:1; min-width:0; min-height:0; padding:12px; border:0; outline:0; resize:none; background:#09111f; color:#e6f0ff; font:12px/1.6 var(--font-mono); tab-size:2; white-space:pre; overflow:auto; scrollbar-color:#365072 #09111f; user-select:text; }
+    .quick-file-preview { flex:1; min-height:0; overflow:auto; padding:14px; color:#dce8fa; font:13px/1.6 var(--font-sans); scrollbar-color:#365072 #09111f; user-select:text; }
+    .quick-file-status { padding:8px 12px; border-top:1px solid #263750; background:#0d1626; color:#96b0d3; font-size:11px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .quick-git-branch { margin:12px 12px 4px; padding:9px 10px; border:1px solid #725638; border-radius:8px; background:linear-gradient(115deg,#49351e94,#24304a99); color:#ffd18b; font:600 12px var(--font-mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .quick-git-note { padding:7px 12px; color:#9cacc2; font-size:11px; line-height:1.4; }
     .quick-git-files { flex:1; min-height:0; overflow:auto; padding:0 8px; }
@@ -3989,9 +4005,32 @@
           <div id="quick-tree-path" class="quick-tree-path"></div>
         </div>
         <div id="quick-tree-files">
-          <div class="quick-tree-caption">Cây thư mục</div>
-          <div id="quick-tree-scroll" class="quick-tree-scroll" role="tree" aria-label="Các tệp trong workspace"></div>
-          <div class="quick-tree-foot">Chọn thư mục để mở rộng · Chọn tệp để xem</div>
+          <div id="quick-tree-browser">
+            <div class="quick-tree-caption">Cây thư mục</div>
+            <div id="quick-tree-scroll" class="quick-tree-scroll" role="tree" aria-label="Các tệp trong workspace"></div>
+            <div class="quick-tree-foot">Chọn thư mục để mở rộng · Chọn tệp để xem và sửa ngay tại đây</div>
+          </div>
+          <div id="quick-file-workbench" hidden>
+            <div class="quick-file-bar">
+              <div class="quick-file-meta">
+                <button id="quick-file-back" class="quick-file-back" type="button" title="Quay lại cây thư mục"><i class="ri-arrow-left-line"></i> Cây</button>
+                <span id="quick-file-name" class="quick-file-name">Chưa chọn tệp</span>
+                <span id="quick-file-dirty" class="quick-file-dirty" hidden>Chưa lưu</span>
+              </div>
+              <div class="quick-file-actions">
+                <button id="quick-file-md-toggle" type="button" hidden><i class="ri-edit-line"></i> Sửa</button>
+                <button id="quick-file-save" type="button" disabled><i class="ri-save-3-line"></i> Lưu</button>
+              </div>
+            </div>
+            <div class="quick-file-body">
+              <div id="quick-file-editor-box" class="quick-file-editor-box">
+                <div id="quick-file-gutter" class="quick-file-gutter">1</div>
+                <textarea id="quick-file-textarea" class="quick-file-textarea" spellcheck="false" aria-label="Nội dung tệp" placeholder="Nội dung tệp..."></textarea>
+              </div>
+              <div id="quick-file-preview" class="quick-file-preview markdown-preview-container" hidden></div>
+            </div>
+            <div class="quick-file-status"><span id="quick-file-path-label"></span><span id="quick-file-feedback">Đang xem tại chỗ</span></div>
+          </div>
         </div>
         <div id="quick-tree-git" hidden>
           <div id="quick-git-branch" class="quick-git-branch"><i class="ri-git-branch-line"></i> Nhánh mẫu · main</div>
@@ -6517,12 +6556,122 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         if (restoreFocus && quickTreeLastTrigger && quickTreeLastTrigger.offsetParent) quickTreeLastTrigger.focus();
       }
 
+      const quickTreeBrowser = document.getElementById('quick-tree-browser');
+      const quickFileWorkbench = document.getElementById('quick-file-workbench');
+      const quickFileName = document.getElementById('quick-file-name');
+      const quickFileDirty = document.getElementById('quick-file-dirty');
+      const quickFileMdToggle = document.getElementById('quick-file-md-toggle');
+      const quickFileSave = document.getElementById('quick-file-save');
+      const quickFileEditorBox = document.getElementById('quick-file-editor-box');
+      const quickFileGutter = document.getElementById('quick-file-gutter');
+      const quickFileTextarea = document.getElementById('quick-file-textarea');
+      const quickFilePreview = document.getElementById('quick-file-preview');
+      const quickFilePathLabel = document.getElementById('quick-file-path-label');
+      const quickFileFeedback = document.getElementById('quick-file-feedback');
+      let quickActiveFile = null;
+
+      function updateQuickFileGutter() {
+        const count = Math.max(1, (quickFileTextarea.value || '').split('\n').length);
+        quickFileGutter.innerHTML = Array.from({ length: count }, (_, index) => index + 1).join('<br>');
+      }
+
+      function updateQuickFileDirty() {
+        if (!quickActiveFile) return;
+        const dirty = quickFileTextarea.value !== quickActiveFile.original;
+        quickActiveFile.dirty = dirty;
+        quickFileDirty.hidden = !dirty;
+        quickFileSave.disabled = !dirty;
+      }
+
+      function renderQuickFileViewMode() {
+        if (!quickActiveFile) return;
+        const isMd = /\.md$/i.test(quickActiveFile.name);
+        quickFileMdToggle.hidden = !isMd;
+        if (isMd && quickActiveFile.mode === 'preview') {
+          quickFileMdToggle.innerHTML = '<i class="ri-edit-line"></i> Sửa';
+          quickFileEditorBox.hidden = true;
+          quickFilePreview.hidden = false;
+          quickFilePreview.innerHTML = renderMarkdown(quickFileTextarea.value);
+          quickFileFeedback.textContent = 'Xem trước Markdown';
+        } else {
+          if (isMd) quickFileMdToggle.innerHTML = '<i class="ri-eye-line"></i> Xem';
+          quickFilePreview.hidden = true;
+          quickFileEditorBox.hidden = false;
+          updateQuickFileGutter();
+          quickFileFeedback.textContent = 'Chỉnh sửa tại chỗ';
+        }
+      }
+
+      function openQuickFileInline(path, name, node) {
+        const content = node.content || '';
+        const isMd = /\.md$/i.test(name);
+        quickActiveFile = { path, name, node, original: content, dirty: false, mode: isMd ? 'preview' : 'edit' };
+        quickTreeBrowser.hidden = true;
+        quickFileWorkbench.hidden = false;
+        quickFileName.textContent = name;
+        quickFileName.title = path;
+        quickFilePathLabel.textContent = path;
+        quickFileTextarea.value = content;
+        updateQuickFileDirty();
+        renderQuickFileViewMode();
+        if (quickPanelCustomWidth === null && window.innerWidth >= 800 && (Number(quickTreeResize.getAttribute('aria-valuenow')) || 0) < 380) {
+          applyQuickPanelWidth(380);
+        }
+        renderQuickTree();
+      }
+
+      function closeQuickFileInline() {
+        quickActiveFile = null;
+        quickFileWorkbench.hidden = true;
+        quickTreeBrowser.hidden = false;
+        renderQuickTree();
+      }
+
+      function saveQuickFileInline() {
+        if (!quickActiveFile) return;
+        const value = quickFileTextarea.value;
+        quickActiveFile.node.content = value;
+        quickActiveFile.node.size = `${Math.max(0.1, value.length / 1024).toFixed(1)} KB`;
+        quickActiveFile.node.modified = 'Vừa lưu';
+        quickActiveFile.original = value;
+        if (activeOpenedFile && activeOpenedFile.path === quickActiveFile.path) {
+          activeOpenedFile.originalContent = value;
+          editorTextarea.value = value;
+          setDirty(false);
+          updateMdView();
+        }
+        updateQuickFileDirty();
+        renderFileExplorer();
+        quickFileFeedback.textContent = 'Đã lưu tại chỗ';
+        showToast(`Đã lưu "${quickActiveFile.name}" ngay tại bảng đang mở`, 'success');
+      }
+
+      document.getElementById('quick-file-back').addEventListener('click', closeQuickFileInline);
+      quickFileMdToggle.addEventListener('click', () => {
+        if (!quickActiveFile) return;
+        quickActiveFile.mode = quickActiveFile.mode === 'preview' ? 'edit' : 'preview';
+        renderQuickFileViewMode();
+      });
+      quickFileTextarea.addEventListener('input', () => {
+        updateQuickFileDirty();
+        updateQuickFileGutter();
+        quickFileFeedback.textContent = quickActiveFile?.dirty ? 'Có thay đổi chưa lưu' : 'Đã đồng bộ';
+      });
+      quickFileTextarea.addEventListener('scroll', () => { quickFileGutter.scrollTop = quickFileTextarea.scrollTop; });
+      quickFileTextarea.addEventListener('keydown', event => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+          event.preventDefault();
+          if (!quickFileSave.disabled) saveQuickFileInline();
+        }
+      });
+      quickFileSave.addEventListener('click', saveQuickFileInline);
+
       function quickTreeRow(name, node, depth, path) {
         const isDir = node.type === 'dir';
         const expanded = isDir && quickTreeExpanded.has(path);
         const row = document.createElement('button');
         row.type = 'button';
-        row.className = 'quick-tree-row';
+        row.className = `quick-tree-row${!isDir && quickActiveFile?.path === path ? ' is-active' : ''}`;
         row.dataset.kind = isDir ? 'directory' : 'file';
         row.style.paddingLeft = `${8 + depth * 15}px`;
         row.setAttribute('role', 'treeitem');
@@ -6542,8 +6691,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             expanded ? quickTreeExpanded.delete(path) : quickTreeExpanded.set(path, true);
             renderQuickTree();
           } else {
-            openFileInEditor(path, name, node.content);
-            closeQuickTree();
+            openQuickFileInline(path, name, node);
           }
         });
         return row;
@@ -6553,6 +6701,9 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         if (quickTreeServerId !== currentServerId) {
           quickTreeExpanded.clear();
           quickTreeServerId = currentServerId;
+          quickActiveFile = null;
+          quickFileWorkbench.hidden = true;
+          quickTreeBrowser.hidden = false;
         }
         const server = serverList.find(entry => entry.id === currentServerId);
         document.getElementById('quick-tree-path').textContent = server?.workspace || 'Workspace';

@@ -3841,9 +3841,9 @@
     }
 
     /* Quick workspace explorer — prototype only; no backend calls. */
-    .btn-icon-action.quick-tree-trigger { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:34px; white-space:nowrap; flex-shrink:0; } .quick-tree-trigger i { flex:none; } .quick-tree-trigger .quick-tree-label { white-space:nowrap; } @media (min-width:1200px) { .btn-icon-action.quick-tree-trigger { width:auto; padding:0 8px; } }
+    .btn-icon-action.quick-tree-trigger { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:30px; min-width:30px; height:30px; font-size:16px; }
     .quick-tree-trigger[aria-expanded="true"] { color:#b7d9ff; background:linear-gradient(135deg,#153358,#1b2b4d); border-color:#4674ac; }
-    .quick-tree-trigger .quick-tree-label { display:none; font:600 11px var(--font-sans); }
+    .quick-tree-trigger[data-quick-panel="git"][aria-expanded="true"] { color:#ffd18b; background:linear-gradient(135deg,#45311c,#493025); border-color:#a97742; }
     .quick-tree-panel[hidden], .quick-tree-scrim[hidden] { display:none !important; }
     .quick-tree-panel { position:absolute; z-index:25; inset:0 0 0 auto; width:304px; display:flex; flex-direction:column; background:linear-gradient(160deg,#151f32 0%,#101827 53%,#0c1524 100%); border-left:1px solid #344969; box-shadow:-16px 0 40px #03081366; min-height:0; }
     .quick-tree-head { padding:14px 14px 12px; border-bottom:1px solid #2c3c57; background:radial-gradient(ellipse at 85% 0%,#245d9270,transparent 65%); }
@@ -3865,15 +3865,29 @@
     .quick-tree-row .quick-tree-kind { color:#7086a4; font:10px var(--font-mono); }
     .quick-tree-empty { padding:12px; color:#90a7c6; font-size:12px; line-height:1.5; }
     .quick-tree-foot { padding:10px 14px; border-top:1px solid #2b3c54; color:#8298b6; font-size:11px; }
+    #quick-tree-files[hidden], #quick-tree-git[hidden] { display:none !important; }
+    #quick-tree-files, #quick-tree-git { flex:1; min-height:0; display:flex; flex-direction:column; }
+    .quick-git-branch { margin:12px 12px 4px; padding:9px 10px; border:1px solid #725638; border-radius:8px; background:linear-gradient(115deg,#49351e94,#24304a99); color:#ffd18b; font:600 12px var(--font-mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .quick-git-note { padding:7px 12px; color:#9cacc2; font-size:11px; line-height:1.4; }
+    .quick-git-files { flex:1; min-height:0; overflow:auto; padding:0 8px; }
+    .quick-git-file { display:flex; align-items:center; gap:8px; padding:8px 5px; border-bottom:1px solid #29374d; color:#d7e2f0; font:11px var(--font-mono); }
+    .quick-git-file input { accent-color:#e4a351; width:17px; height:17px; flex:none; cursor:pointer; }
+    .quick-git-file .quick-git-status { color:#f3b972; width:20px; flex:none; }
+    .quick-git-file .quick-git-filename { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .quick-git-actions { padding:12px; border-top:1px solid #34445e; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+    .quick-git-actions input { grid-column:1/-1; min-width:0; padding:9px; color:#eef5ff; background:#0b1424; border:1px solid #425675; border-radius:7px; font:12px var(--font-sans); user-select:text; }
+    .quick-git-actions button { padding:8px 5px; border-radius:7px; border:1px solid #445b79; background:#243854; color:#e4edfb; font:600 11px var(--font-sans); cursor:pointer; }
+    .quick-git-actions button:hover:not(:disabled) { background:#34537d; }
+    .quick-git-actions button:disabled { opacity:.45; cursor:not-allowed; }
+    .quick-git-actions #quick-git-commit { grid-column:1/-1; color:#ffe2b0; background:#624725; border-color:#956b38; }
+    .quick-git-feedback { min-height:24px; padding:0 12px 10px; color:#aad3ad; font-size:11px; line-height:1.4; }
     .quick-tree-scrim { display:none; }
     @media (min-width:800px) { #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:304px; } }
     @media (min-width:800px) and (max-width:1199px) { .quick-tree-panel { width:264px; } #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:264px; } }
-    @media (min-width:1200px) { .quick-tree-trigger .quick-tree-label { display:inline; } }
     @media (max-width:799px) {
       .quick-tree-scrim { display:block; position:absolute; inset:0; z-index:24; background:#020815b8; backdrop-filter:blur(3px); }
       .quick-tree-panel { width:min(84vw,340px); }
     }
-    @media (prefers-reduced-motion:no-preference) { .quick-tree-panel { animation:quick-tree-enter .16s ease-out; } @keyframes quick-tree-enter { from { transform:translateX(14px); opacity:.7; } } }
 </style>
 </head>
 <body>
@@ -3945,13 +3959,15 @@
         <!-- Actions for Terminal -->
                 <!-- Actions for Claude -->
         <div id="ctx-actions-claude" class="ctx-actions-item">
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i><span class="quick-tree-label">Thư mục</span></button>
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i></button>
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
           <button id="btn-header-claude-limits" class="btn-icon-action" title="Xem hạn mức 5h & Tuần"><i class="ri-dashboard-3-line" style="color:#f59e0b;"></i></button>
           <button id="btn-add-claude" class="btn-icon-action" title="Khởi chạy phiên Claude mới"><i class="ri-add-line"></i></button>
           <button id="btn-claude-more" class="btn-icon-action" title="Tùy chọn Claude"><i class="ri-more-2-fill"></i></button>
         </div>
         <div id="ctx-actions-terminal" class="ctx-actions-item">
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i><span class="quick-tree-label">Thư mục</span></button>
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i></button>
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
           <button id="btn-add-term" class="btn-icon-action" title="Thêm terminal mới"><i class="ri-add-line"></i></button>
           <button id="btn-term-more" class="btn-icon-action" title="Tùy chọn terminal"><i class="ri-more-2-fill"></i></button>
         </div>
@@ -3963,14 +3979,31 @@
     <!-- 2. MAIN VIEWS (Tối đa hóa diện tích chiều cao) -->
     <main class="views-wrapper">
       <div id="quick-tree-scrim" class="quick-tree-scrim" hidden></div>
-      <aside id="quick-tree-panel" class="quick-tree-panel" aria-label="Xem nhanh thư mục" hidden>
+      <aside id="quick-tree-panel" class="quick-tree-panel" aria-label="Xem nhanh workspace" hidden>
         <div class="quick-tree-head">
-          <div class="quick-tree-head-top"><span class="quick-tree-heading"><i class="ri-folder-tree-line"></i> Thư mục dự án</span><div class="quick-tree-tools"><button id="quick-tree-refresh" type="button" aria-label="Làm mới cây thư mục" title="Làm mới"><i class="ri-refresh-line"></i></button><button id="quick-tree-close" type="button" aria-label="Đóng cây thư mục" title="Đóng"><i class="ri-close-line"></i></button></div></div>
+          <div class="quick-tree-head-top"><span class="quick-tree-heading"><i id="quick-tree-heading-icon" class="ri-folder-tree-line"></i><span id="quick-tree-heading-text">Thư mục dự án</span></span><div class="quick-tree-tools"><button id="quick-tree-refresh" type="button" aria-label="Làm mới bảng" title="Làm mới"><i class="ri-refresh-line"></i></button><button id="quick-tree-close" type="button" aria-label="Đóng bảng" title="Đóng"><i class="ri-close-line"></i></button></div></div>
           <div id="quick-tree-path" class="quick-tree-path"></div>
         </div>
-        <div class="quick-tree-caption">Cây thư mục</div>
-        <div id="quick-tree-scroll" class="quick-tree-scroll" role="tree" aria-label="Các tệp trong workspace"></div>
-        <div class="quick-tree-foot">Chọn thư mục để mở rộng · Chọn tệp để xem</div>
+        <div id="quick-tree-files">
+          <div class="quick-tree-caption">Cây thư mục</div>
+          <div id="quick-tree-scroll" class="quick-tree-scroll" role="tree" aria-label="Các tệp trong workspace"></div>
+          <div class="quick-tree-foot">Chọn thư mục để mở rộng · Chọn tệp để xem</div>
+        </div>
+        <div id="quick-tree-git" hidden>
+          <div id="quick-git-branch" class="quick-git-branch"><i class="ri-git-branch-line"></i> Nhánh mẫu · main</div>
+          <p class="quick-git-note">Bản xem thử · Chỉ mô phỏng, không chạy lệnh Git</p>
+          <div class="quick-tree-caption">Tệp thay đổi <span id="quick-git-count">0</span></div>
+          <div id="quick-git-files" class="quick-git-files"></div>
+          <div class="quick-git-actions">
+            <button type="button" id="quick-git-pull"><i class="ri-download-cloud-2-line"></i> Pull</button>
+            <button type="button" id="quick-git-push"><i class="ri-upload-cloud-2-line"></i> Push</button>
+            <input id="quick-git-message" type="text" aria-label="Nội dung commit" placeholder="Nội dung commit" autocomplete="off">
+            <button type="button" id="quick-git-stage">Stage tệp chọn</button>
+            <button type="button" id="quick-git-unstage">Unstage tệp chọn</button>
+            <button type="button" id="quick-git-commit">Commit tệp đã stage</button>
+          </div>
+          <div id="quick-git-feedback" class="quick-git-feedback" role="status" aria-live="polite"></div>
+        </div>
       </aside>
       <!-- VIEW 1: FILES -->
       <section id="view-files" class="view active">
@@ -6388,6 +6421,88 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       const quickTreeExpanded = new Map();
       let quickTreeServerId = currentServerId;
       let quickTreeLastTrigger = null;
+      let quickPanelMode = 'files';
+      // Isolated demo data — never infer Git status from mockFS or execute commands.
+      let quickGitFiles = [
+        { path: 'src/server.js', status: 'M', staged: false, selected: false },
+        { path: 'docs/README.md', status: 'M', staged: false, selected: false },
+        { path: 'tests/session.test.js', status: '??', staged: false, selected: false }
+      ];
+      const quickGitFeedback = document.getElementById('quick-git-feedback');
+      const quickGitMessage = document.getElementById('quick-git-message');
+
+      function renderQuickGit() {
+        const list = document.getElementById('quick-git-files');
+        list.replaceChildren();
+        document.getElementById('quick-git-count').textContent = String(quickGitFiles.length);
+        if (!quickGitFiles.length) {
+          const empty = document.createElement('p');
+          empty.className = 'quick-tree-empty';
+          empty.textContent = 'Không có tệp thay đổi trong bản mô phỏng.';
+          list.append(empty);
+        }
+        quickGitFiles.forEach(file => {
+          const row = document.createElement('label');
+          row.className = 'quick-git-file';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = file.selected;
+          checkbox.setAttribute('aria-label', `Chọn ${file.path}`);
+          checkbox.addEventListener('change', () => { file.selected = checkbox.checked; renderQuickGitActions(); });
+          const status = document.createElement('span');
+          status.className = 'quick-git-status';
+          status.textContent = file.staged ? '✓' : file.status;
+          const name = document.createElement('span');
+          name.className = 'quick-git-filename';
+          name.textContent = file.path;
+          name.title = `${file.path} · ${file.staged ? 'Đã stage' : 'Chưa stage'}`;
+          row.append(checkbox, status, name);
+          list.append(row);
+        });
+        renderQuickGitActions();
+      }
+
+      function renderQuickGitActions() {
+        const selected = quickGitFiles.filter(file => file.selected);
+        document.getElementById('quick-git-stage').disabled = !selected.some(file => !file.staged);
+        document.getElementById('quick-git-unstage').disabled = !selected.some(file => file.staged);
+        document.getElementById('quick-git-commit').disabled = !quickGitFiles.some(file => file.staged) || !quickGitMessage.value.trim();
+        document.getElementById('quick-git-push').disabled = quickGitFiles.some(file => file.staged);
+      }
+
+      function showQuickGitFeedback(message) { quickGitFeedback.textContent = message; }
+      document.getElementById('quick-git-stage').addEventListener('click', () => {
+        quickGitFiles.filter(file => file.selected && !file.staged).forEach(file => { file.staged = true; file.selected = false; });
+        renderQuickGit(); showQuickGitFeedback('Đã stage các tệp được chọn trong bản mô phỏng.');
+      });
+      document.getElementById('quick-git-unstage').addEventListener('click', () => {
+        quickGitFiles.filter(file => file.selected && file.staged).forEach(file => { file.staged = false; file.selected = false; });
+        renderQuickGit(); showQuickGitFeedback('Đã unstage các tệp được chọn trong bản mô phỏng.');
+      });
+      document.getElementById('quick-git-commit').addEventListener('click', () => {
+        const message = quickGitMessage.value.trim();
+        if (!message || !quickGitFiles.some(file => file.staged)) return;
+        quickGitFiles = quickGitFiles.filter(file => !file.staged);
+        quickGitMessage.value = '';
+        renderQuickGit(); showQuickGitFeedback(`Đã mô phỏng commit: ${message}`);
+      });
+      document.getElementById('quick-git-pull').addEventListener('click', () => showQuickGitFeedback('Đã mô phỏng Pull · Không kết nối remote.'));
+      document.getElementById('quick-git-push').addEventListener('click', () => showQuickGitFeedback('Đã mô phỏng Push · Không kết nối remote.'));
+      quickGitMessage.addEventListener('input', renderQuickGitActions);
+
+      function setQuickPanelMode(mode) {
+        quickPanelMode = mode;
+        const isGit = mode === 'git';
+        const server = serverList.find(entry => entry.id === currentServerId);
+        document.getElementById('quick-tree-path').textContent = server?.workspace || 'Workspace';
+        document.getElementById('quick-tree-files').hidden = isGit;
+        document.getElementById('quick-tree-git').hidden = !isGit;
+        document.getElementById('quick-tree-heading-text').textContent = isGit ? 'Git nhanh' : 'Thư mục dự án';
+        document.getElementById('quick-tree-heading-icon').className = isGit ? 'ri-git-branch-line' : 'ri-folder-tree-line';
+        quickTreePanel.setAttribute('aria-label', isGit ? 'Quản lý Git nhanh' : 'Xem nhanh thư mục');
+        if (isGit) renderQuickGit(); else renderQuickTree();
+        quickTreeTriggers.forEach(button => button.setAttribute('aria-expanded', String(!quickTreePanel.hidden && button.dataset.quickPanel === mode)));
+      }
 
       function closeQuickTree(restoreFocus = false) {
         if (quickTreePanel.hidden) return;
@@ -6465,17 +6580,19 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       }
 
       quickTreeTriggers.forEach(button => button.addEventListener('click', () => {
-        if (quickTreePanel.hidden) {
-          quickTreeLastTrigger = button;
-          renderQuickTree();
-          quickTreePanel.hidden = false;
-          quickTreeScrim.hidden = false;
-          document.getElementById('app').classList.add('quick-tree-open');
-          quickTreeTriggers.forEach(trigger => trigger.setAttribute('aria-expanded', 'true'));
-        } else closeQuickTree(true);
+        const mode = button.dataset.quickPanel;
+        if (!quickTreePanel.hidden && mode === quickPanelMode) { closeQuickTree(true); return; }
+        quickTreeLastTrigger = button;
+        quickTreePanel.hidden = false;
+        quickTreeScrim.hidden = false;
+        document.getElementById('app').classList.add('quick-tree-open');
+        setQuickPanelMode(mode);
       }));
       document.getElementById('quick-tree-close').addEventListener('click', () => closeQuickTree(true));
-      document.getElementById('quick-tree-refresh').addEventListener('click', renderQuickTree);
+      document.getElementById('quick-tree-refresh').addEventListener('click', () => {
+        if (quickPanelMode === 'git') { renderQuickGit(); showQuickGitFeedback('Đã làm mới dữ liệu mô phỏng.'); }
+        else renderQuickTree();
+      });
       quickTreeScrim.addEventListener('click', () => closeQuickTree(true));
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && !quickTreePanel.hidden) { event.preventDefault(); closeQuickTree(true); }

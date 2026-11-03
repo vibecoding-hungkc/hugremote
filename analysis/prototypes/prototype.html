@@ -3845,7 +3845,12 @@
     .quick-tree-trigger[aria-expanded="true"] { color:#b7d9ff; background:linear-gradient(135deg,#153358,#1b2b4d); border-color:#4674ac; }
     .quick-tree-trigger[data-quick-panel="git"][aria-expanded="true"] { color:#ffd18b; background:linear-gradient(135deg,#45311c,#493025); border-color:#a97742; }
     .quick-tree-panel[hidden], .quick-tree-scrim[hidden] { display:none !important; }
-    .quick-tree-panel { position:absolute; z-index:25; inset:0 0 0 auto; width:304px; display:flex; flex-direction:column; background:linear-gradient(160deg,#151f32 0%,#101827 53%,#0c1524 100%); border-left:1px solid #344969; box-shadow:-16px 0 40px #03081366; min-height:0; }
+    .quick-tree-panel { position:absolute; z-index:25; inset:0 0 0 auto; width:var(--quick-panel-width, 304px); display:flex; flex-direction:column; background:linear-gradient(160deg,#151f32 0%,#101827 53%,#0c1524 100%); border-left:1px solid #344969; box-shadow:-16px 0 40px #03081366; min-height:0; }
+    .quick-tree-resize { position:absolute; z-index:2; left:-8px; top:0; bottom:0; width:16px; padding:0; border:0; border-radius:0; background:transparent; cursor:col-resize; touch-action:none; }
+    .quick-tree-resize::before { content:""; position:absolute; top:50%; left:6px; width:4px; height:42px; transform:translateY(-50%); border-radius:3px; background:#6286b8; box-shadow:0 0 0 1px #1e3653; }
+    .quick-tree-resize:hover::before, .quick-tree-resize:focus-visible::before, .quick-tree-panel.is-resizing .quick-tree-resize::before { background:#9bd2ff; box-shadow:0 0 12px #579eec; }
+    .quick-tree-resize:focus-visible { outline:2px solid #9bd2ff; outline-offset:-3px; }
+    body.quick-tree-dragging, body.quick-tree-dragging * { cursor:col-resize !important; user-select:none !important; }
     .quick-tree-head { padding:14px 14px 12px; border-bottom:1px solid #2c3c57; background:radial-gradient(ellipse at 85% 0%,#245d9270,transparent 65%); }
     .quick-tree-head-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .quick-tree-heading { display:flex; gap:8px; align-items:center; color:#dbeaff; font-weight:700; font-size:13px; }
@@ -3882,11 +3887,9 @@
     .quick-git-actions #quick-git-commit { grid-column:1/-1; color:#ffe2b0; background:#624725; border-color:#956b38; }
     .quick-git-feedback { min-height:24px; padding:0 12px 10px; color:#aad3ad; font-size:11px; line-height:1.4; }
     .quick-tree-scrim { display:none; }
-    @media (min-width:800px) { #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:304px; } }
-    @media (min-width:800px) and (max-width:1199px) { .quick-tree-panel { width:264px; } #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:264px; } }
+    @media (min-width:800px) { #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:var(--quick-panel-width, 304px); } }
     @media (max-width:799px) {
       .quick-tree-scrim { display:block; position:absolute; inset:0; z-index:24; background:#020815b8; backdrop-filter:blur(3px); }
-      .quick-tree-panel { width:min(84vw,340px); }
     }
 </style>
 </head>
@@ -3959,14 +3962,14 @@
         <!-- Actions for Terminal -->
                 <!-- Actions for Claude -->
         <div id="ctx-actions-claude" class="ctx-actions-item">
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i></button>
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
           <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
           <button id="btn-header-claude-limits" class="btn-icon-action" title="Xem hạn mức 5h & Tuần"><i class="ri-dashboard-3-line" style="color:#f59e0b;"></i></button>
           <button id="btn-add-claude" class="btn-icon-action" title="Khởi chạy phiên Claude mới"><i class="ri-add-line"></i></button>
           <button id="btn-claude-more" class="btn-icon-action" title="Tùy chọn Claude"><i class="ri-more-2-fill"></i></button>
         </div>
         <div id="ctx-actions-terminal" class="ctx-actions-item">
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i></button>
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
           <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
           <button id="btn-add-term" class="btn-icon-action" title="Thêm terminal mới"><i class="ri-add-line"></i></button>
           <button id="btn-term-more" class="btn-icon-action" title="Tùy chọn terminal"><i class="ri-more-2-fill"></i></button>
@@ -3980,8 +3983,9 @@
     <main class="views-wrapper">
       <div id="quick-tree-scrim" class="quick-tree-scrim" hidden></div>
       <aside id="quick-tree-panel" class="quick-tree-panel" aria-label="Xem nhanh workspace" hidden>
+        <button id="quick-tree-resize" class="quick-tree-resize" type="button" role="separator" aria-orientation="vertical" aria-label="Kéo để đổi chiều rộng bảng" aria-valuemin="220" aria-valuemax="560" aria-valuenow="304" title="Kéo để đổi chiều rộng"></button>
         <div class="quick-tree-head">
-          <div class="quick-tree-head-top"><span class="quick-tree-heading"><i id="quick-tree-heading-icon" class="ri-folder-tree-line"></i><span id="quick-tree-heading-text">Thư mục dự án</span></span><div class="quick-tree-tools"><button id="quick-tree-refresh" type="button" aria-label="Làm mới bảng" title="Làm mới"><i class="ri-refresh-line"></i></button><button id="quick-tree-close" type="button" aria-label="Đóng bảng" title="Đóng"><i class="ri-close-line"></i></button></div></div>
+          <div class="quick-tree-head-top"><span class="quick-tree-heading"><i id="quick-tree-heading-icon" class="ri-folder-2-line"></i><span id="quick-tree-heading-text">Thư mục dự án</span></span><div class="quick-tree-tools"><button id="quick-tree-refresh" type="button" aria-label="Làm mới bảng" title="Làm mới"><i class="ri-refresh-line"></i></button><button id="quick-tree-close" type="button" aria-label="Đóng bảng" title="Đóng"><i class="ri-close-line"></i></button></div></div>
           <div id="quick-tree-path" class="quick-tree-path"></div>
         </div>
         <div id="quick-tree-files">
@@ -6498,7 +6502,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         document.getElementById('quick-tree-files').hidden = isGit;
         document.getElementById('quick-tree-git').hidden = !isGit;
         document.getElementById('quick-tree-heading-text').textContent = isGit ? 'Git nhanh' : 'Thư mục dự án';
-        document.getElementById('quick-tree-heading-icon').className = isGit ? 'ri-git-branch-line' : 'ri-folder-tree-line';
+        document.getElementById('quick-tree-heading-icon').className = isGit ? 'ri-git-branch-line' : 'ri-folder-2-line';
         quickTreePanel.setAttribute('aria-label', isGit ? 'Quản lý Git nhanh' : 'Xem nhanh thư mục');
         if (isGit) renderQuickGit(); else renderQuickTree();
         quickTreeTriggers.forEach(button => button.setAttribute('aria-expanded', String(!quickTreePanel.hidden && button.dataset.quickPanel === mode)));
@@ -6579,10 +6583,65 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         }
       }
 
+      const quickTreeResize = document.getElementById('quick-tree-resize');
+      let quickPanelCustomWidth = null;
+      let quickResizeActive = false;
+
+      function defaultQuickPanelWidth() {
+        if (window.innerWidth < 800) return Math.min(Math.round(window.innerWidth * 0.84), 340);
+        return window.innerWidth < 1200 ? 264 : 304;
+      }
+
+      function applyQuickPanelWidth(rawWidth = quickPanelCustomWidth ?? defaultQuickPanelWidth()) {
+        const min = 220;
+        const max = Math.max(min, window.innerWidth < 800 ? Math.min(460, window.innerWidth - 52) : Math.min(580, Math.round(window.innerWidth * 0.52)));
+        const width = Math.max(min, Math.min(max, Math.round(rawWidth)));
+        document.getElementById('app').style.setProperty('--quick-panel-width', `${width}px`);
+        quickTreeResize.setAttribute('aria-valuemin', String(min));
+        quickTreeResize.setAttribute('aria-valuemax', String(max));
+        quickTreeResize.setAttribute('aria-valuenow', String(width));
+        return width;
+      }
+
+      function setQuickPanelWidthFromClientX(clientX) {
+        const right = document.querySelector('.views-wrapper').getBoundingClientRect().right;
+        quickPanelCustomWidth = applyQuickPanelWidth(right - clientX);
+      }
+
+      quickTreeResize.addEventListener('pointerdown', event => {
+        if (event.button !== 0 && event.pointerType === 'mouse') return;
+        event.preventDefault();
+        quickResizeActive = true;
+        quickTreePanel.classList.add('is-resizing');
+        document.body.classList.add('quick-tree-dragging');
+        quickTreeResize.setPointerCapture?.(event.pointerId);
+        setQuickPanelWidthFromClientX(event.clientX);
+      });
+      window.addEventListener('pointermove', event => {
+        if (quickResizeActive) setQuickPanelWidthFromClientX(event.clientX);
+      });
+      function stopQuickResize() {
+        if (!quickResizeActive) return;
+        quickResizeActive = false;
+        quickTreePanel.classList.remove('is-resizing');
+        document.body.classList.remove('quick-tree-dragging');
+      }
+      window.addEventListener('pointerup', stopQuickResize);
+      window.addEventListener('pointercancel', stopQuickResize);
+      quickTreeResize.addEventListener('keydown', event => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        const current = Number(quickTreeResize.getAttribute('aria-valuenow')) || defaultQuickPanelWidth();
+        quickPanelCustomWidth = applyQuickPanelWidth(current + (event.key === 'ArrowLeft' ? 20 : -20));
+      });
+      window.addEventListener('resize', () => applyQuickPanelWidth());
+      applyQuickPanelWidth();
+
       quickTreeTriggers.forEach(button => button.addEventListener('click', () => {
         const mode = button.dataset.quickPanel;
         if (!quickTreePanel.hidden && mode === quickPanelMode) { closeQuickTree(true); return; }
         quickTreeLastTrigger = button;
+        applyQuickPanelWidth();
         quickTreePanel.hidden = false;
         quickTreeScrim.hidden = false;
         document.getElementById('app').classList.add('quick-tree-open');

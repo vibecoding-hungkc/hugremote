@@ -18,21 +18,21 @@
       <div class="hub-tabs">
         <button
           class="hub-tab"
-          :class="{ active: activeTab === 'cli' }"
-          @click="activeTab = 'cli'"
-        >
-          <i class="ri-terminal-box-line"></i>
-          <span>{{ t('claudeHub.tabCliSessions') }}</span>
-          <span class="hub-tab-badge">{{ claudeStore.projectSessions.length }}</span>
-        </button>
-        <button
-          class="hub-tab"
           :class="{ active: activeTab === 'web' }"
           @click="activeTab = 'web'"
         >
           <i class="ri-chat-3-line"></i>
           <span>{{ t('claudeHub.tabWebSessions') }}</span>
           <span class="hub-tab-badge">{{ claudeStore.currentServerSessions.length }}</span>
+        </button>
+        <button
+          class="hub-tab"
+          :class="{ active: activeTab === 'cli' }"
+          @click="activeTab = 'cli'"
+        >
+          <i class="ri-terminal-box-line"></i>
+          <span>{{ t('claudeHub.tabCliSessions') }}</span>
+          <span class="hub-tab-badge">{{ claudeStore.projectSessions.length }}</span>
         </button>
       </div>
 
@@ -233,7 +233,7 @@ const projectStore = useProjectStore();
 const serverStore = useServerStore();
 const { t } = useI18n();
 
-const activeTab = ref<'cli' | 'web'>('cli');
+const activeTab = ref<'web' | 'cli'>('web');
 const cliSearchQuery = ref('');
 const resumingId = ref<string | null>(null);
 const editingCliId = ref<string | null>(null);
@@ -274,6 +274,7 @@ watch(
   () => props.isOpen,
   (open) => {
     if (open) {
+      activeTab.value = 'web';
       refreshCliSessions();
     }
   },

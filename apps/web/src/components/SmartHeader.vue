@@ -84,9 +84,55 @@
           <button class="btn-icon-action" :disabled="!fileStore.activeFile?.isDirty || isSaving || fileStore.isSaving" title="Lưu file" @click="saveFile"><i class="ri-save-line"></i></button>
           <button class="btn-icon-action" title="Đóng file" @click="closeFile"><i class="ri-close-line"></i></button>
         </template>
-        <template v-else-if="activeTab === 'terminal'"><button class="btn-icon-action" @click="$emit('open-new-terminal-modal')"><i class="ri-add-line"></i></button></template>
+        <template v-else-if="activeTab === 'terminal'">
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="files"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'files' ? 'true' : 'false'"
+            :title="t('quickPanel.filesTitle')"
+            :aria-label="t('quickPanel.filesTitle')"
+            @click="$emit('toggle-quick-panel', 'files')"
+          ><i class="ri-folder-2-line"></i></button>
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="git"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'git' ? 'true' : 'false'"
+            :title="t('quickPanel.gitTitle')"
+            :aria-label="t('quickPanel.gitTitle')"
+            @click="$emit('toggle-quick-panel', 'git')"
+          ><i class="ri-git-branch-line"></i></button>
+          <button class="btn-icon-action" @click="$emit('open-new-terminal-modal')"><i class="ri-add-line"></i></button>
+        </template>
         <template v-else-if="activeTab === 'claude'">
-          <button class="btn-icon-action" @click="$emit('open-claude-hub')" :title="t('claudeHub.tabCliSessions') || 'Danh sách phiên Project (/resume)'"><i class="ri-history-line"></i></button>
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="files"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'files' ? 'true' : 'false'"
+            :title="t('quickPanel.filesTitle')"
+            :aria-label="t('quickPanel.filesTitle')"
+            @click="$emit('toggle-quick-panel', 'files')"
+          ><i class="ri-folder-2-line"></i></button>
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="git"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'git' ? 'true' : 'false'"
+            :title="t('quickPanel.gitTitle')"
+            :aria-label="t('quickPanel.gitTitle')"
+            @click="$emit('toggle-quick-panel', 'git')"
+          ><i class="ri-git-branch-line"></i></button>
+          <button class="btn-icon-action" @click="$emit('open-claude-hub')" :title="t('claudeHub.tabCliSessions') || 'Danh sách phiên Project'"><i class="ri-history-line"></i></button>
           <button class="btn-icon-action" @click="$emit('open-new-claude-modal')" :title="t('common.create')"><i class="ri-add-line"></i></button>
         </template>
         <template v-else-if="activeTab === 'git'"><button class="btn-icon-action" @click="gitStore.fetchStatus"><i class="ri-refresh-line"></i></button></template>
@@ -110,9 +156,13 @@ import { useGitStore } from '../stores/gitStore.js';
 import { useI18n } from '../composables/useI18n.js';
 import LanguageSwitcher from './LanguageSwitcher.vue';
 
-defineProps<{ activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'; }>();
+defineProps<{
+  activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git';
+  quickPanelOpen?: boolean;
+  quickPanelMode?: 'files' | 'git';
+}>();
 const emit = defineEmits<{
-  (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void;
+  (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void; (e: 'toggle-quick-panel', mode: 'files' | 'git'): void;
 }>();
 const serverStore = useServerStore(); const projectStore = useProjectStore(); const fileStore = useFileStore(); const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); const gitStore = useGitStore(); const { t } = useI18n();
 
@@ -211,22 +261,22 @@ const displayClaudeSessionName = computed(() => {
   const sess = claudeStore.activeSession;
   if (!sess) return 'claude';
 
-  // 1. If session is linked to a Claude CLI Project Session, prioritize its summary
+  // 1. Always prioritize the session name set by the user in HugRemote
+  if (sess.name && sess.name.trim() && sess.name !== 'claude' && sess.name !== 'chat') {
+    const clean = sess.name.trim();
+    if (!sess.isCustomNamed && sess.cwd && clean === sess.cwd.trim()) {
+      const parts = clean.replace(/[/\\]+$/, '').split(/[/\\]/).filter(Boolean);
+      return parts[parts.length - 1] || clean;
+    }
+    return clean;
+  }
+
+  // 2. Fallback to linked Claude CLI session summary only when session has no custom name
   if (sess.cliSessionId) {
     const cliSess = claudeStore.projectSessions.find((p) => p.id === sess.cliSessionId);
     if (cliSess?.summary && cliSess.summary !== 'Phiên chưa đặt tên') {
       return cliSess.summary;
     }
-  }
-
-  // 2. If session has a custom or meaningful name (not 'chat' and not 'claude')
-  if (sess.name && sess.name.trim() && sess.name !== 'claude' && sess.name !== 'chat') {
-    const clean = sess.name.trim();
-    if (clean.includes('/')) {
-      const parts = clean.split('/').filter(Boolean);
-      return parts[parts.length - 1] || clean;
-    }
-    return clean;
   }
 
   // 3. Fallback to folder name from cwd
@@ -361,6 +411,26 @@ async function closeFile() {
   justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
+}
+
+.btn-icon-action.quick-tree-trigger {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  font-size: 16px;
+}
+
+.btn-icon-action.quick-tree-trigger[aria-expanded="true"] {
+  color: #b7d9ff;
+  background: linear-gradient(135deg, #153358, #1b2b4d);
+  border-color: #4674ac;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.btn-icon-action.quick-tree-trigger[data-quick-panel="git"][aria-expanded="true"] {
+  color: #ffd18b;
+  background: linear-gradient(135deg, #45311c, #493025);
+  border-color: #a97742;
 }
 
 .project-selector-btn {

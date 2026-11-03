@@ -589,3 +589,164 @@ test('native stdout payload is never reflected into browser errors or final text
   assert.doesNotMatch(JSON.stringify(h.events), new RegExp(sensitive));
   assert.match(result.text, /exited with code 1|không trả về kết quả/i);
 });
+
+const BUN_CRASH_STDERR = [
+  '============================================================',
+  'Bun v1.4.4 (388955fac) Linux x64',
+  'Linux Kernel v7.0.0 | glibc v2.43',
+  'CPU: sse42 popcnt avx avx2',
+  'Args: "claude" "--zero-fill-buffers" "-p" "--input-format" "stream-json" "--model" "opus" "--effort" "medium" "--permission-mode" "auto" "--output-format" "stream-json" "--include-partial-messages" "--verbose" "--resume" "ac93216a-eec0-4deb-b910-7c197"',
+  'Features: Bun.stderr(2) Bun.stdin(2) Bun.stdout(2) fetch(2) jsc spawn(8) standalone_executable',
+  'panic(main thread): Segmentation fault at address 0x0',
+  'oh no: Bun has crashed. This indicates a bug in Bun, not your code.',
+].join('\n');
+
+test('Bun crash on exit after result frame preserves the completed assistant response', async () => {
+  const h = await harness();
+  h.send(snapshot('m-ok', [{ type: 'text', text: 'Completed answer before Bun teardown crash' }]));
+  h.send({ type: 'result', result: 'Completed answer before Bun teardown crash', usage: { input_tokens: 500, output_tokens: 50 } });
+  h.child.stderr.write(BUN_CRASH_STDERR);
+  h.close(139, 'SIGSEGV');
+  const result = await h.result;
+  assert.equal(result.text, 'Completed answer before Bun teardown crash');
+  assert.equal(h.events.some(e => e.type === 'error'), false, 'must not emit error after result frame succeeded');
+});
+
+test('Bun crash before assistant activity on --resume detaches failed session and retries with recent context', async () => {
+  const service = new ClaudeService();
+  const children: any[] = [];
+  const spawnArgsList: string[][] = [];
+  const inputFrames: string[] = [];
+  (service as any).resolveClaudeProjectDir = () => null;
+
+  (service as any).spawnLocalClaude = (_session: any, args: string[], env: Record<string, string>) => {
+    const child = Object.assign(new EventEmitter(), {
+      stdin: new PassThrough(),
+      stdout: new PassThrough(),
+      stderr: new PassThrough(),
+      killed: false,
+      kill() { this.killed = true; },
+    });
+    child.stdin.on('data', (data: Buffer) => { inputFrames.push(data.toString()); });
+    children.push(child);
+    spawnArgsList.push(args);
+    queueMicrotask(() => {
+      if (children.length === 1) {
+        child.stdout.write(JSON.stringify({ type: 'system', subtype: 'init', session_id: 'ac93216a-eec0-4deb-b910-7c1970000000' }) + '\n');
+        child.stderr.write(BUN_CRASH_STDERR);
+        child.emit('close', 134, 'SIGABRT');
+      } else {
+        child.stdout.write(JSON.stringify(snapshot('m-retry', [{ type: 'text', text: 'Recovered on retry after Bun crash' }])) + '\n');
+        child.stdout.write(JSON.stringify({ type: 'result', result: 'Recovered on retry after Bun crash' }) + '\n');
+        child.emit('close', 0, null);
+      }
+    });
+    return child;
+  };
+
+  const session = {
+    id: 'session-bun-retry', serverId: 'server-local', name: 'test', cwd: home,
+    model: 'Opus Medium', mode: 'Auto', bypassPermissions: false, timer: '60m',
+    contextTokens: '0', cliSessionId: 'ac93216a-eec0-4deb-b910-7c1970000000',
+    messages: [{ id: 'u-prev', sender: 'user', text: 'Prior question' }, { id: 'a-prev', sender: 'assistant', text: 'Prior answer' }], updatedAt: Date.now(),
+  } as any;
+
+  const events: Event[] = [];
+  const result = await service.streamClaudePrompt(session, 'fix bug', e => events.push(e));
+  assert.equal(children.length, 2, 'must retry automatically when Bun crashes before result');
+  assert.ok(spawnArgsList[0].includes('--resume'), 'first attempt resumes existing session');
+  assert.equal(spawnArgsList[1].includes('--resume'), false, 'retry must not resume crashed session');
+  assert.match(inputFrames[1] || '', /Prior question/, 'retry must carry recent history');
+  assert.equal(result.text, 'Recovered on retry after Bun crash');
+  assert.equal(events.some(e => e.type === 'error'), false, 'must not emit error when retry recovers');
+});
+
+test('Repeated Bun crash on fresh retry clears newly initialized session ID', async () => {
+  const service = new ClaudeService();
+  let launches = 0;
+  (service as any).resolveClaudeProjectDir = () => null;
+  (service as any).spawnLocalClaude = () => {
+    const child = Object.assign(new EventEmitter(), {
+      stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(), kill() {},
+    });
+    queueMicrotask(() => {
+      launches++;
+      child.stdout.write(JSON.stringify({ type: 'system', subtype: 'init', session_id: `crashed-${launches}` }) + '\n');
+      child.stderr.write(BUN_CRASH_STDERR);
+      child.emit('close', 134, 'SIGABRT');
+    });
+    return child;
+  };
+  const session = {
+    id: 'session-bun-double-crash', serverId: 'server-local', name: 'test', cwd: home,
+    model: 'Opus Medium', mode: 'Auto', cliSessionId: 'original-id',
+    messages: [], updatedAt: Date.now(),
+  } as any;
+  const result = await service.streamClaudePrompt(session, 'prompt', () => {});
+  assert.equal(launches, 2);
+  assert.equal(session.cliSessionId, undefined, 'next turn must not resume a crash-init session');
+  assert.match(result.text, /Bun v1\.4\.4/);
+});
+
+test('Bun crash after tool activity never replays a possibly irreversible request', async () => {
+  const service = new ClaudeService();
+  let launches = 0;
+  (service as any).spawnLocalClaude = () => {
+    launches++;
+    const child = Object.assign(new EventEmitter(), {
+      stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough(),
+      kill() {},
+    });
+    queueMicrotask(() => {
+      child.stdout.write(JSON.stringify(snapshot('tool-run', [
+        { type: 'tool_use', id: 't-1', name: 'Bash', input: { command: 'touch marker' } },
+      ])) + '\n');
+      child.stderr.write(BUN_CRASH_STDERR);
+      child.emit('close', 139, 'SIGSEGV');
+    });
+    return child;
+  };
+  const session = {
+    id: 'session-bun-no-replay', serverId: 'server-local', name: 'test', cwd: home,
+    model: 'Opus Medium', mode: 'Auto', cliSessionId: 'resume-id',
+    messages: [], updatedAt: Date.now(),
+  } as any;
+  const result = await service.streamClaudePrompt(session, 'run tool', () => {});
+  assert.equal(launches, 1);
+  assert.equal(result.tools?.length, 1);
+  assert.match(result.text, /Claude CLI ngắt đột ngột/);
+});
+
+test('Bun crash after partial text and tools preserves streamed work instead of wiping it with raw banner', async () => {
+  const service = new ClaudeService();
+  (service as any).spawnLocalClaude = () => {
+    const child = Object.assign(new EventEmitter(), {
+      stdin: new PassThrough(),
+      stdout: new PassThrough(),
+      stderr: new PassThrough(),
+      killed: false,
+      kill() { this.killed = true; },
+    });
+    queueMicrotask(() => {
+      child.stdout.write(JSON.stringify(snapshot('m-partial', [
+        { type: 'text', text: 'Đã phân tích và sửa xong file.' },
+        { type: 'tool_use', id: 't-1', name: 'Bash', input: { command: 'npm test' } },
+      ])) + '\n');
+      child.stderr.write(BUN_CRASH_STDERR);
+      child.emit('close', 139, 'SIGSEGV');
+    });
+    return child;
+  };
+
+  const session = {
+    id: 'session-bun-partial', serverId: 'server-local', name: 'test', cwd: home,
+    model: 'Opus Medium', mode: 'Auto', bypassPermissions: false, timer: '60m',
+    contextTokens: '0', messages: [], updatedAt: Date.now(),
+  } as any;
+
+  const result = await service.streamClaudePrompt(session, 'run tests', () => {});
+  assert.match(result.text, /Đã phân tích và sửa xong file\./, 'must preserve already-streamed assistant text');
+  assert.match(result.text, /Segmentation fault at address 0x0/, 'must surface actual panic line after Features header');
+  assert.equal(result.tools?.length, 1, 'must preserve tool calls');
+  assert.notEqual(result.tools?.[0]?.status, 'running', 'must not leave tool call stuck in running status');
+});

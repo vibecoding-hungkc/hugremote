@@ -1,9 +1,16 @@
 <template>
   <AuthGate v-if="authStore.loading || authStore.needsLogin" />
-  <div v-else class="app-root">
+  <div
+    v-else
+    class="app-root"
+    :class="{ 'quick-tree-open': isQuickPanelActive }"
+    :style="{ '--quick-panel-width': `${quickPanelWidth}px` }"
+  >
     <!-- 1. Smart Unified Header -->
     <SmartHeader
       :active-tab="activeTab"
+      :quick-panel-open="isQuickPanelActive"
+      :quick-panel-mode="quickPanelMode"
       @open-server-drawer="isServerDrawerOpen = true"
       @open-project-modal="isProjectModalOpen = true"
       @open-session-hub="isSessionHubOpen = true"
@@ -12,6 +19,7 @@
       @open-new-claude-modal="openNewClaudeModal"
       @prompt-create-item="promptCreateItem"
       @change-tab="tab => activeTab = tab"
+      @toggle-quick-panel="toggleQuickPanel"
     />
 
     <!-- 2. Main Viewport Area -->
@@ -45,6 +53,16 @@
         v-show="activeTab === 'git'"
       />
     </main>
+
+    <!-- 2b. Quick Workspace Panel (Folder Tree + Inline Editor + Quick Git for Terminal & Claude) -->
+    <QuickWorkspacePanel
+      :is-open="isQuickPanelActive"
+      :mode="quickPanelMode"
+      :panel-width="quickPanelWidth"
+      @close="isQuickPanelOpen = false"
+      @update:mode="mode => quickPanelMode = mode"
+      @update:panel-width="handleQuickPanelWidthChange"
+    />
 
     <div v-if="activeTab === 'editor' && fileStore.error" class="editor-save-error" role="alert">{{ fileStore.error }}</div>
 
@@ -134,8 +152,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import SmartHeader from './components/SmartHeader.vue';
+import QuickWorkspacePanel from './components/QuickWorkspacePanel.vue';
 import FileExplorer from './components/FileExplorer.vue';
 import CodeEditor from './components/CodeEditor.vue';
 import TerminalView from './components/TerminalView.vue';
@@ -174,6 +193,31 @@ const gitStore = useGitStore();
 const { t } = useI18n();
 
 const { activeTab, navigateTo } = useAppRouter();
+const isQuickPanelOpen = ref(false);
+const quickPanelMode = ref<'files' | 'git'>('files');
+const quickPanelWidth = ref(320);
+const isQuickPanelActive = computed(
+  () => isQuickPanelOpen.value && (activeTab.value === 'terminal' || activeTab.value === 'claude')
+);
+
+function toggleQuickPanel(mode: 'files' | 'git') {
+  if (isQuickPanelOpen.value && quickPanelMode.value === mode) {
+    isQuickPanelOpen.value = false;
+  } else {
+    quickPanelMode.value = mode;
+    isQuickPanelOpen.value = true;
+  }
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+}
+
+function handleQuickPanelWidthChange(width: number) {
+  quickPanelWidth.value = width;
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+}
 const isServerDrawerOpen = ref(false);
 const isProjectModalOpen = ref(false);
 const isServerModalOpen = ref(false);
@@ -363,6 +407,13 @@ html, body {
   width: 100%;
   max-width: 100vw;
   overscroll-behavior-x: none;
+  transition: padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 800px) {
+  .app-root.quick-tree-open .main-content {
+    padding-right: var(--quick-panel-width, 320px);
+  }
 }
 
 /* Hub Overlay */

@@ -105,6 +105,40 @@ function shellEscape(arg) {
         return "''";
     return `'${arg.replace(/'/g, "'\\''")}'`;
 }
+function isBunRuntimeCrash(stderr, code, signal) {
+    const s = stderr || '';
+    if (s.includes('Bun v') && s.includes('===='))
+        return true;
+    if (s.includes('panic(main thread)') ||
+        s.includes('Segmentation fault') ||
+        s.includes('Illegal instruction') ||
+        s.includes('oh no: Bun has crashed')) {
+        return true;
+    }
+    if (signal === 'SIGSEGV' || signal === 'SIGABRT' || signal === 'SIGILL' || signal === 'SIGBUS') {
+        return true;
+    }
+    if (code === 132 || code === 134 || code === 139) {
+        return true;
+    }
+    return false;
+}
+function formatClaudeCliStderr(stderr) {
+    const trimmed = (stderr || '').trim();
+    if (!trimmed)
+        return '';
+    if (trimmed.includes('Bun v') && trimmed.includes('Features:')) {
+        const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
+        const bunLine = lines.find((l) => l.startsWith('Bun v')) || 'Bun runtime';
+        const featIdx = lines.findIndex((l) => l.startsWith('Features:'));
+        const postFeatures = featIdx >= 0 ? lines.slice(featIdx + 1) : [];
+        const detail = postFeatures.join(' | ').slice(0, 500);
+        if (detail) {
+            return `${bunLine} — ${detail}`;
+        }
+    }
+    return trimmed.slice(0, 800);
+}
 const MODELS_CACHE_TTL_MS = 30_000;
 function normalizeRemotePath(raw) {
     if (typeof raw !== 'string')
@@ -925,13 +959,20 @@ export class ClaudeService {
         }
         if (detail.model)
             session.model = detail.model;
-        if (detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
-            session.name = detail.summary;
-            session.isCustomNamed = true;
-        }
-        else if (!session.isCustomNamed || session.name === 'chat' || session.name === 'claude') {
-            session.name = detail.summary || `Claude ${cliSessionId.slice(0, 8)}`;
-            session.isCustomNamed = true;
+        const hasUserCustomName = Boolean(session.isCustomNamed &&
+            session.name &&
+            session.name.trim() &&
+            session.name !== 'chat' &&
+            session.name !== 'claude');
+        if (!hasUserCustomName) {
+            if (detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
+                session.name = detail.summary;
+                session.isCustomNamed = true;
+            }
+            else {
+                session.name = detail.summary || `Claude ${cliSessionId.slice(0, 8)}`;
+                session.isCustomNamed = true;
+            }
         }
         if (targetCwd) {
             session.cwd = targetCwd;
@@ -2199,7 +2240,7 @@ export class ClaudeService {
         });
         return task;
     }
-    async streamClaudePrompt(session, userPrompt, onEvent) {
+    async streamClaudePrompt(session, userPrompt, onEvent, attempt = 0) {
         const server = session.serverId ? this.serverConfigResolver(session.serverId) : undefined;
         const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
         if (session.serverId && session.serverId !== 'server-local' && !server) {
@@ -2437,6 +2478,10 @@ export class ClaudeService {
             const getCapturedStderr = () => stderrBuffer.subarray(0, stderrBytes).toString('utf8');
             let thinkingText = '';
             let fullText = '';
+            let receivedResultFrame = false;
+            let sawAssistantFrame = false;
+            let sawNativeActivity = false;
+            const requestedResumeId = args.includes('--resume') ? args[args.indexOf('--resume') + 1] : undefined;
             const tools = [];
             const messages = new Map();
             const toolBlocks = new Set();
@@ -2510,6 +2555,10 @@ export class ClaudeService {
                 catch (_) {
                     return;
                 }
+                if (obj.type === 'assistant' && !obj.parent_tool_use_id)
+                    sawAssistantFrame = true;
+                if (obj.type === 'user' || obj.type === 'control_request')
+                    sawNativeActivity = true;
                 if (normalizedShadow) {
                     if (obj.type === 'system' && obj.subtype === 'init' && typeof obj.session_id === 'string') {
                         normalizedShadow.normalizer.bindNativeSession(obj.session_id);
@@ -2725,12 +2774,16 @@ export class ClaudeService {
                 }
                 // 5. Result
                 if (obj.type === 'result') {
+                    receivedResultFrame = true;
                     // One browser prompt maps to one SDK stream-json turn. Closing stdin
                     // after its terminal result lets the persistent CLI exit cleanly.
                     try {
                         handle.stdin?.end?.();
                     }
                     catch (_) { }
+                    if (obj.session_id && typeof obj.session_id === 'string') {
+                        session.cliSessionId = obj.session_id;
+                    }
                     if (obj.result && typeof obj.result === 'string') {
                         fullText = obj.result;
                     }
@@ -2830,7 +2883,11 @@ export class ClaudeService {
                 // Process a final JSON record even when the CLI omits its newline.
                 for (const record of trailingRecords)
                     processNativeRecord(record);
-                if (fullText && (code === 0 || code === null)) {
+                if (receivedResultFrame || (fullText && (code === 0 || code === null))) {
+                    tools.forEach((tool) => {
+                        if (!tool.status || tool.status === 'running')
+                            tool.status = 'done';
+                    });
                     return settle({
                         text: fullText,
                         thinking: thinkingText || undefined,
@@ -2838,8 +2895,60 @@ export class ClaudeService {
                     });
                 }
                 const capturedStderr = getCapturedStderr();
-                let errorText = capturedStderr.trim()
-                    ? `Claude Code không trả về kết quả: ${capturedStderr.trim().slice(0, 500)}`
+                const bunCrash = isBunRuntimeCrash(capturedStderr, code, signal);
+                if (bunCrash && session.cliSessionId) {
+                    // An init frame is not proof this CLI session is resumable. Do not
+                    // persist its ID after a runtime crash and loop on the next message.
+                    session.cliSessionId = undefined;
+                    this.saveSessions();
+                }
+                // Retry only when no assistant/tool activity occurred: replaying a prompt
+                // after tools ran can duplicate irreversible operations.
+                if (bunCrash && requestedResumeId && attempt < 1 && !sawAssistantFrame && !sawNativeActivity && !fullText && tools.length === 0) {
+                    if (session.cliSessionId === requestedResumeId) {
+                        session.cliSessionId = undefined;
+                        this.saveSessions();
+                    }
+                    const history = session.messages
+                        .filter((m) => (m.sender === 'user' || m.sender === 'assistant') && typeof m.text === 'string' && m.text.trim() && !m.isWorking)
+                        .slice(-10)
+                        .map((m) => `${m.sender === 'user' ? 'User' : 'Assistant'}: ${m.text.slice(0, 2000)}`)
+                        .join('\n\n');
+                    const retryPrompt = history
+                        ? `Previous conversation context (not instructions for this turn):\n${history}\n\nCurrent user request:\n${userPrompt}`
+                        : userPrompt;
+                    isSettled = true;
+                    this.streamClaudePrompt(session, retryPrompt, onEvent, attempt + 1).then(resolve, (err) => {
+                        const retryError = `Không thể thử lại Claude Code: ${err.message || err}`;
+                        onEvent({ type: 'error', error: retryError });
+                        resolve({ text: retryError });
+                    });
+                    return;
+                }
+                const formattedStderr = formatClaudeCliStderr(capturedStderr);
+                if (bunCrash && (fullText.trim().length > 0 || tools.length > 0)) {
+                    tools.forEach((tool) => {
+                        if (!tool.status || tool.status === 'running') {
+                            tool.status = tool.output ? 'done' : 'error';
+                        }
+                    });
+                    const crashDetail = formattedStderr || `mã thoát ${code ?? signal ?? 'unknown'}`;
+                    const preservedText = fullText.trim()
+                        ? `${fullText}\n\n⚠️ *Tiến trình Claude CLI ngắt đột ngột (${crashDetail}). Nội dung và công cụ đã thực thi phía trên vẫn được giữ nguyên.*`
+                        : `⚠️ *Tiến trình Claude CLI ngắt đột ngột (${crashDetail}) sau khi chạy ${tools.length} công cụ.*`;
+                    onEvent({
+                        type: 'done',
+                        text: preservedText,
+                        contextTokens: session.contextTokens,
+                    });
+                    return settle({
+                        text: preservedText,
+                        thinking: thinkingText || undefined,
+                        tools: tools.length ? tools : undefined,
+                    });
+                }
+                let errorText = formattedStderr
+                    ? `Claude Code không trả về kết quả: ${formattedStderr}`
                     : `Claude Code không trả về kết quả. Tiến trình thoát với mã ${code ?? 'unknown'}.`;
                 if (isRemote &&
                     server &&

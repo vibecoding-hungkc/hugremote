@@ -1233,10 +1233,27 @@ export const useClaudeStore = defineStore('claude', () => {
       );
       const data = await res.json();
       if (data.session) {
-        const cliSess = projectSessions.value.find((p) => p.id === cliSessionId);
-        if (cliSess?.summary && cliSess.summary !== 'Phiên chưa đặt tên') {
-          data.session.name = cliSess.summary;
+        const existing = sessions.value.find((s) => s.id === data.session.id);
+        const hasUserCustomName = Boolean(
+          existing?.isCustomNamed &&
+          existing.name &&
+          existing.name.trim() &&
+          existing.name !== 'chat' &&
+          existing.name !== 'claude'
+        );
+        if (hasUserCustomName && existing) {
+          data.session.name = existing.name;
           data.session.isCustomNamed = true;
+        } else {
+          const cliSess = projectSessions.value.find((p) => p.id === cliSessionId);
+          if (
+            (!data.session.isCustomNamed || data.session.name === 'chat' || data.session.name === 'claude') &&
+            cliSess?.summary &&
+            cliSess.summary !== 'Phiên chưa đặt tên'
+          ) {
+            data.session.name = cliSess.summary;
+            data.session.isCustomNamed = true;
+          }
         }
         const idx = sessions.value.findIndex((s) => s.id === data.session.id);
         if (idx !== -1) {

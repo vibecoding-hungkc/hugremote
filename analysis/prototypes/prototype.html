@@ -3840,6 +3840,40 @@
       font-size: 12px;
     }
 
+    /* Quick workspace explorer — prototype only; no backend calls. */
+    .btn-icon-action.quick-tree-trigger { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:34px; white-space:nowrap; flex-shrink:0; } .quick-tree-trigger i { flex:none; } .quick-tree-trigger .quick-tree-label { white-space:nowrap; } @media (min-width:1200px) { .btn-icon-action.quick-tree-trigger { width:auto; padding:0 8px; } }
+    .quick-tree-trigger[aria-expanded="true"] { color:#b7d9ff; background:linear-gradient(135deg,#153358,#1b2b4d); border-color:#4674ac; }
+    .quick-tree-trigger .quick-tree-label { display:none; font:600 11px var(--font-sans); }
+    .quick-tree-panel[hidden], .quick-tree-scrim[hidden] { display:none !important; }
+    .quick-tree-panel { position:absolute; z-index:25; inset:0 0 0 auto; width:304px; display:flex; flex-direction:column; background:linear-gradient(160deg,#151f32 0%,#101827 53%,#0c1524 100%); border-left:1px solid #344969; box-shadow:-16px 0 40px #03081366; min-height:0; }
+    .quick-tree-head { padding:14px 14px 12px; border-bottom:1px solid #2c3c57; background:radial-gradient(ellipse at 85% 0%,#245d9270,transparent 65%); }
+    .quick-tree-head-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .quick-tree-heading { display:flex; gap:8px; align-items:center; color:#dbeaff; font-weight:700; font-size:13px; }
+    .quick-tree-heading i { color:#7abaff; font-size:17px; }
+    .quick-tree-tools { display:flex; gap:3px; }
+    .quick-tree-tools button { width:30px; height:30px; border:1px solid transparent; border-radius:7px; color:#b3c5df; background:#ffffff0a; cursor:pointer; }
+    .quick-tree-tools button:hover, .quick-tree-tools button:focus-visible { background:#29456c; border-color:#5b85b7; color:white; }
+    .quick-tree-path { margin-top:10px; padding:7px 9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:1px solid #34445c; border-radius:6px; background:#080f1d9e; color:#a9bfdc; font:11px var(--font-mono); user-select:text; }
+    .quick-tree-caption { padding:11px 14px 7px; color:#7890b0; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    .quick-tree-scroll { flex:1; min-height:0; overflow:auto; padding:0 7px 18px; scrollbar-color:#425778 transparent; }
+    .quick-tree-row { display:flex; align-items:center; width:100%; gap:7px; min-height:32px; padding:5px 8px; border:1px solid transparent; border-radius:7px; text-align:left; background:transparent; color:#c9d7eb; font:12px var(--font-sans); cursor:pointer; }
+    .quick-tree-row:hover, .quick-tree-row:focus-visible { background:#263d60; border-color:#3f608c; color:#fff; outline:0; }
+    .quick-tree-row .quick-tree-chevron { width:12px; flex:none; color:#849bb8; font-size:13px; }
+    .quick-tree-row .quick-tree-icon { width:17px; flex:none; color:#7fb7ed; font-size:16px; }
+    .quick-tree-row[data-kind="file"] .quick-tree-icon { color:#9bb4d4; }
+    .quick-tree-row .quick-tree-name { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .quick-tree-row .quick-tree-kind { color:#7086a4; font:10px var(--font-mono); }
+    .quick-tree-empty { padding:12px; color:#90a7c6; font-size:12px; line-height:1.5; }
+    .quick-tree-foot { padding:10px 14px; border-top:1px solid #2b3c54; color:#8298b6; font-size:11px; }
+    .quick-tree-scrim { display:none; }
+    @media (min-width:800px) { #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:304px; } }
+    @media (min-width:800px) and (max-width:1199px) { .quick-tree-panel { width:264px; } #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:264px; } }
+    @media (min-width:1200px) { .quick-tree-trigger .quick-tree-label { display:inline; } }
+    @media (max-width:799px) {
+      .quick-tree-scrim { display:block; position:absolute; inset:0; z-index:24; background:#020815b8; backdrop-filter:blur(3px); }
+      .quick-tree-panel { width:min(84vw,340px); }
+    }
+    @media (prefers-reduced-motion:no-preference) { .quick-tree-panel { animation:quick-tree-enter .16s ease-out; } @keyframes quick-tree-enter { from { transform:translateX(14px); opacity:.7; } } }
 </style>
 </head>
 <body>
@@ -3911,11 +3945,13 @@
         <!-- Actions for Terminal -->
                 <!-- Actions for Claude -->
         <div id="ctx-actions-claude" class="ctx-actions-item">
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i><span class="quick-tree-label">Thư mục</span></button>
           <button id="btn-header-claude-limits" class="btn-icon-action" title="Xem hạn mức 5h & Tuần"><i class="ri-dashboard-3-line" style="color:#f59e0b;"></i></button>
           <button id="btn-add-claude" class="btn-icon-action" title="Khởi chạy phiên Claude mới"><i class="ri-add-line"></i></button>
           <button id="btn-claude-more" class="btn-icon-action" title="Tùy chọn Claude"><i class="ri-more-2-fill"></i></button>
         </div>
         <div id="ctx-actions-terminal" class="ctx-actions-item">
+          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-tree-line"></i><span class="quick-tree-label">Thư mục</span></button>
           <button id="btn-add-term" class="btn-icon-action" title="Thêm terminal mới"><i class="ri-add-line"></i></button>
           <button id="btn-term-more" class="btn-icon-action" title="Tùy chọn terminal"><i class="ri-more-2-fill"></i></button>
         </div>
@@ -3926,6 +3962,16 @@
 
     <!-- 2. MAIN VIEWS (Tối đa hóa diện tích chiều cao) -->
     <main class="views-wrapper">
+      <div id="quick-tree-scrim" class="quick-tree-scrim" hidden></div>
+      <aside id="quick-tree-panel" class="quick-tree-panel" aria-label="Xem nhanh thư mục" hidden>
+        <div class="quick-tree-head">
+          <div class="quick-tree-head-top"><span class="quick-tree-heading"><i class="ri-folder-tree-line"></i> Thư mục dự án</span><div class="quick-tree-tools"><button id="quick-tree-refresh" type="button" aria-label="Làm mới cây thư mục" title="Làm mới"><i class="ri-refresh-line"></i></button><button id="quick-tree-close" type="button" aria-label="Đóng cây thư mục" title="Đóng"><i class="ri-close-line"></i></button></div></div>
+          <div id="quick-tree-path" class="quick-tree-path"></div>
+        </div>
+        <div class="quick-tree-caption">Cây thư mục</div>
+        <div id="quick-tree-scroll" class="quick-tree-scroll" role="tree" aria-label="Các tệp trong workspace"></div>
+        <div class="quick-tree-foot">Chọn thư mục để mở rộng · Chọn tệp để xem</div>
+      </aside>
       <!-- VIEW 1: FILES -->
       <section id="view-files" class="view active">
         <div class="file-list-container" id="file-drop-container">
@@ -6334,8 +6380,110 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         showToast('HugCode Mobile Web IDE v1.0', 'info');
       });
 
+      // --- QUICK WORKSPACE TREE — isolated prototype, mockFS only ---
+      const quickTreePanel = document.getElementById('quick-tree-panel');
+      const quickTreeScrim = document.getElementById('quick-tree-scrim');
+      const quickTreeScroll = document.getElementById('quick-tree-scroll');
+      const quickTreeTriggers = document.querySelectorAll('[data-quick-tree-trigger]');
+      const quickTreeExpanded = new Map();
+      let quickTreeServerId = currentServerId;
+      let quickTreeLastTrigger = null;
+
+      function closeQuickTree(restoreFocus = false) {
+        if (quickTreePanel.hidden) return;
+        quickTreePanel.hidden = true;
+        quickTreeScrim.hidden = true;
+        document.getElementById('app').classList.remove('quick-tree-open');
+        quickTreeTriggers.forEach(button => button.setAttribute('aria-expanded', 'false'));
+        if (restoreFocus && quickTreeLastTrigger && quickTreeLastTrigger.offsetParent) quickTreeLastTrigger.focus();
+      }
+
+      function quickTreeRow(name, node, depth, path) {
+        const isDir = node.type === 'dir';
+        const expanded = isDir && quickTreeExpanded.has(path);
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'quick-tree-row';
+        row.dataset.kind = isDir ? 'directory' : 'file';
+        row.style.paddingLeft = `${8 + depth * 15}px`;
+        row.setAttribute('role', 'treeitem');
+        row.setAttribute('aria-label', `${name}, ${isDir ? 'thư mục' : 'tệp'}`);
+        row.title = path;
+        if (isDir) row.setAttribute('aria-expanded', String(expanded));
+        const chevron = document.createElement('i');
+        chevron.className = `quick-tree-chevron ${isDir ? (expanded ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line') : ''}`;
+        const icon = document.createElement('i');
+        icon.className = `quick-tree-icon ${isDir ? (expanded ? 'ri-folder-open-fill' : 'ri-folder-fill') : /\.md$/i.test(name) ? 'ri-markdown-line' : /\.json$/i.test(name) ? 'ri-braces-line' : 'ri-file-code-line'}`;
+        const label = document.createElement('span');
+        label.className = 'quick-tree-name';
+        label.textContent = name;
+        row.append(chevron, icon, label);
+        row.addEventListener('click', () => {
+          if (isDir) {
+            expanded ? quickTreeExpanded.delete(path) : quickTreeExpanded.set(path, true);
+            renderQuickTree();
+          } else {
+            openFileInEditor(path, name, node.content);
+            closeQuickTree();
+          }
+        });
+        return row;
+      }
+
+      function renderQuickTree() {
+        if (quickTreeServerId !== currentServerId) {
+          quickTreeExpanded.clear();
+          quickTreeServerId = currentServerId;
+        }
+        const server = serverList.find(entry => entry.id === currentServerId);
+        document.getElementById('quick-tree-path').textContent = server?.workspace || 'Workspace';
+        quickTreeScroll.replaceChildren();
+        const rootName = mockFS?.name || 'workspace';
+        const root = quickTreeRow(rootName, mockFS, 0, '');
+        // Root is always visible and expanded; nested folders can be toggled independently.
+        root.setAttribute('aria-expanded', 'true');
+        root.addEventListener('click', event => event.stopImmediatePropagation(), { capture: true });
+        root.querySelector('.quick-tree-chevron').className = 'quick-tree-chevron ri-arrow-down-s-line';
+        root.querySelector('.quick-tree-icon').className = 'quick-tree-icon ri-folder-open-fill';
+        quickTreeScroll.append(root);
+        function addChildren(node, depth, parentPath) {
+          const entries = Object.entries(node?.children || {}).sort((a, b) =>
+            (a[1].type === 'dir' ? 0 : 1) - (b[1].type === 'dir' ? 0 : 1) || a[0].localeCompare(b[0], 'vi'));
+          for (const [name, child] of entries) {
+            const path = parentPath ? `${parentPath}/${name}` : name;
+            quickTreeScroll.append(quickTreeRow(name, child, depth, path));
+            if (child.type === 'dir' && quickTreeExpanded.has(path)) addChildren(child, depth + 1, path);
+          }
+        }
+        addChildren(mockFS, 1, '');
+        if (!Object.keys(mockFS?.children || {}).length) {
+          const empty = document.createElement('p');
+          empty.className = 'quick-tree-empty';
+          empty.textContent = 'Thư mục trống. Chọn Làm mới sau khi thêm tệp.';
+          quickTreeScroll.append(empty);
+        }
+      }
+
+      quickTreeTriggers.forEach(button => button.addEventListener('click', () => {
+        if (quickTreePanel.hidden) {
+          quickTreeLastTrigger = button;
+          renderQuickTree();
+          quickTreePanel.hidden = false;
+          quickTreeScrim.hidden = false;
+          document.getElementById('app').classList.add('quick-tree-open');
+          quickTreeTriggers.forEach(trigger => trigger.setAttribute('aria-expanded', 'true'));
+        } else closeQuickTree(true);
+      }));
+      document.getElementById('quick-tree-close').addEventListener('click', () => closeQuickTree(true));
+      document.getElementById('quick-tree-refresh').addEventListener('click', renderQuickTree);
+      quickTreeScrim.addEventListener('click', () => closeQuickTree(true));
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !quickTreePanel.hidden) { event.preventDefault(); closeQuickTree(true); }
+      });
+
       // --- TAB SWITCHING (SMART DYNAMIC CONTEXT) ---
       function switchTab(targetId) {
+        closeQuickTree();
         closeAllPopovers();
         views.forEach(v => v.classList.toggle('active', v.id === targetId));
 

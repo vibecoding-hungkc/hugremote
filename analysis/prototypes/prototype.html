@@ -1206,391 +1206,263 @@
       min-width: 0;
     }
 
-    /* Desktop Project Strip & Session Tab Strip (Hidden on Mobile < 900px) */
-    .desktop-project-strip,
-    .desktop-session-strip,
-    .desktop-layout-mode-bar,
-    .desktop-workspace-sidebar {
+    /* Left Workspace Sidebar & Toggle Button (Desktop docked + Mobile slide-over drawer) */
+    .ctx-header-item {
       display: none;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .ctx-header-item.active {
+      display: flex;
     }
 
+    .btn-workspace-sidebar-toggle {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #cbd5e1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-workspace-sidebar-toggle:hover {
+      border-color: #475569;
+      color: #f8fafc;
+      background: #273549;
+    }
+    .btn-workspace-sidebar-toggle[aria-expanded="true"] {
+      color: #38bdf8;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(30, 58, 138, 0.28));
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .workspace-sidebar-backdrop {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 8, 23, 0.62);
+      backdrop-filter: blur(2px);
+      z-index: 25;
+    }
+    @media (max-width: 899px) {
+      #app.workspace-sidebar-open .workspace-sidebar-backdrop {
+        display: block;
+      }
+    }
+
+    .desktop-workspace-sidebar {
+      display: flex;
+      flex-direction: column;
+      width: 256px;
+      max-width: calc(100vw - 48px);
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 26;
+      background:
+        linear-gradient(180deg, rgba(11, 18, 34, 0.99) 0%, rgba(8, 13, 26, 0.99) 100%),
+        repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.03) 0px, rgba(56, 189, 248, 0.03) 1px, transparent 1px, transparent 24px);
+      border-right: 1px solid #1e293b;
+      box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45);
+      overflow-y: auto;
+      padding: 10px 8px 14px;
+      gap: 12px;
+      transform: translateX(-100%);
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    #app.workspace-sidebar-open .desktop-workspace-sidebar {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
     @media (min-width: 900px) {
-      #app:not([data-desktop-mode="sidebar"]) .project-selector-btn.mobile-only-pill {
-        display: none;
+      #app.workspace-sidebar-open .views-wrapper > .view {
+        left: 256px;
       }
-      #app:not([data-desktop-mode="sidebar"]) .desktop-project-strip {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        min-width: 0;
-        overflow-x: auto;
-        scrollbar-width: none;
-        padding: 1px 0;
-      }
-      .desktop-project-strip::-webkit-scrollbar { display: none; }
+    }
 
-      .desktop-project-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        height: 23px;
-        padding: 0 9px;
-        border-radius: 6px;
-        border: 1px solid rgba(71, 85, 105, 0.45);
-        background: rgba(15, 23, 42, 0.75);
-        color: #94a3b8;
-        font-family: var(--font-mono);
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-        transition: all 0.15s ease;
-      }
-      .desktop-project-chip:hover {
-        border-color: rgba(56, 189, 248, 0.45);
-        color: #e2e8f0;
-        background: rgba(30, 41, 59, 0.85);
-      }
-      .desktop-project-chip.active {
-        border-color: #38bdf8;
-        background: linear-gradient(135deg, rgba(14, 165, 233, 0.24), rgba(37, 99, 235, 0.18));
-        color: #f0f9ff;
-        font-weight: 700;
-        box-shadow: 0 0 12px rgba(14, 165, 233, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      }
-      .desktop-project-chip .proj-dot {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: #38bdf8;
-        box-shadow: 0 0 6px #38bdf8;
-      }
-      .desktop-project-manage-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        height: 23px;
-        padding: 0 8px;
-        border-radius: 6px;
-        border: 1px dashed rgba(100, 116, 139, 0.6);
-        background: rgba(15, 23, 42, 0.5);
-        color: #94a3b8;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-      .desktop-project-manage-btn:hover {
-        border-color: #60a5fa;
-        color: #dbeafe;
-        background: rgba(30, 58, 138, 0.28);
-      }
-
-      /* Desktop Mode Switcher on Right of Tier 1 */
-      .desktop-layout-mode-bar {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        background: #0b1324;
-        border: 1px solid #26354d;
-        border-radius: 7px;
-        padding: 2px;
-        flex-shrink: 0;
-      }
-      .desktop-mode-label {
-        font-size: 10px;
-        color: #64748b;
-        font-weight: 700;
-        padding: 0 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .btn-desktop-mode {
-        border: none;
-        background: transparent;
-        color: #94a3b8;
-        font-size: 11px;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: 5px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        transition: all 0.15s ease;
-      }
-      .btn-desktop-mode:hover {
-        color: #e2e8f0;
-        background: rgba(51, 65, 85, 0.4);
-      }
-      .btn-desktop-mode.active {
-        background: linear-gradient(135deg, #1d4ed8, #0284c7);
-        color: #ffffff;
-        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
-      }
-
-      /* Desktop Multi-Session Tab Strip in Tier 2 */
-      #app:not([data-desktop-mode="sidebar"]) #ctx-header-terminal .term-session-pill,
-      #app:not([data-desktop-mode="sidebar"]) #ctx-header-claude .term-session-pill {
-        display: none;
-      }
-      #app:not([data-desktop-mode="sidebar"]) .desktop-session-strip {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        width: 100%;
-        min-width: 0;
-        overflow-x: auto;
-        scrollbar-width: none;
-        padding: 2px 0;
-      }
-      .desktop-session-strip::-webkit-scrollbar { display: none; }
-
-      .desktop-session-tab {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        height: 27px;
-        padding: 0 8px 0 9px;
-        border-radius: 7px;
-        border: 1px solid #293548;
-        background: linear-gradient(180deg, #131c2e 0%, #0f172a 100%);
-        color: #94a3b8;
-        font-family: var(--font-mono);
-        font-size: 11.5px;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-        flex-shrink: 0;
-        transition: all 0.15s ease;
-      }
-      .desktop-session-tab:hover {
-        border-color: #475569;
-        color: #e2e8f0;
-        background: #1e293b;
-      }
-      .desktop-session-tab.active.term-tab {
-        border-color: #a855f7;
-        background: linear-gradient(135deg, rgba(168, 85, 247, 0.24) 0%, rgba(59, 130, 246, 0.15) 100%);
-        color: #f3e8ff;
-        box-shadow: 0 2px 10px rgba(168, 85, 247, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      }
-      .desktop-session-tab.active.claude-tab {
-        border-color: #f59e0b;
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.24) 0%, rgba(217, 119, 87, 0.16) 100%);
-        color: #fef3c7;
-        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      }
-      .desktop-session-tab .tab-meta {
-        font-size: 10px;
-        padding: 1px 5px;
-        border-radius: 4px;
-        background: rgba(15, 23, 42, 0.55);
-        color: #94a3b8;
-        font-weight: 500;
-      }
-      .desktop-session-tab.active.term-tab .tab-meta {
-        color: #d8b4fe;
-        background: rgba(88, 28, 135, 0.45);
-      }
-      .desktop-session-tab.active.claude-tab .tab-meta {
-        color: #fde68a;
-        background: rgba(146, 64, 14, 0.45);
-      }
-      .desktop-session-tab .tab-inline-btn {
-        width: 18px;
-        height: 18px;
-        border-radius: 4px;
-        border: none;
-        background: transparent;
-        color: #94a3b8;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-        cursor: pointer;
-        padding: 0;
-        opacity: 0.65;
-      }
-      .desktop-session-tab:hover .tab-inline-btn,
-      .desktop-session-tab.active .tab-inline-btn {
-        opacity: 1;
-      }
-      .desktop-session-tab .tab-inline-btn:hover {
-        background: rgba(255, 255, 255, 0.12);
-        color: #ffffff;
-      }
-      .desktop-session-tab .tab-inline-btn.danger:hover {
-        background: rgba(239, 68, 68, 0.22);
-        color: #fca5a5;
-      }
-      .desktop-strip-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        height: 26px;
-        padding: 0 8px;
-        border-radius: 6px;
-        border: 1px solid #334155;
-        background: rgba(30, 41, 59, 0.7);
-        color: #cbd5e1;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-      .desktop-strip-btn:hover {
-        border-color: #60a5fa;
-        color: #ffffff;
-        background: rgba(37, 99, 235, 0.25);
-      }
-
-      /* Option 2 / Hybrid: Desktop Left Workspace Sidebar */
-      #app[data-desktop-mode="sidebar"] .desktop-workspace-sidebar,
-      #app[data-desktop-mode="hybrid"] .desktop-workspace-sidebar {
-        display: flex;
-        flex-direction: column;
-        width: 244px;
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        z-index: 22;
-        background:
-          linear-gradient(180deg, rgba(11, 18, 34, 0.98) 0%, rgba(8, 13, 26, 0.99) 100%),
-          repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.03) 0px, rgba(56, 189, 248, 0.03) 1px, transparent 1px, transparent 24px);
-        border-right: 1px solid #1e293b;
-        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.35);
-        overflow-y: auto;
-        padding: 10px 8px;
-        gap: 14px;
-      }
-      #app[data-desktop-mode="sidebar"] .views-wrapper > .view,
-      #app[data-desktop-mode="hybrid"] .views-wrapper > .view {
-        left: 244px;
-      }
-      .dw-section {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-      .dw-section-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 6px;
-        font-size: 10.5px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #64748b;
-      }
-      .dw-section-head button {
-        border: 1px solid #293548;
-        background: #131c2e;
-        color: #93c5fd;
-        border-radius: 5px;
-        padding: 2px 6px;
-        font-size: 10px;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .dw-section-head button:hover {
-        background: #1e3a8a;
-        border-color: #3b82f6;
-        color: #fff;
-      }
-      .dw-list {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .dw-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        padding: 6px 8px;
-        border-radius: 7px;
-        border: 1px solid rgba(51, 65, 85, 0.45);
-        background: rgba(15, 23, 42, 0.65);
-        color: #cbd5e1;
-        cursor: pointer;
-        transition: all 0.14s ease;
-      }
-      .dw-item:hover {
-        border-color: #475569;
-        background: rgba(30, 41, 59, 0.9);
-      }
-      .dw-item.active.proj-item {
-        border-color: #38bdf8;
-        background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(30, 58, 138, 0.24));
-        color: #f0f9ff;
-      }
-      .dw-item.active.term-item {
-        border-color: #a855f7;
-        background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(59, 130, 246, 0.14));
-        color: #f3e8ff;
-      }
-      .dw-item.active.claude-item {
-        border-color: #f59e0b;
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 87, 0.14));
-        color: #fef3c7;
-      }
-      .dw-item-main {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        flex: 1;
-        gap: 2px;
-      }
-      .dw-item-title {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-family: var(--font-mono);
-        font-size: 11.5px;
-        font-weight: 700;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .dw-item-sub {
-        font-family: var(--font-mono);
-        font-size: 10px;
-        color: #64748b;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .dw-item-actions {
-        display: flex;
-        align-items: center;
-        gap: 2px;
-        flex-shrink: 0;
-      }
-      .dw-item-actions button {
-        width: 20px;
-        height: 20px;
-        border: none;
-        border-radius: 4px;
-        background: transparent;
-        color: #94a3b8;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 11px;
-      }
-      .dw-item-actions button:hover {
-        background: rgba(255, 255, 255, 0.12);
-        color: #fff;
-      }
-      .dw-item-actions button.danger:hover {
-        background: rgba(239, 68, 68, 0.22);
-        color: #fca5a5;
-      }
+    .dw-top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 6px 8px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      gap: 6px;
+    }
+    .dw-top-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #e2e8f0;
+      min-width: 0;
+    }
+    .dw-top-title i {
+      color: #38bdf8;
+      font-size: 15px;
+    }
+    .dw-project-scope-pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: #7dd3fc;
+      background: rgba(14, 165, 233, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 999px;
+      padding: 1px 7px;
+      max-width: 96px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dw-close-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.04);
+      color: #94a3b8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .dw-close-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+    }
+    .dw-section {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .dw-section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6px;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+    .dw-section-head button {
+      border: 1px solid #293548;
+      background: #131c2e;
+      color: #93c5fd;
+      border-radius: 5px;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .dw-section-head button:hover {
+      background: #1e3a8a;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+    .dw-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .dw-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 7px;
+      border: 1px solid rgba(51, 65, 85, 0.45);
+      background: rgba(15, 23, 42, 0.65);
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .dw-item:hover {
+      border-color: #475569;
+      background: rgba(30, 41, 59, 0.9);
+    }
+    .dw-item.active.proj-item {
+      border-color: #38bdf8;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(30, 58, 138, 0.24));
+      color: #f0f9ff;
+    }
+    .dw-item.active.term-item {
+      border-color: #a855f7;
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(59, 130, 246, 0.14));
+      color: #f3e8ff;
+    }
+    .dw-item.active.claude-item {
+      border-color: #f59e0b;
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 87, 0.14));
+      color: #fef3c7;
+    }
+    .dw-item-main {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+      gap: 2px;
+    }
+    .dw-item-title {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dw-item-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: #64748b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dw-item-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .dw-item-actions button {
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .dw-item-actions button:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+    .dw-item-actions button.danger:hover {
+      background: rgba(239, 68, 68, 0.22);
+      color: #fca5a5;
     }
 
     .smart-header-left {
@@ -4373,8 +4245,8 @@
 </style>
 </head>
 <body>
-  <div id="app" data-desktop-mode="tabs">
-    <!-- 1. SMART UNIFIED 2-TIER HEADER (Mobile Dropdown + Desktop Inline Project Strip & Session Tab Strip) -->
+  <div id="app">
+    <!-- 1. SMART UNIFIED 2-TIER HEADER (Project Dropdown + Session/Terminal Dropdown + Left Workspace Sidebar Toggle) -->
     <header id="unified-header" class="smart-header">
       <!-- TẦNG 1: SERVER + PROJECT SWITCHER -->
       <div class="server-title-row">
@@ -4387,35 +4259,15 @@
 
           <span class="server-proj-sep">/</span>
 
-          <!-- Mobile Project Selector Pill (< 900px hoặc khi bật chế độ Sidebar) -->
-          <button id="btn-project-mobile-pill" class="project-selector-btn mobile-only-pill" title="Chuyển hoặc quản lý Project">
+          <button id="btn-project-mobile-pill" class="project-selector-btn" title="Chuyển hoặc quản lý Project">
             <i class="ri-folder-2-line"></i>
             <span id="current-project-label">hugcode</span>
             <i class="ri-arrow-down-s-line"></i>
           </button>
-
-          <!-- Desktop Inline Project Strip (>= 900px) -->
-          <div id="desktop-project-strip" class="desktop-project-strip" role="tablist" aria-label="Chuyển nhanh Project">
-            <!-- Rendered by JS -->
-          </div>
-        </div>
-
-        <!-- Desktop Layout Mode Switcher (>= 900px) -->
-        <div class="desktop-layout-mode-bar" id="desktop-layout-switcher" aria-label="Chế độ hiển thị Desktop">
-          <span class="desktop-mode-label">Bố cục Desktop</span>
-          <button type="button" class="btn-desktop-mode active" data-desktop-mode-btn="tabs" title="Thanh Tab Ngang trên Header">
-            <i class="ri-layout-top-2-line"></i> Thanh Tab Ngang
-          </button>
-          <button type="button" class="btn-desktop-mode" data-desktop-mode-btn="sidebar" title="Cột điều hướng dọc bên trái">
-            <i class="ri-layout-left-2-line"></i> Cột Trái Workspace
-          </button>
-          <button type="button" class="btn-desktop-mode" data-desktop-mode-btn="hybrid" title="Bật đồng thời Thanh Tab Ngang và Cột Trái">
-            <i class="ri-layout-masonry-line"></i> Kết Hợp
-          </button>
         </div>
       </div>
 
-      <!-- TẦNG 2: CONTEXTUAL BAR (BREADCRUMB / EDITOR / SESSION TABS) + ACTIONS -->
+      <!-- TẦNG 2: CONTEXTUAL BAR (BREADCRUMB / EDITOR / SESSION DROPDOWN + WORKSPACE TOGGLE) + ACTIONS -->
       <div class="context-row">
         <div class="smart-header-center">
           <!-- View 1 Files: Breadcrumb -->
@@ -4431,28 +4283,28 @@
             <span id="editor-dirty-pill" class="dirty-pill hidden">● Sửa</span>
           </div>
 
-          <!-- View 4 Claude: Mobile Pill + Desktop Inline Session Tab Strip -->
+          <!-- View 4 Claude: Left Workspace Sidebar Toggle + Session Dropdown Pill -->
           <div id="ctx-header-claude" class="ctx-header-item">
+            <button id="btn-toggle-workspace-left-claude" type="button" class="btn-workspace-sidebar-toggle" data-workspace-sidebar-toggle title="Đóng / mở cột Workspace bên trái" aria-label="Đóng / mở cột Workspace bên trái" aria-expanded="false">
+              <i class="ri-side-bar-line"></i>
+            </button>
             <button id="btn-open-claude-hub" class="term-session-pill claude-pill" title="Chạm để mở danh sách phiên Claude">
               <span id="current-claude-name"><i class="ri-sparkling-fill" style="color:#f59e0b;"></i> claude-main</span>
               <span class="badge-count claude-badge" id="claude-count-badge">1</span>
               <span style="font-size:10px; color:#f59e0b;">▾</span>
             </button>
-            <div id="desktop-claude-tabs" class="desktop-session-strip claude-strip" role="tablist" aria-label="Phiên Claude">
-              <!-- Rendered by JS -->
-            </div>
           </div>
 
-          <!-- View 3 Terminal: Mobile Pill + Desktop Inline Session Tab Strip -->
+          <!-- View 3 Terminal: Left Workspace Sidebar Toggle + Session Dropdown Pill -->
           <div id="ctx-header-terminal" class="ctx-header-item">
+            <button id="btn-toggle-workspace-left-term" type="button" class="btn-workspace-sidebar-toggle" data-workspace-sidebar-toggle title="Đóng / mở cột Workspace bên trái" aria-label="Đóng / mở cột Workspace bên trái" aria-expanded="false">
+              <i class="ri-side-bar-line"></i>
+            </button>
             <button id="btn-open-session-hub" class="term-session-pill" title="Chạm để mở danh sách cửa sổ">
               <span id="current-term-name"><i class="ri-terminal-box-line"></i> main-shell</span>
               <span class="badge-count" id="term-count-badge">1</span>
               <span style="font-size:10px; color:#a855f7;">▾</span>
             </button>
-            <div id="desktop-term-tabs" class="desktop-session-strip terminal-strip" role="tablist" aria-label="Phiên Terminal">
-              <!-- Rendered by JS -->
-            </div>
           </div>
         </div>
 
@@ -4498,8 +4350,21 @@
 
     <!-- 2. MAIN VIEWS (Tối đa hóa diện tích chiều cao) -->
     <main class="views-wrapper">
-      <!-- Desktop Left Workspace Sidebar (Phương án 2 / Hybrid) -->
+      <!-- Backdrop cho Cột Trái Workspace trên Mobile -->
+      <div id="workspace-sidebar-backdrop" class="workspace-sidebar-backdrop"></div>
+
+      <!-- Cột Trái Workspace (Dùng cho cả Desktop & Mobile) -->
       <aside id="desktop-workspace-sidebar" class="desktop-workspace-sidebar" aria-label="Điều hướng nhanh Project và Session">
+        <div class="dw-top-header">
+          <div class="dw-top-title">
+            <i class="ri-layout-left-2-line"></i>
+            <span>Workspace</span>
+            <span id="dw-active-project-pill" class="dw-project-scope-pill">hugcode</span>
+          </div>
+          <button type="button" id="btn-close-workspace-sidebar" class="dw-close-btn" title="Đóng cột Workspace" aria-label="Đóng cột Workspace">
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
         <div class="dw-section">
           <div class="dw-section-head">
             <span><i class="ri-folder-2-line"></i> Projects</span>
@@ -10331,14 +10196,12 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       updateZipCacheBadge();
 
       // ========================================================
-      // DESKTOP PROJECT & SESSION SWITCHER (INLINE TABS + LEFT SIDEBAR + PROJECT MODAL)
+      // LEFT WORKSPACE SIDEBAR & PROJECT-SCOPED SESSIONS (DESKTOP + MOBILE)
       // ========================================================
       const appRootEl = document.getElementById('app');
       const currentProjectLabelEl = document.getElementById('current-project-label');
+      const dwActiveProjectPillEl = document.getElementById('dw-active-project-pill');
       const btnProjectMobilePill = document.getElementById('btn-project-mobile-pill');
-      const desktopProjectStripEl = document.getElementById('desktop-project-strip');
-      const desktopTermTabsEl = document.getElementById('desktop-term-tabs');
-      const desktopClaudeTabsEl = document.getElementById('desktop-claude-tabs');
       const dwProjectListEl = document.getElementById('dw-project-list');
       const dwTermListEl = document.getElementById('dw-term-list');
       const dwClaudeListEl = document.getElementById('dw-claude-list');
@@ -10348,6 +10211,24 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       const btnAddProjectSubmit = document.getElementById('btn-add-project-submit');
       const inputNewProjectName = document.getElementById('input-new-project-name');
       const inputNewProjectPath = document.getElementById('input-new-project-path');
+      const workspaceSidebarBackdropEl = document.getElementById('workspace-sidebar-backdrop');
+      const btnCloseWorkspaceSidebarEl = document.getElementById('btn-close-workspace-sidebar');
+
+      let isWorkspaceSidebarOpen = window.innerWidth >= 900;
+
+      function setWorkspaceSidebarOpen(open) {
+        isWorkspaceSidebarOpen = Boolean(open);
+        if (appRootEl) {
+          appRootEl.classList.toggle('workspace-sidebar-open', isWorkspaceSidebarOpen);
+        }
+        document.querySelectorAll('[data-workspace-sidebar-toggle]').forEach(btn => {
+          btn.setAttribute('aria-expanded', isWorkspaceSidebarOpen ? 'true' : 'false');
+        });
+      }
+
+      function toggleWorkspaceSidebar() {
+        setWorkspaceSidebarOpen(!isWorkspaceSidebarOpen);
+      }
 
       function ensureServerProjects(server) {
         if (!server) return [];
@@ -10367,10 +10248,157 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         return server.projects;
       }
 
+      function ensureProjectSessionBuckets(server) {
+        const projects = ensureServerProjects(server);
+        if (!server._projectBucketsInitialized) {
+          server._projectBucketsInitialized = true;
+          server.termByProject = {};
+          server.claudeByProject = {};
+          server.activeTermByProject = {};
+          server.activeClaudeByProject = {};
+
+          // Seed sessions into matching project buckets by cwd
+          (server.terminalSessions || []).forEach(s => {
+            const matchProj = projects.find(p => p.path === s.cwd) || projects[1] || projects[0];
+            s.projectId = matchProj.id;
+            if (!server.termByProject[matchProj.id]) server.termByProject[matchProj.id] = [];
+            server.termByProject[matchProj.id].push(s);
+          });
+
+          (server.claudeSessions || []).forEach(s => {
+            const matchProj = projects.find(p => p.path === s.cwd) || projects[1] || projects[0];
+            s.projectId = matchProj.id;
+            if (!server.claudeByProject[matchProj.id]) server.claudeByProject[matchProj.id] = [];
+            server.claudeByProject[matchProj.id].push(s);
+          });
+
+          // Add a second terminal & claude session to proj-hugcode on server-local so multi-session per project is visible
+          if (server.id === 'server-local') {
+            const hugcodeProj = projects.find(p => p.id === 'proj-hugcode');
+            if (hugcodeProj) {
+              if (!server.termByProject[hugcodeProj.id]) server.termByProject[hugcodeProj.id] = [];
+              if (server.termByProject[hugcodeProj.id].length < 2) {
+                server.termByProject[hugcodeProj.id].push({
+                  id: 'term-local-hugcode-2',
+                  projectId: hugcodeProj.id,
+                  name: 'unit-test-watch',
+                  cwd: hugcodeProj.path,
+                  isCustomNamed: true,
+                  pathStack: [],
+                  history: ['npm test'],
+                  historyIndex: 1,
+                  lines: [
+                    '<span style="color:#60a5fa; font-weight:bold;"><i class="ri-terminal-box-line"></i> HugCode Test Runner [hungpc]</span>',
+                    '<span class="term-prompt">hermes-admin@hungpc:</span><span class="term-path">~/projects/hugcode</span>$ npm test',
+                    '<span style="color:#34d399;">✔ PASS 14/14 test suites in ~/projects/hugcode</span>',
+                    ''
+                  ],
+                  draftInput: ''
+                });
+              }
+              if (!server.claudeByProject[hugcodeProj.id]) server.claudeByProject[hugcodeProj.id] = [];
+              if (server.claudeByProject[hugcodeProj.id].length < 2) {
+                server.claudeByProject[hugcodeProj.id].push({
+                  id: 'claude-local-hugcode-2',
+                  projectId: hugcodeProj.id,
+                  name: 'refactor-auth',
+                  cwd: hugcodeProj.path,
+                  isCustomNamed: true,
+                  model: 'Sonnet 5.5 High',
+                  mode: 'Auto',
+                  timer: '60m',
+                  messages: [
+                    { id: 'hc-m1', sender: 'user', text: 'Kiểm tra middleware xác thực trong dự án hugcode' },
+                    { id: 'hc-m2', sender: 'assistant', text: 'Đã rà soát toàn bộ middleware xác thực của dự án `hugcode`, tất cả token guard đều hoạt động chuẩn xác.' }
+                  ]
+                });
+              }
+            }
+          }
+        }
+
+        // Ensure every project has at least 1 terminal session and 1 claude session
+        projects.forEach(proj => {
+          if (!Array.isArray(server.termByProject[proj.id]) || server.termByProject[proj.id].length === 0) {
+            const defTermId = `term-${proj.id}-1`;
+            server.termByProject[proj.id] = [
+              {
+                id: defTermId,
+                projectId: proj.id,
+                name: proj.isHome ? 'home-shell' : `${proj.name}-shell`,
+                cwd: proj.path,
+                isCustomNamed: true,
+                pathStack: [],
+                history: ['ls -la'],
+                historyIndex: 1,
+                lines: [
+                  `<span style="color:#60a5fa; font-weight:bold;"><i class="ri-terminal-box-line"></i> Terminal [${escapeHtml(proj.name)}]</span>`,
+                  `<span class="term-prompt">${escapeHtml(server.user || 'admin')}@${escapeHtml(server.name)}:</span><span class="term-path">${escapeHtml(proj.path)}</span>$ ls -la`,
+                  `<span style="color:#94a3b8;">Workspace: ${escapeHtml(proj.path)}</span>`,
+                  ''
+                ],
+                draftInput: ''
+              }
+            ];
+          }
+          if (!server.activeTermByProject[proj.id] || !server.termByProject[proj.id].some(s => s.id === server.activeTermByProject[proj.id])) {
+            server.activeTermByProject[proj.id] = server.termByProject[proj.id][0].id;
+          }
+
+          if (!Array.isArray(server.claudeByProject[proj.id]) || server.claudeByProject[proj.id].length === 0) {
+            const defClaudeId = `claude-${proj.id}-1`;
+            server.claudeByProject[proj.id] = [
+              {
+                id: defClaudeId,
+                projectId: proj.id,
+                name: proj.isHome ? 'chat' : proj.name,
+                cwd: proj.path,
+                isCustomNamed: true,
+                model: 'Sonnet 5.5 Medium',
+                mode: 'Auto',
+                timer: '60m',
+                messages: [
+                  { id: `m-${proj.id}-1`, sender: 'user', text: `Khởi tạo phiên làm việc tại ${proj.path}` },
+                  { id: `m-${proj.id}-2`, sender: 'assistant', text: `Đang làm việc trên project **${proj.name}** (\`${proj.path}\`). Bạn cần hỗ trợ gì trong thư mục này?` }
+                ]
+              }
+            ];
+          }
+          if (!server.activeClaudeByProject[proj.id] || !server.claudeByProject[proj.id].some(s => s.id === server.activeClaudeByProject[proj.id])) {
+            server.activeClaudeByProject[proj.id] = server.claudeByProject[proj.id][0].id;
+          }
+        });
+      }
+
       function getActiveProject() {
         const cur = getCurrentServer();
         const projects = ensureServerProjects(cur);
         return projects.find(p => p.id === cur.activeProjectId) || projects[0];
+      }
+
+      let _isSyncingScope = false;
+      function activateProjectScope(server, proj) {
+        if (!server || !proj) return;
+        ensureProjectSessionBuckets(server);
+        server.terminalSessions = server.termByProject[proj.id];
+        terminalSessions = server.terminalSessions;
+        activeSessionId = server.activeTermByProject[proj.id] || terminalSessions[0].id;
+        server.activeTerminalId = activeSessionId;
+
+        server.claudeSessions = server.claudeByProject[proj.id];
+        claudeSessions = server.claudeSessions;
+        activeClaudeId = server.activeClaudeByProject[proj.id] || claudeSessions[0].id;
+        server.activeClaudeId = activeClaudeId;
+      }
+
+      function persistCurrentProjectSessionPointers() {
+        const cur = getCurrentServer();
+        const proj = getActiveProject();
+        if (!cur || !proj || !cur.termByProject || !cur.claudeByProject) return;
+        cur.termByProject[proj.id] = terminalSessions;
+        cur.activeTermByProject[proj.id] = activeSessionId;
+        cur.claudeByProject[proj.id] = claudeSessions;
+        cur.activeClaudeByProject[proj.id] = activeClaudeId;
       }
 
       function switchProject(projectId) {
@@ -10378,14 +10406,18 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         const projects = ensureServerProjects(cur);
         const target = projects.find(p => p.id === projectId);
         if (!target) return;
+        persistCurrentProjectSessionPointers();
         cur.activeProjectId = target.id;
         cur.workspace = target.path;
         currentPathStack = [];
         cur.currentPathStack = [];
+        activateProjectScope(cur, target);
         renderFileExplorer();
+        renderTerminalScreen();
+        renderClaudeScreen();
         if (typeof renderQuickTree === 'function') renderQuickTree();
         syncDesktopProjectAndSessionUI();
-        showToast(`Đã chuyển sang project "${target.name}" • ${target.path}`, 'info');
+        showToast(`Đã chuyển sang project "${target.name}" (${terminalSessions.length} Terminal, ${claudeSessions.length} Claude)`, 'info');
       }
 
       function openProjectModal() {
@@ -10415,6 +10447,9 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             if (cur.activeProjectId === projectId) {
               cur.activeProjectId = cur.projects[0].id;
               cur.workspace = cur.projects[0].path;
+              activateProjectScope(cur, cur.projects[0]);
+              renderTerminalScreen();
+              renderClaudeScreen();
             }
             renderProjectModalCards();
             syncDesktopProjectAndSessionUI();
@@ -10427,6 +10462,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         if (!projectCardListEl) return;
         const cur = getCurrentServer();
         const projects = ensureServerProjects(cur);
+        ensureProjectSessionBuckets(cur);
         projectCardListEl.innerHTML = '';
         projects.forEach(proj => {
           const isCurrent = proj.id === cur.activeProjectId;
@@ -10485,164 +10521,25 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         });
       }
 
-      function renderDesktopProjectStrip() {
-        const cur = getCurrentServer();
-        const projects = ensureServerProjects(cur);
-        const activeProj = getActiveProject();
-        if (currentProjectLabelEl && activeProj) {
-          currentProjectLabelEl.textContent = activeProj.name;
-        }
-        if (!desktopProjectStripEl) return;
-        desktopProjectStripEl.innerHTML = '';
-
-        projects.forEach(proj => {
-          const isCurrent = proj.id === cur.activeProjectId;
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'desktop-project-chip' + (isCurrent ? ' active' : '');
-          btn.setAttribute('data-project-chip', proj.id);
-          btn.title = `Project ${proj.name} • ${proj.path}`;
-          btn.innerHTML = `
-            <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}"></i>
-            <span>${escapeHtml(proj.name)}</span>
-            ${isCurrent ? '<span class="proj-dot"></span>' : ''}
-          `;
-          btn.addEventListener('click', () => switchProject(proj.id));
-          desktopProjectStripEl.appendChild(btn);
-        });
-
-        const manageBtn = document.createElement('button');
-        manageBtn.type = 'button';
-        manageBtn.id = 'btn-desktop-project-manage';
-        manageBtn.className = 'desktop-project-manage-btn';
-        manageBtn.title = 'Thêm hoặc quản lý danh sách Project';
-        manageBtn.innerHTML = '<i class="ri-add-line"></i><span>Project</span>';
-        manageBtn.addEventListener('click', openProjectModal);
-        desktopProjectStripEl.appendChild(manageBtn);
-      }
-
-      function renderDesktopSessionStrips() {
-        // 1. Terminal Session Tabs
-        if (desktopTermTabsEl) {
-          desktopTermTabsEl.innerHTML = '';
-          terminalSessions.forEach(sess => {
-            const isCurrent = sess.id === activeSessionId;
-            const shortCwd = (sess.cwd || '~').split('/').filter(Boolean).slice(-1)[0] || '~';
-            const tab = document.createElement('div');
-            tab.className = 'desktop-session-tab term-tab' + (isCurrent ? ' active' : '');
-            tab.setAttribute('role', 'tab');
-            tab.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
-            tab.setAttribute('data-term-tab', sess.id);
-            tab.title = `${sess.name} • ${sess.cwd || '~'}`;
-            tab.innerHTML = `
-              <i class="ri-terminal-box-line" style="color:${isCurrent ? '#c084fc' : '#94a3b8'};"></i>
-              <span>${escapeHtml(sess.name)}</span>
-              <span class="tab-meta">${escapeHtml(shortCwd)}</span>
-              <button type="button" class="tab-inline-btn btn-tab-edit" title="Chỉnh sửa phiên"><i class="ri-edit-line"></i></button>
-              ${terminalSessions.length > 1 ? '<button type="button" class="tab-inline-btn danger btn-tab-close" title="Đóng phiên"><i class="ri-close-line"></i></button>' : ''}
-            `;
-            tab.addEventListener('click', () => switchSession(sess.id));
-            const editBtn = tab.querySelector('.btn-tab-edit');
-            if (editBtn) {
-              editBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openEditTerminalModal(sess.id);
-              });
-            }
-            const closeBtn = tab.querySelector('.btn-tab-close');
-            if (closeBtn) {
-              closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeSession(sess.id);
-              });
-            }
-            desktopTermTabsEl.appendChild(tab);
-          });
-
-          const addBtn = document.createElement('button');
-          addBtn.type = 'button';
-          addBtn.className = 'desktop-strip-btn';
-          addBtn.title = 'Tạo cửa sổ Terminal mới';
-          addBtn.innerHTML = '<i class="ri-add-line"></i><span>Phiên mới</span>';
-          addBtn.addEventListener('click', () => {
-            if (btnAddTerm) btnAddTerm.click();
-          });
-          desktopTermTabsEl.appendChild(addBtn);
-
-          const hubBtn = document.createElement('button');
-          hubBtn.type = 'button';
-          hubBtn.className = 'desktop-strip-btn';
-          hubBtn.title = 'Mở danh sách chi tiết toàn bộ cửa sổ Terminal';
-          hubBtn.innerHTML = `<i class="ri-stack-line"></i><span>Tất cả ${terminalSessions.length}</span>`;
-          hubBtn.addEventListener('click', () => {
-            if (btnOpenSessionHub) btnOpenSessionHub.click();
-          });
-          desktopTermTabsEl.appendChild(hubBtn);
-        }
-
-        // 2. Claude Session Tabs
-        if (desktopClaudeTabsEl) {
-          desktopClaudeTabsEl.innerHTML = '';
-          claudeSessions.forEach(sess => {
-            const isCurrent = sess.id === activeClaudeId;
-            const shortModel = (sess.model || 'Sonnet 5.5').replace(/\s+(Low|Medium|High|Max)$/i, '');
-            const tab = document.createElement('div');
-            tab.className = 'desktop-session-tab claude-tab' + (isCurrent ? ' active' : '');
-            tab.setAttribute('role', 'tab');
-            tab.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
-            tab.setAttribute('data-claude-tab', sess.id);
-            tab.title = `${sess.name} • ${sess.cwd || '~'} • ${sess.model || 'Sonnet 5.5'}`;
-            tab.innerHTML = `
-              <i class="ri-sparkling-fill" style="color:#f59e0b;"></i>
-              <span>${escapeHtml(sess.name)}</span>
-              <span class="tab-meta">${escapeHtml(shortModel)}</span>
-              <button type="button" class="tab-inline-btn btn-tab-edit" title="Chỉnh sửa phiên Claude"><i class="ri-edit-line"></i></button>
-              ${claudeSessions.length > 1 ? '<button type="button" class="tab-inline-btn danger btn-tab-close" title="Đóng phiên Claude"><i class="ri-close-line"></i></button>' : ''}
-            `;
-            tab.addEventListener('click', () => switchClaudeSession(sess.id));
-            const editBtn = tab.querySelector('.btn-tab-edit');
-            if (editBtn) {
-              editBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openEditClaudeModal(sess.id);
-              });
-            }
-            const closeBtn = tab.querySelector('.btn-tab-close');
-            if (closeBtn) {
-              closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                closeClaudeSession(sess.id);
-              });
-            }
-            desktopClaudeTabsEl.appendChild(tab);
-          });
-
-          const addBtn = document.createElement('button');
-          addBtn.type = 'button';
-          addBtn.className = 'desktop-strip-btn';
-          addBtn.title = 'Tạo phiên Claude mới';
-          addBtn.innerHTML = '<i class="ri-add-line"></i><span>Phiên mới</span>';
-          addBtn.addEventListener('click', openNewClaudeModal);
-          desktopClaudeTabsEl.appendChild(addBtn);
-
-          const hubBtn = document.createElement('button');
-          hubBtn.type = 'button';
-          hubBtn.className = 'desktop-strip-btn';
-          hubBtn.title = 'Mở danh sách phiên và lịch sử Claude CLI';
-          hubBtn.innerHTML = `<i class="ri-history-line"></i><span>Lịch sử ${claudeSessions.length}</span>`;
-          hubBtn.addEventListener('click', openClaudeSessionHub);
-          desktopClaudeTabsEl.appendChild(hubBtn);
-        }
-      }
-
       function renderDesktopWorkspaceSidebar() {
         const cur = getCurrentServer();
         const projects = ensureServerProjects(cur);
+        ensureProjectSessionBuckets(cur);
+        const activeProj = getActiveProject();
+
+        if (currentProjectLabelEl && activeProj) {
+          currentProjectLabelEl.textContent = activeProj.name;
+        }
+        if (dwActiveProjectPillEl && activeProj) {
+          dwActiveProjectPillEl.textContent = activeProj.name;
+        }
 
         if (dwProjectListEl) {
           dwProjectListEl.innerHTML = '';
           projects.forEach(proj => {
             const isCurrent = proj.id === cur.activeProjectId;
+            const tCount = (cur.termByProject[proj.id] || []).length;
+            const cCount = (cur.claudeByProject[proj.id] || []).length;
             const item = document.createElement('div');
             item.className = 'dw-item proj-item' + (isCurrent ? ' active' : '');
             item.setAttribute('data-dw-project', proj.id);
@@ -10652,13 +10549,15 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
                   <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#38bdf8;"></i>
                   <span>${escapeHtml(proj.name)}</span>
                 </div>
-                <div class="dw-item-sub">${escapeHtml(proj.path)}</div>
+                <div class="dw-item-sub">${escapeHtml(proj.path)} • ${tCount}T / ${cCount}C</div>
               </div>
               <div class="dw-item-actions">
                 ${!proj.isHome ? '<button type="button" class="danger btn-dw-proj-del" title="Xóa project"><i class="ri-delete-bin-line"></i></button>' : ''}
               </div>
             `;
-            item.addEventListener('click', () => switchProject(proj.id));
+            item.addEventListener('click', () => {
+              switchProject(proj.id);
+            });
             const delBtn = item.querySelector('.btn-dw-proj-del');
             if (delBtn) {
               delBtn.addEventListener('click', (e) => {
@@ -10693,6 +10592,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             item.addEventListener('click', () => {
               switchTab('view-terminal');
               switchSession(sess.id);
+              if (window.innerWidth < 900) setWorkspaceSidebarOpen(false);
             });
             const editBtn = item.querySelector('.btn-dw-term-edit');
             if (editBtn) {
@@ -10735,6 +10635,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             item.addEventListener('click', () => {
               switchTab('view-claude');
               switchClaudeSession(sess.id);
+              if (window.innerWidth < 900) setWorkspaceSidebarOpen(false);
             });
             const editBtn = item.querySelector('.btn-dw-claude-edit');
             if (editBtn) {
@@ -10756,11 +10657,16 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       function syncDesktopProjectAndSessionUI() {
-        renderDesktopProjectStrip();
-        renderDesktopSessionStrips();
-        renderDesktopWorkspaceSidebar();
-        if (dockClaudeCount) dockClaudeCount.textContent = claudeSessions.length;
-        if (claudeCountBadge) claudeCountBadge.textContent = claudeSessions.length;
+        if (_isSyncingScope) return;
+        _isSyncingScope = true;
+        try {
+          persistCurrentProjectSessionPointers();
+          renderDesktopWorkspaceSidebar();
+          if (dockClaudeCount) dockClaudeCount.textContent = claudeSessions.length;
+          if (claudeCountBadge) claudeCountBadge.textContent = claudeSessions.length;
+        } finally {
+          _isSyncingScope = false;
+        }
       }
 
       // Hook into renderTerminalScreen, renderClaudeScreen, and updateServerTopbarUI
@@ -10778,9 +10684,22 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
 
       const _origUpdateServerTopbarUI = updateServerTopbarUI;
       updateServerTopbarUI = function () {
+        const cur = getCurrentServer();
+        const proj = getActiveProject();
+        activateProjectScope(cur, proj);
         _origUpdateServerTopbarUI();
         syncDesktopProjectAndSessionUI();
       };
+
+      document.querySelectorAll('[data-workspace-sidebar-toggle]').forEach(btn => {
+        btn.addEventListener('click', toggleWorkspaceSidebar);
+      });
+      if (btnCloseWorkspaceSidebarEl) {
+        btnCloseWorkspaceSidebarEl.addEventListener('click', () => setWorkspaceSidebarOpen(false));
+      }
+      if (workspaceSidebarBackdropEl) {
+        workspaceSidebarBackdropEl.addEventListener('click', () => setWorkspaceSidebarOpen(false));
+      }
 
       if (btnProjectMobilePill) {
         btnProjectMobilePill.addEventListener('click', openProjectModal);
@@ -10823,18 +10742,9 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       const btnDwNewClaude = document.getElementById('btn-dw-new-claude');
       if (btnDwNewClaude) btnDwNewClaude.addEventListener('click', openNewClaudeModal);
 
-      document.querySelectorAll('[data-desktop-mode-btn]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const mode = btn.getAttribute('data-desktop-mode-btn') || 'tabs';
-          if (appRootEl) appRootEl.setAttribute('data-desktop-mode', mode);
-          document.querySelectorAll('[data-desktop-mode-btn]').forEach(b => {
-            b.classList.toggle('active', b === btn);
-          });
-          syncDesktopProjectAndSessionUI();
-        });
-      });
-
       // --- STARTUP ---
+      activateProjectScope(getCurrentServer(), getActiveProject());
+      setWorkspaceSidebarOpen(window.innerWidth >= 900);
       renderFileExplorer();
       renderTerminalScreen();
       renderClaudeScreen();

@@ -456,6 +456,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
+import { marked, Renderer } from 'marked';
 import {
   formatContextTokenCount,
   nativeContextLimit,
@@ -1198,22 +1199,64 @@ function toggleToolExpansion(tool: any) {
   tool.isExpanded = tool.isExpanded !== true;
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function safeHref(value: string): string {
+  const href = (value || '').trim();
+  if (/^(?:https?:|mailto:|tel:|\/|#)/i.test(href)) return escapeHtml(href);
+  return '#';
+}
+
+const claudeMarkdownRenderer = new Renderer();
+claudeMarkdownRenderer.html = ({ text }: { text: string }) => escapeHtml(text);
+claudeMarkdownRenderer.codespan = ({ text }: { text: string }) =>
+  `<code class="inline-code">${escapeHtml(text)}</code>`;
+claudeMarkdownRenderer.link = function ({
+  href,
+  title,
+  tokens,
+}: {
+  href: string;
+  title?: string | null;
+  tokens: any[];
+}) {
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+  return `<a href="${safeHref(href)}"${titleAttr} target="_blank" rel="noopener noreferrer">${this.parser.parseInline(tokens)}</a>`;
+};
+claudeMarkdownRenderer.image = ({
+  href,
+  title,
+  text,
+}: {
+  href: string;
+  title?: string | null;
+  text: string;
+}) => {
+  const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+  return `<img src="${safeHref(href)}" alt="${escapeHtml(text)}"${titleAttr}>`;
+};
+claudeMarkdownRenderer.table = function (token: any) {
+  const rawTable = Renderer.prototype.table.call(this, token);
+  return rawTable
+    .replace(/^<table>/, '<div class="claude-md-table-wrap"><table class="claude-md-table">')
+    .replace(/<\/table>\n?$/, '</table></div>\n');
+};
+
 function formatMarkdown(text: string): string {
   if (!text) return '';
-  let str = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  // Bold
-  str = str.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  // Italic
-  str = str.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  // Inline code
-  str = str.replace(/`([^`\n]+)`/g, '<code class="inline-code">$1</code>');
-  // Linebreaks
-  str = str.replace(/\n/g, '<br>');
-  return str;
+  const parsed = marked.parse(text, {
+    gfm: true,
+    breaks: true,
+    renderer: claudeMarkdownRenderer,
+  });
+  return typeof parsed === 'string' ? parsed : '';
 }
 
 function showUsageToast() {
@@ -1400,6 +1443,133 @@ function showUsageToast() {
   max-width: 100%;
 }
 
+.claude-asst-text p {
+  margin: 0 0 8px;
+}
+
+.claude-asst-text p:last-child {
+  margin-bottom: 0;
+}
+
+.claude-asst-text h1,
+.claude-asst-text h2,
+.claude-asst-text h3,
+.claude-asst-text h4 {
+  color: #f8fafc;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 10px 0 6px;
+}
+
+.claude-asst-text h1:first-child,
+.claude-asst-text h2:first-child,
+.claude-asst-text h3:first-child,
+.claude-asst-text h4:first-child {
+  margin-top: 0;
+}
+
+.claude-asst-text h1 { font-size: 16px; }
+.claude-asst-text h2 { font-size: 15px; }
+.claude-asst-text h3 { font-size: 14px; }
+.claude-asst-text h4 { font-size: 13.5px; }
+
+.claude-asst-text ul,
+.claude-asst-text ol {
+  margin: 6px 0 8px;
+  padding-left: 20px;
+}
+
+.claude-asst-text li + li {
+  margin-top: 4px;
+}
+
+.claude-asst-text blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  border-left: 3px solid #d97757;
+  background: rgba(217, 119, 87, 0.08);
+  border-radius: 0 6px 6px 0;
+  color: #cbd5e1;
+}
+
+.claude-asst-text pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: #14161d;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  overflow-x: auto;
+  max-width: 100%;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.claude-asst-text pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.claude-asst-text a {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.claude-md-table-wrap {
+  margin: 8px 0;
+  width: 100%;
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #161821;
+}
+
+.claude-md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.claude-md-table th,
+.claude-md-table td {
+  padding: 8px 11px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: top;
+}
+
+.claude-md-table th:last-child,
+.claude-md-table td:last-child {
+  border-right: none;
+}
+
+.claude-md-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.claude-md-table th {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.claude-md-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.claude-asst-text .inline-code,
 :deep(.inline-code) {
   background: rgba(255, 255, 255, 0.08);
   padding: 1px 5px;

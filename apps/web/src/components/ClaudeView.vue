@@ -324,6 +324,8 @@
             @focus="isInputFocused = true"
             @blur="isInputFocused = false"
             @keydown="handleKeyDown"
+            @compositionstart="onComposerCompositionStart"
+            @compositionend="onComposerCompositionEnd"
             @paste="onTextareaPaste"
             @input="autoResize"
           ></textarea>
@@ -965,7 +967,21 @@ function autoResize() {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
+let composerIsComposing = false;
+
+function onComposerCompositionStart() {
+  composerIsComposing = true;
+}
+
+function onComposerCompositionEnd(e: CompositionEvent) {
+  composerIsComposing = false;
+  // Vue's v-model ignores input events during composition. Read the committed
+  // DOM value here so the next Enter always submits the complete text.
+  inputText.value = (e.target as HTMLTextAreaElement).value;
+}
+
 function handleKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && (e.isComposing || composerIsComposing || e.keyCode === 229)) return;
   if (isSlashMenuOpen.value) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();

@@ -177,30 +177,19 @@
               </span>
             </div>
 
-            <div
-              v-if="isMarkdownFile(activeInlineFile.name)"
+            <button
+              v-if="isPreviewableFile(activeInlineFile.name)"
               id="quick-md-switch"
-              class="quick-md-switch show"
+              type="button"
+              class="quick-preview-btn"
+              :class="{ active: mdMode === 'preview' }"
+              :data-md-mode="mdMode"
+              :title="mdMode === 'preview' ? t('quickPanel.mdEdit') : t('quickPanel.mdPreview')"
+              :aria-label="mdMode === 'preview' ? t('quickPanel.mdEdit') : t('quickPanel.mdPreview')"
+              @click="mdMode = mdMode === 'preview' ? 'edit' : 'preview'"
             >
-              <button
-                type="button"
-                class="quick-md-btn"
-                :class="{ active: mdMode === 'preview' }"
-                data-md-mode="preview"
-                @click="mdMode = 'preview'"
-              >
-                {{ t('quickPanel.mdPreview') }}
-              </button>
-              <button
-                type="button"
-                class="quick-md-btn"
-                :class="{ active: mdMode === 'edit' }"
-                data-md-mode="edit"
-                @click="mdMode = 'edit'"
-              >
-                {{ t('quickPanel.mdEdit') }}
-              </button>
-            </div>
+              <i :class="mdMode === 'preview' ? 'ri-edit-line' : 'ri-eye-line'"></i>
+            </button>
 
             <button
               id="quick-file-save"
@@ -226,8 +215,17 @@
               v-html="renderedMarkdownHtml"
             ></div>
 
+            <iframe
+              v-else-if="isHtmlFile(activeInlineFile.name) && mdMode === 'preview'"
+              id="quick-html-preview"
+              class="quick-html-preview show"
+              sandbox="allow-scripts"
+              :srcdoc="activeInlineFile.content"
+              :title="activeInlineFile.name"
+            ></iframe>
+
             <div
-              v-show="!isMarkdownFile(activeInlineFile.name) || mdMode === 'edit'"
+              v-show="!isPreviewableFile(activeInlineFile.name) || mdMode === 'edit'"
               id="quick-code-wrap"
               class="quick-code-wrap"
             >
@@ -400,6 +398,7 @@ const props = withDefaults(
     maxWidth?: number;
     initialEntries?: FileEntry[];
     initialInlineFile?: InlineFileState | null;
+    initialPreviewMode?: 'preview' | 'edit';
   }>(),
   {
     panelWidth: 320,
@@ -407,6 +406,7 @@ const props = withDefaults(
     maxWidth: 640,
     initialEntries: () => [],
     initialInlineFile: null,
+    initialPreviewMode: 'edit',
   }
 );
 
@@ -437,7 +437,7 @@ const scopeKey = computed(() => `${serverStore.currentServerId}:${projectStore.c
 if (activeInlineFile.value) {
   inlineScope.value = { serverId: serverStore.currentServerId, projectId: projectStore.currentProject?.id || '' };
 }
-const mdMode = ref<'preview' | 'edit'>('edit');
+const mdMode = ref<'preview' | 'edit'>(props.initialPreviewMode);
 const savingInlineFile = ref(false);
 const saveFlash = ref(false);
 const inlineStatusText = ref('');
@@ -528,12 +528,24 @@ markdownRenderer.image = ({ href, title, text }: { href: string; title?: string 
   `<img src="${safeHref(href)}" alt="${escapeHtml(text)}"${title ? ` title="${escapeHtml(title)}"` : ''}>`;
 const renderedMarkdownHtml = computed(() => {
   if (!activeInlineFile.value) return '';
-  const parsed = marked.parse(activeInlineFile.value.content, { renderer: markdownRenderer });
+  const parsed = marked.parse(activeInlineFile.value.content, {
+    gfm: true,
+    breaks: true,
+    renderer: markdownRenderer,
+  });
   return typeof parsed === 'string' ? parsed : '';
 });
 
 function isMarkdownFile(name: string): boolean {
   return /\.(md|markdown)$/i.test(name || '');
+}
+
+function isHtmlFile(name: string): boolean {
+  return /\.(html|htm)$/i.test(name || '');
+}
+
+function isPreviewableFile(name: string): boolean {
+  return isMarkdownFile(name) || isHtmlFile(name);
 }
 
 function detectLanguageLabel(name: string): string {
@@ -1248,29 +1260,25 @@ onBeforeUnmount(() => {
 .quick-file-dirty.show {
   display: inline-flex;
 }
-.quick-md-switch {
+.quick-preview-btn {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
   border-radius: 6px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  flex-shrink: 0;
-}
-.quick-md-btn {
-  height: 22px;
-  padding: 0 7px;
-  border-radius: 4px;
-  border: none;
-  background: transparent;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  background: rgba(15, 23, 42, 0.85);
   color: var(--text-secondary, #94a3b8);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.quick-md-btn.active {
+.quick-preview-btn:hover,
+.quick-preview-btn.active {
   background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.4);
   color: var(--brand, #10b981);
 }
 .quick-file-save {
@@ -1343,11 +1351,37 @@ onBeforeUnmount(() => {
 .quick-md-preview {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: auto;
   padding: 12px 14px;
   color: var(--text-primary, #f1f5f9);
   font-size: 12.5px;
   line-height: 1.6;
+}
+.quick-md-preview :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.quick-md-preview :deep(th),
+.quick-md-preview :deep(td) {
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+.quick-md-preview :deep(th) {
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+}
+.quick-html-preview {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #ffffff;
+  display: block;
 }
 .quick-file-foot {
   padding: 5px 10px;

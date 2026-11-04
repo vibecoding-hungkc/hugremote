@@ -229,11 +229,12 @@ try {
     assert.match(filesHtml, /data-node-path="src"/);
     assert.match(filesHtml, /data-node-path="README\.md"/);
 
-    // AC-3: Inline file workbench (view & edit in place with back button, dirty badge, markdown switch, save button)
+    // AC-3: Inline file workbench (view & edit in place with back button, dirty badge, eye preview button, save button)
     assert.match(filesHtml, /id="quick-file-workbench"[^>]*class="[^"]*\bopen\b/);
     assert.match(filesHtml, /id="quick-file-back"/);
     assert.match(filesHtml, /id="quick-file-save"/);
     assert.match(filesHtml, /id="quick-md-switch"/);
+    assert.match(filesHtml, /id="quick-md-switch"[^>]*>[\s\S]*?ri-eye-line/, 'Eye button (ri-eye-line) must render on previewable files in edit mode');
     assert.match(filesHtml, /id="quick-code-input"/);
     assert.match(filesHtml, /Chưa lưu/);
 
@@ -254,12 +255,85 @@ try {
     assert.match(gitHtml, /id="quick-git-push"/);
   });
 
+  await test('AC-9: QuickWorkspacePanel supports eye button preview mode for both .md and .html files', async () => {
+    const { default: QuickWorkspacePanel } = await vite.ssrLoadModule('/src/components/QuickWorkspacePanel.vue');
+    const pinia = createPinia();
+    setActivePinia(pinia);
+
+    // 1. HTML file in edit mode shows eye button (ri-eye-line)
+    const htmlEditApp = createSSRApp(QuickWorkspacePanel, {
+      isOpen: true,
+      mode: 'files',
+      initialInlineFile: {
+        path: 'benchmark-report.html',
+        name: 'benchmark-report.html',
+        content: '<!DOCTYPE html><html><body><h1>Benchmark Report</h1></body></html>',
+        originalContent: '<!DOCTYPE html><html><body><h1>Benchmark Report</h1></body></html>',
+        dirty: false,
+      },
+    });
+    htmlEditApp.use(pinia);
+    const htmlEditRendered = await renderToString(htmlEditApp);
+    assert.match(
+      htmlEditRendered,
+      /id="quick-md-switch"[^>]*>[\s\S]*?ri-eye-line/,
+      'HTML file in edit mode must render eye button (ri-eye-line)'
+    );
+
+    // 2. HTML file in preview mode renders sandboxed iframe (#quick-html-preview) and edit icon (ri-edit-line)
+    const htmlPreviewApp = createSSRApp(QuickWorkspacePanel, {
+      isOpen: true,
+      mode: 'files',
+      initialPreviewMode: 'preview',
+      initialInlineFile: {
+        path: 'benchmark-report.html',
+        name: 'benchmark-report.html',
+        content: '<!DOCTYPE html><html><body><h1>Benchmark Report</h1></body></html>',
+        originalContent: '<!DOCTYPE html><html><body><h1>Benchmark Report</h1></body></html>',
+        dirty: false,
+      },
+    });
+    htmlPreviewApp.use(pinia);
+    const htmlPreviewRendered = await renderToString(htmlPreviewApp);
+    assert.match(
+      htmlPreviewRendered,
+      /id="quick-md-switch"[^>]*>[\s\S]*?ri-edit-line/,
+      'HTML file in preview mode must show edit icon (ri-edit-line) to return to raw edit'
+    );
+    assert.match(
+      htmlPreviewRendered,
+      /<iframe[^>]*id="quick-html-preview"[^>]*sandbox="allow-scripts"[^>]*srcdoc="[^"]*Benchmark Report[^"]*"/,
+      'HTML file in preview mode must render sandboxed iframe with srcdoc'
+    );
+
+    // 3. Markdown file in preview mode renders GFM markdown (#quick-md-preview) including tables
+    const mdPreviewApp = createSSRApp(QuickWorkspacePanel, {
+      isOpen: true,
+      mode: 'files',
+      initialPreviewMode: 'preview',
+      initialInlineFile: {
+        path: 'README.md',
+        name: 'README.md',
+        content: '# Readme\n\n| File | Nội dung |\n|---|---|\n| a.md | Mô tả A |',
+        originalContent: '# Readme',
+        dirty: false,
+      },
+    });
+    mdPreviewApp.use(pinia);
+    const mdPreviewRendered = await renderToString(mdPreviewApp);
+    assert.match(
+      mdPreviewRendered,
+      /id="quick-md-preview"[^>]*>[\s\S]*?<table>[\s\S]*?<th>File<\/th>/,
+      'Markdown file in preview mode must render GFM tables inside #quick-md-preview'
+    );
+  });
+
   await test('Markdown preview escapes raw HTML and unsafe links', async () => {
     const { default: QuickWorkspacePanel } = await vite.ssrLoadModule('/src/components/QuickWorkspacePanel.vue');
     const pinia = createPinia();
     setActivePinia(pinia);
     const app = createSSRApp(QuickWorkspacePanel, {
-      isOpen: true, mode: 'files', initialInlineFile: {
+      isOpen: true, mode: 'files', initialPreviewMode: 'preview', initialInlineFile: {
         path: 'README.md', name: 'README.md',
         content: '<img src=x onerror=alert(1)>\n[evil](javascript:alert(1))',
         originalContent: '', dirty: true,
@@ -267,6 +341,7 @@ try {
     });
     app.use(pinia);
     const html = await renderToString(app);
+    assert.match(html, /id="quick-md-preview"/);
     assert.doesNotMatch(html, /<img src=x onerror=/);
     assert.doesNotMatch(html, /href="javascript:/);
   });

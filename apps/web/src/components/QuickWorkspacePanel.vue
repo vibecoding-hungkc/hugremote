@@ -406,7 +406,6 @@ const props = withDefaults(
     maxWidth: 640,
     initialEntries: () => [],
     initialInlineFile: null,
-    initialPreviewMode: 'edit',
   }
 );
 
@@ -437,7 +436,12 @@ const scopeKey = computed(() => `${serverStore.currentServerId}:${projectStore.c
 if (activeInlineFile.value) {
   inlineScope.value = { serverId: serverStore.currentServerId, projectId: projectStore.currentProject?.id || '' };
 }
-const mdMode = ref<'preview' | 'edit'>(props.initialPreviewMode);
+const mdMode = ref<'preview' | 'edit'>(
+  props.initialPreviewMode ??
+    (activeInlineFile.value && /\.(md|markdown|html|htm)$/i.test(activeInlineFile.value.name || '')
+      ? 'preview'
+      : 'edit')
+);
 const savingInlineFile = ref(false);
 const saveFlash = ref(false);
 const inlineStatusText = ref('');
@@ -657,7 +661,7 @@ async function openInlineFile(filePath: string, fileName?: string) {
       originalContent: content,
       dirty: false,
     };
-    mdMode.value = 'edit';
+    mdMode.value = isPreviewableFile(resolvedName) ? 'preview' : 'edit';
     inlineStatusText.value = '';
 
     // Auto-widen panel on desktop/tablet when opening a file if user hasn't manually resized

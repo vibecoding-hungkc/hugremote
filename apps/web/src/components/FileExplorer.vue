@@ -123,33 +123,103 @@
         </div>
 
         <div class="file-actions" @click.stop>
-          <!-- Download Button -->
-          <button
-            v-if="item.isDirectory"
-            class="btn-action-icon download"
-            @click="handleDownloadFolder(item)"
-            :title="t('fileExplorer.downloadFolderZip')"
-          >
-            <i class="ri-download-2-line"></i>
-          </button>
-          <button
-            v-else
-            class="btn-action-icon download"
-            @click="handleDownloadFile(item)"
-            :title="t('fileExplorer.downloadFile')"
-          >
-            <i class="ri-download-2-line"></i>
-          </button>
+          <div class="file-actions-inline">
+            <!-- Download Button -->
+            <button
+              v-if="item.isDirectory"
+              class="btn-action-icon download"
+              @click="handleDownloadFolder(item)"
+              :title="t('fileExplorer.downloadFolderZip')"
+            >
+              <i class="ri-download-2-line"></i>
+            </button>
+            <button
+              v-else
+              class="btn-action-icon download"
+              @click="handleDownloadFile(item)"
+              :title="t('fileExplorer.downloadFile')"
+            >
+              <i class="ri-download-2-line"></i>
+            </button>
 
-          <button v-if="item.isDirectory" class="btn-action-icon project" @click="emit('open-folder-as-project', item.relPath)" title="Open as Project">
-            <i class="ri-folder-add-line"></i>
-          </button>
-          <button class="btn-action-icon" @click="openRename(item)" :title="t('common.edit')">
-            <i class="ri-edit-line"></i>
-          </button>
-          <button class="btn-action-icon danger" @click="openDelete(item)" :title="t('common.delete')">
-            <i class="ri-delete-bin-line"></i>
-          </button>
+            <button v-if="item.isDirectory" class="btn-action-icon project" @click="emit('open-folder-as-project', item.relPath)" title="Open as Project">
+              <i class="ri-folder-add-line"></i>
+            </button>
+            <button class="btn-action-icon" @click="openRename(item)" :title="t('common.edit')">
+              <i class="ri-edit-line"></i>
+            </button>
+            <button class="btn-action-icon danger" @click="openDelete(item)" :title="t('common.delete')">
+              <i class="ri-delete-bin-line"></i>
+            </button>
+          </div>
+
+          <div class="file-actions-mobile">
+            <button
+              type="button"
+              class="btn-action-icon btn-file-more"
+              :class="{ active: openActionMenuPath === item.relPath }"
+              :data-file-more="item.relPath"
+              :title="t('common.edit') || 'Tùy chọn'"
+              :aria-expanded="openActionMenuPath === item.relPath ? 'true' : 'false'"
+              @click.stop="toggleRowActionMenu(item.relPath)"
+            >
+              <i class="ri-more-2-fill"></i>
+            </button>
+
+            <div
+              v-if="openActionMenuPath === item.relPath"
+              class="file-row-dropdown-menu"
+              :data-file-menu="item.relPath"
+              @click.stop
+            >
+              <button
+                v-if="item.isDirectory"
+                type="button"
+                class="menu-item download"
+                @click="onMobileRowAction(() => handleDownloadFolder(item))"
+              >
+                <i class="ri-download-2-line"></i>
+                <span>{{ t('fileExplorer.downloadFolderZip') || 'Tải thư mục (.zip)' }}</span>
+              </button>
+              <button
+                v-else
+                type="button"
+                class="menu-item download"
+                @click="onMobileRowAction(() => handleDownloadFile(item))"
+              >
+                <i class="ri-download-2-line"></i>
+                <span>{{ t('fileExplorer.downloadFile') || 'Tải xuống' }}</span>
+              </button>
+
+              <button
+                v-if="item.isDirectory"
+                type="button"
+                class="menu-item project"
+                @click="onMobileRowAction(() => emit('open-folder-as-project', item.relPath))"
+              >
+                <i class="ri-folder-add-line"></i>
+                <span>Mở làm Project</span>
+              </button>
+
+              <button
+                type="button"
+                class="menu-item"
+                @click="onMobileRowAction(() => openRename(item))"
+              >
+                <i class="ri-edit-line"></i>
+                <span>{{ t('common.edit') || 'Đổi tên' }}</span>
+              </button>
+
+              <button
+                type="button"
+                class="menu-item danger"
+                @click="onMobileRowAction(() => openDelete(item))"
+              >
+                <i class="ri-delete-bin-line"></i>
+                <span>{{ t('common.delete') || 'Xóa' }}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -236,6 +306,15 @@ import InputModal from './InputModal.vue';
 import ConfirmModal from './ConfirmModal.vue';
 import { useI18n } from '../composables/useI18n.js';
 
+const props = withDefaults(
+  defineProps<{
+    initialOpenActionMenuPath?: string | null;
+  }>(),
+  {
+    initialOpenActionMenuPath: null,
+  }
+);
+
 const emit = defineEmits<{
   (e: 'open-file', relPath: string): void;
   (e: 'open-folder-as-project', relPath: string): void;
@@ -248,6 +327,7 @@ const isRenameModalOpen = ref(false);
 const isDeleteModalOpen = ref(false);
 const isCleanupModalOpen = ref(false);
 const isUploadDropdownOpen = ref(false);
+const openActionMenuPath = ref<string | null>(props.initialOpenActionMenuPath);
 const isDraggingOver = ref(false);
 
 const renameModalRef = ref<any>(null);
@@ -508,10 +588,22 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function toggleRowActionMenu(relPath: string) {
+  openActionMenuPath.value = openActionMenuPath.value === relPath ? null : relPath;
+}
+
+function onMobileRowAction(action: () => void) {
+  openActionMenuPath.value = null;
+  action();
+}
+
 function handleGlobalClick(e: MouseEvent) {
   const target = e.target as HTMLElement;
   if (!target.closest('.toolbar-dropdown-wrapper')) {
     isUploadDropdownOpen.value = false;
+  }
+  if (!target.closest('.file-actions-mobile')) {
+    openActionMenuPath.value = null;
   }
 }
 
@@ -862,6 +954,74 @@ defineExpose({
   align-items: center;
   gap: 6px;
   margin-left: 8px;
+  position: relative;
+}
+
+.file-actions-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.file-actions-mobile {
+  display: none;
+  position: relative;
+}
+
+.btn-file-more.active {
+  background: #273549;
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.file-row-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #111827;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.65);
+  min-width: 176px;
+  padding: 5px;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-row-dropdown-menu .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.file-row-dropdown-menu .menu-item:hover {
+  background: #1e293b;
+}
+
+.file-row-dropdown-menu .menu-item.download i,
+.file-row-dropdown-menu .menu-item.project i {
+  color: #38bdf8;
+}
+
+.file-row-dropdown-menu .menu-item.danger {
+  color: #f87171;
+}
+
+.file-row-dropdown-menu .menu-item.danger i {
+  color: #ef4444;
 }
 
 .btn-action-icon {
@@ -1121,6 +1281,11 @@ defineExpose({
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+  .file-actions-inline { display: none; }
+  .file-actions-mobile { display: inline-flex; }
 }
 
 @media (max-width: 600px) {

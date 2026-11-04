@@ -3871,13 +3871,15 @@
     .quick-tree-row.is-active { background:#274469; border-color:#5786bf; color:#fff; }
     .quick-tree-empty { padding:12px; color:#90a7c6; font-size:12px; line-height:1.5; }
     .quick-tree-foot { padding:10px 14px; border-top:1px solid #2b3c54; color:#8298b6; font-size:11px; }
-    #quick-tree-files[hidden], #quick-tree-git[hidden], #quick-tree-browser[hidden], #quick-file-workbench[hidden], #quick-file-preview[hidden], #quick-file-editor-box[hidden], #quick-file-md-toggle[hidden], #quick-file-dirty[hidden] { display:none !important; }
+    #quick-tree-files[hidden], #quick-tree-git[hidden], #quick-tree-browser[hidden], #quick-file-workbench[hidden], #quick-file-preview[hidden], #quick-html-preview[hidden], #quick-file-editor-box[hidden], #quick-file-md-toggle[hidden], #quick-file-dirty[hidden] { display:none !important; }
     #quick-tree-files, #quick-tree-git, #quick-tree-browser, #quick-file-workbench { flex:1; min-height:0; display:flex; flex-direction:column; }
     .quick-file-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 10px; border-bottom:1px solid #2e415e; background:#0d1728; }
     .quick-file-meta { display:flex; align-items:center; gap:6px; min-width:0; flex:1; }
     .quick-file-back, .quick-file-actions button { display:inline-flex; align-items:center; gap:4px; height:28px; padding:0 9px; border-radius:6px; border:1px solid #3f587c; background:#1c2e48; color:#e4eeff; font:600 11px var(--font-sans); cursor:pointer; flex:none; }
     .quick-file-back:hover, .quick-file-actions button:hover:not(:disabled) { background:#2b476e; border-color:#6895cf; }
     .quick-file-actions { display:flex; align-items:center; gap:5px; flex:none; }
+    .quick-file-actions #quick-file-md-toggle { width:28px; padding:0; justify-content:center; font-size:14px; }
+    .quick-file-actions #quick-file-md-toggle.active { background:rgba(16,185,129,0.18); border-color:rgba(16,185,129,0.45); color:#10b981; }
     .quick-file-actions #quick-file-save { background:#1d5a42; border-color:#35946e; color:#dcffef; }
     .quick-file-actions #quick-file-save:disabled { opacity:.42; cursor:not-allowed; }
     .quick-file-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#eef5ff; font:700 12px var(--font-mono); }
@@ -3887,6 +3889,24 @@
     .quick-file-gutter { padding:12px 8px 12px 10px; min-width:36px; text-align:right; background:#070e1a; border-right:1px solid #1e2d45; color:#5d7599; font:12px/1.6 var(--font-mono); user-select:none; overflow:hidden; }
     .quick-file-textarea { flex:1; min-width:0; min-height:0; padding:12px; border:0; outline:0; resize:none; background:#09111f; color:#e6f0ff; font:12px/1.6 var(--font-mono); tab-size:2; white-space:pre; overflow:auto; scrollbar-color:#365072 #09111f; user-select:text; }
     .quick-file-preview { flex:1; min-height:0; overflow:auto; padding:14px; color:#dce8fa; font:13px/1.6 var(--font-sans); scrollbar-color:#365072 #09111f; user-select:text; }
+    .quick-html-preview { flex:1; min-height:0; width:100%; height:100%; border:0; background:#ffffff; display:block; }
+    .claude-md-table-wrap { overflow-x:auto; max-width:100%; margin:8px 0; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(15,23,42,0.55); }
+    .claude-md-table { width:100%; border-collapse:collapse; font-size:12.5px; line-height:1.5; }
+    .claude-md-table th, .claude-md-table td { padding:7px 10px; border:1px solid rgba(255,255,255,0.1); text-align:left; vertical-align:top; }
+    .claude-md-table th { background:rgba(255,255,255,0.06); color:#f8fafc; font-weight:600; }
+    .claude-md-table tbody tr:nth-child(even) td { background:rgba(255,255,255,0.02); }
+    .file-actions-inline { display:inline-flex; align-items:center; gap:6px; }
+    .file-actions-mobile { display:none; position:relative; }
+    .file-row-dropdown-menu { position:absolute; top:calc(100% + 6px); right:0; background:#111827; border:1px solid #334155; border-radius:8px; box-shadow:0 12px 28px -4px rgba(0,0,0,0.65); min-width:176px; padding:5px; z-index:120; display:flex; flex-direction:column; gap:2px; }
+    .file-row-dropdown-menu[hidden] { display:none !important; }
+    .file-row-dropdown-menu .menu-item { display:flex; align-items:center; gap:8px; padding:8px 11px; background:transparent; border:none; border-radius:6px; color:#e2e8f0; font-size:12.5px; font-weight:500; cursor:pointer; text-align:left; width:100%; white-space:nowrap; }
+    .file-row-dropdown-menu .menu-item:hover { background:#1e293b; }
+    .file-row-dropdown-menu .menu-item.download i, .file-row-dropdown-menu .menu-item.project i { color:#38bdf8; }
+    .file-row-dropdown-menu .menu-item.danger, .file-row-dropdown-menu .menu-item.danger i { color:#ef4444; }
+    @media (max-width:640px) {
+      .file-actions-inline { display:none; }
+      .file-actions-mobile { display:inline-flex; }
+    }
     .quick-file-status { padding:8px 12px; border-top:1px solid #263750; background:#0d1626; color:#96b0d3; font-size:11px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .quick-git-branch { margin:12px 12px 4px; padding:9px 10px; border:1px solid #725638; border-radius:8px; background:linear-gradient(115deg,#49351e94,#24304a99); color:#ffd18b; font:600 12px var(--font-mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .quick-git-note { padding:7px 12px; color:#9cacc2; font-size:11px; line-height:1.4; }
@@ -4018,7 +4038,7 @@
                 <span id="quick-file-dirty" class="quick-file-dirty" hidden>Chưa lưu</span>
               </div>
               <div class="quick-file-actions">
-                <button id="quick-file-md-toggle" type="button" hidden><i class="ri-edit-line"></i> Sửa</button>
+                <button id="quick-file-md-toggle" type="button" data-md-mode="preview" title="Chuyển chế độ Xem trước / Chỉnh sửa" aria-label="Chuyển chế độ Xem trước / Chỉnh sửa" hidden><i class="ri-edit-line"></i></button>
                 <button id="quick-file-save" type="button" disabled><i class="ri-save-3-line"></i> Lưu</button>
               </div>
             </div>
@@ -4028,6 +4048,7 @@
                 <textarea id="quick-file-textarea" class="quick-file-textarea" spellcheck="false" aria-label="Nội dung tệp" placeholder="Nội dung tệp..."></textarea>
               </div>
               <div id="quick-file-preview" class="quick-file-preview markdown-preview-container" hidden></div>
+              <iframe id="quick-html-preview" class="quick-html-preview" sandbox="allow-scripts" title="HTML Preview" hidden></iframe>
             </div>
             <div class="quick-file-status"><span id="quick-file-path-label"></span><span id="quick-file-feedback">Đang xem tại chỗ</span></div>
           </div>
@@ -5163,6 +5184,19 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
     "ws": "^8.18.0"
   }
 }`
+          },
+          'benchmark-report.html': {
+            type: 'file',
+            size: '1.1 KB',
+            modified: 'Vừa xong',
+            content: `<!DOCTYPE html>
+<html lang="vi">
+<head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;padding:16px;background:#0f172a;color:#f8fafc}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #334155;padding:8px;text-align:left}th{background:#1e293b}</style></head>
+<body>
+  <h2>Benchmark Report</h2>
+  <table><thead><tr><th>Suite</th><th>Pass Rate</th></tr></thead><tbody><tr><td>Quick Workspace Panel</td><td>100%</td></tr></tbody></table>
+</body>
+</html>`
           },
           'config.json': {
             type: 'file',
@@ -6566,9 +6600,22 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       const quickFileGutter = document.getElementById('quick-file-gutter');
       const quickFileTextarea = document.getElementById('quick-file-textarea');
       const quickFilePreview = document.getElementById('quick-file-preview');
+      const quickHtmlPreview = document.getElementById('quick-html-preview');
       const quickFilePathLabel = document.getElementById('quick-file-path-label');
       const quickFileFeedback = document.getElementById('quick-file-feedback');
       let quickActiveFile = null;
+
+      function isMarkdownFile(name) {
+        return /\.(md|markdown)$/i.test(name || '');
+      }
+
+      function isHtmlFile(name) {
+        return /\.(html|htm)$/i.test(name || '');
+      }
+
+      function isPreviewableFile(name) {
+        return isMarkdownFile(name) || isHtmlFile(name);
+      }
 
       function updateQuickFileGutter() {
         const count = Math.max(1, (quickFileTextarea.value || '').split('\n').length);
@@ -6585,17 +6632,36 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
       function renderQuickFileViewMode() {
         if (!quickActiveFile) return;
-        const isMd = /\.md$/i.test(quickActiveFile.name);
-        quickFileMdToggle.hidden = !isMd;
-        if (isMd && quickActiveFile.mode === 'preview') {
-          quickFileMdToggle.innerHTML = '<i class="ri-edit-line"></i> Sửa';
+        const isMd = isMarkdownFile(quickActiveFile.name);
+        const isHtml = isHtmlFile(quickActiveFile.name);
+        const isPreviewable = isPreviewableFile(quickActiveFile.name);
+        quickFileMdToggle.hidden = !isPreviewable;
+        quickFileMdToggle.dataset.mdMode = quickActiveFile.mode;
+        quickFileMdToggle.classList.toggle('active', isPreviewable && quickActiveFile.mode === 'preview');
+        if (isPreviewable && quickActiveFile.mode === 'preview') {
+          quickFileMdToggle.innerHTML = '<i class="ri-edit-line"></i>';
+          quickFileMdToggle.title = 'Chỉnh sửa mã nguồn';
           quickFileEditorBox.hidden = true;
-          quickFilePreview.hidden = false;
-          quickFilePreview.innerHTML = renderMarkdown(quickFileTextarea.value);
-          quickFileFeedback.textContent = 'Xem trước Markdown';
+          if (isMd) {
+            if (quickHtmlPreview) quickHtmlPreview.hidden = true;
+            quickFilePreview.hidden = false;
+            quickFilePreview.innerHTML = renderMarkdown(quickFileTextarea.value);
+            quickFileFeedback.textContent = 'Xem trước Markdown';
+          } else if (isHtml) {
+            quickFilePreview.hidden = true;
+            if (quickHtmlPreview) {
+              quickHtmlPreview.hidden = false;
+              quickHtmlPreview.srcdoc = quickFileTextarea.value;
+            }
+            quickFileFeedback.textContent = 'Xem trước HTML';
+          }
         } else {
-          if (isMd) quickFileMdToggle.innerHTML = '<i class="ri-eye-line"></i> Xem';
+          if (isPreviewable) {
+            quickFileMdToggle.innerHTML = '<i class="ri-eye-line"></i>';
+            quickFileMdToggle.title = 'Xem trước';
+          }
           quickFilePreview.hidden = true;
+          if (quickHtmlPreview) quickHtmlPreview.hidden = true;
           quickFileEditorBox.hidden = false;
           updateQuickFileGutter();
           quickFileFeedback.textContent = 'Chỉnh sửa tại chỗ';
@@ -6604,8 +6670,8 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
       function openQuickFileInline(path, name, node) {
         const content = node.content || '';
-        const isMd = /\.md$/i.test(name);
-        quickActiveFile = { path, name, node, original: content, dirty: false, mode: isMd ? 'preview' : 'edit' };
+        const isPreviewable = isPreviewableFile(name);
+        quickActiveFile = { path, name, node, original: content, dirty: false, mode: isPreviewable ? 'preview' : 'edit' };
         quickTreeBrowser.hidden = true;
         quickFileWorkbench.hidden = false;
         quickFileName.textContent = name;
@@ -6994,30 +7060,65 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               </div>
             </div>
             <div class="file-row-actions">
-              ${item.type === 'dir'
-                ? `<button class="btn-action-icon download btn-download-folder" title="Nén zip và tải về thư mục"><i class="ri-folder-zip-line"></i></button>`
-                : `<button class="btn-action-icon download btn-download-file" title="Tải về file này"><i class="ri-download-2-line"></i></button>`
-              }
-              <button class="btn-action-icon btn-rename" title="Đổi tên"><i class="ri-edit-line"></i></button>
-              <button class="btn-action-icon danger btn-delete" title="Xóa"><i class="ri-delete-bin-line"></i></button>
+              <div class="file-actions-inline">
+                ${item.type === 'dir'
+                  ? `<button class="btn-action-icon download btn-download-folder" title="Nén zip và tải về thư mục"><i class="ri-folder-zip-line"></i></button>
+                     <button class="btn-action-icon project btn-open-project" title="Mở làm Project"><i class="ri-folder-add-line"></i></button>`
+                  : `<button class="btn-action-icon download btn-download-file" title="Tải về file này"><i class="ri-download-2-line"></i></button>`
+                }
+                <button class="btn-action-icon btn-rename" title="Đổi tên"><i class="ri-edit-line"></i></button>
+                <button class="btn-action-icon danger btn-delete" title="Xóa"><i class="ri-delete-bin-line"></i></button>
+              </div>
+              <div class="file-actions-mobile">
+                <button type="button" class="btn-action-icon btn-file-more" title="Tùy chọn"><i class="ri-more-2-fill"></i></button>
+                <div class="file-row-dropdown-menu" hidden>
+                  ${item.type === 'dir'
+                    ? `<button type="button" class="menu-item download btn-download-folder-m"><i class="ri-download-2-line"></i><span>Tải thư mục (.zip)</span></button>
+                       <button type="button" class="menu-item project btn-open-project-m"><i class="ri-folder-add-line"></i><span>Mở làm Project</span></button>`
+                    : `<button type="button" class="menu-item download btn-download-file-m"><i class="ri-download-2-line"></i><span>Tải xuống</span></button>`
+                  }
+                  <button type="button" class="menu-item btn-rename-m"><i class="ri-edit-line"></i><span>Đổi tên</span></button>
+                  <button type="button" class="menu-item danger btn-delete-m"><i class="ri-delete-bin-line"></i><span>Xóa</span></button>
+                </div>
+              </div>
             </div>
           `;
 
+          const moreBtn = li.querySelector('.btn-file-more');
+          const moreMenu = li.querySelector('.file-row-dropdown-menu');
+          if (moreBtn && moreMenu) {
+            moreBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const wasHidden = moreMenu.hidden;
+              document.querySelectorAll('.file-row-dropdown-menu').forEach((el) => { el.hidden = true; });
+              moreMenu.hidden = !wasHidden;
+            });
+          }
+
           // Download action
-          const btnDlFile = li.querySelector('.btn-download-file');
-          if (btnDlFile) {
+          [li.querySelector('.btn-download-file'), li.querySelector('.btn-download-file-m')].filter(Boolean).forEach((btnDlFile) => {
             btnDlFile.addEventListener('click', (e) => {
               e.stopPropagation();
+              if (moreMenu) moreMenu.hidden = true;
               executeSingleFileDownload(name, item);
             });
-          }
-          const btnDlFolder = li.querySelector('.btn-download-folder');
-          if (btnDlFolder) {
+          });
+          [li.querySelector('.btn-download-folder'), li.querySelector('.btn-download-folder-m')].filter(Boolean).forEach((btnDlFolder) => {
             btnDlFolder.addEventListener('click', (e) => {
               e.stopPropagation();
+              if (moreMenu) moreMenu.hidden = true;
               executeFolderZipDownload(name, item);
             });
-          }
+          });
+          [li.querySelector('.btn-open-project'), li.querySelector('.btn-open-project-m')].filter(Boolean).forEach((btnProj) => {
+            btnProj.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (moreMenu) moreMenu.hidden = true;
+              currentPathStack.push(name);
+              renderFileExplorer();
+              showToast(`Đã mở thư mục "${name}" làm Project`, 'success');
+            });
+          });
 
           // Tap to Open: Directly opens editor / preview!
           li.querySelector('.file-row-left').addEventListener('click', () => {
@@ -7030,42 +7131,48 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           });
 
           // Rename
-          li.querySelector('.btn-rename').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openRenameModal('Đổi tên file/thư mục', name, (newName) => {
-              if (!newName || newName === name) return;
-              if (currentDir.children[newName]) {
-                showToast('Tên đã tồn tại!', 'warning');
-                return;
-              }
-              currentDir.children[newName] = currentDir.children[name];
-              delete currentDir.children[name];
-              showToast(`Đã đổi tên thành "${newName}"`, 'success');
-              if (activeOpenedFile && activeOpenedFile.name === name) {
-                activeOpenedFile.name = newName;
-                editorFilename.textContent = newName;
-              }
-              renderFileExplorer();
+          [li.querySelector('.btn-rename'), li.querySelector('.btn-rename-m')].filter(Boolean).forEach((btnRen) => {
+            btnRen.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (moreMenu) moreMenu.hidden = true;
+              openRenameModal('Đổi tên file/thư mục', name, (newName) => {
+                if (!newName || newName === name) return;
+                if (currentDir.children[newName]) {
+                  showToast('Tên đã tồn tại!', 'warning');
+                  return;
+                }
+                currentDir.children[newName] = currentDir.children[name];
+                delete currentDir.children[name];
+                showToast(`Đã đổi tên thành "${newName}"`, 'success');
+                if (activeOpenedFile && activeOpenedFile.name === name) {
+                  activeOpenedFile.name = newName;
+                  editorFilename.textContent = newName;
+                }
+                renderFileExplorer();
+              });
             });
           });
 
           // Delete
-          li.querySelector('.btn-delete').addEventListener('click', (e) => {
-            e.stopPropagation();
-            openConfirmModal(
-              'Xóa Tệp Tin / Thư Mục',
-              `Bạn có chắc muốn xóa "${name}" không? Thao tác này không thể hoàn tác.`,
-              'Xóa Ngay',
-              true,
-              () => {
-                delete currentDir.children[name];
-                showToast(`Đã xóa "${name}"`, 'success');
-                if (activeOpenedFile && activeOpenedFile.name === name) {
-                  closeEditorFile();
+          [li.querySelector('.btn-delete'), li.querySelector('.btn-delete-m')].filter(Boolean).forEach((btnDel) => {
+            btnDel.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (moreMenu) moreMenu.hidden = true;
+              openConfirmModal(
+                'Xóa Tệp Tin / Thư Mục',
+                `Bạn có chắc muốn xóa "${name}" không? Thao tác này không thể hoàn tác.`,
+                'Xóa Ngay',
+                true,
+                () => {
+                  delete currentDir.children[name];
+                  showToast(`Đã xóa "${name}"`, 'success');
+                  if (activeOpenedFile && activeOpenedFile.name === name) {
+                    closeEditorFile();
+                  }
+                  renderFileExplorer();
                 }
-                renderFileExplorer();
-              }
-            );
+              );
+            });
           });
 
           fileList.appendChild(li);
@@ -7092,10 +7199,38 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       }
 
       // --- 3. MARKDOWN RENDERER & EDITOR MANAGEMENT ---
+      function parseGfmTablesInEscapedText(escapedText) {
+        return escapedText.replace(
+          /(?:^|\n)(\|[^\n]+\|\r?\n\|[\s:\-|]+\|\r?\n(?:\|[^\n]+\|(?:\r?\n|$))+)/g,
+          (match, tableBlock) => {
+            const lines = tableBlock
+              .trim()
+              .split(/\r?\n/)
+              .map((l) => l.trim())
+              .filter(Boolean);
+            if (lines.length < 2) return match;
+            const splitCells = (row) =>
+              row
+                .replace(/^\||\|$/g, '')
+                .split('|')
+                .map((c) => c.trim());
+            const headers = splitCells(lines[0]);
+            const bodyRows = lines.slice(2).map(splitCells);
+            const thead = `<thead><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`;
+            const tbody = `<tbody>${bodyRows
+              .map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`)
+              .join('')}</tbody>`;
+            return `\n<div class="claude-md-table-wrap"><table class="claude-md-table">${thead}${tbody}</table></div>\n`;
+          }
+        );
+      }
+
       function renderMarkdown(mdText) {
         if (!mdText) return '<p style="color:var(--text-muted); font-style:italic;">File trống</p>';
         let text = escapeHtml(mdText);
 
+        // GFM tables
+        text = parseGfmTablesInEscapedText(text);
         // Code blocks
         text = text.replace(/```([a-zA-Z0-9_]*)\\n([\\s\\S]*?)```/g, '<pre><code>$2</code></pre>');
         // Inline code
@@ -7121,6 +7256,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         text = text.replace(/<p>(<pre>[\s\S]*?<\/pre>)<\/p>/g, '$1');
         text = text.replace(/<p>(<ul>[\s\S]*?<\/ul>)<\/p>/g, '$1');
         text = text.replace(/<p>(<blockquote>[\s\S]*?<\/blockquote>)<\/p>/g, '$1');
+        text = text.replace(/<p>\s*(<div class="claude-md-table-wrap">[\s\S]*?<\/div>)\s*<\/p>/g, '$1');
         return text;
       }
 
@@ -8106,10 +8242,12 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       function formatChatMarkdown(text) {
         if (!text) return '';
         let escaped = escapeHtml(text);
+        escaped = parseGfmTablesInEscapedText(escaped);
         escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
         escaped = escaped.replace(/\*([^*]+)\*/g, '<em>$1</em>');
         escaped = escaped.replace(/`([^`\n]+)`/g, '<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;color:#93c5fd;">$1</code>');
         escaped = escaped.replace(/\n/g, '<br>');
+        escaped = escaped.replace(/(?:<br>)*(<div class="claude-md-table-wrap">[\s\S]*?<\/div>)(?:<br>)*/g, '$1');
         return escaped;
       }
 

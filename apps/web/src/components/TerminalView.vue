@@ -781,13 +781,11 @@ function handleWindowKeyDown(e: KeyboardEvent) {
 function handleWindowPaste(e: ClipboardEvent) {
   if (props.isActive === false) return;
   if (isExternalEditableOrModal(e.target)) return;
-  lastNativePasteAt = Date.now();
-  if (terminalRef.value && typeof terminalRef.value.contains === 'function' && terminalRef.value.contains(e.target as Node)) {
-    return;
-  }
-  const text = e.clipboardData?.getData('text/plain');
+  const text = e.clipboardData?.getData('text/plain') || '';
+  e.preventDefault();
+  e.stopImmediatePropagation();
   if (text) {
-    e.preventDefault();
+    lastNativePasteAt = Date.now();
     focusTerminal();
     pasteTextToTerminal(text);
   }

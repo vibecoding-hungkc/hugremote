@@ -204,8 +204,11 @@ function insertText(text: string) {
 
 let lastEditorPasteAt = 0;
 
-function handleEditorPaste() {
-  lastEditorPasteAt = Date.now();
+function handleEditorPaste(e: ClipboardEvent) {
+  const text = e?.clipboardData?.getData('text/plain') || '';
+  if (text) {
+    lastEditorPasteAt = Date.now();
+  }
 }
 
 function handleEditorKeyDown(e: KeyboardEvent) {

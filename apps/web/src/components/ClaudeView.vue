@@ -814,8 +814,11 @@ async function handleVisibilityOrFocus() {
 
 let lastClaudePasteAt = 0;
 
-function onTextareaPaste() {
-  lastClaudePasteAt = Date.now();
+function onTextareaPaste(e: ClipboardEvent) {
+  const text = e?.clipboardData?.getData('text/plain') || '';
+  if (text) {
+    lastClaudePasteAt = Date.now();
+  }
 }
 
 function isExternalClaudeInputOrModal(target: EventTarget | null): boolean {
@@ -911,13 +914,12 @@ function handleClaudeWindowKeyDown(e: KeyboardEvent) {
 function handleClaudeWindowPaste(e: ClipboardEvent) {
   if (!props.isActive) return;
   if (isExternalClaudeInputOrModal(e.target)) return;
+  const text = e.clipboardData?.getData('text/plain') || '';
+  if (!text) return;
   lastClaudePasteAt = Date.now();
   if (e.target === inputRef.value) return;
-  const text = e.clipboardData?.getData('text/plain');
-  if (text) {
-    e.preventDefault();
-    replaceInputSelection(text);
-  }
+  e.preventDefault();
+  replaceInputSelection(text);
 }
 
 watch(() => props.isActive, (active) => {

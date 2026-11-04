@@ -1258,10 +1258,6 @@ function formatMarkdown(text: string): string {
   });
   return typeof parsed === 'string' ? parsed : '';
 }
-
-function showUsageToast() {
-  alert(`Weekly limit: 81% used. Resets in 19 minutes.`);
-}
 </script>
 
 <style>

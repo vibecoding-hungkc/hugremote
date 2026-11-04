@@ -202,6 +202,17 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :is-open="Boolean(confirmDeleteCliTarget)"
+      :title="t('claudeHub.delete') || 'Xóa Phiên Claude'"
+      icon="ri-delete-bin-line"
+      :message="`Bạn có chắc chắn muốn xóa phiên &quot;${confirmDeleteCliTarget?.summary || confirmDeleteCliTarget?.id?.slice(0, 8) || ''}&quot; khỏi dự án không?`"
+      :confirm-label="t('common.delete') || 'Xóa Ngay'"
+      :is-danger="true"
+      @close="confirmDeleteCliTarget = null"
+      @confirm="executeDeleteCli"
+    />
   </div>
 </template>
 
@@ -216,6 +227,7 @@ import {
 import { useProjectStore } from '../stores/projectStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { useI18n } from '../composables/useI18n.js';
+import ConfirmModal from './ConfirmModal.vue';
 
 const props = defineProps<{
   isOpen: boolean;
@@ -378,11 +390,15 @@ async function saveRenameCli(id: string) {
   }
 }
 
-async function handleDeleteCli(s: any) {
-  const displayName = s.summary || s.id.slice(0, 8);
-  if (!window.confirm(`Bạn có chắc chắn muốn xóa phiên "${displayName}" khỏi dự án không?`)) {
-    return;
-  }
+const confirmDeleteCliTarget = ref<any | null>(null);
+
+function handleDeleteCli(s: any) {
+  confirmDeleteCliTarget.value = s;
+}
+
+async function executeDeleteCli() {
+  const s = confirmDeleteCliTarget.value;
+  if (!s) return;
   deletingCliId.value = s.id;
   try {
     await claudeStore.deleteProjectSession(
@@ -390,6 +406,7 @@ async function handleDeleteCli(s: any) {
       currentCwd.value,
       serverStore.currentServerId
     );
+    confirmDeleteCliTarget.value = null;
   } catch (err) {
     console.error('handleDeleteCli error:', err);
   } finally {

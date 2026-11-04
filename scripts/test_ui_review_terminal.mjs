@@ -208,6 +208,8 @@ try {
     const pending = deferred();
     globalThis.fetch = () => pending.promise;
     const saving = form.handleSubmit();
+    form.confirmRestartConfirm();
+    await Promise.resolve();
     assert.equal(sockets[0].closed, true);
     assert.equal(await store.closeSession(session.id), false);
 
@@ -251,6 +253,8 @@ try {
       return pending.promise;
     };
     const saving = form.handleSubmit();
+    form.confirmRestartConfirm();
+    await Promise.resolve();
     assert.equal(await store.closeSession('two'), false);
 
     pending.resolve({ ok: false });

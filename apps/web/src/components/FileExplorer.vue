@@ -282,20 +282,31 @@
                   </div>
                 </div>
               </div>
-              <button class="btn-action-icon danger" @click="handleDeleteArchive(arch.id)" :title="t('common.delete')">
+              <button class="btn-action-icon danger" @click="requestDeleteArchive(arch)" :title="t('common.delete')">
                 <i class="ri-delete-bin-line"></i>
               </button>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button v-if="fileStore.tempArchives.length > 0" class="btn-danger" @click="handlePurgeAll">
+          <button v-if="fileStore.tempArchives.length > 0" class="btn-danger" @click="requestPurgeAll">
             <i class="ri-delete-bin-7-line"></i> {{ t('fileExplorer.purgeAll') }}
           </button>
           <button class="btn-secondary" @click="isCleanupModalOpen = false">{{ t('common.close') || 'Đóng' }}</button>
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :is-open="isArchiveConfirmOpen"
+      :title="t('fileExplorer.deleteTitle')"
+      icon="ri-delete-bin-line"
+      :message="archiveConfirmMessage"
+      :confirm-label="t('fileExplorer.deleteNow')"
+      :is-danger="true"
+      @close="isArchiveConfirmOpen = false"
+      @confirm="executeArchiveConfirm"
+    />
   </div>
 </template>
 
@@ -396,6 +407,33 @@ function handleDownloadCurrentFolder() {
 async function openCleanupModal() {
   await fileStore.fetchTempArchives();
   isCleanupModalOpen.value = true;
+}
+
+const isArchiveConfirmOpen = ref(false);
+const archiveConfirmMessage = ref('');
+let pendingArchiveConfirmAction: (() => Promise<void>) | null = null;
+
+function requestPurgeAll() {
+  archiveConfirmMessage.value = 'Bạn có chắc chắn muốn xóa toàn bộ các bản nén .zip tạm thời không?';
+  pendingArchiveConfirmAction = async () => {
+    await handlePurgeAll();
+  };
+  isArchiveConfirmOpen.value = true;
+}
+
+function requestDeleteArchive(arch: { id: string; name: string }) {
+  archiveConfirmMessage.value = `Bạn có chắc chắn muốn xóa tệp nén tạm "${arch.name}" không?`;
+  pendingArchiveConfirmAction = async () => {
+    await handleDeleteArchive(arch.id);
+  };
+  isArchiveConfirmOpen.value = true;
+}
+
+async function executeArchiveConfirm() {
+  const action = pendingArchiveConfirmAction;
+  pendingArchiveConfirmAction = null;
+  isArchiveConfirmOpen.value = false;
+  if (action) await action();
 }
 
 async function handlePurgeAll() {

@@ -1049,7 +1049,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      z-index: 999;
+      z-index: 3000;
     }
     .modal-overlay.hidden { display: none; }
     .modal-card {
@@ -6333,6 +6333,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         confirmCallback = onConfirm;
         document.getElementById('confirm-modal').classList.remove('hidden');
       }
+      window.openConfirmModal = openConfirmModal;
 
       function handleConfirmSubmit() {
         if (confirmCallback) confirmCallback();
@@ -9476,13 +9477,21 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           });
 
           row.querySelector('.btn-del-arch').addEventListener('click', () => {
-            const idx = tempZipArchives.indexOf(arch);
-            if (idx !== -1) {
-              tempZipArchives.splice(idx, 1);
-              updateZipCacheBadge();
-              renderCleanupModal();
-              showToast(`Đã xóa file nén tạm "${arch.name}"`, 'success');
-            }
+            openConfirmModal(
+              'Xóa File Nén Tạm',
+              `Bạn có chắc chắn muốn xóa file nén tạm "${arch.name}" không?`,
+              'Xóa Ngay',
+              true,
+              () => {
+                const idx = tempZipArchives.indexOf(arch);
+                if (idx !== -1) {
+                  tempZipArchives.splice(idx, 1);
+                  updateZipCacheBadge();
+                  renderCleanupModal();
+                  showToast(`Đã xóa file nén tạm "${arch.name}"`, 'success');
+                }
+              }
+            );
           });
 
           cleanupArchiveList.appendChild(row);
@@ -9500,10 +9509,18 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       function purgeAllZips() {
-        tempZipArchives.length = 0;
-        updateZipCacheBadge();
-        renderCleanupModal();
-        showToast('🧹 Đã xóa sạch toàn bộ file zip trong thư mục đệm tạm!', 'success');
+        openConfirmModal(
+          'Xóa Toàn Bộ File Nén Tạm',
+          'Bạn có chắc chắn muốn xóa toàn bộ file zip trong thư mục đệm tạm không?',
+          'Xóa Toàn Bộ',
+          true,
+          () => {
+            tempZipArchives.length = 0;
+            updateZipCacheBadge();
+            renderCleanupModal();
+            showToast('🧹 Đã xóa sạch toàn bộ file zip trong thư mục đệm tạm!', 'success');
+          }
+        );
       }
 
       // Auto-cleanup background simulation timer: Runs every 10 seconds in prototype

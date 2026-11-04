@@ -48,14 +48,26 @@
         <i class="ri-add-line"></i> {{ t('terminalHub.new') }}
       </button>
     </div>
+
+    <ConfirmModal
+      :is-open="Boolean(confirmCloseSessionId)"
+      title="Đóng Cửa Sổ Terminal"
+      icon="ri-delete-bin-line"
+      :message="`Bạn có chắc chắn muốn đóng cửa sổ &quot;${confirmCloseSessionName}&quot;? Tiến trình đang chạy sẽ bị dừng.`"
+      confirm-label="Đóng Cửa Sổ"
+      :is-danger="true"
+      @close="cancelCloseSession"
+      @confirm="confirmCloseSession"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useServerStore } from '../stores/serverStore.js';
 import { useTerminalStore } from '../stores/terminalStore.js';
 import { useI18n } from '../composables/useI18n.js';
+import ConfirmModal from './ConfirmModal.vue';
 
 defineProps<{ isOpen: boolean }>();
 
@@ -72,11 +84,40 @@ const { t } = useI18n();
 
 const closeError = ref('');
 const closingSessionId = ref('');
+const confirmCloseSessionId = ref('');
+let pendingCloseResolve: ((confirmed: boolean) => void) | null = null;
+
+const confirmCloseSessionName = computed(() => {
+  const s = terminalStore.currentServerSessions.find((item) => item.id === confirmCloseSessionId.value);
+  return s?.name || confirmCloseSessionId.value;
+});
+
+function requestCloseConfirm(id: string): Promise<boolean> {
+  confirmCloseSessionId.value = id;
+  return new Promise<boolean>((resolve) => {
+    pendingCloseResolve = resolve;
+  });
+}
+
+function confirmCloseSession() {
+  const resolve = pendingCloseResolve;
+  pendingCloseResolve = null;
+  confirmCloseSessionId.value = '';
+  resolve?.(true);
+}
+
+function cancelCloseSession() {
+  const resolve = pendingCloseResolve;
+  pendingCloseResolve = null;
+  confirmCloseSessionId.value = '';
+  resolve?.(false);
+}
 
 async function closeSession(id: string) {
   if (closingSessionId.value || terminalStore.currentServerSessions.length <= 1) return;
   closeError.value = '';
-  if (!window.confirm('Đóng terminal này? Tiến trình đang chạy sẽ bị dừng.')) return;
+  const confirmed = await requestCloseConfirm(id);
+  if (!confirmed) return;
   closingSessionId.value = id;
   try {
     await terminalStore.closeSession(id);

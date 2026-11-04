@@ -36,7 +36,7 @@
             type="button"
             class="btn-project-delete"
             title="Xoá khỏi danh sách Project"
-            @click.stop="deleteProject(project.id)"
+            @click.stop="requestDeleteProject(project)"
           >
             <i class="ri-delete-bin-line"></i>
           </button>
@@ -45,6 +45,17 @@
       </div>
 
       <p v-if="scopeError" class="scope-error" role="alert">{{ scopeError }}</p>
+
+      <ConfirmModal
+        :is-open="Boolean(deletingProjectTarget)"
+        title="Xác Nhận Xóa Project"
+        icon="ri-delete-bin-line"
+        :message="`Bạn có chắc chắn muốn xóa project &quot;${deletingProjectTarget?.name || ''}&quot; khỏi danh sách không?`"
+        confirm-label="Xóa Ngay"
+        :is-danger="true"
+        @close="deletingProjectTarget = null"
+        @confirm="confirmDeleteProject"
+      />
 
       <div v-if="renamingProject" class="rename-overlay" @click.self="!renaming && (renamingProject = null)">
         <form class="rename-form" role="dialog" aria-modal="true" aria-labelledby="rename-project-title" @submit.prevent="saveRename">
@@ -79,6 +90,7 @@ import { ref, watch } from 'vue';
 import { useFileStore } from '../stores/fileStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { useProjectStore, ProjectItem } from '../stores/projectStore.js';
+import ConfirmModal from './ConfirmModal.vue';
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'selected'): void }>();
@@ -87,6 +99,7 @@ const projectStore = useProjectStore();
 const fileStore = useFileStore();
 const pathInput = ref('');
 const renamingProject = ref<ProjectItem | null>(null);
+const deletingProjectTarget = ref<ProjectItem | null>(null);
 const renameName = ref('');
 const renameError = ref('');
 const renaming = ref(false);
@@ -149,6 +162,18 @@ async function select(id: string) {
   } finally {
     scopeBusy.value = false;
   }
+}
+
+function requestDeleteProject(project: ProjectItem) {
+  if (isHomeProject(project) || scopeBusy.value) return;
+  deletingProjectTarget.value = project;
+}
+
+async function confirmDeleteProject() {
+  const target = deletingProjectTarget.value;
+  deletingProjectTarget.value = null;
+  if (!target) return;
+  await deleteProject(target.id);
 }
 
 async function deleteProject(id: string) {

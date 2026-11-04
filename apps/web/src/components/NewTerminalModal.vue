@@ -95,6 +95,18 @@
       @close="isTreePickerOpen = false"
       @confirm="handleTreeConfirm"
     />
+
+    <!-- Confirm CWD Restart Modal -->
+    <ConfirmModal
+      :is-open="isConfirmRestartOpen"
+      title="Khởi Động Lại Terminal"
+      icon="ri-restart-line"
+      message="Đổi thư mục sẽ khởi động lại terminal và dừng tiến trình đang chạy. Tiếp tục?"
+      confirm-label="Tiếp Tục"
+      :is-danger="true"
+      @close="cancelRestartConfirm"
+      @confirm="confirmRestartConfirm"
+    />
   </div>
 </template>
 
@@ -106,6 +118,7 @@ import { useFileStore } from '../stores/fileStore.js';
 import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
 import { apiUrl } from '../utils/api.js';
 import FolderTreePicker from './FolderTreePicker.vue';
+import ConfirmModal from './ConfirmModal.vue';
 import { useI18n } from '../composables/useI18n.js';
 
 const { t } = useI18n();
@@ -181,18 +194,45 @@ watch(
   { immediate: true }
 );
 
+const isConfirmRestartOpen = ref(false);
+let pendingRestartResolve: ((confirmed: boolean) => void) | null = null;
+
+function requestRestartConfirm(): Promise<boolean> {
+  isConfirmRestartOpen.value = true;
+  return new Promise<boolean>((resolve) => {
+    pendingRestartResolve = resolve;
+  });
+}
+
+function confirmRestartConfirm() {
+  const resolve = pendingRestartResolve;
+  pendingRestartResolve = null;
+  isConfirmRestartOpen.value = false;
+  resolve?.(true);
+}
+
+function cancelRestartConfirm() {
+  const resolve = pendingRestartResolve;
+  pendingRestartResolve = null;
+  isConfirmRestartOpen.value = false;
+  resolve?.(false);
+}
+
 function requestClose() {
   if (!isSubmitting.value) emit('close');
 }
 
 async function handleSubmit() {
-  if (isSubmitting.value) return;
+  if (isSubmitting.value || isConfirmRestartOpen.value) return;
   submitError.value = '';
   const cwd = targetCwd.value.trim() || projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
   const name = customName.value.trim();
   const sessionId = props.session?.id;
   const cwdChanged = Boolean(sessionId && cwd !== (props.session.cwd || ''));
-  if (cwdChanged && !window.confirm('Đổi thư mục sẽ khởi động lại terminal và dừng tiến trình đang chạy. Tiếp tục?')) return;
+  if (cwdChanged) {
+    const confirmed = await requestRestartConfirm();
+    if (!confirmed) return;
+  }
 
   isSubmitting.value = true;
   try {

@@ -368,6 +368,17 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      :is-open="isDiscardConfirmOpen"
+      :title="t('common.confirm') || 'Xác Nhận'"
+      icon="ri-alert-line"
+      :message="t('quickPanel.discardWarning')"
+      :confirm-label="t('common.close') || 'Bỏ Thay Đổi'"
+      :is-danger="true"
+      @close="cancelDiscardInlineFile"
+      @confirm="confirmDiscardInlineFile"
+    />
   </aside>
 </template>
 
@@ -380,6 +391,7 @@ import { useProjectStore } from '../stores/projectStore.js';
 import { useFileStore, type FileEntry } from '../stores/fileStore.js';
 import { useGitStore, type GitChangedFile } from '../stores/gitStore.js';
 import { useI18n } from '../composables/useI18n.js';
+import ConfirmModal from './ConfirmModal.vue';
 
 export interface InlineFileState {
   path: string;
@@ -639,8 +651,32 @@ async function onTreeNodeClick(entry: FileEntry) {
   await openInlineFile(entry.relPath, entry.name);
 }
 
+const isDiscardConfirmOpen = ref(false);
+let pendingDiscardResolve: ((confirmed: boolean) => void) | null = null;
+
+function requestDiscardInlineFile(): Promise<boolean> {
+  isDiscardConfirmOpen.value = true;
+  return new Promise<boolean>((resolve) => {
+    pendingDiscardResolve = resolve;
+  });
+}
+
+function confirmDiscardInlineFile() {
+  const resolve = pendingDiscardResolve;
+  pendingDiscardResolve = null;
+  isDiscardConfirmOpen.value = false;
+  resolve?.(true);
+}
+
+function cancelDiscardInlineFile() {
+  const resolve = pendingDiscardResolve;
+  pendingDiscardResolve = null;
+  isDiscardConfirmOpen.value = false;
+  resolve?.(false);
+}
+
 async function openInlineFile(filePath: string, fileName?: string) {
-  if (activeInlineFile.value?.dirty && !window.confirm(t('quickPanel.discardWarning'))) return;
+  if (activeInlineFile.value?.dirty && !(await requestDiscardInlineFile())) return;
   const generation = ++openGeneration;
   const scope = scopeKey.value;
   const resolvedName = fileName || filePath.split('/').pop() || filePath;
@@ -683,8 +719,8 @@ function requestClosePanel() {
   emit('close');
 }
 
-function closeInlineFile() {
-  if (activeInlineFile.value?.dirty && !window.confirm(t('quickPanel.discardWarning'))) return;
+async function closeInlineFile() {
+  if (activeInlineFile.value?.dirty && !(await requestDiscardInlineFile())) return;
   ++openGeneration;
   activeInlineFile.value = null;
   inlineScope.value = null;

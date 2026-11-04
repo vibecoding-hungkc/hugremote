@@ -1,6 +1,6 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="handleCancel">
-    <div class="modal-sheet">
+  <div v-if="isOpen" class="modal-overlay confirm-modal-overlay" @click.self="handleCancel">
+    <div class="modal-sheet confirm-modal-sheet">
       <div class="modal-header">
         <div class="modal-title" :class="{ danger: isDanger }">
           <i :class="icon"></i> {{ title.includes('.') ? t(title) : title }}
@@ -90,26 +90,31 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 </script>
 
 <style scoped>
-.modal-overlay {
+.modal-overlay,
+.modal-overlay.confirm-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(2, 6, 23, 0.72);
   backdrop-filter: blur(4px);
-  z-index: 2000;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  z-index: 3000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px;
 }
-.modal-sheet {
+.modal-sheet,
+.modal-sheet.confirm-modal-sheet {
   background: #0f172a;
-  border-top: 1px solid #334155;
-  border-radius: 14px 14px 0 0;
+  border: 1px solid #334155;
+  border-radius: 14px !important;
   width: 100%;
-  max-width: 600px;
+  max-width: 420px !important;
   display: flex;
   flex-direction: column;
-  padding: 12px 14px 16px;
-  gap: 10px;
+  padding: 18px 20px;
+  gap: 14px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
+  margin: auto !important;
 }
 .modal-header {
   display: flex;

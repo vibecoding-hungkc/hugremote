@@ -9,8 +9,8 @@ const claudeViewSource = await readFile(
 );
 assert.match(
   claudeViewSource,
-  /\.claude-ext-stream\s*\{[^}]*scrollbar-width:\s*thin;[^}]*scrollbar-color:\s*rgba\(217,\s*119,\s*87,\s*0\.44\)\s+transparent;/s,
-  'chat stream must use a slim Claude-accent scrollbar in Firefox',
+  /\.claude-ext-stream\s*\{[^}]*scrollbar-width:\s*thin;[^}]*scrollbar-color:\s*rgba\(152,\s*152,\s*152,\s*0\.44\)\s+transparent;/s,
+  'chat stream must use a slim monochrome scrollbar in Firefox',
 );
 assert.match(
   claudeViewSource,
@@ -24,17 +24,17 @@ assert.match(
 );
 assert.match(
   claudeViewSource,
-  /\.claude-ext-stream::-webkit-scrollbar-thumb\s*\{[^}]*background:\s*rgba\(217,\s*119,\s*87,\s*0\.44\);[^}]*border:\s*2px solid transparent;[^}]*background-clip:\s*padding-box;[^}]*border-radius:\s*999px;[^}]*min-height:\s*40px;/s,
+  /\.claude-ext-stream::-webkit-scrollbar-thumb\s*\{[^}]*background:\s*rgba\(152,\s*152,\s*152,\s*0\.44\);[^}]*border:\s*2px solid transparent;[^}]*background-clip:\s*padding-box;[^}]*border-radius:\s*999px;[^}]*min-height:\s*40px;/s,
   'chat scrollbar thumb must be rounded, inset and easy to acquire',
 );
 assert.match(
   claudeViewSource,
-  /\.claude-ext-stream::-webkit-scrollbar-thumb:hover\s*\{[^}]*background:\s*rgba\(217,\s*119,\s*87,\s*0\.68\);/s,
+  /\.claude-ext-stream::-webkit-scrollbar-thumb:hover\s*\{[^}]*background:\s*rgba\(152,\s*152,\s*152,\s*0\.68\);/s,
   'chat scrollbar thumb must strengthen on hover',
 );
 assert.match(
   claudeViewSource,
-  /\.claude-ext-stream::-webkit-scrollbar-thumb:active\s*\{[^}]*background:\s*rgba\(217,\s*119,\s*87,\s*0\.82\);/s,
+  /\.claude-ext-stream::-webkit-scrollbar-thumb:active\s*\{[^}]*background:\s*rgba\(152,\s*152,\s*152,\s*0\.82\);/s,
   'chat scrollbar thumb must strengthen while dragging',
 );
 assert.match(

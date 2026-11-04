@@ -177,16 +177,16 @@ watch(
   border-radius: 4px;
 }
 .tree-node-row:hover {
-  background: #1e293b;
+  background: #282828;
 }
 .tree-node-row.selected {
-  background: #1e3a8a33;
+  background: rgba(58, 58, 58, 0.2);
 }
 
 .toggle-btn {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #989898;
   font-size: 14px;
   width: 18px;
   height: 18px;
@@ -224,14 +224,14 @@ watch(
 .node-name {
   font-size: 12.5px;
   font-family: monospace;
-  color: #e2e8f0;
+  color: #e7e7e7;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .selected-check {
-  color: #3b82f6;
+  color: #989898;
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -243,7 +243,7 @@ watch(
 
 .tree-loading, .tree-empty {
   font-size: 11px;
-  color: #64748b;
+  color: #989898;
   padding-top: 4px;
   padding-bottom: 4px;
   display: flex;

@@ -1,5 +1,26 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.6] - 2026-11-04
+
+Bản phát hành chuẩn hóa hệ màu Monochrome (Đen - Trắng - Xám) trên toàn bộ 29 màn hình/component của HugRemote kèm bảo toàn màu ngữ nghĩa (icon tệp/thư mục, tín hiệu Git diff, nút xóa/cảnh báo, viền màu nhấn cho dropdown trên Header), đồng thời nâng cấp trải nghiệm làm việc trên Desktop và chế độ Preview mặc định cho tệp văn bản.
+
+### Giao diện Monochrome & Màu ngữ nghĩa
+- Chuẩn hóa toàn bộ khung giao diện (chrome) sang thang màu đen, trắng và xám trung tính trên 29 component Vue và `prototype.html`.
+- Giữ màu ngữ nghĩa rõ ràng cho các icon thư mục (`ri-folder-2-line` màu vàng `#f59e0b`), icon tệp theo định dạng, các nút xóa/nguy hiểm và badge trạng thái.
+- Giữ màu phân biệt trực quan trên màn Git (`GitView.vue` và quick Git): trạng thái tệp (`M`, `A`, `D`, `U`), chỉ số dòng `+` (`#34d399`) / `-` (`#fb7185`), dòng diff thêm/xóa và nhánh đang chọn.
+- Bổ sung viền màu nhấn (accent border) cho các nút mở dropdown và menu dropdown trên `SmartHeader.vue` để dễ nhận diện trên nền tối.
+- Đồng bộ icon thư mục `ri-folder-2-line` ở màn File và thu gọn nút tải ZIP thành nút icon download (`ri-download-2-line` `30×30`), giữ nguyên luồng tải ZIP và nhãn trợ năng (`title`, `aria-label`).
+
+### Trải nghiệm Workspace & Preview
+- Mở mọi tệp văn bản ở chế độ Preview chỉ đọc mặc định trong màn File và Quick Workspace Panel, kèm nút chuyển nhanh sang Edit.
+- Ẩn thanh phím nhanh ảo theo thiết bị Desktop (`useDesktopDevice()`) thay vì chỉ dựa vào kích thước viewport, và căn chỉnh liền mạch Quick Workspace Panel / Sidebar với Header (`64px`) và Bottom Dock (`42px`).
+
+### Bảo mật & Kiểm chứng
+- Nâng cấp transitive dependencies (`glob@^14.0.3`, `minimatch@^11.0.4`) đưa `npm audit` về 0 lỗ hổng bảo mật ở mọi mức độ.
+- PASS toàn bộ bộ kiểm thử UI, Claude stream/resume, Git remote, atomic updater và cổng kiểm tra bảo mật HTTP/CSP.
+
+---
+
 ## [v1.6.0] - 2026-10-28
 
 Bản phát hành nâng cấp toàn diện Claude Protocol Parity theo quy chuẩn Claude Code CLI / Extension 2.1.308, hoàn thiện interactive controls duplex, stream/reconnect replay buffer, child-agent namespaces, và tăng cường bảo mật HTTP CSP.

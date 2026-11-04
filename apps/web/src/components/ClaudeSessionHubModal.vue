@@ -435,7 +435,7 @@ function selectSession(id: string) {
 .bottom-sheet {
   width: 100%;
   max-width: 640px;
-  background: #18181b;
+  background: #181818;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px 16px 0 0;
   padding: 12px 16px 24px;
@@ -447,7 +447,7 @@ function selectSession(id: string) {
 .sheet-handle {
   width: 36px;
   height: 4px;
-  background: #3f3f46;
+  background: #404040;
   border-radius: 2px;
   margin: 0 auto 10px;
 }
@@ -462,7 +462,7 @@ function selectSession(id: string) {
 .sheet-title {
   font-size: 15px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -477,7 +477,7 @@ function selectSession(id: string) {
 .btn-close-sheet {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 16px;
   cursor: pointer;
   padding: 4px 6px;
@@ -487,7 +487,7 @@ function selectSession(id: string) {
 .hub-tabs {
   display: flex;
   gap: 6px;
-  background: #1e1e24;
+  background: #1e1e1e;
   padding: 3px;
   border-radius: 8px;
   margin-bottom: 12px;
@@ -504,7 +504,7 @@ function selectSession(id: string) {
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
@@ -512,11 +512,11 @@ function selectSession(id: string) {
 }
 
 .hub-tab:hover {
-  color: #e2e8f0;
+  color: #e7e7e7;
 }
 
 .hub-tab.active {
-  background: #27272a;
+  background: #272727;
   color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
@@ -529,8 +529,8 @@ function selectSession(id: string) {
 }
 
 .hub-tab.active .hub-tab-badge {
-  background: rgba(217, 119, 87, 0.25);
-  color: #f97316;
+  background: rgba(64, 64, 64, 0.25);
+  color: #989898;
 }
 
 /* Tab content */
@@ -559,24 +559,24 @@ function selectSession(id: string) {
 .hub-search-wrap i.ri-search-line {
   position: absolute;
   left: 9px;
-  color: #64748b;
+  color: #989898;
   font-size: 13px;
   pointer-events: none;
 }
 
 .hub-search-input {
   width: 100%;
-  background: #202024;
+  background: #202020;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 7px;
   padding: 6px 28px 6px 28px;
   font-size: 12.5px;
-  color: #f1f5f9;
+  color: #eeeeee;
   outline: none;
 }
 
 .hub-search-input:focus {
-  border-color: #d97757;
+  border-color: #7d7d7d;
 }
 
 .hub-clear-search {
@@ -584,7 +584,7 @@ function selectSession(id: string) {
   right: 8px;
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #989898;
   cursor: pointer;
   font-size: 13px;
   padding: 0;
@@ -598,17 +598,17 @@ function selectSession(id: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #202024;
+  background: #202020;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 7px;
-  color: #94a3b8;
+  color: #a1a1a1;
   cursor: pointer;
   font-size: 14px;
 }
 
 .hub-refresh-btn:hover {
-  background: #2a2a30;
-  color: #f1f5f9;
+  background: #2a2a2a;
+  color: #eeeeee;
 }
 
 .hub-refresh-btn.spinning i {
@@ -627,7 +627,7 @@ function selectSession(id: string) {
 
 .empty-sessions {
   text-align: center;
-  color: #71717a;
+  color: #989898;
   font-size: 13px;
   padding: 32px 12px;
   display: flex;
@@ -638,26 +638,26 @@ function selectSession(id: string) {
 
 .empty-icon {
   font-size: 32px;
-  color: #475569;
+  color: #989898;
 }
 
 .empty-sub {
   font-size: 11px;
-  color: #64748b;
+  color: #989898;
 }
 
 .empty-sub code {
   background: rgba(255, 255, 255, 0.06);
   padding: 2px 5px;
   border-radius: 4px;
-  color: #cbd5e1;
+  color: #d4d4d4;
 }
 
 .session-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #242428;
+  background: #242424;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 9px;
   padding: 10px 12px;
@@ -666,13 +666,13 @@ function selectSession(id: string) {
 }
 
 .session-card:hover {
-  background: #2b2b30;
+  background: #2b2b2b;
   border-color: rgba(255, 255, 255, 0.12);
 }
 
 .session-card.active {
-  border-color: #d97757;
-  background: #2d2422;
+  border-color: #7d7d7d;
+  background: #262626;
 }
 
 .session-info {
@@ -700,8 +700,8 @@ function selectSession(id: string) {
 
 .session-model-pill {
   font-size: 10px;
-  background: rgba(217, 119, 87, 0.15);
-  color: #f97316;
+  background: rgba(64, 64, 64, 0.15);
+  color: #989898;
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 500;
@@ -710,7 +710,7 @@ function selectSession(id: string) {
 .session-id-pill {
   font-size: 10.5px;
   background: rgba(255, 255, 255, 0.07);
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 1px 5px;
   border-radius: 4px;
   font-family: monospace;
@@ -718,8 +718,8 @@ function selectSession(id: string) {
 
 .session-branch-pill {
   font-size: 10.5px;
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  background: rgba(64, 64, 64, 0.15);
+  color: #9c9c9c;
   padding: 1px 5px;
   border-radius: 4px;
   display: inline-flex;
@@ -737,13 +737,13 @@ function selectSession(id: string) {
 
 .cli-msg-count,
 .cli-time {
-  color: #71717a;
+  color: #989898;
   font-size: 11px;
 }
 
 .session-cwd {
   font-size: 11px;
-  color: #94a3b8;
+  color: #a1a1a1;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -751,7 +751,7 @@ function selectSession(id: string) {
 
 .session-stats {
   font-size: 11px;
-  color: #71717a;
+  color: #989898;
 }
 
 .session-actions {
@@ -768,9 +768,9 @@ function selectSession(id: string) {
   gap: 5px;
   font-size: 11px;
   font-weight: 600;
-  color: #34d399;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #adadad;
+  background: rgba(64, 64, 64, 0.15);
+  border: 1px solid rgba(125, 125, 125, 0.3);
   padding: 3px 8px;
   border-radius: 6px;
 }
@@ -779,8 +779,8 @@ function selectSession(id: string) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 6px #10b981;
+  background: #404040;
+  box-shadow: 0 0 6px #404040;
 }
 
 .btn-resume-cli {
@@ -789,7 +789,7 @@ function selectSession(id: string) {
   gap: 4px;
   font-size: 12px;
   font-weight: 500;
-  background: #d97757;
+  background: #404040;
   color: #fff;
   border: none;
   padding: 5px 11px;
@@ -799,7 +799,7 @@ function selectSession(id: string) {
 }
 
 .btn-resume-cli:hover {
-  background: #e08365;
+  background: #404040;
 }
 
 .btn-resume-cli:active {
@@ -817,10 +817,10 @@ function selectSession(id: string) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 15px;
   cursor: pointer;
   touch-action: manipulation;
@@ -828,8 +828,8 @@ function selectSession(id: string) {
 }
 
 .btn-action-icon:hover {
-  background: #273549;
-  color: #f1f5f9;
+  background: #333333;
+  color: #eeeeee;
 }
 
 .btn-action-icon.danger {
@@ -858,8 +858,8 @@ function selectSession(id: string) {
 .inline-rename-input {
   flex: 1;
   min-width: 120px;
-  background: #18181b;
-  border: 1px solid #d97757;
+  background: #181818;
+  border: 1px solid #7d7d7d;
   color: #f8fafc;
   font-size: 13px;
   padding: 3px 8px;
@@ -868,8 +868,8 @@ function selectSession(id: string) {
 }
 
 .inline-rename-input:focus {
-  border-color: #f97316;
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
+  border-color: #7d7d7d;
+  box-shadow: 0 0 0 2px rgba(64, 64, 64, 0.2);
 }
 
 .btn-inline-action {
@@ -887,22 +887,22 @@ function selectSession(id: string) {
 }
 
 .btn-inline-action.save {
-  background: #10b981;
+  background: #404040;
   color: #fff;
 }
 
 .btn-inline-action.save:hover {
-  background: #059669;
+  background: #404040;
 }
 
 .btn-inline-action.cancel {
-  background: #334155;
-  color: #94a3b8;
+  background: #3f3f3f;
+  color: #a1a1a1;
 }
 
 .btn-inline-action.cancel:hover {
-  background: #475569;
-  color: #f1f5f9;
+  background: #404040;
+  color: #eeeeee;
 }
 
 @keyframes spin {

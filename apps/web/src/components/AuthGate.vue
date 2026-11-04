@@ -202,15 +202,15 @@ onUnmounted(() => {
   justify-content: center;
   padding: 24px 16px max(24px, env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 50% 0%, rgba(217, 119, 87, 0.16), transparent 36%),
-    #090d16;
+    radial-gradient(circle at 50% 0%, rgba(64, 64, 64, 0.16), transparent 36%),
+    #161616;
   z-index: 9999;
 }
 
 .auth-card {
   width: min(100%, 390px);
-  background: rgba(15, 23, 42, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(23, 23, 23, 0.96);
+  border: 1px solid rgba(125, 125, 125, 0.2);
   border-radius: 18px;
   padding: 22px;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
@@ -230,8 +230,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: rgba(217, 119, 87, 0.14);
-  border: 1px solid rgba(217, 119, 87, 0.35);
+  background: rgba(64, 64, 64, 0.14);
+  border: 1px solid rgba(125, 125, 125, 0.35);
   font-size: 25px;
 }
 
@@ -243,7 +243,7 @@ onUnmounted(() => {
 
 .auth-logo p {
   margin-top: 4px;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 13px;
 }
 
@@ -254,7 +254,7 @@ onUnmounted(() => {
 }
 
 .auth-label {
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -264,8 +264,8 @@ onUnmounted(() => {
 .auth-input {
   height: 46px;
   border-radius: 12px;
-  border: 1px solid #334155;
-  background: #020617;
+  border: 1px solid #3f3f3f;
+  background: #161616;
   color: #f8fafc;
   padding: 0 14px;
   font-size: 16px;
@@ -273,15 +273,15 @@ onUnmounted(() => {
 }
 
 .auth-input:focus {
-  border-color: #d97757;
-  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.16);
+  border-color: #7d7d7d;
+  box-shadow: 0 0 0 3px rgba(64, 64, 64, 0.16);
 }
 
 .auth-button {
   height: 46px;
   border: 0;
   border-radius: 12px;
-  background: #d97757;
+  background: #404040;
   color: #fff;
   font-weight: 800;
   font-size: 15px;
@@ -300,16 +300,16 @@ onUnmounted(() => {
 
 .auth-button.google {
   background: #f8fafc;
-  color: #0f172a;
+  color: #989898;
 }
 
 .must-change-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(245, 158, 11, 0.14);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
+  background: rgba(64, 64, 64, 0.14);
+  border: 1px solid rgba(125, 125, 125, 0.35);
+  color: #c1c1c1;
   font-size: 13px;
   font-weight: 700;
   padding: 6px 10px;
@@ -320,20 +320,20 @@ onUnmounted(() => {
 .must-change-desc {
   font-size: 12.5px;
   line-height: 1.45;
-  color: #cbd5e1;
+  color: #d4d4d4;
   margin-bottom: 8px;
 }
 
 .auth-error {
   margin-top: 14px;
-  color: #fca5a5;
+  color: #b7b7b7;
   font-size: 13px;
   line-height: 1.45;
 }
 
 .auth-hint {
   margin-top: 14px;
-  color: #64748b;
+  color: #989898;
   font-size: 12.5px;
   line-height: 1.45;
 }

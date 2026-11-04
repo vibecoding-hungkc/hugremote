@@ -404,7 +404,7 @@ async function executeDeleteClaudeSession() {
 </script>
 
 <style>
-.editor-save-error { color: #fda4af; padding: 8px 16px; background: #450a0a; font-size: 13px; }
+.editor-save-error { color: #b8b8b8; padding: 8px 16px; background: #171717; font-size: 13px; }
 /* Reset & Global Mobile-First CSS */
 * {
   box-sizing: border-box;
@@ -419,8 +419,8 @@ html, body {
   width: 100%;
   height: 100dvh;
   overflow: hidden;
-  background: #090d16;
-  color: #f1f5f9;
+  background: #161616;
+  color: #eeeeee;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -480,8 +480,8 @@ html, body {
 }
 
 .hub-sheet {
-  background: #0f172a;
-  border-top: 1px solid #334155;
+  background: #171717;
+  border-top: 1px solid #3f3f3f;
   border-radius: 14px 14px 0 0;
   width: 100%;
   max-width: 600px;
@@ -501,7 +501,7 @@ html, body {
 .hub-title {
   font-size: 13.5px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -510,7 +510,7 @@ html, body {
 .btn-hub-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 18px;
   cursor: pointer;
 }
@@ -523,8 +523,8 @@ html, body {
 }
 
 .hub-card {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
@@ -533,8 +533,8 @@ html, body {
   cursor: pointer;
 }
 .hub-card.active {
-  border-color: #6366f1;
-  background: #312e8122;
+  border-color: #6f6f6f;
+  background: rgba(53, 53, 53, 0.133);
 }
 
 .hub-card-top {
@@ -547,13 +547,13 @@ html, body {
   font-family: monospace;
   font-weight: 600;
   font-size: 13px;
-  color: #c7d2fe;
+  color: #d3d3d3;
 }
 
 .hub-badge-active {
   font-size: 9.5px;
-  background: rgba(99, 102, 241, 0.2);
-  color: #818cf8;
+  background: rgba(64, 64, 64, 0.2);
+  color: #989898;
   padding: 1px 6px;
   border-radius: 8px;
   font-weight: 600;
@@ -577,10 +577,10 @@ html, body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 15px;
   cursor: pointer;
   touch-action: manipulation;
@@ -588,12 +588,12 @@ html, body {
 }
 
 .btn-action-icon:hover {
-  background: #273549;
-  color: #f1f5f9;
+  background: #333333;
+  color: #eeeeee;
 }
 
 .btn-action-icon:active {
-  background: #334155;
+  background: #3f3f3f;
   transform: scale(0.96);
 }
 
@@ -614,7 +614,7 @@ html, body {
 }
 
 .btn-hub-create {
-  background: #2563eb;
+  background: #404040;
   border: none;
   border-radius: 6px;
   color: #fff;

@@ -102,55 +102,55 @@ async function checkout(branch: string) { await gitStore.checkout(branch); showB
 </script>
 
 <style scoped>
-.git-view { flex:1; min-height:0; background:#090d16; color:#cbd5e1; display:flex; flex-direction:column; overflow:hidden; }
-.git-summary { min-height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-bottom:1px solid #1e293b; background:#0f172a; }
-.branch-picker { min-width:0; max-width:48%; height:30px; display:flex; align-items:center; gap:5px; border:1px solid rgba(245,158,11,.28); border-radius:8px; background:rgba(245,158,11,.08); color:#fbbf24; padding:0 8px; font-size:12px; font-weight:800; }
+.git-view { flex:1; min-height:0; background:#161616; color:#d4d4d4; display:flex; flex-direction:column; overflow:hidden; }
+.git-summary { min-height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-bottom:1px solid #323232; background:#171717; }
+.branch-picker { min-width:0; max-width:48%; height:30px; display:flex; align-items:center; gap:5px; border:1px solid rgba(125, 125, 125, .28); border-radius:8px; background:rgba(64, 64, 64, .08); color:#c1c1c1; padding:0 8px; font-size:12px; font-weight:800; }
 .branch-picker span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .git-remote-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
-.remote-btn { height:30px; border:1px solid #334155; border-radius:8px; background:#1e293b; color:#cbd5e1; padding:0 8px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:4px; }
+.remote-btn { height:30px; border:1px solid #3f3f3f; border-radius:8px; background:#282828; color:#d4d4d4; padding:0 8px; font-size:11px; font-weight:800; display:flex; align-items:center; gap:4px; }
 .remote-btn:disabled { opacity:.45; }
-.remote-btn.active { border-color:rgba(56,189,248,.38); background:rgba(14,165,233,.1); color:#bae6fd; }
-.remote-count { font-family:monospace; font-size:10px; background:rgba(56,189,248,.14); color:#7dd3fc; border-radius:999px; padding:1px 5px; }
-.remote-btn.active .remote-count { background:#0284c7; color:white; }
-.git-toast { position:absolute; right:12px; bottom:54px; z-index:8; padding:8px 10px; border:1px solid rgba(34,197,94,.28); border-radius:10px; background:rgba(6,78,59,.95); color:#bbf7d0; font-size:12px; font-weight:800; display:flex; align-items:center; gap:6px; box-shadow:0 10px 28px rgba(0,0,0,.35); }
-.state { padding:28px; text-align:center; color:#64748b; font-size:13px; }
+.remote-btn.active { border-color:rgba(125, 125, 125, .38); background:rgba(64, 64, 64, 1); color:#dedede; }
+.remote-count { font-family:monospace; font-size:10px; background:rgba(64, 64, 64, .14); color:#c4c4c4; border-radius:999px; padding:1px 5px; }
+.remote-btn.active .remote-count { background:#404040; color:white; }
+.git-toast { position:absolute; right:12px; bottom:54px; z-index:8; padding:8px 10px; border:1px solid rgba(125, 125, 125, .28); border-radius:10px; background:rgba(61, 61, 61, .95); color:#e7e7e7; font-size:12px; font-weight:800; display:flex; align-items:center; gap:6px; box-shadow:0 10px 28px rgba(0,0,0,.35); }
+.state { padding:28px; text-align:center; color:#989898; font-size:13px; }
 .state.compact { padding:14px; }
 .state.error { color:#f87171; }
-.commit-box { display:flex; gap:8px; padding:10px; border-bottom:1px solid #172033; background:#0b1120; }
-.commit-box input { flex:1; min-width:0; height:34px; border:1px solid #334155; border-radius:8px; background:#020617; color:#f1f5f9; padding:0 10px; font-size:12px; }
-.commit-box button { height:34px; border:0; border-radius:8px; background:#2563eb; color:white; padding:0 10px; font-size:12px; font-weight:800; display:flex; align-items:center; gap:5px; }
+.commit-box { display:flex; gap:8px; padding:10px; border-bottom:1px solid #323232; background:#161616; }
+.commit-box input { flex:1; min-width:0; height:34px; border:1px solid #3f3f3f; border-radius:8px; background:#161616; color:#eeeeee; padding:0 10px; font-size:12px; }
+.commit-box button { height:34px; border:0; border-radius:8px; background:#404040; color:white; padding:0 10px; font-size:12px; font-weight:800; display:flex; align-items:center; gap:5px; }
 .commit-box button:disabled { opacity:.45; }
-.git-section-title { padding:8px 12px 5px; color:#64748b; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
-.file-row { display:grid; grid-template-columns: 34px minmax(0,1fr); align-items:center; min-height:46px; border-bottom:1px solid #172033; }
-.stage-toggle { width:34px; height:100%; border:0; background:transparent; color:#64748b; font-size:17px; }
+.git-section-title { padding:8px 12px 5px; color:#989898; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+.file-row { display:grid; grid-template-columns: 34px minmax(0,1fr); align-items:center; min-height:46px; border-bottom:1px solid #323232; }
+.stage-toggle { width:34px; height:100%; border:0; background:transparent; color:#989898; font-size:17px; }
 .stage-toggle.staged { color:#34d399; }
-.file-open { min-width:0; height:100%; border:0; background:transparent; color:#cbd5e1; display:grid; grid-template-columns: 30px minmax(0,1fr) auto auto auto; align-items:center; gap:7px; padding:0 12px 0 0; text-align:left; }
+.file-open { min-width:0; height:100%; border:0; background:transparent; color:#d4d4d4; display:grid; grid-template-columns: 30px minmax(0,1fr) auto auto auto; align-items:center; gap:7px; padding:0 12px 0 0; text-align:left; }
 .status { font-family:monospace; font-size:11px; font-weight:900; color:#fbbf24; }
 .status.A, .status.\?\? { color:#34d399; }
 .status.D { color:#fb7185; }
 .file-path { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; font-size:12px; }
-.stage-label { font-size:9.5px; color:#94a3b8; border:1px solid #334155; border-radius:999px; padding:1px 6px; }
+.stage-label { font-size:9.5px; color:#a1a1a1; border:1px solid #3f3f3f; border-radius:999px; padding:1px 6px; }
 .stage-label.staged { color:#86efac; border-color:rgba(34,197,94,.35); background:rgba(34,197,94,.08); }
 .stat { font-family:monospace; font-size:11px; }
 .plus { color:#34d399; } .minus { color:#fb7185; }
-.diff-header { height:40px; flex-shrink:0; display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid #1e293b; background:#0f172a; }
-.diff-header button { width:28px; height:28px; border-radius:7px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; }
-.diff-header span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; font-size:12px; color:#f1f5f9; }
+.diff-header { height:40px; flex-shrink:0; display:flex; align-items:center; gap:8px; padding:0 10px; border-bottom:1px solid #323232; background:#171717; }
+.diff-header button { width:28px; height:28px; border-radius:7px; border:1px solid #3f3f3f; background:#282828; color:#d4d4d4; }
+.diff-header span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; font-size:12px; color:#eeeeee; }
 .diff-body { flex:1; overflow:auto; font-family:monospace; font-size:11.5px; }
 .diff-line { display:grid; grid-template-columns: 36px 36px minmax(max-content,1fr); min-height:22px; align-items:center; }
 .diff-line.added { background:rgba(34,197,94,.16); }
 .diff-line.deleted { background:rgba(239,68,68,.16); }
-.diff-line.hunk { background:rgba(59,130,246,.14); color:#93c5fd; }
-.line-no { color:#64748b; text-align:right; padding-right:8px; user-select:none; }
-.diff-line code { white-space:pre; padding-right:12px; color:#cbd5e1; }
+.diff-line.hunk { background:rgba(64, 64, 64, .14); color:#bebebe; }
+.line-no { color:#989898; text-align:right; padding-right:8px; user-select:none; }
+.diff-line code { white-space:pre; padding-right:12px; color:#d4d4d4; }
 .diff-line.added code { color:#bbf7d0; }
 .diff-line.deleted code { color:#fecaca; }
 .branch-overlay { position:fixed; inset:0; z-index:120; background:rgba(0,0,0,.58); display:flex; align-items:flex-end; justify-content:center; }
-.branch-sheet { width:100%; max-width:620px; max-height:66vh; overflow:auto; background:#0f172a; border-top:1px solid #334155; border-radius:16px 16px 0 0; padding:12px; display:flex; flex-direction:column; gap:6px; }
-.branch-sheet-header { display:flex; align-items:center; justify-content:space-between; color:#f1f5f9; font-size:13px; font-weight:800; margin-bottom:4px; }
+.branch-sheet { width:100%; max-width:620px; max-height:66vh; overflow:auto; background:#171717; border-top:1px solid #3f3f3f; border-radius:16px 16px 0 0; padding:12px; display:flex; flex-direction:column; gap:6px; }
+.branch-sheet-header { display:flex; align-items:center; justify-content:space-between; color:#eeeeee; font-size:13px; font-weight:800; margin-bottom:4px; }
 .branch-sheet-header div { display:flex; align-items:center; gap:6px; }
-.branch-sheet-header button { width:30px; height:30px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; }
-.branch-row { min-height:40px; border:1px solid #1e293b; border-radius:9px; background:#111827; color:#cbd5e1; padding:0 10px; display:flex; align-items:center; justify-content:space-between; font-family:monospace; font-size:12px; }
-.branch-row.active { border-color:#f59e0b; background:rgba(245,158,11,.09); color:#fbbf24; }
+.branch-sheet-header button { width:30px; height:30px; border-radius:8px; border:1px solid #3f3f3f; background:#282828; color:#d4d4d4; }
+.branch-row { min-height:40px; border:1px solid #323232; border-radius:9px; background:#181818; color:#d4d4d4; padding:0 10px; display:flex; align-items:center; justify-content:space-between; font-family:monospace; font-size:12px; }
+.branch-row.active { border-color:#7d7d7d; background:rgba(64, 64, 64, .09); color:#c1c1c1; }
 @media (max-width:390px){ .git-remote-actions button{padding:0 6px;} .branch-picker{max-width:42%;} }
 </style>

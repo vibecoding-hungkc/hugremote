@@ -225,15 +225,15 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: #090d16;
+  background: #161616;
 }
 
 .code-preview-box {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  background: #0b1120;
-  color: #dce8fa;
+  background: #161616;
+  color: #e7e7e7;
   font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre;
   padding: 12px 0;
@@ -249,9 +249,9 @@ onBeforeUnmount(() => {
   padding: 0 12px 0 4px;
   box-sizing: border-box;
   text-align: right;
-  color: #64748b;
-  background: #0b1120;
-  border-right: 1px solid #1e293b;
+  color: #989898;
+  background: #161616;
+  border-right: 1px solid #323232;
   user-select: none;
 }
 .code-preview-text { padding: 0 16px; }
@@ -275,7 +275,7 @@ onBeforeUnmount(() => {
 
 :deep(.cm-editor) {
   height: 100%;
-  background: #0a0f1d !important;
+  background: #161616 !important;
 }
 
 :deep(.cm-scroller) {
@@ -284,17 +284,17 @@ onBeforeUnmount(() => {
 }
 
 :deep(.cm-gutters) {
-  background: #0e162b !important;
-  border-right: 1px solid #1e293b !important;
-  color: #64748b !important;
+  background: #161616 !important;
+  border-right: 1px solid #323232 !important;
+  color: #989898 !important;
 }
 
 .markdown-preview-box {
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
-  background: #0b1120;
-  color: #e2e8f0;
+  background: #161616;
+  color: #e7e7e7;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.6;
   font-size: 14px;
@@ -302,22 +302,22 @@ onBeforeUnmount(() => {
 
 :deep(.markdown-preview-box h1) {
   font-size: 22px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid #323232;
   padding-bottom: 8px;
   margin-top: 16px;
   margin-bottom: 12px;
-  color: #60a5fa;
+  color: #9c9c9c;
 }
 
 :deep(.markdown-preview-box h2) {
   font-size: 18px;
   margin-top: 16px;
   margin-bottom: 10px;
-  color: #93c5fd;
+  color: #bebebe;
 }
 
 :deep(.markdown-preview-box pre) {
-  background: #050811;
+  background: #161616;
   padding: 12px;
   border-radius: 8px;
   overflow-x: auto;
@@ -326,7 +326,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.markdown-preview-box code) {
-  background: #1e293b;
+  background: #282828;
   padding: 2px 6px;
   border-radius: 4px;
   font-family: monospace;
@@ -334,7 +334,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.markdown-preview-box a) {
-  color: #38bdf8;
+  color: #a5a5a5;
   text-decoration: none;
 }
 
@@ -348,17 +348,17 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(34, 197, 94, .28);
-  background: rgba(6, 78, 59, .94);
-  color: #bbf7d0;
+  border: 1px solid rgba(125, 125, 125, .28);
+  background: rgba(61, 61, 61, .94);
+  color: #e7e7e7;
   font-size: 12px;
   font-weight: 700;
   box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
 }
 
 .editor-keybar {
-  background: #0f172a;
-  border-top: 1px solid #1e293b;
+  background: #171717;
+  border-top: 1px solid #323232;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -386,10 +386,10 @@ onBeforeUnmount(() => {
 }
 
 .key-pill {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 5px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-family: monospace;
   font-size: 12px;
   padding: 4px 10px;
@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 .key-pill:active {
-  background: #334155;
+  background: #3f3f3f;
   color: #fff;
 }
 </style>

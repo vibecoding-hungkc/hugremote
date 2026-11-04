@@ -94,7 +94,7 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 .modal-overlay.confirm-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.72);
+  background: rgba(22, 22, 22, 0.72);
   backdrop-filter: blur(4px);
   z-index: 3000 !important;
   display: flex !important;
@@ -104,8 +104,8 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 }
 .modal-sheet,
 .modal-sheet.confirm-modal-sheet {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: #171717;
+  border: 1px solid #3f3f3f;
   border-radius: 14px !important;
   width: 100%;
   max-width: 420px !important;
@@ -124,7 +124,7 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 .modal-title {
   font-size: 13.5px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -133,13 +133,13 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 .btn-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 20px;
   cursor: pointer;
 }
 .modal-desc {
   font-size: 12.5px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   line-height: 1.6;
   font-family: monospace;
   word-break: break-word;
@@ -149,7 +149,7 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #f87171;
+  color: #989898;
 }
 .modal-footer {
   display: flex;
@@ -158,15 +158,15 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 }
 .btn-secondary {
   background: transparent;
-  border: 1px solid #334155;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 8px 16px;
   font-size: 12.5px;
   cursor: pointer;
 }
 .btn-confirm {
-  background: #2563eb;
+  background: #404040;
   border: none;
   border-radius: 6px;
   color: #fff;

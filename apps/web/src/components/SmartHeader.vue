@@ -100,7 +100,7 @@
             </div>
           </div>
 
-          <button class="btn-icon-action" @click="handleDownloadCurrentFolder" :title="t('fileExplorer.downloadZip') || 'Nén zip và tải về thư mục'"><i class="ri-folder-zip-line"></i></button>
+          <button class="btn-icon-action" @click="handleDownloadCurrentFolder" :title="t('fileExplorer.downloadZip') || 'Nén zip và tải về thư mục'" :aria-label="t('fileExplorer.downloadZip') || 'Nén zip và tải về thư mục'"><i class="ri-download-2-line" aria-hidden="true"></i></button>
           <button class="btn-icon-action" @click="fileStore.fetchFiles(fileStore.currentRel)" :title="t('common.refresh')"><i class="ri-refresh-line"></i></button>
         </template>
         <template v-else-if="activeTab === 'editor'">
@@ -333,12 +333,12 @@ async function closeFile() {
 </script>
 
 <style>
-.editor-dirty { color: #fbbf24; font-size: 11px; flex-shrink: 0; }
+.editor-dirty { color: #c1c1c1; font-size: 11px; flex-shrink: 0; }
 /* SmartHeader: Unified layout compatible with existing template */
 .smart-header {
   height: 64px;
-  background: #0f172a;
-  border-bottom: 1px solid #1e293b;
+  background: #171717;
+  border-bottom: 1px solid #323232;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -350,7 +350,7 @@ async function closeFile() {
 
 .server-title-row {
   height: 28px;
-  background: #090e1a;
+  background: #161616;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
@@ -371,7 +371,7 @@ async function closeFile() {
 }
 
 .server-proj-sep {
-  color: #475569;
+  color: #989898;
   font-family: monospace;
   font-weight: 700;
   font-size: 12px;
@@ -383,7 +383,7 @@ async function closeFile() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #e2e8f0;
+  color: #e7e7e7;
   font-family: monospace;
   font-size: 11.5px;
   font-weight: 800;
@@ -396,12 +396,12 @@ async function closeFile() {
   flex-shrink: 0;
 }
 .server-status-dot.local {
-  background: #3b82f6;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.7);
+  background: #404040;
+  box-shadow: 0 0 6px rgba(64, 64, 64, 0.7);
 }
 .server-status-dot.remote {
-  background: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.7);
+  background: #404040;
+  box-shadow: 0 0 6px rgba(64, 64, 64, 0.7);
 }
 
 .context-row {
@@ -420,9 +420,9 @@ async function closeFile() {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #cbd5e1;
+  border: 1px solid #3f3f3f;
+  background: #282828;
+  color: #d4d4d4;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -435,9 +435,9 @@ async function closeFile() {
   width: 28px;
   height: 28px;
   border-radius: 7px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #cbd5e1;
+  border: 1px solid #3f3f3f;
+  background: #282828;
+  color: #d4d4d4;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -453,16 +453,16 @@ async function closeFile() {
 }
 
 .btn-icon-action.quick-tree-trigger[aria-expanded="true"] {
-  color: #b7d9ff;
-  background: linear-gradient(135deg, #153358, #1b2b4d);
-  border-color: #4674ac;
+  color: #d5d5d5;
+  background: linear-gradient(135deg, #2f2f2f, #2a2a2a);
+  border-color: #38bdf8;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .btn-icon-action.quick-tree-trigger[data-quick-panel="git"][aria-expanded="true"] {
-  color: #ffd18b;
-  background: linear-gradient(135deg, #45311c, #493025);
-  border-color: #a97742;
+  color: #d6d6d6;
+  background: linear-gradient(135deg, #343434, #353535);
+  border-color: #fbbf24;
 }
 
 .project-selector-btn {
@@ -472,9 +472,9 @@ async function closeFile() {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgba(56, 189, 248, 0.28);
-  background: rgba(14, 165, 233, 0.09);
-  color: #bae6fd;
+  border: 1px solid rgba(245, 158, 11, 0.62);
+  background: rgba(64, 64, 64, 0.09);
+  color: #dedede;
   border-radius: 6px;
   padding: 0 6px;
   font-family: monospace;
@@ -489,7 +489,7 @@ async function closeFile() {
 }
 .project-selector-btn .proj-arrow {
   font-size: 12px;
-  color: #7dd3fc;
+  color: #c4c4c4;
   flex-shrink: 0;
   margin-left: 1px;
 }
@@ -524,9 +524,9 @@ async function closeFile() {
   min-width: 28px;
   height: 28px;
   border-radius: 7px;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #cbd5e1;
+  border: 1px solid #3f3f3f;
+  background: #282828;
+  color: #d4d4d4;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -536,14 +536,14 @@ async function closeFile() {
   transition: all 0.16s ease;
 }
 .btn-workspace-sidebar-toggle:hover {
-  border-color: #475569;
+  border-color: #535353;
   color: #f8fafc;
 }
 .btn-workspace-sidebar-toggle[aria-expanded="true"] {
-  color: #38bdf8;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(30, 58, 138, 0.35));
-  border-color: #38bdf8;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 8px rgba(56, 189, 248, 0.25);
+  color: #a5a5a5;
+  background: linear-gradient(135deg, rgba(64, 64, 64, 0.22), rgba(58, 58, 58, 0.35));
+  border-color: #7d7d7d;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 8px rgba(64, 64, 64, 0.25);
 }
 
 .breadcrumb-bar {
@@ -551,7 +551,7 @@ async function closeFile() {
   align-items: center;
   gap: 4px;
   min-width: 0;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-family: monospace;
   font-size: 11.5px;
 }
@@ -560,14 +560,14 @@ async function closeFile() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #cbd5e1;
+  color: #d4d4d4;
 }
 .crumb-segment.current {
-  color: #38bdf8;
+  color: #a5a5a5;
   font-weight: 800;
 }
 .crumb-sep {
-  color: #475569;
+  color: #989898;
 }
 
 .smart-header-right {
@@ -587,9 +587,9 @@ async function closeFile() {
   gap: 6px;
   max-width: 100%;
   min-width: 0;
-  border: 1px solid rgba(168, 85, 247, 0.28);
-  background: rgba(88, 28, 135, 0.18);
-  color: #e9d5ff;
+  border: 1px solid rgba(56, 189, 248, 0.62);
+  background: rgba(48, 48, 48, 0.18);
+  color: #dcdcdc;
   font-family: monospace;
   font-size: 11.5px;
   font-weight: 800;
@@ -601,16 +601,16 @@ async function closeFile() {
   white-space: nowrap;
 }
 .claude-session-pill {
-  border-color: rgba(217, 119, 87, 0.34);
-  background: #2a201c;
-  color: #fed7aa;
+  border-color: rgba(217, 119, 87, 0.68);
+  background: #222222;
+  color: #dcdcdc;
 }
 .claude-session-pill i:first-child {
-  color: #d97757;
+  color: #989898;
 }
 
 .badge-count {
-  background: #6366f1;
+  background: #404040;
   color: white;
   border-radius: 8px;
   padding: 1px 5px;
@@ -618,12 +618,12 @@ async function closeFile() {
   flex-shrink: 0;
 }
 .claude-badge {
-  background: #d97757;
+  background: #404040;
 }
 
 .editor-title, .git-title {
   gap: 5px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 12px;
   font-weight: 800;
   min-width: 0;
@@ -632,7 +632,7 @@ async function closeFile() {
   white-space: nowrap;
 }
 .git-title {
-  color: #fbbf24;
+  color: #c1c1c1;
 }
 
 @media (max-width: 600px) {
@@ -649,13 +649,16 @@ async function closeFile() {
   position: relative;
   display: inline-flex;
 }
+.header-action-dropdown-wrapper:has(.header-dropdown-menu) > .btn-icon-action {
+  border-color: #38bdf8;
+}
 
 .header-dropdown-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: #181818;
+  border: 1px solid #38bdf8;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
   min-width: 170px;
@@ -674,7 +677,7 @@ async function closeFile() {
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #e2e8f0;
+  color: #e7e7e7;
   font-size: 13px;
   cursor: pointer;
   text-align: left;
@@ -683,8 +686,8 @@ async function closeFile() {
 }
 
 .header-dropdown-menu .dropdown-item:hover {
-  background: #1e293b;
-  color: #38bdf8;
+  background: #282828;
+  color: #a5a5a5;
 }
 
 .header-dropdown-menu .dropdown-item i {

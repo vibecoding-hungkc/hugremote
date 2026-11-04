@@ -311,7 +311,7 @@ async function handleSubmit() {
   max-width: 500px;
   max-height: 88dvh;
   overflow-y: auto;
-  background: #18181b;
+  background: #181818;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px 16px 0 0;
   padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
@@ -327,7 +327,7 @@ async function handleSubmit() {
 .modal-title {
   font-size: 15px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -336,7 +336,7 @@ async function handleSubmit() {
 .btn-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 18px;
   cursor: pointer;
 }
@@ -356,7 +356,7 @@ async function handleSubmit() {
 .form-label {
   font-size: 12px;
   font-weight: 500;
-  color: #94a3b8;
+  color: #a1a1a1;
 }
 
 .form-select {
@@ -368,7 +368,7 @@ async function handleSubmit() {
   display: grid;
   gap: 4px;
   padding: 3px;
-  background: #222226;
+  background: #222222;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
 }
@@ -383,16 +383,16 @@ async function handleSubmit() {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
-  color: #929aa8;
+  color: #999999;
   font-size: 11px;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .segmented-control button.active {
-  background: rgba(217, 119, 87, 0.16);
-  border-color: rgba(217, 119, 87, 0.55);
-  color: #f7d2c4;
+  background: rgba(64, 64, 64, 0.16);
+  border-color: rgba(125, 125, 125, 0.55);
+  color: #d9d9d9;
 }
 
 .permission-option {
@@ -402,14 +402,14 @@ async function handleSubmit() {
   padding: 10px 11px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 9px;
-  background: #222226;
+  background: #222222;
   cursor: pointer;
   touch-action: manipulation;
 }
 
 .permission-option.enabled {
-  border-color: rgba(217, 119, 87, 0.65);
-  background: rgba(217, 119, 87, 0.09);
+  border-color: rgba(125, 125, 125, 0.65);
+  background: rgba(64, 64, 64, 0.09);
 }
 
 .permission-option > input {
@@ -426,15 +426,15 @@ async function handleSubmit() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #52525b;
+  border: 1px solid #535353;
   border-radius: 5px;
   color: white;
   font-size: 14px;
 }
 
 .permission-option.enabled .permission-checkbox {
-  background: #d97757;
-  border-color: #d97757;
+  background: #404040;
+  border-color: #7d7d7d;
 }
 
 .permission-copy {
@@ -444,23 +444,23 @@ async function handleSubmit() {
 }
 
 .permission-copy strong {
-  color: #f1f5f9;
+  color: #eeeeee;
   font-size: 12.5px;
   font-weight: 600;
 }
 
 .permission-copy small {
-  color: #8f98a7;
+  color: #989898;
   font-size: 10.5px;
   line-height: 1.35;
 }
 
 .form-input,
 .form-textarea {
-  background: #27272a;
+  background: #272727;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  color: #f1f5f9;
+  color: #eeeeee;
   font-size: 13.5px;
   padding: 8px 10px;
   outline: none;
@@ -468,7 +468,7 @@ async function handleSubmit() {
 
 .form-input:focus,
 .form-textarea:focus {
-  border-color: #d97757;
+  border-color: #7d7d7d;
 }
 
 .input-with-icons {
@@ -493,7 +493,7 @@ async function handleSubmit() {
 .btn-icon-inside {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 4px;
   border-radius: 4px;
   cursor: pointer;
@@ -501,11 +501,11 @@ async function handleSubmit() {
 }
 
 .btn-icon-inside:hover {
-  color: #f1f5f9;
+  color: #eeeeee;
 }
 
 .btn-icon-inside.primary {
-  color: #d97757;
+  color: #989898;
 }
 
 .modal-footer {
@@ -517,9 +517,9 @@ async function handleSubmit() {
 }
 
 .btn-secondary {
-  background: #27272a;
+  background: #272727;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  color: #d4d4d4;
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 13px;
@@ -527,7 +527,7 @@ async function handleSubmit() {
 }
 
 .btn-confirm {
-  background: #d97757;
+  background: #404040;
   border: none;
   color: #fff;
   padding: 8px 16px;

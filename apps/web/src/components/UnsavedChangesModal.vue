@@ -21,11 +21,11 @@ watch(() => store.isUnsavedPromptOpen, async open => { if (open) { await nextTic
 function choose(choice: 'save' | 'discard' | 'cancel') { void store.resolveUnsavedChanges(choice); }
 </script>
 <style scoped>
-.unsaved-overlay { position: fixed; inset: 0; z-index: 3000; background: #020617b8; display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
-.unsaved-dialog { width: 100%; max-width: 440px; padding: 22px; border: 1px solid #334155; border-radius: 16px; background: #0f172a; color: #e2e8f0; box-shadow: 0 24px 80px #0008; outline: none; }
+.unsaved-overlay { position: fixed; inset: 0; z-index: 3000; background: rgba(22, 22, 22, 0.722); display: flex; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+.unsaved-dialog { width: 100%; max-width: 440px; padding: 22px; border: 1px solid #3f3f3f; border-radius: 16px; background: #171717; color: #e7e7e7; box-shadow: 0 24px 80px #0008; outline: none; }
 h3 { font-size: 18px; margin-bottom: 12px; } p { line-height: 1.6; font-size: 14px; overflow-wrap: anywhere; }
 .unsaved-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
-button { padding: 10px 14px; border: 1px solid #475569; border-radius: 8px; background: #1e293b; color: #e2e8f0; cursor: pointer; }
-button.save { background: #2563eb; border-color: #3b82f6; } button.discard { color: #fda4af; } button:disabled { opacity: .5; cursor: wait; }
-.unsaved-error { color: #fda4af; margin-top: 12px; }
+button { padding: 10px 14px; border: 1px solid #535353; border-radius: 8px; background: #282828; color: #e7e7e7; cursor: pointer; }
+button.save { background: #404040; border-color: #7b7b7b; } button.discard { color: #b8b8b8; } button:disabled { opacity: .5; cursor: wait; }
+.unsaved-error { color: #b8b8b8; margin-top: 12px; }
 </style>

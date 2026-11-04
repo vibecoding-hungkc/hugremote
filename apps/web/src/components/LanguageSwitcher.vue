@@ -32,8 +32,8 @@ function cycleLocale() {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  border: 1px solid #334155;
-  background: #1e293b;
+  border: 1px solid #3f3f3f;
+  background: #282828;
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;

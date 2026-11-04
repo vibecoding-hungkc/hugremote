@@ -243,35 +243,35 @@ async function openPath() {
 
 <style scoped>
 .modal-overlay { position: fixed; inset: 0; z-index: 110; background: rgba(0,0,0,.62); display:flex; align-items:flex-end; justify-content:center; }
-.modal-sheet { width:100%; max-width:620px; max-height:75vh; background:#0f172a; border-top:1px solid #334155; border-radius:16px 16px 0 0; padding:14px; display:flex; flex-direction:column; gap:12px; }
+.modal-sheet { width:100%; max-width:620px; max-height:75vh; background:#171717; border-top:1px solid #3f3f3f; border-radius:16px 16px 0 0; padding:14px; display:flex; flex-direction:column; gap:12px; }
 .modal-header { display:flex; align-items:flex-start; justify-content:space-between; }
 .modal-title { color:#f8fafc; font-weight:800; display:flex; gap:7px; align-items:center; }
-.modal-subtitle { color:#64748b; font-size:11px; margin-top:2px; }
-.btn-close { width:30px; height:30px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#cbd5e1; }
+.modal-subtitle { color:#989898; font-size:11px; margin-top:2px; }
+.btn-close { width:30px; height:30px; border-radius:8px; border:1px solid #3f3f3f; background:#282828; color:#d4d4d4; }
 .project-list { display:flex; flex-direction:column; gap:6px; overflow:auto; }
-.project-row { display:flex; align-items:center; gap:10px; min-height:52px; border:1px solid #1e293b; background:#111827; border-radius:10px; padding:9px 10px; color:#cbd5e1; text-align:left; cursor:pointer; }
-.project-row.active { border-color:#38bdf8; background:rgba(14,165,233,.09); }
+.project-row { display:flex; align-items:center; gap:10px; min-height:52px; border:1px solid #323232; background:#181818; border-radius:10px; padding:9px 10px; color:#d4d4d4; text-align:left; cursor:pointer; }
+.project-row.active { border-color:#7d7d7d; background:rgba(64, 64, 64, .09); }
 .project-main { min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
-.project-main strong { color:#f1f5f9; font-size:13px; font-family:monospace; }
-.project-main small { color:#64748b; font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.btn-project-rename { width:28px; height:28px; border-radius:7px; border:1px solid #334155; background:#1e293b; color:#93c5fd; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
-.rename-overlay { position:fixed; inset:0; z-index:1; background:rgba(2,6,23,.8); display:flex; align-items:center; justify-content:center; padding:20px; }
-.rename-form { width:min(100%,360px); padding:18px; border:1px solid #334155; border-radius:12px; background:#0f172a; display:flex; flex-direction:column; gap:12px; color:#f1f5f9; }
+.project-main strong { color:#eeeeee; font-size:13px; font-family:monospace; }
+.project-main small { color:#989898; font-size:10.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.btn-project-rename { width:28px; height:28px; border-radius:7px; border:1px solid #3f3f3f; background:#282828; color:#bebebe; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.rename-overlay { position:fixed; inset:0; z-index:1; background:rgba(22, 22, 22, .8); display:flex; align-items:center; justify-content:center; padding:20px; }
+.rename-form { width:min(100%,360px); padding:18px; border:1px solid #3f3f3f; border-radius:12px; background:#171717; display:flex; flex-direction:column; gap:12px; color:#eeeeee; }
 .rename-form label { font-weight:700; }
-.rename-form input { width:100%; box-sizing:border-box; height:38px; border:1px solid #475569; border-radius:7px; padding:0 10px; background:#020617; color:#f1f5f9; }
-.rename-error { color:#fca5a5; margin:0; font-size:12px; }
-.scope-error { color:#fca5a5; margin:0; font-size:12px; padding: 4px 6px; background: rgba(239,68,68,0.1); border-radius: 6px; }
+.rename-form input { width:100%; box-sizing:border-box; height:38px; border:1px solid #535353; border-radius:7px; padding:0 10px; background:#161616; color:#eeeeee; }
+.rename-error { color:#b7b7b7; margin:0; font-size:12px; }
+.scope-error { color:#b7b7b7; margin:0; font-size:12px; padding: 4px 6px; background: rgba(64, 64, 64, 0.1); border-radius: 6px; }
 .rename-actions { display:flex; justify-content:flex-end; gap:8px; }
-.rename-actions button { min-height:34px; padding:0 12px; border:1px solid #334155; border-radius:7px; background:#1e293b; color:#e2e8f0; }
-.rename-actions button[type=submit] { background:#2563eb; border-color:#2563eb; color:white; }
+.rename-actions button { min-height:34px; padding:0 12px; border:1px solid #3f3f3f; border-radius:7px; background:#282828; color:#e7e7e7; }
+.rename-actions button[type=submit] { background:#404040; border-color:#606060; color:white; }
 .rename-actions button:disabled { opacity:.5; }
-.btn-project-delete { width:28px; height:28px; border-radius:7px; border:1px solid rgba(239,68,68,.32); background:rgba(239,68,68,.08); color:#f87171; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
-.root-lock { width:28px; height:28px; border-radius:7px; color:#64748b; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.btn-project-delete { width:28px; height:28px; border-radius:7px; border:1px solid rgba(104, 104, 104, .32); background:rgba(64, 64, 64, .08); color:#989898; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.root-lock { width:28px; height:28px; border-radius:7px; color:#989898; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
 .quick-row { display:flex; gap:8px; }
-.quick-row button { flex:1; height:34px; border-radius:8px; border:1px solid #334155; background:#1e293b; color:#bfdbfe; font-weight:700; }
+.quick-row button { flex:1; height:34px; border-radius:8px; border:1px solid #3f3f3f; background:#282828; color:#d8d8d8; font-weight:700; }
 .open-form { display:flex; flex-direction:column; gap:6px; }
-.open-form label { color:#94a3b8; font-size:11px; font-weight:700; text-transform:uppercase; }
+.open-form label { color:#a1a1a1; font-size:11px; font-weight:700; text-transform:uppercase; }
 .open-row { display:flex; gap:8px; }
-.open-row input { flex:1; min-width:0; height:36px; border:1px solid #334155; border-radius:8px; background:#020617; color:#f1f5f9; padding:0 10px; font-family:monospace; }
-.open-row button { width:40px; border-radius:8px; border:0; background:#2563eb; color:white; }
+.open-row input { flex:1; min-width:0; height:36px; border:1px solid #3f3f3f; border-radius:8px; background:#161616; color:#eeeeee; padding:0 10px; font-family:monospace; }
+.open-row button { width:40px; border-radius:8px; border:0; background:#404040; color:white; }
 </style>

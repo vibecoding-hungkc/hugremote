@@ -1270,7 +1270,7 @@ function formatMarkdown(text: string): string {
   height: 100%;
   width: 100%;
   max-width: 100%;
-  background: #1e1e24;
+  background: #1e1e1e;
   position: relative;
   overflow: hidden;
   overflow-x: hidden;
@@ -1286,7 +1286,7 @@ function formatMarkdown(text: string): string {
   padding: 3px 8px;
   overflow-x: auto;
   scrollbar-width: none;
-  background: #11131a;
+  background: #161616;
   border-top: 1px solid rgba(255, 255, 255, 0.07);
   flex-shrink: 0;
   -webkit-overflow-scrolling: touch;
@@ -1303,10 +1303,10 @@ function formatMarkdown(text: string): string {
   align-items: center;
   gap: 5px;
   padding: 0 9px;
-  border: 1px solid #343843;
+  border: 1px solid #383838;
   border-radius: 6px;
-  background: #242731;
-  color: #e2e8f0;
+  background: #272727;
+  color: #e7e7e7;
   font-size: 10.5px;
   font-family: var(--font-mono, monospace);
   cursor: pointer;
@@ -1315,14 +1315,14 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-shortcut-key small {
-  color: #71717a;
+  color: #989898;
   font-size: 9px;
   font-family: inherit;
 }
 
 .claude-shortcut-key:active {
-  background: #353946;
-  border-color: #64748b;
+  background: #393939;
+  border-color: #727272;
 }
 
 /* 1. Stream Area */
@@ -1338,7 +1338,7 @@ function formatMarkdown(text: string): string {
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: rgba(217, 119, 87, 0.44) transparent;
+  scrollbar-color: rgba(152, 152, 152, 0.44) transparent;
   padding: 16px 14px 12px;
   display: flex;
   flex-direction: column;
@@ -1355,7 +1355,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-ext-stream::-webkit-scrollbar-thumb {
-  background: rgba(217, 119, 87, 0.44);
+  background: rgba(152, 152, 152, 0.44);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 999px;
@@ -1363,13 +1363,13 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-ext-stream::-webkit-scrollbar-thumb:hover {
-  background: rgba(217, 119, 87, 0.68);
+  background: rgba(152, 152, 152, 0.68);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 .claude-ext-stream::-webkit-scrollbar-thumb:active {
-  background: rgba(217, 119, 87, 0.82);
+  background: rgba(152, 152, 152, 0.82);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -1380,12 +1380,12 @@ function formatMarkdown(text: string): string {
 
 /* User Message Card */
 .claude-ext-user-msg {
-  background: #25252b;
+  background: #252525;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 13.5px;
-  color: #f1f5f9;
+  color: #eeeeee;
   line-height: 1.45;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -1405,7 +1405,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-asst-dot {
-  color: #9ca3af;
+  color: #a2a2a2;
   font-size: 12px;
   line-height: 1.5;
   user-select: none;
@@ -1413,7 +1413,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-asst-dot.pulsing {
-  color: #d97757;
+  color: #989898;
   animation: pulse 1s infinite alternate;
 }
 
@@ -1434,7 +1434,7 @@ function formatMarkdown(text: string): string {
 
 .claude-asst-text {
   font-size: 13.5px;
-  color: #e2e8f0;
+  color: #e7e7e7;
   line-height: 1.55;
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -1484,16 +1484,16 @@ function formatMarkdown(text: string): string {
 .claude-asst-text blockquote {
   margin: 8px 0;
   padding: 6px 12px;
-  border-left: 3px solid #d97757;
-  background: rgba(217, 119, 87, 0.08);
+  border-left: 3px solid #7d7d7d;
+  background: rgba(64, 64, 64, 0.08);
   border-radius: 0 6px 6px 0;
-  color: #cbd5e1;
+  color: #d4d4d4;
 }
 
 .claude-asst-text pre {
   margin: 8px 0;
   padding: 10px 12px;
-  background: #14161d;
+  background: #161616;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
   overflow-x: auto;
@@ -1501,7 +1501,7 @@ function formatMarkdown(text: string): string {
   font-family: var(--font-mono, monospace);
   font-size: 12px;
   line-height: 1.5;
-  color: #e2e8f0;
+  color: #e7e7e7;
 }
 
 .claude-asst-text pre code {
@@ -1515,7 +1515,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-asst-text a {
-  color: #60a5fa;
+  color: #9c9c9c;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -1528,7 +1528,7 @@ function formatMarkdown(text: string): string {
   -webkit-overflow-scrolling: touch;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  background: #161821;
+  background: #181818;
 }
 
 .claude-md-table {
@@ -1572,7 +1572,7 @@ function formatMarkdown(text: string): string {
   background: rgba(255, 255, 255, 0.08);
   padding: 1px 5px;
   border-radius: 4px;
-  color: #93c5fd;
+  color: #bebebe;
   font-family: var(--font-mono, monospace);
   font-size: 12px;
   word-break: break-all;
@@ -1586,10 +1586,10 @@ function formatMarkdown(text: string): string {
   gap: 8px;
   margin: 10px auto;
   padding: 6px 14px;
-  background: rgba(234, 179, 8, 0.12);
-  border: 1px solid rgba(234, 179, 8, 0.3);
+  background: rgba(64, 64, 64, 0.12);
+  border: 1px solid rgba(125, 125, 125, 0.3);
   border-radius: 20px;
-  color: #facc15;
+  color: #c9c9c9;
   font-size: 12.5px;
   font-weight: 500;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
@@ -1600,7 +1600,7 @@ function formatMarkdown(text: string): string {
 .claude-current-task {
   margin: auto 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #18181d;
+  background: #181818;
   border-radius: 8px;
   padding: 9px 11px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
@@ -1617,8 +1617,8 @@ function formatMarkdown(text: string): string {
 .current-task-spinner {
   width: 13px;
   height: 13px;
-  border: 2px solid rgba(217, 119, 87, 0.28);
-  border-top-color: #d97757;
+  border: 2px solid rgba(125, 125, 125, 0.28);
+  border-top-color: #7d7d7d;
   border-radius: 50%;
   flex-shrink: 0;
   animation: thinkingSpin 0.8s linear infinite;
@@ -1633,13 +1633,13 @@ function formatMarkdown(text: string): string {
 }
 
 .current-task-label {
-  color: #d97757;
+  color: #989898;
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .current-task-title {
-  color: #e2e8f0;
+  color: #e7e7e7;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1651,7 +1651,7 @@ function formatMarkdown(text: string): string {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  color: #71717a;
+  color: #989898;
   font-size: 10.5px;
   font-family: var(--font-mono, monospace);
 }
@@ -1671,7 +1671,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-tool-card {
-  background: #18181b;
+  background: #181818;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   padding: 8px 10px;
@@ -1710,7 +1710,7 @@ function formatMarkdown(text: string): string {
 }
 
 .bash-expand-icon {
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 15px;
   flex-shrink: 0;
 }
@@ -1734,48 +1734,48 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-tool-badge.read {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
+  background: rgba(64, 64, 64, 0.15);
+  color: #9c9c9c;
 }
 
 .claude-tool-badge.edit {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  background: rgba(64, 64, 64, 0.15);
+  color: #c1c1c1;
 }
 
 .claude-tool-badge.bash {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
+  background: rgba(64, 64, 64, 0.15);
+  color: #adadad;
 }
 
 .claude-tool-badge.search {
-  background: rgba(168, 85, 247, 0.15);
-  color: #c084fc;
+  background: rgba(64, 64, 64, 0.15);
+  color: #999999;
 }
 
 .claude-tool-badge.web {
-  background: rgba(6, 182, 212, 0.15);
-  color: #22d3ee;
+  background: rgba(64, 64, 64, 0.15);
+  color: #afafaf;
 }
 
 .claude-tool-badge.todo {
-  background: rgba(234, 179, 8, 0.15);
-  color: #facc15;
+  background: rgba(64, 64, 64, 0.15);
+  color: #c9c9c9;
 }
 
 .claude-tool-badge.agent {
-  background: rgba(236, 72, 153, 0.15);
-  color: #f472b6;
+  background: rgba(64, 64, 64, 0.15);
+  color: #989898;
 }
 
 .claude-tool-badge.mcp {
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
+  background: rgba(64, 64, 64, 0.15);
+  color: #999999;
 }
 
 .claude-tool-badge.generic {
-  background: rgba(148, 163, 184, 0.15);
-  color: #94a3b8;
+  background: rgba(64, 64, 64, 0.15);
+  color: #a1a1a1;
 }
 
 .claude-child-agents {
@@ -1787,7 +1787,7 @@ function formatMarkdown(text: string): string {
 
 .claude-agent-card {
   background: #141416;
-  border: 1px solid #27272a;
+  border: 1px solid #323232;
   border-radius: 6px;
   padding: 8px 10px;
 }
@@ -1807,20 +1807,20 @@ function formatMarkdown(text: string): string {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(236, 72, 153, 0.15);
-  color: #f472b6;
+  background: rgba(64, 64, 64, 0.15);
+  color: #989898;
 }
 
 .claude-agent-title {
   font-size: 12px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: #e7e7e7;
   flex: 1;
 }
 
 .claude-agent-meta {
   font-size: 11px;
-  color: #71717a;
+  color: #989898;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1829,7 +1829,7 @@ function formatMarkdown(text: string): string {
 .claude-agent-transcript {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid #1f1f23;
+  border-top: 1px solid #323232;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1838,17 +1838,17 @@ function formatMarkdown(text: string): string {
 .claude-agent-msg {
   font-size: 11px;
   line-height: 1.4;
-  color: #cbd5e1;
+  color: #d4d4d4;
 }
 
 .claude-agent-sender {
   font-weight: 600;
   margin-right: 4px;
-  color: #a1a1aa;
+  color: #a2a2a2;
 }
 
 .claude-tool-title {
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-weight: 500;
 }
 
@@ -1856,7 +1856,7 @@ function formatMarkdown(text: string): string {
   background: #09090b;
   padding: 6px 8px;
   border-radius: 4px;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-family: var(--font-mono, monospace);
   font-size: 11px;
   overflow-x: auto;
@@ -1896,8 +1896,8 @@ function formatMarkdown(text: string): string {
 
 /* Live Thinking Panel */
 .claude-thinking-panel {
-  border-left: 2px solid rgba(217, 119, 87, 0.45);
-  background: rgba(217, 119, 87, 0.05);
+  border-left: 2px solid rgba(125, 125, 125, 0.45);
+  background: rgba(64, 64, 64, 0.05);
   border-radius: 0 6px 6px 0;
   overflow: hidden;
   max-width: 100%;
@@ -1912,7 +1912,7 @@ function formatMarkdown(text: string): string {
   gap: 8px;
   background: transparent;
   border: 0;
-  color: #c9a493;
+  color: #ababab;
   padding: 7px 9px;
   font-size: 11.5px;
   cursor: pointer;
@@ -1929,20 +1929,20 @@ function formatMarkdown(text: string): string {
 .tool-spinner {
   width: 11px;
   height: 11px;
-  border: 1.5px solid rgba(217, 119, 87, 0.3);
-  border-top-color: #d97757;
+  border: 1.5px solid rgba(125, 125, 125, 0.3);
+  border-top-color: #7d7d7d;
   border-radius: 50%;
   animation: thinkingSpin 0.8s linear infinite;
 }
 
 .thinking-complete-icon {
-  color: #34d399;
+  color: #adadad;
   font-size: 13px;
 }
 
 .claude-thinking-content {
   padding: 0 9px 8px 27px;
-  color: #a1a1aa;
+  color: #a2a2a2;
   font-size: 11.5px;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -1955,7 +1955,7 @@ function formatMarkdown(text: string): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: #a1a1a1;
 }
 
 .claude-tool-status.done {
@@ -1970,7 +1970,7 @@ function formatMarkdown(text: string): string {
   margin-top: 5px;
   max-height: 160px;
   overflow: auto;
-  color: #a7f3d0;
+  color: #e0e0e0;
 }
 
 @keyframes thinkingSpin {
@@ -1981,18 +1981,18 @@ function formatMarkdown(text: string): string {
 .claude-ext-bottom-wrap {
   position: relative;
   padding: 0 12px 14px;
-  background: #1e1e24;
+  background: #1e1e1e;
 }
 
 /* Banner */
 .claude-ext-usage-banner {
-  background: #2b2319;
-  border: 1px solid #574127;
+  background: #242424;
+  border: 1px solid #444444;
   border-radius: 8px;
   padding: 8px 12px;
   margin-bottom: 8px;
   font-size: 11.5px;
-  color: #e5a54b;
+  color: #acacac;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2004,7 +2004,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-banner-link {
-  color: #e5a54b;
+  color: #acacac;
   text-decoration: underline;
   cursor: pointer;
 }
@@ -2012,7 +2012,7 @@ function formatMarkdown(text: string): string {
 .claude-banner-close {
   background: transparent;
   border: none;
-  color: #e5a54b;
+  color: #acacac;
   font-size: 14px;
   cursor: pointer;
   padding: 0 4px;
@@ -2021,8 +2021,8 @@ function formatMarkdown(text: string): string {
 /* Signature Input Box */
 .claude-ext-input-box {
   position: relative;
-  background: #1e1e24;
-  border: 1px solid rgba(217, 119, 87, 0.55);
+  background: #1e1e1e;
+  border: 1px solid rgba(125, 125, 125, 0.55);
   border-radius: 12px;
   padding: 8px 10px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -2037,10 +2037,10 @@ function formatMarkdown(text: string): string {
   max-height: 250px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: #18181d;
+  background: #181818;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(217, 119, 87, 0.15);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(64, 64, 64, 0.15);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -2068,7 +2068,7 @@ function formatMarkdown(text: string): string {
 
 .claude-slash-item:hover,
 .claude-slash-item.active {
-  background: rgba(217, 119, 87, 0.15);
+  background: rgba(64, 64, 64, 0.15);
 }
 
 .slash-item-left {
@@ -2087,18 +2087,18 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-slash-item.active .slash-item-name {
-  color: #d97757;
+  color: #989898;
 }
 
 .slash-item-arg {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11.5px;
-  color: #71717a;
+  color: #989898;
 }
 
 .slash-item-desc {
   font-size: 11.5px;
-  color: #a1a1aa;
+  color: #a2a2a2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2115,13 +2115,13 @@ function formatMarkdown(text: string): string {
   .slash-item-desc {
     text-align: left;
     font-size: 11px;
-    color: #71717a;
+    color: #989898;
   }
 }
 
 .claude-ext-input-box.focused {
-  border-color: #d97757;
-  box-shadow: 0 0 0 1px rgba(217, 119, 87, 0.3);
+  border-color: #7d7d7d;
+  box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.3);
 }
 
 .claude-ext-input-row {
@@ -2135,7 +2135,7 @@ function formatMarkdown(text: string): string {
   background: transparent;
   border: none;
   outline: none;
-  color: #f1f5f9;
+  color: #eeeeee;
   font-size: 13.5px;
   resize: none;
   padding: 4px 0;
@@ -2145,7 +2145,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-ext-textarea::placeholder {
-  color: #6b7280;
+  color: #989898;
 }
 
 .claude-permission-shield-btn {
@@ -2155,10 +2155,10 @@ function formatMarkdown(text: string): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(34, 197, 94, 0.09);
-  border: 1px solid rgba(34, 197, 94, 0.28);
+  background: rgba(64, 64, 64, 0.09);
+  border: 1px solid rgba(125, 125, 125, 0.28);
   border-radius: 7px;
-  color: #4ade80;
+  color: #b8b8b8;
   font-size: 16px;
   cursor: pointer;
   padding: 0;
@@ -2166,9 +2166,9 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-permission-shield-btn.bypass {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.45);
-  color: #fbbf24;
+  background: rgba(64, 64, 64, 0.12);
+  border-color: rgba(125, 125, 125, 0.45);
+  color: #c1c1c1;
 }
 
 .claude-permission-shield-btn:active {
@@ -2213,10 +2213,10 @@ function formatMarkdown(text: string): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 14px;
   cursor: pointer;
   touch-action: manipulation;
@@ -2232,19 +2232,19 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-ctrl-btn:hover {
-  background: #273549;
-  color: #f1f5f9;
+  background: #333333;
+  color: #eeeeee;
 }
 
 .claude-ctrl-btn:active {
-  background: #334155;
+  background: #3f3f3f;
   transform: scale(0.96);
 }
 
 .claude-ctrl-btn.active {
-  background: rgba(217, 119, 87, 0.2);
-  border-color: rgba(217, 119, 87, 0.45);
-  color: #d97757;
+  background: rgba(64, 64, 64, 0.2);
+  border-color: rgba(125, 125, 125, 0.45);
+  color: #989898;
 }
 
 /* Context Window Pill */
@@ -2252,7 +2252,7 @@ function formatMarkdown(text: string): string {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: #9ca3af;
+  color: #a2a2a2;
   font-size: 11px;
   font-family: var(--font-mono, monospace);
   padding: 2px 7px;
@@ -2267,19 +2267,19 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-context-pill .ctx-used {
-  color: #f1f5f9;
+  color: #eeeeee;
   font-weight: 600;
 }
 
 .claude-context-pill .ctx-max {
-  color: #6b7280;
+  color: #989898;
 }
 
 /* Model Badge */
 .claude-model-badge {
-  background: #25252d;
+  background: #262626;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  color: #e7e7e7;
   border-radius: 6px;
   padding: 3px 8px;
   font-size: 11.5px;
@@ -2291,14 +2291,14 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-model-badge:hover {
-  background: #2f2f38;
+  background: #303030;
 }
 
 /* Mode Badge */
 .claude-mode-badge {
   background: transparent;
   border: none;
-  color: #9ca3af;
+  color: #a2a2a2;
   font-size: 11.5px;
   display: flex;
   align-items: center;
@@ -2308,7 +2308,7 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-mode-badge:hover {
-  color: #f1f5f9;
+  color: #eeeeee;
 }
 
 /* Send Button */
@@ -2317,8 +2317,8 @@ function formatMarkdown(text: string): string {
   height: 26px;
   border-radius: 6px;
   border: none;
-  background: #38312d;
-  color: #9ca3af;
+  background: #323232;
+  color: #a2a2a2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2328,20 +2328,20 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-send-btn.active {
-  background: #d97757;
+  background: #404040;
   color: #fff;
   cursor: pointer;
 }
 
 .claude-send-btn.stopping {
-  background: #dc2626;
+  background: #404040;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.3);
+  box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.3);
 }
 
 .claude-send-btn.stopping:active {
-  background: #b91c1c;
+  background: #3d3d3d;
   transform: scale(0.94);
 }
 
@@ -2372,7 +2372,7 @@ function formatMarkdown(text: string): string {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 20px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -2380,8 +2380,8 @@ function formatMarkdown(text: string): string {
 }
 
 .claude-empty-hub-btn:hover {
-  background: rgba(217, 119, 87, 0.15);
-  border-color: rgba(217, 119, 87, 0.4);
+  background: rgba(64, 64, 64, 0.15);
+  border-color: rgba(125, 125, 125, 0.4);
   color: #f8fafc;
   transform: translateY(-1px);
 }
@@ -2400,7 +2400,7 @@ function formatMarkdown(text: string): string {
   font-family: "Georgia", "Charter", "Times New Roman", serif;
   font-size: 26px;
   font-weight: 500;
-  color: #f1f5f9;
+  color: #eeeeee;
   letter-spacing: -0.3px;
 }
 
@@ -2420,19 +2420,19 @@ function formatMarkdown(text: string): string {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(24, 24, 29, 0.95);
-  border: 1px solid rgba(217, 119, 87, 0.45);
+  background: rgba(24, 24, 24, 0.95);
+  border: 1px solid rgba(125, 125, 125, 0.45);
   border-radius: 20px;
   color: #f5f5f7;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 14px rgba(217, 119, 87, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 14px rgba(64, 64, 64, 0.25);
   backdrop-filter: blur(10px);
   pointer-events: none;
 }
 
 .claude-action-toast i {
-  color: #d97757;
+  color: #989898;
   font-size: 15px;
 }
 
@@ -2464,7 +2464,7 @@ function formatMarkdown(text: string): string {
   padding: 10px 14px;
 }
 .claude-interaction-card.pending {
-  border-color: #f59e0b;
+  border-color: #7d7d7d;
 }
 .claude-interaction-header {
   display: flex;
@@ -2479,7 +2479,7 @@ function formatMarkdown(text: string): string {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #f59e0b;
+  color: #a6a6a6;
 }
 .claude-interaction-status-tag {
   font-size: 11px;
@@ -2514,11 +2514,11 @@ function formatMarkdown(text: string): string {
   font-weight: 600;
 }
 .claude-interaction-actions .btn-action.allow {
-  background: #10b981;
+  background: #404040;
   color: #fff;
 }
 .claude-interaction-actions .btn-action.deny {
-  background: #ef4444;
+  background: #404040;
   color: #fff;
 }
 .claude-interaction-actions .btn-action:disabled {
@@ -2537,9 +2537,9 @@ function formatMarkdown(text: string): string {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: rgba(64, 64, 64, 0.15);
+  color: #a5a5a5;
+  border: 1px solid rgba(125, 125, 125, 0.3);
 }
 
 </style>

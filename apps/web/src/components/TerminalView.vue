@@ -674,13 +674,13 @@ defineExpose({
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #050811;
+  background: #161616;
   position: relative;
 }
 
 .reconnect-banner {
-  background: #78350f;
-  color: #fef3c7;
+  background: #404040;
+  color: #eeeeee;
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
@@ -715,12 +715,12 @@ defineExpose({
 }
 
 .terminal-view-container .xterm-viewport {
-  background: #050811 !important;
+  background: #161616 !important;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   width: 100% !important;
   scrollbar-width: thin;
-  scrollbar-color: #334e68cc transparent;
+  scrollbar-color: rgba(152, 152, 152, 0.8) transparent;
 }
 
 /* Xterm v6 owns scrolling through this VS Code-style scroll surface. */
@@ -736,16 +736,16 @@ defineExpose({
   border: 2px solid transparent;
   border-radius: 999px;
   background-clip: padding-box !important;
-  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.1);
+  box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.1);
   transition: background-color 120ms ease, box-shadow 120ms ease;
 }
 
 .terminal-view-container .xterm-scrollable-element > .scrollbar > .slider:hover {
-  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.34), 0 0 10px rgba(59, 130, 246, 0.22);
+  box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.34), 0 0 10px rgba(64, 64, 64, 0.22);
 }
 
 .terminal-view-container .xterm-scrollable-element > .scrollbar > .slider.active {
-  box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.5), 0 0 12px rgba(96, 165, 250, 0.34);
+  box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.5), 0 0 12px rgba(64, 64, 64, 0.34);
 }
 
 .terminal-view-container .xterm-viewport::-webkit-scrollbar {
@@ -761,25 +761,25 @@ defineExpose({
   min-height: 34px;
   border: 2px solid transparent;
   border-radius: 999px;
-  background: #64748b;
+  background: #404040;
   background-clip: padding-box;
 }
 
 .terminal-view-container .xterm-viewport::-webkit-scrollbar-thumb:hover {
-  background: #60a5fa;
+  background: #404040;
   background-clip: padding-box;
 }
 
 .terminal-view-container .xterm-viewport::-webkit-scrollbar-thumb:active {
-  background: #93c5fd;
+  background: #404040;
   background-clip: padding-box;
 }
 
 .terminal-touch-bar-container {
   display: flex;
   flex-direction: column;
-  background: #090e1a;
-  border-top: 1px solid #1e293b;
+  background: #161616;
+  border-top: 1px solid #323232;
   flex-shrink: 0;
   z-index: 30;
 }
@@ -788,7 +788,7 @@ defineExpose({
   display: flex;
   align-items: center;
   height: 34px;
-  background: #0d1322;
+  background: #161616;
 }
 
 .tb-expand-btn {
@@ -798,16 +798,16 @@ defineExpose({
   gap: 2px;
   width: 38px;
   height: 34px;
-  background: #1e1b4b;
+  background: #1f1f1f;
   border: none;
-  border-right: 1px solid #312e81;
-  color: #a5b4fc;
+  border-right: 1px solid #353535;
+  color: #b6b6b6;
   font-size: 13px;
   cursor: pointer;
   flex-shrink: 0;
 }
 .tb-expand-btn.active {
-  background: #3730a3;
+  background: #3a3a3a;
   color: #fff;
 }
 
@@ -824,7 +824,7 @@ defineExpose({
 .tb-divider {
   width: 1px;
   height: 18px;
-  background: #223252;
+  background: #313131;
   flex-shrink: 0;
   margin: 0 2px;
 }
@@ -836,10 +836,10 @@ defineExpose({
   height: 25px;
   min-width: 25px;
   padding: 0 7px;
-  background: #162035;
-  border: 1px solid #223252;
+  background: #1f1f1f;
+  border: 1px solid #323232;
   border-radius: 5px;
-  color: #e2e8f0;
+  color: #e7e7e7;
   font-family: monospace;
   font-size: 11px;
   font-weight: 600;
@@ -847,23 +847,23 @@ defineExpose({
   flex-shrink: 0;
 }
 .tb-btn:active {
-  background: #253860;
-  border-color: #3b82f6;
+  background: #373737;
+  border-color: #7b7b7b;
 }
 
-.tb-esc { background: #3b1825; border-color: #622236; color: #fca5a5; }
-.tb-tab { background: #1e293b; border-color: #334155; color: #94a3b8; }
-.tb-enter { background: #064e3b; border-color: #047857; color: #6ee7b7; font-weight: 700; font-size: 14px; }
-.tb-danger { background: #450a0a; border-color: #7f1d1d; color: #f87171; font-weight: 700; }
-.tb-arrow { background: #1e293b; color: #93c5fd; font-size: 14px; padding: 0 5px; }
-.tb-accent { background: #78350f; border-color: #b45309; color: #fde68a; font-weight: 700; }
-.tb-cmd { background: #132742; border-color: #1e40af; color: #93c5fd; }
-.tb-paste { background: #1f2937; border-color: #374151; color: #a5b4fc; }
-.tb-num { min-width: 28px; justify-content: center; background: #1e293b; }
+.tb-esc { background: #202020; border-color: #323232; color: #b7b7b7; }
+.tb-tab { background: #282828; border-color: #3f3f3f; color: #a1a1a1; }
+.tb-enter { background: #3d3d3d; border-color: #5d5d5d; color: #cacaca; font-weight: 700; font-size: 14px; }
+.tb-danger { background: #171717; border-color: #323232; color: #989898; font-weight: 700; }
+.tb-arrow { background: #282828; color: #bebebe; font-size: 14px; padding: 0 5px; }
+.tb-accent { background: #404040; border-color: #626262; color: #e4e4e4; font-weight: 700; }
+.tb-cmd { background: #252525; border-color: #414141; color: #bebebe; }
+.tb-paste { background: #282828; border-color: #404040; color: #b6b6b6; }
+.tb-num { min-width: 28px; justify-content: center; background: #282828; }
 
 .touch-bar-drawer {
-  background: #090e1a;
-  border-top: 1px solid #1e293b;
+  background: #161616;
+  border-top: 1px solid #323232;
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
@@ -880,7 +880,7 @@ defineExpose({
 
 .drawer-group-title {
   font-size: 10.5px;
-  color: #64748b;
+  color: #989898;
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.5px;

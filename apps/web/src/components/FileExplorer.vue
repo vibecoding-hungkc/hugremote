@@ -51,12 +51,13 @@
 
         <!-- Download Zip of Current Folder -->
         <button
+          type="button"
           class="btn-tool-action download"
           @click="handleDownloadCurrentFolder"
           :title="t('fileExplorer.downloadZip')"
+          :aria-label="t('fileExplorer.downloadZip')"
         >
-          <i class="ri-folder-zip-line"></i>
-          <span>{{ t('fileExplorer.downloadZip') }}</span>
+          <i class="ri-download-2-line" aria-hidden="true"></i>
         </button>
 
         <!-- Temp Archives Modal Trigger -->
@@ -112,7 +113,7 @@
         <div class="file-left">
           <i
             class="item-icon"
-            :class="item.isDirectory ? 'ri-folder-fill folder' : getFileIcon(item.ext)"
+            :class="item.isDirectory ? 'ri-folder-2-line folder' : getFileIcon(item.ext)"
           ></i>
           <div class="item-details">
             <span class="item-name">{{ item.name }}</span>
@@ -667,7 +668,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  background: #090d16;
+  background: #161616;
   position: relative;
   width: 100%;
   height: 100%;
@@ -679,8 +680,8 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 8px 14px;
-  background: #0d1322;
-  border-bottom: 1px solid #1e293b;
+  background: #161616;
+  border-bottom: 1px solid #323232;
   gap: 10px;
   position: sticky;
   top: 0;
@@ -701,18 +702,18 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #38bdf8;
+  color: #a5a5a5;
   cursor: pointer;
   flex-shrink: 0;
   font-size: 15px;
 }
 
 .btn-tool-icon:hover {
-  background: #273549;
-  color: #7dd3fc;
+  background: #333333;
+  color: #c4c4c4;
 }
 
 .path-display {
@@ -721,14 +722,14 @@ defineExpose({
   gap: 6px;
   font-family: monospace;
   font-size: 13px;
-  color: #94a3b8;
+  color: #a1a1a1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .path-display i {
-  color: #f59e0b;
+  color: #a6a6a6;
   font-size: 15px;
 }
 
@@ -753,53 +754,58 @@ defineExpose({
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid #334155;
-  background: #1e293b;
-  color: #e2e8f0;
+  border: 1px solid #3f3f3f;
+  background: #282828;
+  color: #e7e7e7;
   transition: all 0.15s ease;
 }
 
 .btn-tool-action:hover {
-  background: #273549;
+  background: #333333;
 }
 
 .btn-tool-action.upload {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.4);
-  background: rgba(56, 189, 248, 0.08);
+  color: #a5a5a5;
+  border-color: rgba(125, 125, 125, 0.4);
+  background: rgba(64, 64, 64, 0.08);
 }
 
 .btn-tool-action.upload:hover {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: #38bdf8;
+  background: rgba(64, 64, 64, 0.18);
+  border-color: #7d7d7d;
 }
 
 .btn-tool-action.download {
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.4);
-  background: rgba(52, 211, 153, 0.08);
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #adadad;
+  border-color: rgba(125, 125, 125, 0.4);
+  background: rgba(64, 64, 64, 0.08);
 }
 
 .btn-tool-action.download:hover {
-  background: rgba(52, 211, 153, 0.18);
-  border-color: #34d399;
+  background: rgba(64, 64, 64, 0.18);
+  border-color: #7d7d7d;
 }
 
 .btn-tool-action.cleanup {
   position: relative;
   padding: 5px 8px;
-  color: #a78bfa;
-  border-color: rgba(167, 139, 250, 0.4);
-  background: rgba(167, 139, 250, 0.08);
+  color: #999999;
+  border-color: rgba(125, 125, 125, 0.4);
+  background: rgba(64, 64, 64, 0.08);
 }
 
 .btn-tool-action.cleanup:hover {
-  background: rgba(167, 139, 250, 0.18);
-  border-color: #a78bfa;
+  background: rgba(64, 64, 64, 0.18);
+  border-color: #7d7d7d;
 }
 
 .zip-cache-badge {
-  background: #6366f1;
+  background: #404040;
   color: white;
   border-radius: 8px;
   padding: 1px 5px;
@@ -811,8 +817,8 @@ defineExpose({
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: #181818;
+  border: 1px solid #323232;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
   min-width: 170px;
@@ -831,7 +837,7 @@ defineExpose({
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #e2e8f0;
+  color: #e7e7e7;
   font-size: 13px;
   cursor: pointer;
   text-align: left;
@@ -840,8 +846,8 @@ defineExpose({
 }
 
 .toolbar-dropdown-menu .menu-item:hover {
-  background: #1e293b;
-  color: #38bdf8;
+  background: #282828;
+  color: #a5a5a5;
 }
 
 /* Upload Progress Banner */
@@ -860,8 +866,8 @@ defineExpose({
 .file-drop-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(9, 13, 22, 0.85);
-  border: 2px dashed #38bdf8;
+  background: rgba(22, 22, 22, 0.85);
+  border: 2px dashed #7d7d7d;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -874,10 +880,10 @@ defineExpose({
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  background: #111827;
+  background: #181818;
   padding: 24px 32px;
   border-radius: 12px;
-  border: 1px solid #1e293b;
+  border: 1px solid #323232;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
@@ -895,12 +901,12 @@ defineExpose({
 .drop-title {
   font-size: 16px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
 }
 
 .drop-subtitle {
   font-size: 12px;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-family: monospace;
 }
 
@@ -908,7 +914,7 @@ defineExpose({
 .state-box {
   padding: 40px;
   text-align: center;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -931,18 +937,18 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border-bottom: 1px solid #131b2e;
+  border-bottom: 1px solid #323232;
   cursor: pointer;
   touch-action: manipulation;
   transition: background 0.1s ease;
 }
 
 .file-row:hover {
-  background: #0f172a;
+  background: #171717;
 }
 
 .file-row:active {
-  background: #17223b;
+  background: #212121;
 }
 
 .file-left {
@@ -975,7 +981,7 @@ defineExpose({
   font-family: monospace;
   font-size: 13.5px;
   font-weight: 500;
-  color: #f1f5f9;
+  color: #eeeeee;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -983,7 +989,7 @@ defineExpose({
 
 .item-meta {
   font-size: 11px;
-  color: #64748b;
+  color: #989898;
   margin-top: 2px;
 }
 
@@ -1007,17 +1013,17 @@ defineExpose({
 }
 
 .btn-file-more.active {
-  background: #273549;
-  border-color: #38bdf8;
-  color: #38bdf8;
+  background: #333333;
+  border-color: #7d7d7d;
+  color: #a5a5a5;
 }
 
 .file-row-dropdown-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #111827;
-  border: 1px solid #334155;
+  background: #181818;
+  border: 1px solid #3f3f3f;
   border-radius: 8px;
   box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.65);
   min-width: 176px;
@@ -1036,7 +1042,7 @@ defineExpose({
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #e2e8f0;
+  color: #e7e7e7;
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
@@ -1046,12 +1052,12 @@ defineExpose({
 }
 
 .file-row-dropdown-menu .menu-item:hover {
-  background: #1e293b;
+  background: #282828;
 }
 
 .file-row-dropdown-menu .menu-item.download i,
 .file-row-dropdown-menu .menu-item.project i {
-  color: #38bdf8;
+  color: #a5a5a5;
 }
 
 .file-row-dropdown-menu .menu-item.danger {
@@ -1068,10 +1074,10 @@ defineExpose({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 15px;
   cursor: pointer;
   touch-action: manipulation;
@@ -1080,24 +1086,24 @@ defineExpose({
 }
 
 .btn-action-icon:hover {
-  background: #273549;
-  color: #f1f5f9;
+  background: #333333;
+  color: #eeeeee;
 }
 
 .btn-action-icon:active {
-  background: #334155;
+  background: #3f3f3f;
   transform: scale(0.96);
 }
 
 .btn-action-icon.download {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.08);
+  color: #a5a5a5;
+  border-color: rgba(125, 125, 125, 0.35);
+  background: rgba(64, 64, 64, 0.08);
 }
 
 .btn-action-icon.download:hover {
-  background: rgba(56, 189, 248, 0.2);
-  border-color: #38bdf8;
+  background: rgba(64, 64, 64, 0.2);
+  border-color: #7d7d7d;
 }
 
 .btn-action-icon.danger {
@@ -1107,9 +1113,9 @@ defineExpose({
 }
 
 .btn-action-icon.project {
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.08);
+  color: #a5a5a5;
+  border-color: rgba(125, 125, 125, 0.35);
+  background: rgba(64, 64, 64, 0.08);
 }
 
 .btn-action-icon.danger:hover {
@@ -1131,8 +1137,8 @@ defineExpose({
 }
 
 .modal-content.cleanup-modal {
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: #181818;
+  border: 1px solid #323232;
   border-radius: 12px;
   width: 100%;
   max-width: 520px;
@@ -1147,32 +1153,32 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid #323232;
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 15px;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .modal-header h3 i {
-  color: #a78bfa;
+  color: #999999;
 }
 
 .modal-close-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 18px;
   cursor: pointer;
 }
 
 .modal-close-btn:hover {
-  color: #f1f5f9;
+  color: #eeeeee;
 }
 
 .modal-body {
@@ -1183,24 +1189,24 @@ defineExpose({
 
 .cleanup-hint {
   font-size: 12.5px;
-  color: #94a3b8;
+  color: #a1a1a1;
   line-height: 1.5;
   margin-top: 0;
   margin-bottom: 16px;
-  background: #0f172a;
+  background: #171717;
   padding: 10px 12px;
   border-radius: 6px;
-  border: 1px solid #1e293b;
+  border: 1px solid #323232;
 }
 
 .cleanup-hint code {
-  color: #38bdf8;
+  color: #a5a5a5;
 }
 
 .empty-archives {
   text-align: center;
   padding: 30px;
-  color: #64748b;
+  color: #989898;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1223,8 +1229,8 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 8px;
 }
 
@@ -1250,7 +1256,7 @@ defineExpose({
   font-family: monospace;
   font-size: 12.5px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: #eeeeee;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1261,12 +1267,12 @@ defineExpose({
   align-items: center;
   gap: 12px;
   font-size: 11px;
-  color: #94a3b8;
+  color: #a1a1a1;
   margin-top: 2px;
 }
 
 .arch-size {
-  color: #34d399;
+  color: #adadad;
 }
 
 .modal-footer {
@@ -1275,23 +1281,23 @@ defineExpose({
   justify-content: flex-end;
   gap: 10px;
   padding: 12px 18px;
-  border-top: 1px solid #1f2937;
-  background: #0f172a;
+  border-top: 1px solid #323232;
+  background: #171717;
 }
 
 .btn-secondary {
   padding: 7px 14px;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 13px;
   cursor: pointer;
 }
 
 .btn-secondary:hover {
-  background: #273549;
-  color: #f1f5f9;
+  background: #333333;
+  color: #eeeeee;
 }
 
 .btn-danger {
@@ -1299,8 +1305,8 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  background: #ef4444;
-  border: 1px solid #dc2626;
+  background: #404040;
+  border: 1px solid #4d4d4d;
   border-radius: 6px;
   color: white;
   font-size: 13px;
@@ -1309,7 +1315,7 @@ defineExpose({
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  background: #404040;
 }
 
 .spin {

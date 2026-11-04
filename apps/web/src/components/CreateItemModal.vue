@@ -147,8 +147,8 @@ defineExpose({
   justify-content: center;
 }
 .modal-sheet {
-  background: #0f172a;
-  border-top: 1px solid #334155;
+  background: #171717;
+  border-top: 1px solid #3f3f3f;
   border-radius: 14px 14px 0 0;
   width: 100%;
   max-width: 600px;
@@ -165,7 +165,7 @@ defineExpose({
 .modal-title {
   font-size: 14px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -173,14 +173,14 @@ defineExpose({
 .btn-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 20px;
   cursor: pointer;
 }
 .type-switcher {
   display: flex;
-  background: #0b1120;
-  border: 1px solid #1e293b;
+  background: #161616;
+  border: 1px solid #323232;
   border-radius: 8px;
   padding: 3px;
   gap: 4px;
@@ -195,15 +195,15 @@ defineExpose({
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .switch-btn.active {
-  background: #1e293b;
-  color: #60a5fa;
+  background: #282828;
+  color: #9c9c9c;
   font-weight: 600;
 }
 .target-location {
@@ -211,13 +211,13 @@ defineExpose({
   align-items: center;
   gap: 6px;
   font-size: 11.5px;
-  color: #64748b;
+  color: #989898;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .target-location code {
-  color: #93c5fd;
+  color: #bebebe;
   font-family: monospace;
 }
 .input-group {
@@ -225,10 +225,10 @@ defineExpose({
 }
 .modal-input {
   flex: 1;
-  background: #0b1120;
-  border: 1px solid #334155;
+  background: #161616;
+  border: 1px solid #3f3f3f;
   border-radius: 8px;
-  color: #f1f5f9;
+  color: #eeeeee;
   font-family: monospace;
   font-size: 13.5px;
   padding: 10px 12px;
@@ -236,14 +236,14 @@ defineExpose({
   width: 100%;
 }
 .modal-input:focus {
-  border-color: #2563eb;
+  border-color: #606060;
 }
 .modal-error {
   display: flex;
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #f87171;
+  color: #989898;
 }
 .modal-footer {
   display: flex;
@@ -252,15 +252,15 @@ defineExpose({
 }
 .btn-secondary {
   background: transparent;
-  border: 1px solid #334155;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 8px 16px;
   font-size: 12.5px;
   cursor: pointer;
 }
 .btn-primary {
-  background: #2563eb;
+  background: #404040;
   border: none;
   border-radius: 6px;
   color: #fff;

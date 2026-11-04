@@ -349,7 +349,7 @@ function handleSelectClaude(sessionId: string) {
   display: none;
   position: fixed;
   inset: calc(var(--header-h, 64px) + env(safe-area-inset-top, 0px)) 0 calc(var(--dock-h, 42px) + env(safe-area-inset-bottom, 0px)) 0;
-  background: rgba(2, 8, 23, 0.62);
+  background: rgba(22, 22, 22, 0.62);
   backdrop-filter: blur(2px);
   z-index: 86;
 }
@@ -371,9 +371,9 @@ function handleSelectClaude(sessionId: string) {
   width: 256px;
   max-width: calc(100vw - 48px);
   background:
-    linear-gradient(180deg, rgba(11, 18, 34, 0.99) 0%, rgba(8, 13, 26, 0.99) 100%),
-    repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.03) 0px, rgba(56, 189, 248, 0.03) 1px, transparent 1px, transparent 24px);
-  border-right: 1px solid #1e293b;
+    linear-gradient(180deg, rgba(22, 22, 22, 0.99) 0%, rgba(22, 22, 22, 0.99) 100%),
+    repeating-linear-gradient(0deg, rgba(64, 64, 64, 0.03) 0px, rgba(64, 64, 64, 0.03) 1px, transparent 1px, transparent 24px);
+  border-right: 1px solid #323232;
   box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45);
   z-index: 87;
   display: flex;
@@ -400,7 +400,7 @@ function handleSelectClaude(sessionId: string) {
   align-items: center;
   justify-content: space-between;
   padding: 2px 6px 8px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  border-bottom: 1px solid rgba(125, 125, 125, 0.12);
   gap: 6px;
 }
 .dw-top-title {
@@ -409,20 +409,20 @@ function handleSelectClaude(sessionId: string) {
   gap: 6px;
   font-size: 12px;
   font-weight: 800;
-  color: #e2e8f0;
+  color: #e7e7e7;
   min-width: 0;
 }
 .dw-top-title i {
-  color: #38bdf8;
+  color: #a5a5a5;
   font-size: 15px;
 }
 .dw-project-scope-pill {
   font-family: monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #7dd3fc;
-  background: rgba(14, 165, 233, 0.14);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #c4c4c4;
+  background: rgba(64, 64, 64, 0.14);
+  border: 1px solid rgba(125, 125, 125, 0.3);
   border-radius: 999px;
   padding: 1px 7px;
   max-width: 96px;
@@ -436,7 +436,7 @@ function handleSelectClaude(sessionId: string) {
   border-radius: 6px;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.04);
-  color: #94a3b8;
+  color: #a1a1a1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -463,12 +463,12 @@ function handleSelectClaude(sessionId: string) {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: #989898;
 }
 .dw-section-head button {
-  border: 1px solid #293548;
-  background: #131c2e;
-  color: #93c5fd;
+  border: 1px solid #343434;
+  background: #1b1b1b;
+  color: #bebebe;
   border-radius: 5px;
   padding: 2px 6px;
   font-size: 10px;
@@ -476,8 +476,8 @@ function handleSelectClaude(sessionId: string) {
   cursor: pointer;
 }
 .dw-section-head button:hover {
-  background: #1e3a8a;
-  border-color: #3b82f6;
+  background: #3a3a3a;
+  border-color: #7b7b7b;
   color: #fff;
 }
 
@@ -493,30 +493,30 @@ function handleSelectClaude(sessionId: string) {
   gap: 6px;
   padding: 6px 8px;
   border-radius: 7px;
-  border: 1px solid rgba(51, 65, 85, 0.45);
-  background: rgba(15, 23, 42, 0.65);
-  color: #cbd5e1;
+  border: 1px solid rgba(63, 63, 63, 0.45);
+  background: rgba(23, 23, 23, 0.65);
+  color: #d4d4d4;
   cursor: pointer;
   transition: all 0.14s ease;
 }
 .dw-item:hover {
-  border-color: #475569;
-  background: rgba(30, 41, 59, 0.9);
+  border-color: #535353;
+  background: rgba(40, 40, 40, 0.9);
 }
 .dw-item.active.proj-item {
-  border-color: #38bdf8;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(30, 58, 138, 0.24));
-  color: #f0f9ff;
+  border-color: #7d7d7d;
+  background: linear-gradient(135deg, rgba(64, 64, 64, 0.2), rgba(58, 58, 58, 0.24));
+  color: #eeeeee;
 }
 .dw-item.active.term-item {
-  border-color: #a855f7;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(59, 130, 246, 0.14));
-  color: #f3e8ff;
+  border-color: #727272;
+  background: linear-gradient(135deg, rgba(64, 64, 64, 0.22), rgba(64, 64, 64, 0.14));
+  color: #ececec;
 }
 .dw-item.active.claude-item {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 87, 0.14));
-  color: #fef3c7;
+  border-color: #7d7d7d;
+  background: linear-gradient(135deg, rgba(64, 64, 64, 0.22), rgba(64, 64, 64, 0.14));
+  color: #eeeeee;
 }
 .dw-item-main {
   display: flex;
@@ -539,7 +539,7 @@ function handleSelectClaude(sessionId: string) {
 .dw-item-sub {
   font-family: monospace;
   font-size: 10px;
-  color: #64748b;
+  color: #989898;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -556,7 +556,7 @@ function handleSelectClaude(sessionId: string) {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #94a3b8;
+  color: #a1a1a1;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -573,7 +573,7 @@ function handleSelectClaude(sessionId: string) {
 }
 .dw-error-msg {
   font-size: 11px;
-  color: #f87171;
+  color: #989898;
   padding: 4px 6px;
 }
 </style>

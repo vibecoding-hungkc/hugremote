@@ -126,8 +126,8 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
   justify-content: center;
 }
 .modal-sheet {
-  background: #0f172a;
-  border-top: 1px solid #334155;
+  background: #171717;
+  border-top: 1px solid #3f3f3f;
   border-radius: 14px 14px 0 0;
   width: 100%;
   max-width: 600px;
@@ -144,7 +144,7 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 .modal-title {
   font-size: 13.5px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -152,13 +152,13 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 .btn-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 20px;
   cursor: pointer;
 }
 .modal-desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: #a1a1a1;
   line-height: 1.5;
 }
 .input-group {
@@ -166,10 +166,10 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 }
 .modal-input {
   flex: 1;
-  background: #0b1120;
-  border: 1px solid #334155;
+  background: #161616;
+  border: 1px solid #3f3f3f;
   border-radius: 8px;
-  color: #f1f5f9;
+  color: #eeeeee;
   font-family: monospace;
   font-size: 13.5px;
   padding: 10px 12px;
@@ -177,14 +177,14 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
   width: 100%;
 }
 .modal-input:focus {
-  border-color: #2563eb;
+  border-color: #606060;
 }
 .modal-error {
   display: flex;
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #f87171;
+  color: #989898;
 }
 .modal-footer {
   display: flex;
@@ -193,15 +193,15 @@ defineExpose({ setError: (msg: string) => { errorMsg.value = msg; isBusy.value =
 }
 .btn-secondary {
   background: transparent;
-  border: 1px solid #334155;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 8px 16px;
   font-size: 12.5px;
   cursor: pointer;
 }
 .btn-primary {
-  background: #2563eb;
+  background: #404040;
   border: none;
   border-radius: 6px;
   color: #fff;

@@ -121,21 +121,21 @@ onUnmounted(() => { requestId++; });
 
 <style scoped>
 .context-picker-overlay { position: fixed; inset: 0; z-index: 2200; display: flex; align-items: center; justify-content: center; padding: 16px; background: #000a; }
-.context-picker { width: min(560px, 100%); max-height: 80dvh; display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #4a4540; border-radius: 12px; background: #211f1d; color: #e5e2df; box-shadow: 0 18px 60px #0008; }
+.context-picker { width: min(560px, 100%); max-height: 80dvh; display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid #464646; border-radius: 12px; background: #211f1d; color: #e2e2e2; box-shadow: 0 18px 60px #0008; }
 header, footer, .context-picker-navigation, .context-picker-entry { display: flex; align-items: center; gap: 10px; }
 header { justify-content: space-between; }
 h2 { margin: 0; font-size: 16px; }
 p { margin: 0; font-size: 13px; }
-button { border: 1px solid #57514a; border-radius: 6px; padding: 8px 10px; background: transparent; color: inherit; cursor: pointer; }
-button:hover:not(:disabled), button[aria-pressed="true"] { background: #d9775726; border-color: #d97757; }
-button:focus-visible { outline: 2px solid #d97757; outline-offset: 2px; }
+button { border: 1px solid #525252; border-radius: 6px; padding: 8px 10px; background: transparent; color: inherit; cursor: pointer; }
+button:hover:not(:disabled), button[aria-pressed="true"] { background: rgba(64, 64, 64, 0.149); border-color: #7d7d7d; }
+button:focus-visible { outline: 2px solid #7d7d7d; outline-offset: 2px; }
 button:disabled { opacity: .45; cursor: default; }
 .context-picker-path, .context-picker-selected { font: 12px monospace; overflow-wrap: anywhere; }
-.context-picker-selected { color: #d6a18e; }
+.context-picker-selected { color: #ababab; }
 .context-picker-entries { min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .context-picker-select { min-width: 0; flex: 1; display: flex; align-items: center; gap: 8px; text-align: left; }
 .context-picker-select span { overflow-wrap: anywhere; }
 .context-picker-entry > button:last-child { flex-shrink: 0; }
 footer { justify-content: flex-end; }
-footer button:last-child { background: #a24e35; }
+footer button:last-child { background: #404040; }
 </style>

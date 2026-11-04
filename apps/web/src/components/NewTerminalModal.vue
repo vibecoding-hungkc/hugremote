@@ -278,8 +278,8 @@ async function handleSubmit() {
 }
 
 .modal-sheet {
-  background: #0f172a;
-  border-top: 1px solid #334155;
+  background: #171717;
+  border-top: 1px solid #3f3f3f;
   border-radius: 14px 14px 0 0;
   width: 100%;
   max-width: 600px;
@@ -298,7 +298,7 @@ async function handleSubmit() {
 .modal-title {
   font-size: 14px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -307,7 +307,7 @@ async function handleSubmit() {
 .btn-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 20px;
   cursor: pointer;
 }
@@ -327,20 +327,20 @@ async function handleSubmit() {
 .form-label {
   font-size: 11.5px;
   font-weight: 600;
-  color: #cbd5e1;
+  color: #d4d4d4;
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .server-badge {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 12px;
   font-family: monospace;
-  color: #94a3b8;
+  color: #a1a1a1;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -351,27 +351,27 @@ async function handleSubmit() {
   height: 6px;
   border-radius: 50%;
 }
-.dot.local { background: #3b82f6; }
-.dot.remote { background: #10b981; }
+.dot.local { background: #404040; }
+.dot.remote { background: #404040; }
 
 /* Grouped Input with End Action Buttons */
 .input-with-actions {
   display: flex;
   align-items: center;
-  background: #090e1a;
-  border: 1px solid #334155;
+  background: #161616;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
   overflow: hidden;
 }
 .input-with-actions:focus-within {
-  border-color: #3b82f6;
+  border-color: #7b7b7b;
 }
 
 .input-field-grouped {
   flex: 1;
   background: transparent;
   border: none;
-  color: #f1f5f9;
+  color: #eeeeee;
   padding: 8px 10px;
   font-size: 12.5px;
   font-family: monospace;
@@ -387,10 +387,10 @@ async function handleSubmit() {
 }
 
 .btn-input-icon {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 5px;
-  color: #94a3b8;
+  color: #a1a1a1;
   width: 28px;
   height: 28px;
   display: inline-flex;
@@ -400,15 +400,15 @@ async function handleSubmit() {
   font-size: 14px;
 }
 .btn-input-icon:hover, .btn-input-icon.active {
-  background: #2563eb;
+  background: #404040;
   color: #fff;
-  border-color: #3b82f6;
+  border-color: #7b7b7b;
 }
 
 /* Folder Picker Dropdown / Box */
 .folder-picker-box {
-  background: #111827;
-  border: 1px solid #374151;
+  background: #181818;
+  border: 1px solid #404040;
   border-radius: 8px;
   padding: 8px;
   margin-top: 4px;
@@ -424,15 +424,15 @@ async function handleSubmit() {
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding-bottom: 4px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid #323232;
 }
 
 .btn-picker-close {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #989898;
   font-size: 12px;
   cursor: pointer;
 }
@@ -448,16 +448,16 @@ async function handleSubmit() {
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: #282828;
+  border: 1px solid #404040;
   border-radius: 5px;
-  color: #f1f5f9;
+  color: #eeeeee;
   cursor: pointer;
   text-align: left;
 }
 .picker-item:hover {
-  background: #2563eb22;
-  border-color: #3b82f6;
+  background: rgba(64, 64, 64, 0.133);
+  border-color: #7b7b7b;
 }
 
 .picker-text {
@@ -469,13 +469,13 @@ async function handleSubmit() {
 .picker-name {
   font-size: 12px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #e7e7e7;
 }
 
 .picker-path {
   font-size: 10px;
   font-family: monospace;
-  color: #94a3b8;
+  color: #a1a1a1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -487,26 +487,26 @@ async function handleSubmit() {
 
 /* Regular Input */
 .input-field {
-  background: #090e1a;
-  border: 1px solid #334155;
+  background: #161616;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #f1f5f9;
+  color: #eeeeee;
   padding: 8px 10px;
   font-size: 12.5px;
   font-family: monospace;
 }
 .input-field:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #7b7b7b;
 }
 
 .hint-text {
   font-size: 11px;
-  color: #64748b;
+  color: #989898;
   line-height: 1.4;
 }
 .hint-text b {
-  color: #cbd5e1;
+  color: #d4d4d4;
 }
 
 .modal-footer {
@@ -518,10 +518,10 @@ async function handleSubmit() {
 }
 
 .btn-secondary {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 12px;
   font-weight: 600;
   padding: 6px 14px;
@@ -529,7 +529,7 @@ async function handleSubmit() {
 }
 
 .btn-primary {
-  background: #2563eb;
+  background: #404040;
   border: none;
   border-radius: 6px;
   color: #fff;

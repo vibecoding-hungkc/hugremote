@@ -404,8 +404,8 @@ onMounted(() => {
 }
 
 .modal-sheet {
-  background: #0f172a;
-  border-top: 1px solid #334155;
+  background: #171717;
+  border-top: 1px solid #3f3f3f;
   border-radius: 14px 14px 0 0;
   width: 100%;
   max-width: 600px;
@@ -425,7 +425,7 @@ onMounted(() => {
 .modal-title {
   font-size: 14px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -436,9 +436,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
+  background: rgba(64, 64, 64, 0.15);
+  border: 1px solid rgba(104, 104, 104, 0.4);
+  color: #b7b7b7;
   font-size: 12px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -446,7 +446,7 @@ onMounted(() => {
 .btn-clear-err {
   background: transparent;
   border: none;
-  color: #fca5a5;
+  color: #b7b7b7;
   cursor: pointer;
   font-size: 13px;
   padding: 0 4px;
@@ -455,7 +455,7 @@ onMounted(() => {
 .btn-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 20px;
   cursor: pointer;
 }
@@ -465,11 +465,11 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
-  color: #94a3b8;
+  color: #a1a1a1;
 }
 
 .btn-add-host {
-  background: #2563eb;
+  background: #404040;
   border: none;
   border-radius: 5px;
   color: #fff;
@@ -484,8 +484,8 @@ onMounted(() => {
 
 /* Add Server Form */
 .add-host-form {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 8px;
   padding: 12px;
   display: flex;
@@ -498,7 +498,7 @@ onMounted(() => {
 .form-title {
   font-size: 12.5px;
   font-weight: 700;
-  color: #93c5fd;
+  color: #bebebe;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -518,22 +518,22 @@ onMounted(() => {
 
 .field-label {
   font-size: 11px;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-weight: 600;
 }
 
 .input-text {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: #171717;
+  border: 1px solid #3f3f3f;
   border-radius: 5px;
-  color: #f1f5f9;
+  color: #eeeeee;
   padding: 6px 8px;
   font-size: 12px;
   font-family: monospace;
 }
 .input-text:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #7b7b7b;
 }
 
 .auth-toggle-bar {
@@ -543,10 +543,10 @@ onMounted(() => {
 
 .auth-toggle-btn {
   flex: 1;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: #171717;
+  border: 1px solid #3f3f3f;
   border-radius: 5px;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 11.5px;
   font-weight: 600;
   padding: 6px;
@@ -557,8 +557,8 @@ onMounted(() => {
   cursor: pointer;
 }
 .auth-toggle-btn.active {
-  background: #2563eb;
-  border-color: #3b82f6;
+  background: #404040;
+  border-color: #7b7b7b;
   color: #fff;
 }
 
@@ -572,14 +572,14 @@ onMounted(() => {
 
 .sugg-label {
   font-size: 10px;
-  color: #64748b;
+  color: #989898;
 }
 
 .key-chip {
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: #171717;
+  border: 1px solid #3f3f3f;
   border-radius: 4px;
-  color: #60a5fa;
+  color: #9c9c9c;
   font-size: 10.5px;
   font-family: monospace;
   padding: 2px 6px;
@@ -589,8 +589,8 @@ onMounted(() => {
 .password-input-wrap {
   display: flex;
   align-items: center;
-  background: #0f172a;
-  border: 1px solid #334155;
+  background: #171717;
+  border: 1px solid #3f3f3f;
   border-radius: 5px;
   overflow: hidden;
 }
@@ -602,7 +602,7 @@ onMounted(() => {
 .btn-toggle-eye {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 0 8px;
   cursor: pointer;
 }
@@ -617,16 +617,16 @@ onMounted(() => {
 
 .btn-cancel {
   background: transparent;
-  border: 1px solid #334155;
+  border: 1px solid #3f3f3f;
   border-radius: 5px;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 6px 12px;
   font-size: 11.5px;
   cursor: pointer;
 }
 
 .btn-submit {
-  background: #10b981;
+  background: #404040;
   border: none;
   border-radius: 5px;
   color: #fff;
@@ -649,8 +649,8 @@ onMounted(() => {
 }
 
 .server-card-compact {
-  background: #162035;
-  border: 1px solid #23324d;
+  background: #1f1f1f;
+  border: 1px solid #323232;
   border-radius: 8px;
   padding: 8px 10px;
   display: flex;
@@ -660,8 +660,8 @@ onMounted(() => {
   transition: border-color 0.15s, background-color 0.15s;
 }
 .server-card-compact.active {
-  border-color: #3b82f6;
-  background: #172a4c;
+  border-color: #7b7b7b;
+  background: #282828;
 }
 
 .card-main-row {
@@ -687,7 +687,7 @@ onMounted(() => {
 
 .type-icon {
   font-size: 14px;
-  color: #60a5fa;
+  color: #9c9c9c;
   flex-shrink: 0;
 }
 
@@ -695,7 +695,7 @@ onMounted(() => {
   font-family: monospace;
   font-size: 13px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -704,9 +704,9 @@ onMounted(() => {
 .auth-tag {
   font-size: 9px;
   font-family: monospace;
-  background: #0f172a;
-  border: 1px solid #334155;
-  color: #94a3b8;
+  background: #171717;
+  border: 1px solid #3f3f3f;
+  color: #a1a1a1;
   padding: 0 4px;
   border-radius: 3px;
   line-height: 1.4;
@@ -715,7 +715,7 @@ onMounted(() => {
 .card-conn-sub {
   font-family: monospace;
   font-size: 10.5px;
-  color: #64748b;
+  color: #989898;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -735,27 +735,27 @@ onMounted(() => {
   flex-shrink: 0;
 }
 .status-indicator-dot.local {
-  background: #3b82f6;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.9);
+  background: #404040;
+  box-shadow: 0 0 6px rgba(64, 64, 64, 0.9);
 }
 .status-indicator-dot.remote {
-  background: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.9);
+  background: #404040;
+  box-shadow: 0 0 6px rgba(64, 64, 64, 0.9);
 }
 .status-indicator-dot.idle {
-  background: #475569;
+  background: #404040;
 }
 
 .active-check-icon {
-  color: #3b82f6;
+  color: #989898;
   font-size: 17px;
   font-weight: 700;
 }
 
 .btn-mini-disconnect {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #f87171;
+  background: rgba(64, 64, 64, 0.15);
+  border: 1px solid rgba(104, 104, 104, 0.3);
+  color: #989898;
   width: 24px;
   height: 24px;
   border-radius: 4px;
@@ -771,15 +771,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #0f172a;
-  border: 1px solid #1e293b;
+  background: #171717;
+  border: 1px solid #323232;
   border-radius: 5px;
   padding: 2px 6px;
 }
 
 .ws-icon {
   font-size: 12px;
-  color: #64748b;
+  color: #989898;
   flex-shrink: 0;
 }
 
@@ -787,7 +787,7 @@ onMounted(() => {
   flex: 1;
   background: transparent;
   border: none;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-family: monospace;
   font-size: 11px;
   outline: none;
@@ -795,12 +795,12 @@ onMounted(() => {
   padding: 2px 0;
 }
 .ws-input-compact:focus {
-  color: #60a5fa;
+  color: #9c9c9c;
 }
 
 .ws-saved-badge {
   font-size: 9.5px;
-  color: #34d399;
+  color: #adadad;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -812,7 +812,7 @@ onMounted(() => {
 .ws-mini-btn {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #989898;
   font-size: 13px;
   cursor: pointer;
   padding: 2px;
@@ -822,8 +822,8 @@ onMounted(() => {
   border-radius: 3px;
 }
 .ws-mini-btn:hover, .ws-mini-btn.active {
-  color: #60a5fa;
-  background: #1e293b;
+  color: #9c9c9c;
+  background: #282828;
 }
 
 .card-suggestions-chips {
@@ -831,24 +831,24 @@ onMounted(() => {
   gap: 4px;
   flex-wrap: wrap;
   padding: 4px 6px;
-  background: #0b1120;
+  background: #161616;
   border-radius: 4px;
-  border: 1px dashed #1e293b;
+  border: 1px dashed #323232;
 }
 
 .sugg-chip {
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 3px;
-  color: #93c5fd;
+  color: #bebebe;
   font-size: 10px;
   font-family: monospace;
   padding: 1px 6px;
   cursor: pointer;
 }
 .sugg-chip:hover {
-  background: #2563eb33;
-  border-color: #3b82f6;
+  background: rgba(64, 64, 64, 0.2);
+  border-color: #7b7b7b;
 }
 
 @keyframes fadeIn {

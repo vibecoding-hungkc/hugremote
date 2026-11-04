@@ -170,7 +170,7 @@ function cycleEffort() {
   left: 10px;
   right: 10px;
   margin-bottom: 8px;
-  background: #1e1e24;
+  background: #1e1e1e;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   padding: 8px 6px;
@@ -184,7 +184,7 @@ function cycleEffort() {
 .claude-model-popup-header {
   font-size: 11px;
   font-weight: 500;
-  color: #9ca3af;
+  color: #a2a2a2;
   padding: 4px 10px 6px 10px;
 }
 
@@ -199,7 +199,7 @@ function cycleEffort() {
 
 .claude-model-state {
   padding: 12px 10px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   font-size: 12px;
 }
 
@@ -214,7 +214,7 @@ function cycleEffort() {
 }
 
 .claude-model-item:focus-visible {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid #7d7d7d;
   outline-offset: -2px;
 }
 
@@ -242,7 +242,7 @@ function cycleEffort() {
 }
 
 .claude-model-item.active {
-  background: #2a3b63;
+  background: #3a3a3a;
   color: #fff;
 }
 
@@ -256,17 +256,17 @@ function cycleEffort() {
 .claude-model-title {
   font-size: 13px;
   font-weight: 500;
-  color: #f1f5f9;
+  color: #eeeeee;
 }
 
 .claude-model-desc {
   font-size: 11px;
-  color: #9ca3af;
+  color: #a2a2a2;
   line-height: 1.35;
 }
 
 .claude-model-item.active .claude-model-desc {
-  color: #cbd5e1;
+  color: #d4d4d4;
 }
 
 .claude-model-check {
@@ -287,7 +287,7 @@ function cycleEffort() {
 
 .claude-effort-label {
   font-size: 12.5px;
-  color: #d1d5db;
+  color: #d5d5d5;
   font-weight: 500;
 }
 
@@ -297,7 +297,7 @@ function cycleEffort() {
   justify-content: space-between;
   width: 88px;
   height: 22px;
-  background: #2a2a34;
+  background: #2b2b2b;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 2px 5px;
@@ -309,7 +309,7 @@ function cycleEffort() {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #6b7280;
+  background: #404040;
   z-index: 1;
 }
 

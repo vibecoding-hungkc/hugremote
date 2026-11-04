@@ -28,11 +28,11 @@ const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); 
 
 <style>
 /* BottomDock: Global scoped styles to avoid hash drift */
-.bottom-dock { height: calc(42px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); background:#090e1a; border-top:1px solid #1e293b; display:flex; align-items:center; justify-content:space-around; flex-shrink:0; z-index:40; width:100%; box-sizing:border-box; }
-.dock-item { flex:1; height:100%; display:flex; align-items:center; justify-content:center; gap:5px; background:transparent; border:none; color:#64748b; font-size:12.5px; font-weight:600; cursor:pointer; position:relative; touch-action:manipulation; min-width:0; }
-.dock-item.active { color:#38bdf8; background:#0f172a; }
-.dock-item.active::after { content:''; position:absolute; top:0; left:0; right:0; width:100%; height:2px; background:#38bdf8; box-shadow:0 1px 4px rgba(56,189,248,.4); }
+.bottom-dock { height: calc(42px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); background:#161616; border-top:1px solid #323232; display:flex; align-items:center; justify-content:space-around; flex-shrink:0; z-index:40; width:100%; box-sizing:border-box; }
+.dock-item { flex:1; height:100%; display:flex; align-items:center; justify-content:center; gap:5px; background:transparent; border:none; color:#989898; font-size:12.5px; font-weight:600; cursor:pointer; position:relative; touch-action:manipulation; min-width:0; }
+.dock-item.active { color:#a5a5a5; background:#171717; }
+.dock-item.active::after { content:''; position:absolute; top:0; left:0; right:0; width:100%; height:2px; background:#404040; box-shadow:0 1px 4px rgba(64, 64, 64, .4); }
 .dock-icon { font-size:16px; } .dock-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.dock-badge { background:#6366f1; color:#fff; font-size:9.5px; font-family:monospace; padding:1px 5px; border-radius:10px; margin-left:1px; }
-.dock-badge.claude-badge { background:#d97757; } .dock-badge.git-badge { background:#f59e0b; }
+.dock-badge { background:#404040; color:#fff; font-size:9.5px; font-family:monospace; padding:1px 5px; border-radius:10px; margin-left:1px; }
+.dock-badge.claude-badge { background:#404040; } .dock-badge.git-badge { background:#f59e0b; }
 </style>

@@ -177,7 +177,7 @@ onUnmounted(() => {
 .claude-limits-sheet {
   width: 100%;
   max-width: 500px;
-  background: #18181f;
+  background: #191919;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
@@ -194,7 +194,7 @@ onUnmounted(() => {
 .sheet-handle {
   width: 36px;
   height: 4px;
-  background: #3f3f46;
+  background: #404040;
   border-radius: 2px;
   margin: 0 auto 4px;
 }
@@ -218,13 +218,13 @@ onUnmounted(() => {
   gap: 7px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: #eeeeee;
 }
 
 .btn-limits-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 16px;
   cursor: pointer;
   padding: 4px 8px;
@@ -244,7 +244,7 @@ onUnmounted(() => {
 }
 
 .limit-card {
-  background: #202029;
+  background: #212121;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 9px;
   padding: 9px 11px;
@@ -270,19 +270,19 @@ onUnmounted(() => {
   gap: 5px;
   font-size: 12px;
   font-weight: 500;
-  color: #cbd5e1;
+  color: #d4d4d4;
 }
 
 .limit-name i {
   font-size: 13px;
-  color: #94a3b8;
+  color: #a1a1a1;
 }
 
 .limit-pct-val {
   font-size: 12.5px;
   font-weight: 700;
   font-family: var(--font-mono, monospace);
-  color: #93c5fd;
+  color: #bebebe;
 }
 
 .limit-pct-val.ok {
@@ -305,7 +305,7 @@ onUnmounted(() => {
 .limit-progress-fill {
   height: 100%;
   border-radius: 3px;
-  background: #3b82f6;
+  background: #404040;
   transition: width 0.3s ease;
 }
 
@@ -322,12 +322,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
-  color: #9ca3af;
+  color: #a2a2a2;
 }
 
 .limit-sub-info {
   font-size: 11px;
-  color: #94a3b8;
+  color: #a1a1a1;
 }
 
 .limit-sub-info.warning {
@@ -339,12 +339,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 3px;
   font-size: 11px;
-  color: #9ca3af;
+  color: #a2a2a2;
 }
 
 .limit-tokens-detail {
   font-family: var(--font-mono, monospace);
-  color: #e2e8f0;
+  color: #e7e7e7;
 }
 
 .limit-model-tag {
@@ -352,7 +352,7 @@ onUnmounted(() => {
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 10px;
-  color: #cbd5e1;
+  color: #d4d4d4;
   max-width: 48%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -361,7 +361,7 @@ onUnmounted(() => {
 
 .limit-context-status {
   font-size: 10.5px;
-  color: #94a3b8;
+  color: #a1a1a1;
 }
 
 .limit-context-status.error {

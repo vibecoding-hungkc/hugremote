@@ -985,7 +985,7 @@ onBeforeUnmount(() => {
   display: none;
   position: fixed;
   inset: calc(var(--header-h, 64px) + env(safe-area-inset-top, 0px)) 0 calc(var(--dock-h, 42px) + env(safe-area-inset-bottom, 0px)) 0;
-  background: rgba(6, 10, 18, 0.55);
+  background: rgba(22, 22, 22, 0.55);
   backdrop-filter: blur(2px);
   z-index: 84;
 }
@@ -1006,8 +1006,8 @@ onBeforeUnmount(() => {
   bottom: calc(var(--dock-h, 42px) + env(safe-area-inset-bottom, 0px));
   width: var(--quick-panel-width, 320px);
   max-width: calc(100vw - 48px);
-  background: #0b1120;
-  border-left: 1px solid #1e293b;
+  background: #161616;
+  border-left: 1px solid #323232;
   box-shadow: -12px 0 32px rgba(0, 0, 0, 0.45);
   z-index: 85;
   display: flex;
@@ -1049,15 +1049,15 @@ onBeforeUnmount(() => {
   width: 2px;
   height: 36px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.28);
+  background: rgba(64, 64, 64, 0.28);
   transition: background 0.15s, height 0.15s, box-shadow 0.15s;
 }
 .quick-tree-resize:hover::after,
 .quick-tree-resize:focus-visible::after,
 .quick-tree-panel.resizing .quick-tree-resize::after {
   height: 64px;
-  background: var(--brand, #10b981);
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.55);
+  background: var(--brand, #404040);
+  box-shadow: 0 0 10px rgba(64, 64, 64, 0.55);
 }
 
 .quick-tree-header {
@@ -1075,7 +1075,7 @@ onBeforeUnmount(() => {
   gap: 7px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   min-width: 0;
 }
 .quick-tree-title > i {
@@ -1088,7 +1088,7 @@ onBeforeUnmount(() => {
   gap: 2px;
   padding: 2px;
   border-radius: 7px;
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(23, 23, 23, 0.75);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   margin-left: 4px;
 }
@@ -1098,7 +1098,7 @@ onBeforeUnmount(() => {
   border-radius: 5px;
   border: none;
   background: transparent;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #a1a1a1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1106,8 +1106,8 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 .quick-panel-tab.active {
-  background: rgba(16, 185, 129, 0.16);
-  color: var(--brand, #10b981);
+  background: rgba(64, 64, 64, 0.16);
+  color: var(--brand, #989898);
 }
 
 .quick-tree-actions {
@@ -1121,14 +1121,14 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #a1a1a1);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 .quick-tree-btn:hover {
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -1136,7 +1136,7 @@ onBeforeUnmount(() => {
   padding: 6px 12px;
   font-size: 11px;
   font-family: var(--font-mono, monospace);
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #989898);
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   display: flex;
   align-items: center;
@@ -1185,7 +1185,7 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #a1a1a1);
   font-size: 12px;
   text-align: left;
   cursor: pointer;
@@ -1193,20 +1193,25 @@ onBeforeUnmount(() => {
 }
 .quick-tree-node:hover {
   background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
 }
 .quick-tree-node.active {
-  background: rgba(16, 185, 129, 0.14);
-  color: var(--text-primary, #f1f5f9);
-  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(64, 64, 64, 0.14);
+  color: var(--text-primary, #eeeeee);
+  border-color: rgba(125, 125, 125, 0.32);
 }
 .quick-tree-node.is-dir {
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   font-weight: 500;
 }
+.quick-tree-node[data-node-type="dir"] > i:nth-of-type(2) { color: #f59e0b; }
+.quick-tree-node[data-node-type="file"] > i:nth-of-type(1) { color: #7dd3fc; }
+.quick-tree-node[data-node-type="file"] > i.ri-markdown-line { color: #a78bfa; }
+.quick-tree-node[data-node-type="file"] > i.ri-html5-line { color: #f97316; }
+.quick-tree-node[data-node-type="file"] > i.ri-javascript-line { color: #facc15; }
 .quick-tree-node .tree-caret {
   font-size: 13px;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #989898);
   width: 14px;
   text-align: center;
   flex-shrink: 0;
@@ -1224,7 +1229,7 @@ onBeforeUnmount(() => {
 .quick-tree-node .node-meta {
   font-size: 10px;
   font-family: var(--font-mono, monospace);
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #989898);
 }
 
 /* Inline File Workbench */
@@ -1233,7 +1238,7 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   flex-direction: column;
-  background: rgba(10, 15, 25, 0.96);
+  background: rgba(22, 22, 22, 0.96);
 }
 .quick-file-workbench.open {
   display: flex;
@@ -1245,7 +1250,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 6px 8px;
   border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(23, 23, 23, 0.85);
 }
 .quick-file-back {
   display: inline-flex;
@@ -1256,14 +1261,14 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   background: rgba(255, 255, 255, 0.04);
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #a1a1a1);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
 }
 .quick-file-back:hover {
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   background: rgba(255, 255, 255, 0.08);
 }
 .quick-file-meta {
@@ -1281,7 +1286,7 @@ onBeforeUnmount(() => {
 .quick-file-name {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1292,9 +1297,9 @@ onBeforeUnmount(() => {
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 999px;
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #a6a6a6;
+  background: rgba(64, 64, 64, 0.15);
+  border: 1px solid rgba(125, 125, 125, 0.35);
   flex-shrink: 0;
 }
 .quick-file-dirty.show {
@@ -1308,8 +1313,8 @@ onBeforeUnmount(() => {
   height: 26px;
   border-radius: 6px;
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
-  background: rgba(15, 23, 42, 0.85);
-  color: var(--text-secondary, #94a3b8);
+  background: rgba(23, 23, 23, 0.85);
+  color: var(--text-secondary, #a1a1a1);
   font-size: 14px;
   cursor: pointer;
   flex-shrink: 0;
@@ -1317,9 +1322,9 @@ onBeforeUnmount(() => {
 }
 .quick-preview-btn:hover,
 .quick-preview-btn.active {
-  background: rgba(16, 185, 129, 0.16);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: var(--brand, #10b981);
+  background: rgba(64, 64, 64, 0.16);
+  border-color: rgba(125, 125, 125, 0.4);
+  color: var(--brand, #989898);
 }
 .quick-file-save {
   display: inline-flex;
@@ -1328,20 +1333,20 @@ onBeforeUnmount(() => {
   height: 26px;
   padding: 0 9px;
   border-radius: 6px;
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  background: rgba(16, 185, 129, 0.16);
-  color: var(--brand, #10b981);
+  border: 1px solid rgba(125, 125, 125, 0.4);
+  background: rgba(64, 64, 64, 0.16);
+  color: var(--brand, #989898);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
 }
 .quick-file-save:hover {
-  background: rgba(16, 185, 129, 0.25);
+  background: rgba(64, 64, 64, 0.25);
 }
 .quick-file-save.saved {
-  background: rgba(16, 185, 129, 0.28);
-  color: #e2fbe8;
+  background: rgba(64, 64, 64, 0.28);
+  color: #eeeeee;
 }
 
 .quick-file-body {
@@ -1355,9 +1360,9 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  color: #dce8fa;
+  color: #e7e7e7;
   font: 12px/1.55 var(--font-mono, monospace);
-  background: #0b1120;
+  background: #161616;
   padding: 10px 0;
   white-space: pre;
   user-select: text;
@@ -1371,9 +1376,9 @@ onBeforeUnmount(() => {
   width: 38px;
   padding: 0 6px 0 4px;
   text-align: right;
-  background: #0b1120;
-  color: #64748b;
-  border-right: 1px solid #1e293b;
+  background: #161616;
+  color: #989898;
+  border-right: 1px solid #323232;
   user-select: none;
 }
 .quick-code-preview-text { padding: 0 12px; }
@@ -1388,8 +1393,8 @@ onBeforeUnmount(() => {
   font-family: var(--font-mono, monospace);
   font-size: 12px;
   line-height: 1.55;
-  color: var(--text-muted, #64748b);
-  background: rgba(15, 23, 42, 0.65);
+  color: var(--text-muted, #989898);
+  background: rgba(23, 23, 23, 0.65);
   border-right: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   text-align: right;
   user-select: none;
@@ -1406,7 +1411,7 @@ onBeforeUnmount(() => {
   outline: none;
   padding: 10px;
   background: transparent;
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   font-family: var(--font-mono, monospace);
   font-size: 12px;
   line-height: 1.55;
@@ -1419,7 +1424,7 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow: auto;
   padding: 12px 14px;
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   font-size: 12.5px;
   line-height: 1.6;
 }
@@ -1452,13 +1457,13 @@ onBeforeUnmount(() => {
 .quick-file-foot {
   padding: 5px 10px;
   border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(23, 23, 23, 0.75);
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 10.5px;
   font-family: var(--font-mono, monospace);
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #989898);
 }
 
 /* Git Quick Pane */
@@ -1477,13 +1482,13 @@ onBeforeUnmount(() => {
   gap: 5px;
   font-family: var(--font-mono, monospace);
   font-weight: 600;
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
 }
 .quick-git-branch i {
   color: var(--brand, #10b981);
 }
 .quick-git-count {
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #a1a1a1);
 }
 
 .quick-git-files {
@@ -1509,25 +1514,25 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.05);
 }
 .quick-git-item.selected {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(64, 64, 64, 0.12);
+  border-color: rgba(125, 125, 125, 0.32);
 }
 .quick-git-check {
   border: none;
   background: transparent;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #989898);
   padding: 0;
   cursor: pointer;
   font-size: 14px;
   display: inline-flex;
 }
 .quick-git-check.checked {
-  color: var(--brand, #10b981);
+  color: var(--brand, #989898);
 }
 .quick-git-file {
   flex: 1;
   font-family: var(--font-mono, monospace);
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1567,8 +1572,8 @@ onBeforeUnmount(() => {
   padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  background: rgba(15, 23, 42, 0.75);
-  color: var(--text-primary, #f1f5f9);
+  background: rgba(23, 23, 23, 0.75);
+  color: var(--text-primary, #eeeeee);
   font-size: 11.5px;
   font-family: inherit;
 }
@@ -1588,7 +1593,7 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary, #eeeeee);
   font-size: 11px;
   font-weight: 500;
   display: inline-flex;
@@ -1605,14 +1610,14 @@ onBeforeUnmount(() => {
   cursor: not-allowed;
 }
 .quick-git-btn.primary {
-  background: rgba(16, 185, 129, 0.18);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: var(--brand, #10b981);
+  background: rgba(64, 64, 64, 0.18);
+  border-color: rgba(125, 125, 125, 0.4);
+  color: var(--brand, #989898);
   font-weight: 600;
 }
 .quick-git-toast {
   font-size: 11px;
-  color: var(--brand, #10b981);
+  color: var(--brand, #989898);
   min-height: 15px;
   opacity: 0;
   transition: opacity 0.15s;
@@ -1627,7 +1632,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #989898);
   font-size: 12px;
 }
 .quick-empty-state i {

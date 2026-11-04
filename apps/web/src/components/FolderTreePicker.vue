@@ -250,8 +250,8 @@ watch(
 }
 
 .tree-modal-sheet {
-  background: #0f172a;
-  border-top: 1px solid #334155;
+  background: #171717;
+  border-top: 1px solid #3f3f3f;
   border-radius: 14px 14px 0 0;
   width: 100%;
   max-width: 600px;
@@ -272,7 +272,7 @@ watch(
 .tree-modal-title {
   font-size: 13.5px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #eeeeee;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -281,7 +281,7 @@ watch(
 .btn-close {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1a1;
   font-size: 20px;
   cursor: pointer;
 }
@@ -290,13 +290,13 @@ watch(
   display: flex;
   align-items: center;
   gap: 5px;
-  background: #1e293b;
-  border: 1px solid #334155;
+  background: #282828;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 11.5px;
   font-family: monospace;
-  color: #93c5fd;
+  color: #bebebe;
   flex-shrink: 0;
 }
 
@@ -311,7 +311,7 @@ watch(
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: #64748b;
+  color: #989898;
   flex-shrink: 0;
   padding: 2px 2px;
 }
@@ -321,8 +321,8 @@ watch(
   min-height: 240px;
   max-height: 50vh;
   overflow-y: auto;
-  background: #0b1120;
-  border: 1px solid #1e293b;
+  background: #161616;
+  border: 1px solid #323232;
   border-radius: 8px;
   padding: 6px 4px;
 }
@@ -337,16 +337,16 @@ watch(
 
 .btn-cancel {
   background: transparent;
-  border: 1px solid #334155;
+  border: 1px solid #3f3f3f;
   border-radius: 6px;
-  color: #94a3b8;
+  color: #a1a1a1;
   padding: 7px 14px;
   font-size: 12px;
   cursor: pointer;
 }
 
 .btn-confirm {
-  background: #2563eb;
+  background: #404040;
   border: none;
   border-radius: 6px;
   color: #fff;

@@ -361,8 +361,8 @@ function handleKeyPress(k: KeyDef) {
 <style>
 /* Virtual Laptop Keyboard: HugRemote Tech Dark Theme */
 .virtual-laptop-keyboard {
-  background: #090e1a;
-  border-top: 1px solid #1e293b;
+  background: #161616;
+  border-top: 1px solid #323232;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
@@ -395,23 +395,23 @@ function handleKeyPress(k: KeyDef) {
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 4px;
-  background: #162035;
-  border: 1px solid #223252;
-  color: #64748b;
+  background: #1f1f1f;
+  border: 1px solid #323232;
+  color: #989898;
   text-transform: uppercase;
 }
 .vlk-badge.active {
-  background: #0369a1;
-  border-color: #38bdf8;
+  background: #404040;
+  border-color: #7d7d7d;
   color: #fff;
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 6px rgba(64, 64, 64, 0.6);
 }
 
 .vlk-close-btn {
   background: transparent;
-  border: 1px solid #334155;
+  border: 1px solid #3f3f3f;
   border-radius: 5px;
-  color: #94a3b8;
+  color: #a1a1a1;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -420,8 +420,8 @@ function handleKeyPress(k: KeyDef) {
   cursor: pointer;
 }
 .vlk-close-btn:active {
-  background: #1e293b;
-  color: #e2e8f0;
+  background: #282828;
+  color: #e7e7e7;
 }
 
 .vlk-rows {
@@ -445,10 +445,10 @@ function handleKeyPress(k: KeyDef) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #131b2e;
-  border: 1px solid #223252;
+  background: #1b1b1b;
+  border: 1px solid #323232;
   border-radius: 5px;
-  color: #e2e8f0;
+  color: #e7e7e7;
   font-family: monospace;
   font-size: 18.75px;
   font-weight: 600;
@@ -459,15 +459,15 @@ function handleKeyPress(k: KeyDef) {
   padding: 0;
 }
 .vlk-key:active {
-  background: #253860;
-  border-color: #38bdf8;
+  background: #373737;
+  border-color: #7d7d7d;
   transform: translateY(1px);
 }
 .vlk-key.active {
-  background: #0369a1 !important;
-  border-color: #38bdf8 !important;
+  background: #404040 !important;
+  border-color: #7d7d7d !important;
   color: #ffffff !important;
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 8px rgba(64, 64, 64, 0.7);
 }
 
 .vlk-label {
@@ -484,43 +484,43 @@ function handleKeyPress(k: KeyDef) {
 }
 .vlk-key-bksp {
   flex: 1.8;
-  background: #2b1720;
-  border-color: #552020;
-  color: #fca5a5;
+  background: #1c1c1c;
+  border-color: #323232;
+  color: #b7b7b7;
   font-size: 21px;
 }
 .vlk-key-tab {
   flex: 1.4;
-  background: #1a2336;
-  color: #93c5fd;
+  background: #222222;
+  color: #bebebe;
 }
 .vlk-key-backslash {
   flex: 1.4;
 }
 .vlk-key-caps {
   flex: 1.8;
-  background: #1a2336;
-  color: #93c5fd;
+  background: #222222;
+  color: #bebebe;
   font-size: 16.5px;
 }
 .vlk-key-enter {
   flex: 2.1;
-  background: #0e3725;
-  border-color: #1c5e3d;
-  color: #86efac;
+  background: #2d2d2d;
+  border-color: #4e4e4e;
+  color: #d4d4d4;
   font-weight: 700;
   font-size: 18px;
 }
 .vlk-key-lshift {
   flex: 2.1;
-  background: #1a2336;
-  color: #cbd5e1;
+  background: #222222;
+  color: #d4d4d4;
   font-size: 16.5px;
 }
 .vlk-key-rshift {
   flex: 2.4;
-  background: #1a2336;
-  color: #cbd5e1;
+  background: #222222;
+  color: #d4d4d4;
   font-size: 16.5px;
 }
 
@@ -530,44 +530,44 @@ function handleKeyPress(k: KeyDef) {
 }
 .vlk-key-esc {
   flex: 1.2;
-  background: #3b1825;
-  border-color: #622236;
-  color: #fca5a5;
+  background: #202020;
+  border-color: #323232;
+  color: #b7b7b7;
   font-weight: 700;
   font-size: 16.5px;
 }
 .vlk-key-ctrl {
   flex: 1.6;
-  background: #1f1b3b;
-  border-color: #3b2d6a;
-  color: #c4b5fd;
+  background: #1e1e1e;
+  border-color: #343434;
+  color: #bdbdbd;
   font-weight: 700;
   font-size: 16.5px;
 }
 .vlk-key-alt {
   flex: 1.2;
-  background: #1a2336;
-  border-color: #2b3a55;
-  color: #93c5fd;
+  background: #222222;
+  border-color: #393939;
+  color: #bebebe;
   font-size: 16.5px;
 }
 .vlk-key-paste {
   flex: 1.1;
-  background: #162a3d;
-  border-color: #1e4566;
-  color: #38bdf8;
+  background: #272727;
+  border-color: #3f3f3f;
+  color: #a5a5a5;
   font-size: 21px;
 }
 .vlk-key-space {
   flex: 4.8;
-  background: #182236;
-  color: #94a3b8;
+  background: #212121;
+  color: #a1a1a1;
   font-size: 17.25px;
 }
 .vlk-key-arrow {
   flex: 1;
-  background: #162035;
-  color: #93c5fd;
+  background: #1f1f1f;
+  color: #bebebe;
   font-size: 18px;
 }
 

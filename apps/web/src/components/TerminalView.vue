@@ -299,13 +299,47 @@ function changeFontSize(delta: number) {
   }
 }
 
+let lastNativePasteAt = 0;
+
+function pasteTextToTerminal(text: string) {
+  if (!text) return;
+  if (term && typeof (term as any).paste === 'function') {
+    term.paste(text);
+  } else {
+    sendKey(`\x1b[200~${text}\x1b[201~`);
+  }
+}
+
+async function writeTextToClipboard(text: string) {
+  if (!text) return;
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (_) {}
+  }
+  if (typeof document !== 'undefined' && typeof document.execCommand === 'function' && document.body) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', 'readonly');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    ta.style.pointerEvents = 'none';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } catch (_) {}
+    document.body.removeChild(ta);
+  }
+}
+
 async function handlePaste() {
   hapticFeedback();
   try {
     const text = await navigator.clipboard.readText();
     if (text) {
-      // Bracketed paste wrapping
-      sendKey(`\x1b[200~${text}\x1b[201~`);
+      pasteTextToTerminal(text);
     }
   } catch (err) {
     isPasteModalOpen.value = true;
@@ -314,7 +348,7 @@ async function handlePaste() {
 
 function executeManualPaste(text: string) {
   if (text) {
-    sendKey(`\x1b[200~${text}\x1b[201~`);
+    pasteTextToTerminal(text);
     isPasteModalOpen.value = false;
   }
 }
@@ -411,6 +445,49 @@ function initTerminal() {
   term.loadAddon(webLinksAddon);
   term.open(terminalRef.value);
 
+  if (typeof (term as any).attachCustomKeyEventHandler === 'function') {
+    term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      if (event.type !== 'keydown') return true;
+      const key = (event.key || '').toLowerCase();
+      const hasCtrlOrMeta = event.ctrlKey || event.metaKey;
+
+      if (event.key === 'Escape') {
+        if (term?.hasSelection?.()) {
+          term.clearSelection?.();
+        }
+        return true;
+      }
+
+      if (hasCtrlOrMeta && !event.altKey && key === 'c') {
+        const selected =
+          (term?.hasSelection?.() ? term.getSelection?.() || '' : '') ||
+          (typeof window !== 'undefined' ? window.getSelection?.()?.toString() || '' : '');
+        if (selected.length > 0 || event.shiftKey || (event.metaKey && !event.ctrlKey)) {
+          if (selected.length > 0) {
+            void writeTextToClipboard(selected);
+            term?.clearSelection?.();
+            if (typeof window !== 'undefined') window.getSelection?.()?.removeAllRanges?.();
+          }
+          event.preventDefault();
+          return false;
+        }
+        return true;
+      }
+
+      if (hasCtrlOrMeta && !event.altKey && key === 'v') {
+        const beforePasteAt = lastNativePasteAt;
+        setTimeout(() => {
+          if (lastNativePasteAt === beforePasteAt) {
+            void handlePaste();
+          }
+        }, 35);
+        return false;
+      }
+
+      return true;
+    });
+  }
+
   // Setup ResizeObserver to automatically fit on container resize, tab switch, and font render
   if (typeof ResizeObserver !== 'undefined' && terminalRef.value) {
     if (resizeObserver) resizeObserver.disconnect();
@@ -455,6 +532,9 @@ function initTerminal() {
   });
 
   setTimeout(handleResize, 60);
+  if (props.isActive !== false) {
+    setTimeout(focusTerminal, 40);
+  }
 
   // Enable touch scrolling for mobile devices on xterm canvas/screen
   setupTouchScrolling();
@@ -491,6 +571,9 @@ function connectWebSocket() {
     }
     reconnectAttempts = 0;
     handleResize();
+    if (props.isActive !== false) {
+      setTimeout(focusTerminal, 30);
+    }
   };
 
   socket.onmessage = (event) => {
@@ -617,10 +700,105 @@ watch(
   }
 );
 
+function isExternalEditableOrModal(target: EventTarget | null): boolean {
+  if (isPasteModalOpen.value) return true;
+  if (typeof document !== 'undefined') {
+    const openModal = document.querySelector(
+      '.modal-overlay, .confirm-modal-overlay, .unsaved-overlay, .context-picker-overlay'
+    );
+    if (openModal) return true;
+  }
+  const checkNode = (node: any): boolean => {
+    if (!node || typeof node !== 'object') return false;
+    if (terminalRef.value && typeof terminalRef.value.contains === 'function' && terminalRef.value.contains(node)) {
+      return false;
+    }
+    const tag = String(node.tagName || '').toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable) {
+      return true;
+    }
+    return false;
+  };
+  if (checkNode(target)) return true;
+  if (typeof document !== 'undefined' && checkNode(document.activeElement)) return true;
+  return false;
+}
+
+function handleWindowKeyDown(e: KeyboardEvent) {
+  if (props.isActive === false) return;
+  if (isExternalEditableOrModal(e.target)) return;
+  if (terminalRef.value && typeof terminalRef.value.contains === 'function' && terminalRef.value.contains(e.target as Node)) {
+    return;
+  }
+
+  const key = (e.key || '').toLowerCase();
+  const hasCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (term?.hasSelection?.()) {
+      term.clearSelection?.();
+    }
+    focusTerminal();
+    sendKey('\x1b');
+    return;
+  }
+
+  if (hasCtrlOrMeta && !e.altKey && key === 'c') {
+    const selected =
+      (term?.hasSelection?.() ? term.getSelection?.() || '' : '') ||
+      (typeof window !== 'undefined' ? window.getSelection?.()?.toString() || '' : '');
+    if (selected.length > 0 || e.shiftKey || (e.metaKey && !e.ctrlKey)) {
+      if (selected.length > 0) {
+        e.preventDefault();
+        void writeTextToClipboard(selected);
+        term?.clearSelection?.();
+        if (typeof window !== 'undefined') window.getSelection?.()?.removeAllRanges?.();
+      }
+      focusTerminal();
+      return;
+    }
+    if (e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      focusTerminal();
+      sendKey('\x03');
+      return;
+    }
+  }
+
+  if (hasCtrlOrMeta && !e.altKey && key === 'v') {
+    focusTerminal();
+    const beforePasteAt = lastNativePasteAt;
+    setTimeout(() => {
+      if (lastNativePasteAt === beforePasteAt) {
+        void handlePaste();
+      }
+    }, 35);
+    return;
+  }
+}
+
+function handleWindowPaste(e: ClipboardEvent) {
+  if (props.isActive === false) return;
+  if (isExternalEditableOrModal(e.target)) return;
+  lastNativePasteAt = Date.now();
+  if (terminalRef.value && typeof terminalRef.value.contains === 'function' && terminalRef.value.contains(e.target as Node)) {
+    return;
+  }
+  const text = e.clipboardData?.getData('text/plain');
+  if (text) {
+    e.preventDefault();
+    focusTerminal();
+    pasteTextToTerminal(text);
+  }
+}
+
 onMounted(() => {
   initTerminal();
   requestWakeLock();
   window.addEventListener('resize', handleResize);
+  window.addEventListener('keydown', handleWindowKeyDown);
+  window.addEventListener('paste', handleWindowPaste, true);
   if (document.fonts) {
     document.fonts.ready.then(() => {
       handleResize();
@@ -646,6 +824,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   releaseWakeLock();
   window.removeEventListener('resize', handleResize);
+  window.removeEventListener('keydown', handleWindowKeyDown);
+  window.removeEventListener('paste', handleWindowPaste, true);
   if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;

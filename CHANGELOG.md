@@ -11,7 +11,10 @@ Bản phát hành chuẩn hóa hệ màu Monochrome (Đen - Trắng - Xám) trê
 - Bổ sung viền màu nhấn (accent border) cho các nút mở dropdown và menu dropdown trên `SmartHeader.vue` để dễ nhận diện trên nền tối.
 - Đồng bộ icon thư mục `ri-folder-2-line` ở màn File và thu gọn nút tải ZIP thành nút icon download (`ri-download-2-line` `30×30`), giữ nguyên luồng tải ZIP và nhãn trợ năng (`title`, `aria-label`).
 
-### Trải nghiệm Workspace & Preview
+### Trải nghiệm Workspace, Bàn phím Desktop & Preview
+- Khắc phục triệt để phím vật lý `Esc`, `Ctrl+C`/`Cmd+C`, `Ctrl+V`/`Cmd+V` trên Desktop tại màn Terminal (`xterm.js`), Claude, Code Editor và Quick Workspace Panel:
+  - Bổ sung `attachCustomKeyEventHandler` và listener toàn cục (`keydown` / `paste`) cho `TerminalView.vue` để `Esc` luôn gửi `\x1b`, `Ctrl+C` tự động copy văn bản đang bôi đen (hoặc gửi `\x03` SIGINT khi không có vùng chọn), và `Ctrl+V`/`Cmd+V` dán trực tiếp clipboard qua `term.paste()` thay vì gửi ký tự điều khiển `^V` (`\x16`), kể cả khi `.xterm-helper-textarea` chưa được focus sau khi chuyển tab/phiên.
+  - Hỗ trợ `Esc` (đóng popup hoặc hủy tiến trình đang chạy), `Ctrl+C` và `Ctrl+V` trên màn Claude và tự động focus lại khung nhập khi chuyển sang chế độ Edit ở `CodeEditor.vue` / `QuickWorkspacePanel.vue`.
 - Mở mọi tệp văn bản ở chế độ Preview chỉ đọc mặc định trong màn File và Quick Workspace Panel, kèm nút chuyển nhanh sang Edit.
 - Ẩn thanh phím nhanh ảo theo thiết bị Desktop (`useDesktopDevice()`) thay vì chỉ dựa vào kích thước viewport, và căn chỉnh liền mạch Quick Workspace Panel / Sidebar với Header (`64px`) và Bottom Dock (`42px`).
 

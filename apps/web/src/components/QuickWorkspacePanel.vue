@@ -185,7 +185,7 @@
               :data-md-mode="mdMode"
               :title="mdMode === 'preview' ? t('quickPanel.mdEdit') : t('quickPanel.mdPreview')"
               :aria-label="mdMode === 'preview' ? t('quickPanel.mdEdit') : t('quickPanel.mdPreview')"
-              @click="mdMode = mdMode === 'preview' ? 'edit' : 'preview'"
+              @click="toggleInlineEditMode"
             >
               <i :class="mdMode === 'preview' ? 'ri-edit-line' : 'ri-eye-line'"></i>
             </button>
@@ -719,6 +719,13 @@ async function closeInlineFile() {
   activeInlineFile.value = null;
   inlineScope.value = null;
   inlineStatusText.value = '';
+}
+
+function toggleInlineEditMode() {
+  mdMode.value = mdMode.value === 'preview' ? 'edit' : 'preview';
+  if (mdMode.value === 'edit') {
+    requestAnimationFrame(() => codeInputRef.value?.focus());
+  }
 }
 
 function onInlineCodeInput() {

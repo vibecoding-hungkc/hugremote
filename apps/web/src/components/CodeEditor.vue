@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
 import { EditorView, lineNumbers, highlightActiveLineGutter, highlightSpecialChars } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { defaultKeymap, history, historyKeymap, undo, cursorCharLeft, cursorCharRight } from '@codemirror/commands';
@@ -202,6 +202,42 @@ function insertText(text: string) {
   view.focus();
 }
 
+let lastEditorPasteAt = 0;
+
+function handleEditorPaste() {
+  lastEditorPasteAt = Date.now();
+}
+
+function handleEditorKeyDown(e: KeyboardEvent) {
+  const key = (e.key || '').toLowerCase();
+  const hasCtrlOrMeta = e.ctrlKey || e.metaKey;
+  if (hasCtrlOrMeta && !e.altKey && key === 's') {
+    e.preventDefault();
+    void fileStore.saveActiveFile();
+    return;
+  }
+  if (hasCtrlOrMeta && !e.altKey && key === 'c' && e.ctrlKey && !e.metaKey) {
+    const cmSel = view ? view.state.sliceDoc(view.state.selection.main.from, view.state.selection.main.to) : '';
+    const domSel = typeof window !== 'undefined' ? window.getSelection()?.toString() || '' : '';
+    const sel = cmSel || domSel;
+    if (sel && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(sel).catch(() => {});
+    }
+    return;
+  }
+  if (hasCtrlOrMeta && !e.altKey && key === 'v' && fileStore.fileMode === 'code') {
+    const beforePasteAt = lastEditorPasteAt;
+    setTimeout(async () => {
+      if (lastEditorPasteAt === beforePasteAt && typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text) insertText(text);
+        } catch (_) {}
+      }
+    }, 35);
+  }
+}
+
 watch(
   () => fileStore.activeFile?.relPath,
   () => {
@@ -209,11 +245,36 @@ watch(
   }
 );
 
+watch(
+  () => fileStore.fileMode,
+  (mode) => {
+    if (mode === 'code') {
+      nextTick(() => {
+        if (!view) initEditor();
+        if (view && typeof (view as any).requestMeasure === 'function') {
+          view.requestMeasure();
+        }
+        if (view && typeof (view as any).focus === 'function') {
+          view.focus();
+        }
+      });
+    }
+  }
+);
+
 onMounted(() => {
   initEditor();
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('keydown', handleEditorKeyDown);
+    window.addEventListener('paste', handleEditorPaste, true);
+  }
 });
 
 onBeforeUnmount(() => {
+  if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+    window.removeEventListener('keydown', handleEditorKeyDown);
+    window.removeEventListener('paste', handleEditorPaste, true);
+  }
   if (view) view.destroy();
 });
 </script>

@@ -324,6 +324,7 @@
             @focus="isInputFocused = true"
             @blur="isInputFocused = false"
             @keydown="handleKeyDown"
+            @paste="onTextareaPaste"
             @input="autoResize"
           ></textarea>
           <button
@@ -811,22 +812,147 @@ async function handleVisibilityOrFocus() {
   }
 }
 
+let lastClaudePasteAt = 0;
+
+function onTextareaPaste() {
+  lastClaudePasteAt = Date.now();
+}
+
+function isExternalClaudeInputOrModal(target: EventTarget | null): boolean {
+  if (isContextPickerOpen.value || isModelPopupOpen.value || claudeStore.isLimitsPopupOpen) {
+    return false;
+  }
+  if (typeof document !== 'undefined' && typeof document.querySelector === 'function') {
+    const openModal = document.querySelector(
+      '.modal-overlay, .confirm-modal-overlay, .unsaved-overlay'
+    );
+    if (openModal) return true;
+  }
+  const checkNode = (node: any): boolean => {
+    if (!node || typeof node !== 'object') return false;
+    if (node === inputRef.value) return false;
+    const tag = String(node.tagName || '').toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable) {
+      return true;
+    }
+    return false;
+  };
+  if (checkNode(target)) return true;
+  if (typeof document !== 'undefined' && checkNode((document as any).activeElement)) return true;
+  return false;
+}
+
+function handleClaudeWindowKeyDown(e: KeyboardEvent) {
+  if (!props.isActive) return;
+  if (e.target === inputRef.value) return;
+
+  if (e.key === 'Escape') {
+    if (isSlashMenuOpen.value) {
+      e.preventDefault();
+      isSlashMenuDismissed.value = true;
+      return;
+    }
+    if (isModelPopupOpen.value) {
+      e.preventDefault();
+      isModelPopupOpen.value = false;
+      return;
+    }
+    if (claudeStore.isLimitsPopupOpen) {
+      e.preventDefault();
+      claudeStore.isLimitsPopupOpen = false;
+      return;
+    }
+    if (isContextPickerOpen.value) {
+      e.preventDefault();
+      isContextPickerOpen.value = false;
+      return;
+    }
+    if (claudeStore.isGenerating && !isExternalClaudeInputOrModal(e.target)) {
+      e.preventDefault();
+      void handleStop();
+      return;
+    }
+  }
+
+  if (isExternalClaudeInputOrModal(e.target)) return;
+
+  const key = (e.key || '').toLowerCase();
+  const hasCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+  if (hasCtrlOrMeta && !e.altKey && key === 'c') {
+    const domSel = typeof window !== 'undefined' ? window.getSelection()?.toString() || '' : '';
+    const el = inputRef.value;
+    const inputSel = el ? inputText.value.slice(el.selectionStart ?? 0, el.selectionEnd ?? 0) : '';
+    const selected = domSel || inputSel;
+    if (selected) {
+      if (e.ctrlKey && !e.metaKey && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        void navigator.clipboard.writeText(selected).catch(() => {});
+      }
+      return;
+    }
+    if (e.ctrlKey && !e.metaKey && claudeStore.isGenerating) {
+      e.preventDefault();
+      void handleStop();
+      return;
+    }
+  }
+
+  if (hasCtrlOrMeta && !e.altKey && key === 'v') {
+    inputRef.value?.focus();
+    const beforePasteAt = lastClaudePasteAt;
+    setTimeout(() => {
+      if (lastClaudePasteAt === beforePasteAt) {
+        void pasteClipboard();
+      }
+    }, 35);
+  }
+}
+
+function handleClaudeWindowPaste(e: ClipboardEvent) {
+  if (!props.isActive) return;
+  if (isExternalClaudeInputOrModal(e.target)) return;
+  lastClaudePasteAt = Date.now();
+  if (e.target === inputRef.value) return;
+  const text = e.clipboardData?.getData('text/plain');
+  if (text) {
+    e.preventDefault();
+    replaceInputSelection(text);
+  }
+}
+
 watch(() => props.isActive, (active) => {
-  if (active) void handleVisibilityOrFocus();
+  if (active) {
+    void handleVisibilityOrFocus();
+    if (isDesktopDevice.value) {
+      setTimeout(() => inputRef.value?.focus(), 40);
+    }
+  }
 });
 
 onMounted(() => {
   scrollToBottom();
   claudeStore.fetchLimits();
-  document.addEventListener('click', closeModelPopupOnDocumentClick);
-  document.addEventListener('visibilitychange', handleVisibilityOrFocus);
-  window.addEventListener('focus', handleVisibilityOrFocus);
+  if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('click', closeModelPopupOnDocumentClick);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+  }
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    window.addEventListener('keydown', handleClaudeWindowKeyDown);
+    window.addEventListener('paste', handleClaudeWindowPaste, true);
+  }
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', closeModelPopupOnDocumentClick);
-  document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-  window.removeEventListener('focus', handleVisibilityOrFocus);
+  if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+    document.removeEventListener('click', closeModelPopupOnDocumentClick);
+    document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+  }
+  if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+    window.removeEventListener('focus', handleVisibilityOrFocus);
+    window.removeEventListener('keydown', handleClaudeWindowKeyDown);
+    window.removeEventListener('paste', handleClaudeWindowPaste, true);
+  }
   if (elapsedTimer) clearInterval(elapsedTimer);
 });
 
@@ -869,11 +995,60 @@ function handleKeyDown(e: KeyboardEvent) {
     }
   }
 
-  if (e.key === 'Escape' && claudeStore.isGenerating) {
-    e.preventDefault();
-    handleStop();
+  if (e.key === 'Escape') {
+    if (isModelPopupOpen.value) {
+      e.preventDefault();
+      isModelPopupOpen.value = false;
+      return;
+    }
+    if (claudeStore.isLimitsPopupOpen) {
+      e.preventDefault();
+      claudeStore.isLimitsPopupOpen = false;
+      return;
+    }
+    if (claudeStore.isGenerating) {
+      e.preventDefault();
+      handleStop();
+      return;
+    }
+  }
+
+  const key = (e.key || '').toLowerCase();
+  const hasCtrlOrMeta = e.ctrlKey || e.metaKey;
+
+  if (hasCtrlOrMeta && !e.altKey && key === 'c') {
+    const el = inputRef.value;
+    const hasInputSel = Boolean(el && (el.selectionStart ?? 0) !== (el.selectionEnd ?? 0));
+    const domSel = typeof window !== 'undefined' ? window.getSelection()?.toString() || '' : '';
+    if (hasInputSel) {
+      if (e.ctrlKey && !e.metaKey) {
+        void copySelectedText();
+      }
+      return;
+    }
+    if (domSel) {
+      if (e.ctrlKey && !e.metaKey && typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        void navigator.clipboard.writeText(domSel).catch(() => {});
+      }
+      return;
+    }
+    if (e.ctrlKey && !e.metaKey && claudeStore.isGenerating) {
+      e.preventDefault();
+      handleStop();
+      return;
+    }
+  }
+
+  if (hasCtrlOrMeta && !e.altKey && key === 'v') {
+    const beforePasteAt = lastClaudePasteAt;
+    setTimeout(() => {
+      if (lastClaudePasteAt === beforePasteAt) {
+        void pasteClipboard();
+      }
+    }, 35);
     return;
   }
+
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     handleSend();

@@ -43,11 +43,35 @@
           <span v-if="fileStore.activeFile?.isDirty" class="editor-dirty" title="Nội dung chưa lưu" aria-label="Nội dung chưa lưu">●</span>
         </div>
         <div v-else-if="activeTab === 'terminal'" class="ctx-header-item ctx-header-session">
+          <button
+            id="btn-toggle-workspace-left-term"
+            type="button"
+            class="btn-workspace-sidebar-toggle"
+            data-workspace-sidebar-toggle
+            :aria-expanded="workspaceSidebarOpen ? 'true' : 'false'"
+            title="Đóng / mở cột Workspace bên trái"
+            aria-label="Đóng / mở cột Workspace bên trái"
+            @click="$emit('toggle-workspace-sidebar')"
+          >
+            <i class="ri-side-bar-line"></i>
+          </button>
           <button class="term-session-pill" @click="$emit('open-session-hub')">
             <i class="ri-terminal-box-line"></i><span>{{ displaySessionName }}</span><span class="badge-count">{{ terminalStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
           </button>
         </div>
         <div v-else-if="activeTab === 'claude'" class="ctx-header-item ctx-header-session">
+          <button
+            id="btn-toggle-workspace-left-claude"
+            type="button"
+            class="btn-workspace-sidebar-toggle"
+            data-workspace-sidebar-toggle
+            :aria-expanded="workspaceSidebarOpen ? 'true' : 'false'"
+            title="Đóng / mở cột Workspace bên trái"
+            aria-label="Đóng / mở cột Workspace bên trái"
+            @click="$emit('toggle-workspace-sidebar')"
+          >
+            <i class="ri-side-bar-line"></i>
+          </button>
           <button class="claude-session-pill" @click="$emit('open-claude-hub')">
             <i class="ri-sparkling-fill"></i><span>{{ displayClaudeSessionName }}</span><span class="badge-count claude-badge">{{ claudeStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
           </button>
@@ -160,9 +184,10 @@ defineProps<{
   activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git';
   quickPanelOpen?: boolean;
   quickPanelMode?: 'files' | 'git';
+  workspaceSidebarOpen?: boolean;
 }>();
 const emit = defineEmits<{
-  (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void; (e: 'toggle-quick-panel', mode: 'files' | 'git'): void;
+  (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void; (e: 'toggle-quick-panel', mode: 'files' | 'git'): void; (e: 'toggle-workspace-sidebar'): void;
 }>();
 const serverStore = useServerStore(); const projectStore = useProjectStore(); const fileStore = useFileStore(); const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); const gitStore = useGitStore(); const { t } = useI18n();
 
@@ -482,8 +507,36 @@ async function closeFile() {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 6px;
   min-width: 0;
   max-width: 100%;
+}
+
+.btn-workspace-sidebar-toggle {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #cbd5e1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 14px;
+  transition: all 0.16s ease;
+}
+.btn-workspace-sidebar-toggle:hover {
+  border-color: #475569;
+  color: #f8fafc;
+}
+.btn-workspace-sidebar-toggle[aria-expanded="true"] {
+  color: #38bdf8;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(30, 58, 138, 0.35));
+  border-color: #38bdf8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 8px rgba(56, 189, 248, 0.25);
 }
 
 .breadcrumb-bar {

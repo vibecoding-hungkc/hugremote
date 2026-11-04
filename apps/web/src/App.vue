@@ -3,7 +3,10 @@
   <div
     v-else
     class="app-root"
-    :class="{ 'quick-tree-open': isQuickPanelActive }"
+    :class="{
+      'quick-tree-open': isQuickPanelActive,
+      'workspace-sidebar-open': isWorkspaceSidebarOpen,
+    }"
     :style="{ '--quick-panel-width': `${quickPanelWidth}px` }"
   >
     <!-- 1. Smart Unified Header -->
@@ -11,6 +14,7 @@
       :active-tab="activeTab"
       :quick-panel-open="isQuickPanelActive"
       :quick-panel-mode="quickPanelMode"
+      :workspace-sidebar-open="isWorkspaceSidebarOpen"
       @open-server-drawer="isServerDrawerOpen = true"
       @open-project-modal="isProjectModalOpen = true"
       @open-session-hub="isSessionHubOpen = true"
@@ -20,6 +24,22 @@
       @prompt-create-item="promptCreateItem"
       @change-tab="tab => activeTab = tab"
       @toggle-quick-panel="toggleQuickPanel"
+      @toggle-workspace-sidebar="toggleWorkspaceSidebar"
+    />
+
+    <!-- 1b. Left Workspace Sidebar (Projects + Project-Scoped Terminal & Claude Sessions) -->
+    <WorkspaceSidebar
+      :is-open="isWorkspaceSidebarOpen"
+      @close="setWorkspaceSidebarOpen(false)"
+      @open-project-modal="isProjectModalOpen = true"
+      @project-selected="handleScopeChanged"
+      @open-new-terminal="openNewTerminalModal"
+      @edit-terminal="handleEditTerminalSession"
+      @select-terminal="activeTab = 'terminal'"
+      @open-new-claude="openNewClaudeModal"
+      @edit-claude="handleEditClaudeSession"
+      @delete-claude="handleDeleteClaudeSession"
+      @select-claude="activeTab = 'claude'"
     />
 
     <!-- 2. Main Viewport Area -->
@@ -154,6 +174,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import SmartHeader from './components/SmartHeader.vue';
+import WorkspaceSidebar from './components/WorkspaceSidebar.vue';
 import QuickWorkspacePanel from './components/QuickWorkspacePanel.vue';
 import FileExplorer from './components/FileExplorer.vue';
 import CodeEditor from './components/CodeEditor.vue';
@@ -193,12 +214,28 @@ const gitStore = useGitStore();
 const { t } = useI18n();
 
 const { activeTab, navigateTo } = useAppRouter();
+const isWorkspaceSidebarOpen = ref(
+  typeof window !== 'undefined' && typeof window.innerWidth === 'number'
+    ? window.innerWidth >= 900
+    : false
+);
 const isQuickPanelOpen = ref(false);
 const quickPanelMode = ref<'files' | 'git'>('files');
 const quickPanelWidth = ref(320);
 const isQuickPanelActive = computed(
   () => isQuickPanelOpen.value && (activeTab.value === 'terminal' || activeTab.value === 'claude')
 );
+
+function setWorkspaceSidebarOpen(open: boolean) {
+  isWorkspaceSidebarOpen.value = Boolean(open);
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+}
+
+function toggleWorkspaceSidebar() {
+  setWorkspaceSidebarOpen(!isWorkspaceSidebarOpen.value);
+}
 
 function toggleQuickPanel(mode: 'files' | 'git') {
   if (isQuickPanelOpen.value && quickPanelMode.value === mode) {
@@ -407,7 +444,15 @@ html, body {
   width: 100%;
   max-width: 100vw;
   overscroll-behavior-x: none;
-  transition: padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    padding-left 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 900px) {
+  .app-root.workspace-sidebar-open .main-content {
+    padding-left: 256px;
+  }
 }
 
 @media (min-width: 800px) {

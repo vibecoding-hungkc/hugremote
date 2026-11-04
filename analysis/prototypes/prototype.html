@@ -1127,16 +1127,14 @@
        SMART ULTRA-COMPACT MOBILE LAYOUT (< 40px OVERHEAD)
        ======================================================== */
     
-    /* 1. SINGLE UNIFIED SMART TOP HEADER (Height: 38px) */
+    /* 1. TWO-TIER UNIFIED SMART TOP HEADER (Mobile Dropdown + Desktop Inline Tabs) */
     .smart-header {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      height: 40px;
-      padding: 0 10px;
-      background: #0d1322;
-      border-bottom: 1px solid var(--border);
-      gap: 8px;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 66px;
+      background: linear-gradient(180deg, #090f1d 0%, #0d1527 100%);
+      border-bottom: 1px solid #1e293b;
       flex-shrink: 0;
       z-index: 50;
       transition: transform 0.2s ease, opacity 0.2s ease;
@@ -1145,9 +1143,454 @@
       transform: translateY(-100%);
       opacity: 0;
       height: 0;
+      min-height: 0;
       padding: 0;
       border-bottom: none;
       overflow: hidden;
+    }
+    .server-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 30px;
+      padding: 2px 10px;
+      background: rgba(6, 11, 22, 0.88);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+      gap: 8px;
+      min-width: 0;
+    }
+    .server-row-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+    .server-proj-sep {
+      color: #475569;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 12px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .project-selector-btn {
+      height: 22px;
+      max-width: calc(100% - 110px);
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.14), rgba(37, 99, 235, 0.08));
+      color: #bae6fd;
+      border-radius: 6px;
+      padding: 0 7px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .project-selector-btn span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .context-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 36px;
+      padding: 0 10px;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    /* Desktop Project Strip & Session Tab Strip (Hidden on Mobile < 900px) */
+    .desktop-project-strip,
+    .desktop-session-strip,
+    .desktop-layout-mode-bar,
+    .desktop-workspace-sidebar {
+      display: none;
+    }
+
+    @media (min-width: 900px) {
+      #app:not([data-desktop-mode="sidebar"]) .project-selector-btn.mobile-only-pill {
+        display: none;
+      }
+      #app:not([data-desktop-mode="sidebar"]) .desktop-project-strip {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 1px 0;
+      }
+      .desktop-project-strip::-webkit-scrollbar { display: none; }
+
+      .desktop-project-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        height: 23px;
+        padding: 0 9px;
+        border-radius: 6px;
+        border: 1px solid rgba(71, 85, 105, 0.45);
+        background: rgba(15, 23, 42, 0.75);
+        color: #94a3b8;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.15s ease;
+      }
+      .desktop-project-chip:hover {
+        border-color: rgba(56, 189, 248, 0.45);
+        color: #e2e8f0;
+        background: rgba(30, 41, 59, 0.85);
+      }
+      .desktop-project-chip.active {
+        border-color: #38bdf8;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.24), rgba(37, 99, 235, 0.18));
+        color: #f0f9ff;
+        font-weight: 700;
+        box-shadow: 0 0 12px rgba(14, 165, 233, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      }
+      .desktop-project-chip .proj-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #38bdf8;
+        box-shadow: 0 0 6px #38bdf8;
+      }
+      .desktop-project-manage-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 23px;
+        padding: 0 8px;
+        border-radius: 6px;
+        border: 1px dashed rgba(100, 116, 139, 0.6);
+        background: rgba(15, 23, 42, 0.5);
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .desktop-project-manage-btn:hover {
+        border-color: #60a5fa;
+        color: #dbeafe;
+        background: rgba(30, 58, 138, 0.28);
+      }
+
+      /* Desktop Mode Switcher on Right of Tier 1 */
+      .desktop-layout-mode-bar {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: #0b1324;
+        border: 1px solid #26354d;
+        border-radius: 7px;
+        padding: 2px;
+        flex-shrink: 0;
+      }
+      .desktop-mode-label {
+        font-size: 10px;
+        color: #64748b;
+        font-weight: 700;
+        padding: 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .btn-desktop-mode {
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.15s ease;
+      }
+      .btn-desktop-mode:hover {
+        color: #e2e8f0;
+        background: rgba(51, 65, 85, 0.4);
+      }
+      .btn-desktop-mode.active {
+        background: linear-gradient(135deg, #1d4ed8, #0284c7);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+      }
+
+      /* Desktop Multi-Session Tab Strip in Tier 2 */
+      #app:not([data-desktop-mode="sidebar"]) #ctx-header-terminal .term-session-pill,
+      #app:not([data-desktop-mode="sidebar"]) #ctx-header-claude .term-session-pill {
+        display: none;
+      }
+      #app:not([data-desktop-mode="sidebar"]) .desktop-session-strip {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px 0;
+      }
+      .desktop-session-strip::-webkit-scrollbar { display: none; }
+
+      .desktop-session-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 27px;
+        padding: 0 8px 0 9px;
+        border-radius: 7px;
+        border: 1px solid #293548;
+        background: linear-gradient(180deg, #131c2e 0%, #0f172a 100%);
+        color: #94a3b8;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: all 0.15s ease;
+      }
+      .desktop-session-tab:hover {
+        border-color: #475569;
+        color: #e2e8f0;
+        background: #1e293b;
+      }
+      .desktop-session-tab.active.term-tab {
+        border-color: #a855f7;
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.24) 0%, rgba(59, 130, 246, 0.15) 100%);
+        color: #f3e8ff;
+        box-shadow: 0 2px 10px rgba(168, 85, 247, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+      .desktop-session-tab.active.claude-tab {
+        border-color: #f59e0b;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.24) 0%, rgba(217, 119, 87, 0.16) 100%);
+        color: #fef3c7;
+        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+      .desktop-session-tab .tab-meta {
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(15, 23, 42, 0.55);
+        color: #94a3b8;
+        font-weight: 500;
+      }
+      .desktop-session-tab.active.term-tab .tab-meta {
+        color: #d8b4fe;
+        background: rgba(88, 28, 135, 0.45);
+      }
+      .desktop-session-tab.active.claude-tab .tab-meta {
+        color: #fde68a;
+        background: rgba(146, 64, 14, 0.45);
+      }
+      .desktop-session-tab .tab-inline-btn {
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.65;
+      }
+      .desktop-session-tab:hover .tab-inline-btn,
+      .desktop-session-tab.active .tab-inline-btn {
+        opacity: 1;
+      }
+      .desktop-session-tab .tab-inline-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+      }
+      .desktop-session-tab .tab-inline-btn.danger:hover {
+        background: rgba(239, 68, 68, 0.22);
+        color: #fca5a5;
+      }
+      .desktop-strip-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 26px;
+        padding: 0 8px;
+        border-radius: 6px;
+        border: 1px solid #334155;
+        background: rgba(30, 41, 59, 0.7);
+        color: #cbd5e1;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .desktop-strip-btn:hover {
+        border-color: #60a5fa;
+        color: #ffffff;
+        background: rgba(37, 99, 235, 0.25);
+      }
+
+      /* Option 2 / Hybrid: Desktop Left Workspace Sidebar */
+      #app[data-desktop-mode="sidebar"] .desktop-workspace-sidebar,
+      #app[data-desktop-mode="hybrid"] .desktop-workspace-sidebar {
+        display: flex;
+        flex-direction: column;
+        width: 244px;
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 22;
+        background:
+          linear-gradient(180deg, rgba(11, 18, 34, 0.98) 0%, rgba(8, 13, 26, 0.99) 100%),
+          repeating-linear-gradient(0deg, rgba(56, 189, 248, 0.03) 0px, rgba(56, 189, 248, 0.03) 1px, transparent 1px, transparent 24px);
+        border-right: 1px solid #1e293b;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.35);
+        overflow-y: auto;
+        padding: 10px 8px;
+        gap: 14px;
+      }
+      #app[data-desktop-mode="sidebar"] .views-wrapper > .view,
+      #app[data-desktop-mode="hybrid"] .views-wrapper > .view {
+        left: 244px;
+      }
+      .dw-section {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .dw-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 6px;
+        font-size: 10.5px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+      }
+      .dw-section-head button {
+        border: 1px solid #293548;
+        background: #131c2e;
+        color: #93c5fd;
+        border-radius: 5px;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .dw-section-head button:hover {
+        background: #1e3a8a;
+        border-color: #3b82f6;
+        color: #fff;
+      }
+      .dw-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .dw-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 6px 8px;
+        border-radius: 7px;
+        border: 1px solid rgba(51, 65, 85, 0.45);
+        background: rgba(15, 23, 42, 0.65);
+        color: #cbd5e1;
+        cursor: pointer;
+        transition: all 0.14s ease;
+      }
+      .dw-item:hover {
+        border-color: #475569;
+        background: rgba(30, 41, 59, 0.9);
+      }
+      .dw-item.active.proj-item {
+        border-color: #38bdf8;
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(30, 58, 138, 0.24));
+        color: #f0f9ff;
+      }
+      .dw-item.active.term-item {
+        border-color: #a855f7;
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(59, 130, 246, 0.14));
+        color: #f3e8ff;
+      }
+      .dw-item.active.claude-item {
+        border-color: #f59e0b;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 87, 0.14));
+        color: #fef3c7;
+      }
+      .dw-item-main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+        gap: 2px;
+      }
+      .dw-item-title {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .dw-item-sub {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        color: #64748b;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .dw-item-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+      }
+      .dw-item-actions button {
+        width: 20px;
+        height: 20px;
+        border: none;
+        border-radius: 4px;
+        background: transparent;
+        color: #94a3b8;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+      }
+      .dw-item-actions button:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+      .dw-item-actions button.danger:hover {
+        background: rgba(239, 68, 68, 0.22);
+        color: #fca5a5;
+      }
     }
 
     .smart-header-left {
@@ -3930,93 +4373,156 @@
 </style>
 </head>
 <body>
-  <div id="app">
-    <!-- 1. SMART UNIFIED TOP HEADER (Chỉ 40px, chuyển ngữ cảnh theo Tab) -->
+  <div id="app" data-desktop-mode="tabs">
+    <!-- 1. SMART UNIFIED 2-TIER HEADER (Mobile Dropdown + Desktop Inline Project Strip & Session Tab Strip) -->
     <header id="unified-header" class="smart-header">
-      <!-- Left: Nút Quản Lý Server (Mặc định máy hiện tại & remote servers từ SSH) -->
-      <div class="smart-header-left">
-        <button id="btn-server-manage" class="server-selector-btn" title="Quản lý Server & Kết nối SSH">
-          <span id="server-status-dot" class="server-status-dot local"></span>
-          <span id="current-server-label" class="server-name-text">hungpc</span>
-          <i class="ri-arrow-down-s-line" style="font-size:12px; color:var(--text-muted);"></i>
-        </button>
-      </div>
+      <!-- TẦNG 1: SERVER + PROJECT SWITCHER -->
+      <div class="server-title-row">
+        <div class="server-row-left">
+          <button id="btn-server-manage" class="server-selector-btn" title="Quản lý Server & Kết nối SSH">
+            <span id="server-status-dot" class="server-status-dot local"></span>
+            <span id="current-server-label" class="server-name-text">hungpc</span>
+            <i class="ri-arrow-down-s-line" style="font-size:12px; color:var(--text-muted);"></i>
+          </button>
 
-      <!-- Center: Contextual info per view -->
-      <div class="smart-header-center">
-        <!-- View 1 Files: Breadcrumb -->
-        <div id="ctx-header-files" class="ctx-header-item active">
-          <div class="breadcrumb-bar" id="file-breadcrumb">
+          <span class="server-proj-sep">/</span>
+
+          <!-- Mobile Project Selector Pill (< 900px hoặc khi bật chế độ Sidebar) -->
+          <button id="btn-project-mobile-pill" class="project-selector-btn mobile-only-pill" title="Chuyển hoặc quản lý Project">
+            <i class="ri-folder-2-line"></i>
+            <span id="current-project-label">hugcode</span>
+            <i class="ri-arrow-down-s-line"></i>
+          </button>
+
+          <!-- Desktop Inline Project Strip (>= 900px) -->
+          <div id="desktop-project-strip" class="desktop-project-strip" role="tablist" aria-label="Chuyển nhanh Project">
             <!-- Rendered by JS -->
           </div>
         </div>
 
-        <!-- View 2 Editor: Active file title -->
-        <div id="ctx-header-editor" class="ctx-header-item">
-          <span class="editor-file-title" id="editor-filename">Chưa chọn file</span>
-          <span id="editor-dirty-pill" class="dirty-pill hidden">● Sửa</span>
-        </div>
-
-        <!-- View 3 Terminal: Session selector pill -->
-                <!-- View 4 Claude: Session selector pill -->
-        <div id="ctx-header-claude" class="ctx-header-item">
-          <button id="btn-open-claude-hub" class="term-session-pill claude-pill" title="Chạm để mở danh sách phiên Claude">
-            <span id="current-claude-name"><i class="ri-sparkling-fill" style="color:#f59e0b;"></i> claude-main</span>
-            <span class="badge-count claude-badge" id="claude-count-badge">1</span>
-            <span style="font-size:10px; color:#f59e0b;">▾</span>
+        <!-- Desktop Layout Mode Switcher (>= 900px) -->
+        <div class="desktop-layout-mode-bar" id="desktop-layout-switcher" aria-label="Chế độ hiển thị Desktop">
+          <span class="desktop-mode-label">Bố cục Desktop</span>
+          <button type="button" class="btn-desktop-mode active" data-desktop-mode-btn="tabs" title="Thanh Tab Ngang trên Header">
+            <i class="ri-layout-top-2-line"></i> Thanh Tab Ngang
           </button>
-        </div>
-        <div id="ctx-header-terminal" class="ctx-header-item">
-          <button id="btn-open-session-hub" class="term-session-pill" title="Chạm để mở danh sách cửa sổ">
-            <span id="current-term-name"><i class="ri-terminal-box-line"></i> main-shell</span>
-            <span class="badge-count" id="term-count-badge">1</span>
-            <span style="font-size:10px; color:#a855f7;">▾</span>
+          <button type="button" class="btn-desktop-mode" data-desktop-mode-btn="sidebar" title="Cột điều hướng dọc bên trái">
+            <i class="ri-layout-left-2-line"></i> Cột Trái Workspace
+          </button>
+          <button type="button" class="btn-desktop-mode" data-desktop-mode-btn="hybrid" title="Bật đồng thời Thanh Tab Ngang và Cột Trái">
+            <i class="ri-layout-masonry-line"></i> Kết Hợp
           </button>
         </div>
       </div>
 
-      <!-- Right: Contextual action buttons -->
-      <div class="smart-header-right">
-        <!-- Actions for Files -->
-        <div id="ctx-actions-files" class="ctx-actions-item active">
-          <button id="btn-quick-upload" class="btn-icon-action" title="Tải lên (File / Thư mục)"><i class="ri-upload-2-line"></i></button>
-          <button id="btn-quick-download-zip" class="btn-icon-action" title="Nén & tải về thư mục này (.zip)"><i class="ri-folder-zip-line"></i></button>
-          <button id="btn-quick-new" class="btn-icon-action" title="Tạo file / thư mục mới"><i class="ri-add-line"></i></button>
-          <button id="btn-open-cleanup-modal" class="btn-icon-action" title="Quản lý file nén tạm & dọn dẹp định kỳ" style="position:relative;">
-            <i class="ri-archive-line"></i>
-            <span id="zip-cache-badge" class="zip-cache-badge hidden">0</span>
-          </button>
+      <!-- TẦNG 2: CONTEXTUAL BAR (BREADCRUMB / EDITOR / SESSION TABS) + ACTIONS -->
+      <div class="context-row">
+        <div class="smart-header-center">
+          <!-- View 1 Files: Breadcrumb -->
+          <div id="ctx-header-files" class="ctx-header-item active">
+            <div class="breadcrumb-bar" id="file-breadcrumb">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- View 2 Editor: Active file title -->
+          <div id="ctx-header-editor" class="ctx-header-item">
+            <span class="editor-file-title" id="editor-filename">Chưa chọn file</span>
+            <span id="editor-dirty-pill" class="dirty-pill hidden">● Sửa</span>
+          </div>
+
+          <!-- View 4 Claude: Mobile Pill + Desktop Inline Session Tab Strip -->
+          <div id="ctx-header-claude" class="ctx-header-item">
+            <button id="btn-open-claude-hub" class="term-session-pill claude-pill" title="Chạm để mở danh sách phiên Claude">
+              <span id="current-claude-name"><i class="ri-sparkling-fill" style="color:#f59e0b;"></i> claude-main</span>
+              <span class="badge-count claude-badge" id="claude-count-badge">1</span>
+              <span style="font-size:10px; color:#f59e0b;">▾</span>
+            </button>
+            <div id="desktop-claude-tabs" class="desktop-session-strip claude-strip" role="tablist" aria-label="Phiên Claude">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- View 3 Terminal: Mobile Pill + Desktop Inline Session Tab Strip -->
+          <div id="ctx-header-terminal" class="ctx-header-item">
+            <button id="btn-open-session-hub" class="term-session-pill" title="Chạm để mở danh sách cửa sổ">
+              <span id="current-term-name"><i class="ri-terminal-box-line"></i> main-shell</span>
+              <span class="badge-count" id="term-count-badge">1</span>
+              <span style="font-size:10px; color:#a855f7;">▾</span>
+            </button>
+            <div id="desktop-term-tabs" class="desktop-session-strip terminal-strip" role="tablist" aria-label="Phiên Terminal">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
         </div>
 
-        <!-- Actions for Editor -->
-        <div id="ctx-actions-editor" class="ctx-actions-item">
-          <button id="btn-md-toggle" class="btn-md-toggle hidden" title="Chuyển chế độ xem trước/sửa"><i class="ri-eye-line"></i> Xem</button>
-          <button id="btn-save-file" class="btn-icon-action primary" disabled title="Lưu file"><i class="ri-save-line"></i></button>
-          <button id="btn-close-file" class="btn-icon-action" title="Đóng file"><i class="ri-close-line"></i></button>
-        </div>
+        <!-- Right: Contextual action buttons -->
+        <div class="smart-header-right">
+          <!-- Actions for Files -->
+          <div id="ctx-actions-files" class="ctx-actions-item active">
+            <button id="btn-quick-upload" class="btn-icon-action" title="Tải lên"><i class="ri-upload-2-line"></i></button>
+            <button id="btn-quick-download-zip" class="btn-icon-action" title="Nén và tải về thư mục này"><i class="ri-folder-zip-line"></i></button>
+            <button id="btn-quick-new" class="btn-icon-action" title="Tạo file hoặc thư mục mới"><i class="ri-add-line"></i></button>
+            <button id="btn-open-cleanup-modal" class="btn-icon-action" title="Quản lý file nén tạm" style="position:relative;">
+              <i class="ri-archive-line"></i>
+              <span id="zip-cache-badge" class="zip-cache-badge hidden">0</span>
+            </button>
+          </div>
 
-        <!-- Actions for Terminal -->
-                <!-- Actions for Claude -->
-        <div id="ctx-actions-claude" class="ctx-actions-item">
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
-          <button id="btn-header-claude-limits" class="btn-icon-action" title="Xem hạn mức 5h & Tuần"><i class="ri-dashboard-3-line" style="color:#f59e0b;"></i></button>
-          <button id="btn-add-claude" class="btn-icon-action" title="Khởi chạy phiên Claude mới"><i class="ri-add-line"></i></button>
-          <button id="btn-claude-more" class="btn-icon-action" title="Tùy chọn Claude"><i class="ri-more-2-fill"></i></button>
-        </div>
-        <div id="ctx-actions-terminal" class="ctx-actions-item">
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
-          <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
-          <button id="btn-add-term" class="btn-icon-action" title="Thêm terminal mới"><i class="ri-add-line"></i></button>
-          <button id="btn-term-more" class="btn-icon-action" title="Tùy chọn terminal"><i class="ri-more-2-fill"></i></button>
-        </div>
+          <!-- Actions for Editor -->
+          <div id="ctx-actions-editor" class="ctx-actions-item">
+            <button id="btn-md-toggle" class="btn-md-toggle hidden" title="Chuyển chế độ xem trước hoặc sửa"><i class="ri-eye-line"></i> Xem</button>
+            <button id="btn-save-file" class="btn-icon-action primary" disabled title="Lưu file"><i class="ri-save-line"></i></button>
+            <button id="btn-close-file" class="btn-icon-action" title="Đóng file"><i class="ri-close-line"></i></button>
+          </div>
 
+          <!-- Actions for Claude -->
+          <div id="ctx-actions-claude" class="ctx-actions-item">
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
+            <button id="btn-header-claude-limits" class="btn-icon-action" title="Xem hạn mức sử dụng"><i class="ri-dashboard-3-line" style="color:#f59e0b;"></i></button>
+            <button id="btn-add-claude" class="btn-icon-action" title="Khởi chạy phiên Claude mới"><i class="ri-add-line"></i></button>
+            <button id="btn-claude-more" class="btn-icon-action" title="Tùy chọn Claude"><i class="ri-more-2-fill"></i></button>
+          </div>
 
+          <!-- Actions for Terminal -->
+          <div id="ctx-actions-terminal" class="ctx-actions-item">
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
+            <button id="btn-add-term" class="btn-icon-action" title="Thêm terminal mới"><i class="ri-add-line"></i></button>
+            <button id="btn-term-more" class="btn-icon-action" title="Tùy chọn terminal"><i class="ri-more-2-fill"></i></button>
+          </div>
+        </div>
       </div>
     </header>
 
     <!-- 2. MAIN VIEWS (Tối đa hóa diện tích chiều cao) -->
     <main class="views-wrapper">
+      <!-- Desktop Left Workspace Sidebar (Phương án 2 / Hybrid) -->
+      <aside id="desktop-workspace-sidebar" class="desktop-workspace-sidebar" aria-label="Điều hướng nhanh Project và Session">
+        <div class="dw-section">
+          <div class="dw-section-head">
+            <span><i class="ri-folder-2-line"></i> Projects</span>
+            <button type="button" id="btn-dw-manage-proj"><i class="ri-equalizer-line"></i> Quản lý</button>
+          </div>
+          <div class="dw-list" id="dw-project-list"></div>
+        </div>
+        <div class="dw-section">
+          <div class="dw-section-head">
+            <span><i class="ri-terminal-box-line"></i> Phiên Terminal</span>
+            <button type="button" id="btn-dw-new-term"><i class="ri-add-line"></i> Tạo mới</button>
+          </div>
+          <div class="dw-list" id="dw-term-list"></div>
+        </div>
+        <div class="dw-section">
+          <div class="dw-section-head">
+            <span><i class="ri-sparkling-fill" style="color:#f59e0b;"></i> Phiên Claude</span>
+            <button type="button" id="btn-dw-new-claude"><i class="ri-add-line"></i> Tạo mới</button>
+          </div>
+          <div class="dw-list" id="dw-claude-list"></div>
+        </div>
+      </aside>
+
       <div id="quick-tree-scrim" class="quick-tree-scrim" hidden></div>
       <aside id="quick-tree-panel" class="quick-tree-panel" aria-label="Xem nhanh workspace" hidden>
         <button id="quick-tree-resize" class="quick-tree-resize" type="button" role="separator" aria-orientation="vertical" aria-label="Kéo để đổi chiều rộng bảng" aria-valuemin="220" aria-valuemax="560" aria-valuenow="304" title="Kéo để đổi chiều rộng"></button>
@@ -4839,6 +5345,22 @@
     </div>
   </div>
 
+  <!-- PROJECT MANAGEMENT MODAL -->
+  <div id="project-modal" class="session-hub-overlay hidden">
+    <div class="session-hub-sheet">
+      <div class="session-hub-header">
+        <div class="session-hub-title" style="color:#38bdf8;"><i class="ri-folder-2-line"></i> Quản Lý Danh Sách Project</div>
+        <button id="btn-close-project-modal" class="btn-action-icon"><i class="ri-close-line" style="font-size:18px;"></i></button>
+      </div>
+      <div id="project-card-list" class="session-card-list" style="max-height:320px; overflow-y:auto;"></div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <input id="input-new-project-name" type="text" class="input-text" placeholder="Tên project mới, ví dụ: ecommerce-api" style="flex:1;" />
+        <input id="input-new-project-path" type="text" class="input-text" placeholder="Đường dẫn, ví dụ: ~/projects/ecommerce-api" style="flex:1.3;" />
+        <button id="btn-add-project-submit" class="btn btn-primary" style="white-space:nowrap;"><i class="ri-add-line"></i> Thêm</button>
+      </div>
+    </div>
+  </div>
+
   <!-- CONFIRM DANGER MODAL -->
   <div id="confirm-modal" class="modal-overlay hidden">
     <div class="modal-card">
@@ -5222,13 +5744,21 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           type: 'local',
           authType: 'local',
           workspace: '~/projects/hugcode',
+          activeProjectId: 'proj-hugcode',
+          projects: [
+            { id: 'proj-home', name: '~', path: '~', isHome: true },
+            { id: 'proj-hugcode', name: 'hugcode', path: '~/projects/hugcode' },
+            { id: 'proj-hugremote', name: 'hugremote', path: '~/projects/hugremote' },
+            { id: 'proj-hugformfill', name: 'hugformfill', path: '~/projects/hugformfill' },
+            { id: 'proj-fileserver', name: 'file-server', path: '~/projects/file-server' }
+          ],
           activeClaudeId: 'claude-local-1',
           claudeSessions: [
             {
               id: 'claude-local-1',
               name: 'hugcode',
               cwd: '~/projects/hugcode',
-              isCustomNamed: false,
+              isCustomNamed: true,
               model: 'Sonnet 5.5 Medium',
               mode: 'Auto',
               timer: '60m',
@@ -5242,6 +5772,48 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
                   id: 'm2',
                   sender: 'assistant',
                   text: 'Hi! What would you like to work on in this repo?'
+                }
+              ]
+            },
+            {
+              id: 'claude-local-2',
+              name: 'desktop-tabs-ui',
+              cwd: '~/projects/hugremote',
+              isCustomNamed: true,
+              model: 'Sonnet 5.5 High',
+              mode: 'Auto',
+              timer: '60m',
+              messages: [
+                {
+                  id: 'm2-1',
+                  sender: 'user',
+                  text: 'Tối ưu thanh chuyển nhanh Project và Session trên giao diện Desktop'
+                },
+                {
+                  id: 'm2-2',
+                  sender: 'assistant',
+                  text: 'Đã sẵn sàng! Bạn có thể click chuyển trực tiếp giữa các tab phiên Claude và Project ngay trên thanh Header hoặc dùng Cột Trái Workspace.'
+                }
+              ]
+            },
+            {
+              id: 'claude-local-3',
+              name: 'form-autofill',
+              cwd: '~/projects/hugformfill',
+              isCustomNamed: true,
+              model: 'Opus 5.5 Medium',
+              mode: 'Auto',
+              timer: '60m',
+              messages: [
+                {
+                  id: 'm3-1',
+                  sender: 'user',
+                  text: 'Kiểm tra bộ điền biểu mẫu tự động cho SPA'
+                },
+                {
+                  id: 'm3-2',
+                  sender: 'assistant',
+                  text: 'Tất cả 18 kịch bản kiểm thử DOM autofill đều đạt 100%.'
                 }
               ]
             }
@@ -5262,14 +5834,47 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               id: 'term-local-1',
               name: 'main-shell',
               cwd: '~/projects/hugcode',
+              isCustomNamed: true,
               pathStack: [],
               history: ['ls -la', 'npm start'],
               historyIndex: 2,
               lines: [
                 '<span style="color:#60a5fa; font-weight:bold;"><i class="ri-terminal-box-line"></i> HugCode Local Shell [hungpc]</span>',
-                '<span style="color:#94a3b8;">Cửa sổ: <b>main-shell</b> (PID 1024 /bin/bash)</span>',
+                '<span style="color:#94a3b8;">Cửa sổ: <b>main-shell</b> • PID 1024 /bin/bash</span>',
                 '<span class="term-prompt">hermes-admin@hungpc:</span><span class="term-path">~/projects/hugcode</span>$ ls -la',
                 '<span style="color:#94a3b8;">drwxr-xr-x 1 admin admin 4096 Oct 06 </span><span style="color:#60a5fa; font-weight:bold;">components/</span> <span style="color:#60a5fa; font-weight:bold;">docs/</span> <span style="color:#60a5fa; font-weight:bold;">src/</span> config.json package.json',
+                ''
+              ],
+              draftInput: ''
+            },
+            {
+              id: 'term-local-2',
+              name: 'api-dev-watch',
+              cwd: '~/projects/hugremote',
+              isCustomNamed: true,
+              pathStack: [],
+              history: ['npm run dev:api'],
+              historyIndex: 1,
+              lines: [
+                '<span style="color:#a855f7; font-weight:bold;"><i class="ri-terminal-box-line"></i> HugRemote API Watcher [hungpc]</span>',
+                '<span class="term-prompt">hermes-admin@hungpc:</span><span class="term-path">~/projects/hugremote</span>$ npm run dev:api',
+                '<span style="color:#34d399;">✔ Fastify API listening at http://127.0.0.1:8099 (BASE_PATH=/sites/remote)</span>',
+                ''
+              ],
+              draftInput: ''
+            },
+            {
+              id: 'term-local-3',
+              name: 'gateway-logs',
+              cwd: '~/projects/file-server',
+              isCustomNamed: true,
+              pathStack: [],
+              history: ['journalctl --user -u hugremote -f'],
+              historyIndex: 1,
+              lines: [
+                '<span style="color:#38bdf8; font-weight:bold;"><i class="ri-terminal-box-line"></i> Sites Gateway Stream [hungpc]</span>',
+                '<span class="term-prompt">hermes-admin@hungpc:</span><span class="term-path">~/projects/file-server</span>$ journalctl --user -u hugremote -n 5',
+                '<span style="color:#94a3b8;">Nov 04 10:50:12 hungpc hugremote[968001]: GET /sites/remote/api/projects 200 1.8ms</span>',
                 ''
               ],
               draftInput: ''
@@ -9725,9 +10330,515 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
 
       updateZipCacheBadge();
 
+      // ========================================================
+      // DESKTOP PROJECT & SESSION SWITCHER (INLINE TABS + LEFT SIDEBAR + PROJECT MODAL)
+      // ========================================================
+      const appRootEl = document.getElementById('app');
+      const currentProjectLabelEl = document.getElementById('current-project-label');
+      const btnProjectMobilePill = document.getElementById('btn-project-mobile-pill');
+      const desktopProjectStripEl = document.getElementById('desktop-project-strip');
+      const desktopTermTabsEl = document.getElementById('desktop-term-tabs');
+      const desktopClaudeTabsEl = document.getElementById('desktop-claude-tabs');
+      const dwProjectListEl = document.getElementById('dw-project-list');
+      const dwTermListEl = document.getElementById('dw-term-list');
+      const dwClaudeListEl = document.getElementById('dw-claude-list');
+      const projectModalEl = document.getElementById('project-modal');
+      const projectCardListEl = document.getElementById('project-card-list');
+      const btnCloseProjectModal = document.getElementById('btn-close-project-modal');
+      const btnAddProjectSubmit = document.getElementById('btn-add-project-submit');
+      const inputNewProjectName = document.getElementById('input-new-project-name');
+      const inputNewProjectPath = document.getElementById('input-new-project-path');
+
+      function ensureServerProjects(server) {
+        if (!server) return [];
+        if (!Array.isArray(server.projects) || server.projects.length === 0) {
+          const ws = server.workspace || '~/projects/hugcode';
+          const parts = ws.split('/').filter(Boolean);
+          const wsName = parts[parts.length - 1] || 'workspace';
+          server.projects = [
+            { id: `proj-${server.id}-home`, name: '~', path: '~', isHome: true },
+            { id: `proj-${server.id}-main`, name: wsName, path: ws }
+          ];
+          server.activeProjectId = `proj-${server.id}-main`;
+        }
+        if (!server.activeProjectId || !server.projects.some(p => p.id === server.activeProjectId)) {
+          server.activeProjectId = server.projects[0].id;
+        }
+        return server.projects;
+      }
+
+      function getActiveProject() {
+        const cur = getCurrentServer();
+        const projects = ensureServerProjects(cur);
+        return projects.find(p => p.id === cur.activeProjectId) || projects[0];
+      }
+
+      function switchProject(projectId) {
+        const cur = getCurrentServer();
+        const projects = ensureServerProjects(cur);
+        const target = projects.find(p => p.id === projectId);
+        if (!target) return;
+        cur.activeProjectId = target.id;
+        cur.workspace = target.path;
+        currentPathStack = [];
+        cur.currentPathStack = [];
+        renderFileExplorer();
+        if (typeof renderQuickTree === 'function') renderQuickTree();
+        syncDesktopProjectAndSessionUI();
+        showToast(`Đã chuyển sang project "${target.name}" • ${target.path}`, 'info');
+      }
+
+      function openProjectModal() {
+        renderProjectModalCards();
+        if (projectModalEl) projectModalEl.classList.remove('hidden');
+      }
+
+      function closeProjectModal() {
+        if (projectModalEl) projectModalEl.classList.add('hidden');
+      }
+
+      function deleteProjectById(projectId) {
+        const cur = getCurrentServer();
+        const projects = ensureServerProjects(cur);
+        const target = projects.find(p => p.id === projectId);
+        if (!target || target.isHome || target.name === '~') {
+          showToast('Không thể xóa thư mục gốc ~', 'warning');
+          return;
+        }
+        openConfirmModal(
+          'Xác Nhận Xóa Project',
+          `Bạn có chắc chắn muốn xóa project "${target.name}" khỏi danh sách không?`,
+          'Xóa Project',
+          true,
+          () => {
+            cur.projects = projects.filter(p => p.id !== projectId);
+            if (cur.activeProjectId === projectId) {
+              cur.activeProjectId = cur.projects[0].id;
+              cur.workspace = cur.projects[0].path;
+            }
+            renderProjectModalCards();
+            syncDesktopProjectAndSessionUI();
+            showToast(`Đã xóa project "${target.name}"`, 'info');
+          }
+        );
+      }
+
+      function renderProjectModalCards() {
+        if (!projectCardListEl) return;
+        const cur = getCurrentServer();
+        const projects = ensureServerProjects(cur);
+        projectCardListEl.innerHTML = '';
+        projects.forEach(proj => {
+          const isCurrent = proj.id === cur.activeProjectId;
+          const card = document.createElement('div');
+          card.className = 'session-card' + (isCurrent ? ' active' : '');
+          card.innerHTML = `
+            <div class="session-card-top">
+              <span class="session-card-name">
+                <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#38bdf8;"></i>
+                ${escapeHtml(proj.name)}
+              </span>
+              ${isCurrent ? '<span class="session-card-badge active-badge">● Đang mở</span>' : ''}
+            </div>
+            <div class="session-card-meta">
+              <span><i class="ri-route-line"></i> Đường dẫn: <code style="color:#cbd5e1;">${escapeHtml(proj.path)}</code></span>
+            </div>
+            <div class="session-card-actions">
+              ${!proj.isHome ? '<button class="btn-action-icon btn-proj-rename" title="Đổi tên"><i class="ri-edit-line"></i></button>' : ''}
+              ${!proj.isHome ? '<button class="btn-action-icon danger btn-proj-delete" title="Xóa project"><i class="ri-delete-bin-line"></i></button>' : ''}
+              <button class="btn btn-primary btn-sm btn-proj-select">${isCurrent ? 'Đang chọn' : 'Chuyển tới'}</button>
+            </div>
+          `;
+          card.addEventListener('click', () => {
+            switchProject(proj.id);
+            closeProjectModal();
+          });
+          const selBtn = card.querySelector('.btn-proj-select');
+          if (selBtn) {
+            selBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              switchProject(proj.id);
+              closeProjectModal();
+            });
+          }
+          const renBtn = card.querySelector('.btn-proj-rename');
+          if (renBtn) {
+            renBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              openRenameModal('Đổi Tên Project', proj.name, (newName) => {
+                if (!newName || !newName.trim() || newName.trim() === '~') return;
+                proj.name = newName.trim();
+                renderProjectModalCards();
+                syncDesktopProjectAndSessionUI();
+                showToast(`Đã đổi tên project thành "${proj.name}"`, 'success');
+              });
+            });
+          }
+          const delBtn = card.querySelector('.btn-proj-delete');
+          if (delBtn) {
+            delBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              deleteProjectById(proj.id);
+            });
+          }
+          projectCardListEl.appendChild(card);
+        });
+      }
+
+      function renderDesktopProjectStrip() {
+        const cur = getCurrentServer();
+        const projects = ensureServerProjects(cur);
+        const activeProj = getActiveProject();
+        if (currentProjectLabelEl && activeProj) {
+          currentProjectLabelEl.textContent = activeProj.name;
+        }
+        if (!desktopProjectStripEl) return;
+        desktopProjectStripEl.innerHTML = '';
+
+        projects.forEach(proj => {
+          const isCurrent = proj.id === cur.activeProjectId;
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'desktop-project-chip' + (isCurrent ? ' active' : '');
+          btn.setAttribute('data-project-chip', proj.id);
+          btn.title = `Project ${proj.name} • ${proj.path}`;
+          btn.innerHTML = `
+            <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}"></i>
+            <span>${escapeHtml(proj.name)}</span>
+            ${isCurrent ? '<span class="proj-dot"></span>' : ''}
+          `;
+          btn.addEventListener('click', () => switchProject(proj.id));
+          desktopProjectStripEl.appendChild(btn);
+        });
+
+        const manageBtn = document.createElement('button');
+        manageBtn.type = 'button';
+        manageBtn.id = 'btn-desktop-project-manage';
+        manageBtn.className = 'desktop-project-manage-btn';
+        manageBtn.title = 'Thêm hoặc quản lý danh sách Project';
+        manageBtn.innerHTML = '<i class="ri-add-line"></i><span>Project</span>';
+        manageBtn.addEventListener('click', openProjectModal);
+        desktopProjectStripEl.appendChild(manageBtn);
+      }
+
+      function renderDesktopSessionStrips() {
+        // 1. Terminal Session Tabs
+        if (desktopTermTabsEl) {
+          desktopTermTabsEl.innerHTML = '';
+          terminalSessions.forEach(sess => {
+            const isCurrent = sess.id === activeSessionId;
+            const shortCwd = (sess.cwd || '~').split('/').filter(Boolean).slice(-1)[0] || '~';
+            const tab = document.createElement('div');
+            tab.className = 'desktop-session-tab term-tab' + (isCurrent ? ' active' : '');
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
+            tab.setAttribute('data-term-tab', sess.id);
+            tab.title = `${sess.name} • ${sess.cwd || '~'}`;
+            tab.innerHTML = `
+              <i class="ri-terminal-box-line" style="color:${isCurrent ? '#c084fc' : '#94a3b8'};"></i>
+              <span>${escapeHtml(sess.name)}</span>
+              <span class="tab-meta">${escapeHtml(shortCwd)}</span>
+              <button type="button" class="tab-inline-btn btn-tab-edit" title="Chỉnh sửa phiên"><i class="ri-edit-line"></i></button>
+              ${terminalSessions.length > 1 ? '<button type="button" class="tab-inline-btn danger btn-tab-close" title="Đóng phiên"><i class="ri-close-line"></i></button>' : ''}
+            `;
+            tab.addEventListener('click', () => switchSession(sess.id));
+            const editBtn = tab.querySelector('.btn-tab-edit');
+            if (editBtn) {
+              editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openEditTerminalModal(sess.id);
+              });
+            }
+            const closeBtn = tab.querySelector('.btn-tab-close');
+            if (closeBtn) {
+              closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeSession(sess.id);
+              });
+            }
+            desktopTermTabsEl.appendChild(tab);
+          });
+
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'desktop-strip-btn';
+          addBtn.title = 'Tạo cửa sổ Terminal mới';
+          addBtn.innerHTML = '<i class="ri-add-line"></i><span>Phiên mới</span>';
+          addBtn.addEventListener('click', () => {
+            if (btnAddTerm) btnAddTerm.click();
+          });
+          desktopTermTabsEl.appendChild(addBtn);
+
+          const hubBtn = document.createElement('button');
+          hubBtn.type = 'button';
+          hubBtn.className = 'desktop-strip-btn';
+          hubBtn.title = 'Mở danh sách chi tiết toàn bộ cửa sổ Terminal';
+          hubBtn.innerHTML = `<i class="ri-stack-line"></i><span>Tất cả ${terminalSessions.length}</span>`;
+          hubBtn.addEventListener('click', () => {
+            if (btnOpenSessionHub) btnOpenSessionHub.click();
+          });
+          desktopTermTabsEl.appendChild(hubBtn);
+        }
+
+        // 2. Claude Session Tabs
+        if (desktopClaudeTabsEl) {
+          desktopClaudeTabsEl.innerHTML = '';
+          claudeSessions.forEach(sess => {
+            const isCurrent = sess.id === activeClaudeId;
+            const shortModel = (sess.model || 'Sonnet 5.5').replace(/\s+(Low|Medium|High|Max)$/i, '');
+            const tab = document.createElement('div');
+            tab.className = 'desktop-session-tab claude-tab' + (isCurrent ? ' active' : '');
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', isCurrent ? 'true' : 'false');
+            tab.setAttribute('data-claude-tab', sess.id);
+            tab.title = `${sess.name} • ${sess.cwd || '~'} • ${sess.model || 'Sonnet 5.5'}`;
+            tab.innerHTML = `
+              <i class="ri-sparkling-fill" style="color:#f59e0b;"></i>
+              <span>${escapeHtml(sess.name)}</span>
+              <span class="tab-meta">${escapeHtml(shortModel)}</span>
+              <button type="button" class="tab-inline-btn btn-tab-edit" title="Chỉnh sửa phiên Claude"><i class="ri-edit-line"></i></button>
+              ${claudeSessions.length > 1 ? '<button type="button" class="tab-inline-btn danger btn-tab-close" title="Đóng phiên Claude"><i class="ri-close-line"></i></button>' : ''}
+            `;
+            tab.addEventListener('click', () => switchClaudeSession(sess.id));
+            const editBtn = tab.querySelector('.btn-tab-edit');
+            if (editBtn) {
+              editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openEditClaudeModal(sess.id);
+              });
+            }
+            const closeBtn = tab.querySelector('.btn-tab-close');
+            if (closeBtn) {
+              closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeClaudeSession(sess.id);
+              });
+            }
+            desktopClaudeTabsEl.appendChild(tab);
+          });
+
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'desktop-strip-btn';
+          addBtn.title = 'Tạo phiên Claude mới';
+          addBtn.innerHTML = '<i class="ri-add-line"></i><span>Phiên mới</span>';
+          addBtn.addEventListener('click', openNewClaudeModal);
+          desktopClaudeTabsEl.appendChild(addBtn);
+
+          const hubBtn = document.createElement('button');
+          hubBtn.type = 'button';
+          hubBtn.className = 'desktop-strip-btn';
+          hubBtn.title = 'Mở danh sách phiên và lịch sử Claude CLI';
+          hubBtn.innerHTML = `<i class="ri-history-line"></i><span>Lịch sử ${claudeSessions.length}</span>`;
+          hubBtn.addEventListener('click', openClaudeSessionHub);
+          desktopClaudeTabsEl.appendChild(hubBtn);
+        }
+      }
+
+      function renderDesktopWorkspaceSidebar() {
+        const cur = getCurrentServer();
+        const projects = ensureServerProjects(cur);
+
+        if (dwProjectListEl) {
+          dwProjectListEl.innerHTML = '';
+          projects.forEach(proj => {
+            const isCurrent = proj.id === cur.activeProjectId;
+            const item = document.createElement('div');
+            item.className = 'dw-item proj-item' + (isCurrent ? ' active' : '');
+            item.setAttribute('data-dw-project', proj.id);
+            item.innerHTML = `
+              <div class="dw-item-main">
+                <div class="dw-item-title">
+                  <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#38bdf8;"></i>
+                  <span>${escapeHtml(proj.name)}</span>
+                </div>
+                <div class="dw-item-sub">${escapeHtml(proj.path)}</div>
+              </div>
+              <div class="dw-item-actions">
+                ${!proj.isHome ? '<button type="button" class="danger btn-dw-proj-del" title="Xóa project"><i class="ri-delete-bin-line"></i></button>' : ''}
+              </div>
+            `;
+            item.addEventListener('click', () => switchProject(proj.id));
+            const delBtn = item.querySelector('.btn-dw-proj-del');
+            if (delBtn) {
+              delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteProjectById(proj.id);
+              });
+            }
+            dwProjectListEl.appendChild(item);
+          });
+        }
+
+        if (dwTermListEl) {
+          dwTermListEl.innerHTML = '';
+          terminalSessions.forEach(sess => {
+            const isCurrent = sess.id === activeSessionId;
+            const item = document.createElement('div');
+            item.className = 'dw-item term-item' + (isCurrent ? ' active' : '');
+            item.setAttribute('data-dw-term', sess.id);
+            item.innerHTML = `
+              <div class="dw-item-main">
+                <div class="dw-item-title">
+                  <i class="ri-terminal-box-line" style="color:#c084fc;"></i>
+                  <span>${escapeHtml(sess.name)}</span>
+                </div>
+                <div class="dw-item-sub">${escapeHtml(sess.cwd || '~')}</div>
+              </div>
+              <div class="dw-item-actions">
+                <button type="button" class="btn-dw-term-edit" title="Chỉnh sửa"><i class="ri-edit-line"></i></button>
+                ${terminalSessions.length > 1 ? '<button type="button" class="danger btn-dw-term-close" title="Đóng phiên"><i class="ri-close-line"></i></button>' : ''}
+              </div>
+            `;
+            item.addEventListener('click', () => {
+              switchTab('view-terminal');
+              switchSession(sess.id);
+            });
+            const editBtn = item.querySelector('.btn-dw-term-edit');
+            if (editBtn) {
+              editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openEditTerminalModal(sess.id);
+              });
+            }
+            const closeBtn = item.querySelector('.btn-dw-term-close');
+            if (closeBtn) {
+              closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeSession(sess.id);
+              });
+            }
+            dwTermListEl.appendChild(item);
+          });
+        }
+
+        if (dwClaudeListEl) {
+          dwClaudeListEl.innerHTML = '';
+          claudeSessions.forEach(sess => {
+            const isCurrent = sess.id === activeClaudeId;
+            const item = document.createElement('div');
+            item.className = 'dw-item claude-item' + (isCurrent ? ' active' : '');
+            item.setAttribute('data-dw-claude', sess.id);
+            item.innerHTML = `
+              <div class="dw-item-main">
+                <div class="dw-item-title">
+                  <i class="ri-sparkling-fill" style="color:#f59e0b;"></i>
+                  <span>${escapeHtml(sess.name)}</span>
+                </div>
+                <div class="dw-item-sub">${escapeHtml(sess.cwd || '~')} • ${escapeHtml(sess.model || 'Sonnet 5.5')}</div>
+              </div>
+              <div class="dw-item-actions">
+                <button type="button" class="btn-dw-claude-edit" title="Chỉnh sửa"><i class="ri-edit-line"></i></button>
+                ${claudeSessions.length > 1 ? '<button type="button" class="danger btn-dw-claude-close" title="Đóng phiên"><i class="ri-close-line"></i></button>' : ''}
+              </div>
+            `;
+            item.addEventListener('click', () => {
+              switchTab('view-claude');
+              switchClaudeSession(sess.id);
+            });
+            const editBtn = item.querySelector('.btn-dw-claude-edit');
+            if (editBtn) {
+              editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openEditClaudeModal(sess.id);
+              });
+            }
+            const closeBtn = item.querySelector('.btn-dw-claude-close');
+            if (closeBtn) {
+              closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeClaudeSession(sess.id);
+              });
+            }
+            dwClaudeListEl.appendChild(item);
+          });
+        }
+      }
+
+      function syncDesktopProjectAndSessionUI() {
+        renderDesktopProjectStrip();
+        renderDesktopSessionStrips();
+        renderDesktopWorkspaceSidebar();
+        if (dockClaudeCount) dockClaudeCount.textContent = claudeSessions.length;
+        if (claudeCountBadge) claudeCountBadge.textContent = claudeSessions.length;
+      }
+
+      // Hook into renderTerminalScreen, renderClaudeScreen, and updateServerTopbarUI
+      const _origRenderTerminalScreen = renderTerminalScreen;
+      renderTerminalScreen = function () {
+        _origRenderTerminalScreen();
+        syncDesktopProjectAndSessionUI();
+      };
+
+      const _origRenderClaudeScreen = renderClaudeScreen;
+      renderClaudeScreen = function () {
+        _origRenderClaudeScreen();
+        syncDesktopProjectAndSessionUI();
+      };
+
+      const _origUpdateServerTopbarUI = updateServerTopbarUI;
+      updateServerTopbarUI = function () {
+        _origUpdateServerTopbarUI();
+        syncDesktopProjectAndSessionUI();
+      };
+
+      if (btnProjectMobilePill) {
+        btnProjectMobilePill.addEventListener('click', openProjectModal);
+      }
+      if (btnCloseProjectModal) {
+        btnCloseProjectModal.addEventListener('click', closeProjectModal);
+      }
+      if (projectModalEl) {
+        projectModalEl.addEventListener('click', (e) => {
+          if (e.target.id === 'project-modal') closeProjectModal();
+        });
+      }
+      if (btnAddProjectSubmit) {
+        btnAddProjectSubmit.addEventListener('click', () => {
+          const nameVal = (inputNewProjectName ? inputNewProjectName.value.trim() : '');
+          const pathVal = (inputNewProjectPath ? inputNewProjectPath.value.trim() : '');
+          if (!nameVal || nameVal === '~') {
+            showToast('Vui lòng nhập tên project hợp lệ', 'warning');
+            return;
+          }
+          const cur = getCurrentServer();
+          const projects = ensureServerProjects(cur);
+          const newProj = {
+            id: 'proj-' + Date.now(),
+            name: nameVal,
+            path: pathVal || `~/projects/${nameVal}`
+          };
+          projects.push(newProj);
+          if (inputNewProjectName) inputNewProjectName.value = '';
+          if (inputNewProjectPath) inputNewProjectPath.value = '';
+          switchProject(newProj.id);
+          renderProjectModalCards();
+        });
+      }
+
+      const btnDwManageProj = document.getElementById('btn-dw-manage-proj');
+      if (btnDwManageProj) btnDwManageProj.addEventListener('click', openProjectModal);
+      const btnDwNewTerm = document.getElementById('btn-dw-new-term');
+      if (btnDwNewTerm) btnDwNewTerm.addEventListener('click', () => { if (btnAddTerm) btnAddTerm.click(); });
+      const btnDwNewClaude = document.getElementById('btn-dw-new-claude');
+      if (btnDwNewClaude) btnDwNewClaude.addEventListener('click', openNewClaudeModal);
+
+      document.querySelectorAll('[data-desktop-mode-btn]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.getAttribute('data-desktop-mode-btn') || 'tabs';
+          if (appRootEl) appRootEl.setAttribute('data-desktop-mode', mode);
+          document.querySelectorAll('[data-desktop-mode-btn]').forEach(b => {
+            b.classList.toggle('active', b === btn);
+          });
+          syncDesktopProjectAndSessionUI();
+        });
+      });
+
       // --- STARTUP ---
       renderFileExplorer();
       renderTerminalScreen();
+      renderClaudeScreen();
+      syncDesktopProjectAndSessionUI();
     })();
 </script>
 </body>

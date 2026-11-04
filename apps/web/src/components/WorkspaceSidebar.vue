@@ -348,7 +348,7 @@ function handleSelectClaude(sessionId: string) {
 .workspace-sidebar-backdrop {
   display: none;
   position: fixed;
-  inset: calc(var(--header-h, 66px) + env(safe-area-inset-top, 0px)) 0 calc(var(--dock-h, 52px) + env(safe-area-inset-bottom, 0px)) 0;
+  inset: calc(var(--header-h, 64px) + env(safe-area-inset-top, 0px)) 0 calc(var(--dock-h, 42px) + env(safe-area-inset-bottom, 0px)) 0;
   background: rgba(2, 8, 23, 0.62);
   backdrop-filter: blur(2px);
   z-index: 86;
@@ -365,9 +365,9 @@ function handleSelectClaude(sessionId: string) {
 
 .desktop-workspace-sidebar {
   position: fixed;
-  top: calc(var(--header-h, 66px) + env(safe-area-inset-top, 0px));
+  top: calc(var(--header-h, 64px) + env(safe-area-inset-top, 0px));
   left: 0;
-  bottom: calc(var(--dock-h, 52px) + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--dock-h, 42px) + env(safe-area-inset-bottom, 0px));
   width: 256px;
   max-width: calc(100vw - 48px);
   background:
@@ -388,6 +388,11 @@ function handleSelectClaude(sessionId: string) {
 .desktop-workspace-sidebar.open {
   transform: translateX(0);
   pointer-events: auto;
+}
+@media (min-width: 900px) {
+  .desktop-workspace-sidebar {
+    box-shadow: none;
+  }
 }
 
 .dw-top-header {

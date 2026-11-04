@@ -424,8 +424,8 @@
       @close="isContextPickerOpen = false"
     />
 
-    <!-- Mobile Claude shortcut bar: between chat composer and bottom dock -->
-    <div class="claude-shortcut-bar">
+    <!-- Mobile Claude shortcut bar: between chat composer and bottom dock (Hidden on Desktop devices) -->
+    <div v-if="!isDesktopDevice" class="claude-shortcut-bar">
       <button type="button" class="claude-shortcut-key" title="Xoá sạch hội thoại" @click="inputText = '/clear'; handleSend()">
         <span>/clear</span>
         <small>Dọn dẹp</small>
@@ -464,6 +464,7 @@ import {
 } from '../stores/claudeStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
 import { useServerStore } from '../stores/serverStore.js';
+import { useDesktopDevice } from '../utils/device.js';
 import ModelSelectorPopup from './ModelSelectorPopup.vue';
 import ClaudeLimitsPopup from './ClaudeLimitsPopup.vue';
 import ContextAttachmentPicker from './ContextAttachmentPicker.vue';
@@ -479,6 +480,7 @@ const emit = defineEmits<{
 const claudeStore = useClaudeStore();
 const projectStore = useProjectStore();
 const serverStore = useServerStore();
+const { isDesktopDevice } = useDesktopDevice();
 const { t, i18n } = useI18n();
 const streamRef = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLTextAreaElement | null>(null);

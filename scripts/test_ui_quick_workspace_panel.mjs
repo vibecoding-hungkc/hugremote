@@ -334,7 +334,8 @@ try {
     const protoPath = fileURLToPath(new URL('../analysis/prototypes/prototype.html', import.meta.url));
     const protoSource = fs.readFileSync(protoPath, 'utf8');
     assert.match(protoSource, /id="quick-html-preview"/, 'prototype.html must include #quick-html-preview iframe');
-    assert.match(protoSource, /isPreviewableFile/, 'prototype.html must check isPreviewableFile (.md/.markdown/.html/.htm) and default to preview mode');
+    assert.match(protoSource, /mode: 'preview'/, 'prototype.html defaults every quick-opened file to preview mode');
+    assert.match(protoSource, /id="quick-file-code-preview"/, 'prototype.html includes read-only source preview');
     assert.match(protoSource, /claude-md-table-wrap/, 'prototype.html must include responsive GFM table wrapper in Claude chat / markdown renderer');
   });
 

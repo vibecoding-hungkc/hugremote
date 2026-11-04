@@ -104,7 +104,15 @@
           <button class="btn-icon-action" @click="fileStore.fetchFiles(fileStore.currentRel)" :title="t('common.refresh')"><i class="ri-refresh-line"></i></button>
         </template>
         <template v-else-if="activeTab === 'editor'">
-          <button v-if="isMarkdownFile" class="btn-icon-action" @click="fileStore.fileMode = fileStore.fileMode === 'code' ? 'preview' : 'code'"><i :class="fileStore.fileMode === 'code' ? 'ri-eye-line' : 'ri-edit-line'"></i></button>
+          <button
+            v-if="fileStore.activeFile"
+            id="btn-editor-preview-toggle"
+            class="btn-icon-action"
+            :class="{ 'preview-active': fileStore.fileMode === 'preview' }"
+            :title="fileStore.fileMode === 'code' ? t('quickPanel.mdPreview') : t('quickPanel.mdEdit')"
+            :aria-label="fileStore.fileMode === 'code' ? t('quickPanel.mdPreview') : t('quickPanel.mdEdit')"
+            @click="fileStore.fileMode = fileStore.fileMode === 'code' ? 'preview' : 'code'"
+          ><i :class="fileStore.fileMode === 'code' ? 'ri-eye-line' : 'ri-edit-line'"></i></button>
           <button class="btn-icon-action" :disabled="!fileStore.activeFile?.isDirty || isSaving || fileStore.isSaving" title="Lưu file" @click="saveFile"><i class="ri-save-line"></i></button>
           <button class="btn-icon-action" title="Đóng file" @click="closeFile"><i class="ri-close-line"></i></button>
         </template>
@@ -243,7 +251,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('click', handleGlobalClick);
 });
-const isMarkdownFile = computed(() => (fileStore.activeFile?.name?.toLowerCase() || '').endsWith('.md') || (fileStore.activeFile?.name?.toLowerCase() || '').endsWith('.markdown'));
 interface BreadcrumbPart { name: string; path: string; isLast: boolean; }
 const fileBreadcrumbs = computed(() => { const rel = (fileStore.currentRel || '').trim(); if (!rel) return { hasMore:false, parentPath:'', parts: [] as BreadcrumbPart[] }; const all = rel.split('/').filter(Boolean); const items = all.map((name, index) => ({ name, path: all.slice(0,index+1).join('/'), isLast:index===all.length-1 })); return items.length <= 3 ? { hasMore:false, parentPath:'', parts:items } : { hasMore:true, parentPath:items[items.length-4].path, parts:items.slice(-3) }; });
 

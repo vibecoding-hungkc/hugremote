@@ -178,7 +178,6 @@
             </div>
 
             <button
-              v-if="isPreviewableFile(activeInlineFile.name)"
               id="quick-md-switch"
               type="button"
               class="quick-preview-btn"
@@ -224,11 +223,14 @@
               :title="activeInlineFile.name"
             ></iframe>
 
-            <div
-              v-show="!isPreviewableFile(activeInlineFile.name) || mdMode === 'edit'"
-              id="quick-code-wrap"
-              class="quick-code-wrap"
-            >
+            <div v-else-if="mdMode === 'preview'" id="quick-code-preview" class="quick-code-preview" role="region" aria-label="Xem trước mã nguồn">
+              <div v-for="(line, index) in activeInlineFile.content.split('\n')" :key="index" class="quick-code-preview-line">
+                <span class="quick-code-preview-number" aria-hidden="true">{{ index + 1 }}</span>
+                <span class="quick-code-preview-text">{{ line || ' ' }}</span>
+              </div>
+            </div>
+
+            <div v-show="mdMode === 'edit'" id="quick-code-wrap" class="quick-code-wrap">
               <div ref="gutterRef" id="quick-code-gutter" class="quick-code-gutter">{{ lineNumbersText }}</div>
               <textarea
                 ref="codeInputRef"
@@ -448,12 +450,7 @@ const scopeKey = computed(() => `${serverStore.currentServerId}:${projectStore.c
 if (activeInlineFile.value) {
   inlineScope.value = { serverId: serverStore.currentServerId, projectId: projectStore.currentProject?.id || '' };
 }
-const mdMode = ref<'preview' | 'edit'>(
-  props.initialPreviewMode ??
-    (activeInlineFile.value && /\.(md|markdown|html|htm)$/i.test(activeInlineFile.value.name || '')
-      ? 'preview'
-      : 'edit')
-);
+const mdMode = ref<'preview' | 'edit'>(props.initialPreviewMode ?? 'preview');
 const savingInlineFile = ref(false);
 const saveFlash = ref(false);
 const inlineStatusText = ref('');
@@ -558,10 +555,6 @@ function isMarkdownFile(name: string): boolean {
 
 function isHtmlFile(name: string): boolean {
   return /\.(html|htm)$/i.test(name || '');
-}
-
-function isPreviewableFile(name: string): boolean {
-  return isMarkdownFile(name) || isHtmlFile(name);
 }
 
 function detectLanguageLabel(name: string): string {
@@ -697,7 +690,8 @@ async function openInlineFile(filePath: string, fileName?: string) {
       originalContent: content,
       dirty: false,
     };
-    mdMode.value = isPreviewableFile(resolvedName) ? 'preview' : 'edit';
+    mdMode.value = 'preview';
+    // Editing requires an explicit click for all text files, not just Markdown/HTML.
     inlineStatusText.value = '';
 
     // Auto-widen panel on desktop/tablet when opening a file if user hasn't manually resized
@@ -990,7 +984,7 @@ onBeforeUnmount(() => {
 .quick-tree-backdrop {
   display: none;
   position: fixed;
-  inset: calc(var(--header-h, 48px) + var(--safe-top, 0px)) 0 calc(var(--dock-h, 56px) + var(--safe-bottom, 0px)) 0;
+  inset: calc(var(--header-h, 64px) + env(safe-area-inset-top, 0px)) 0 calc(var(--dock-h, 42px) + env(safe-area-inset-bottom, 0px)) 0;
   background: rgba(6, 10, 18, 0.55);
   backdrop-filter: blur(2px);
   z-index: 84;
@@ -1007,13 +1001,13 @@ onBeforeUnmount(() => {
 
 .quick-tree-panel {
   position: fixed;
-  top: calc(var(--header-h, 48px) + var(--safe-top, 0px));
+  top: calc(var(--header-h, 64px) + env(safe-area-inset-top, 0px));
   right: 0;
-  bottom: calc(var(--dock-h, 56px) + var(--safe-bottom, 0px));
+  bottom: calc(var(--dock-h, 42px) + env(safe-area-inset-bottom, 0px));
   width: var(--quick-panel-width, 320px);
   max-width: calc(100vw - 48px);
-  background: rgba(15, 22, 34, 0.98);
-  border-left: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: #0b1120;
+  border-left: 1px solid #1e293b;
   box-shadow: -12px 0 32px rgba(0, 0, 0, 0.45);
   z-index: 85;
   display: flex;
@@ -1021,6 +1015,12 @@ onBeforeUnmount(() => {
   transform: translateX(100%);
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
+}
+@media (min-width: 800px) {
+  .quick-tree-panel {
+    box-shadow: none;
+    transition: none;
+  }
 }
 .quick-tree-panel.open {
   transform: translateX(0);
@@ -1351,6 +1351,32 @@ onBeforeUnmount(() => {
   flex-direction: column;
   position: relative;
 }
+.quick-code-preview {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  color: #dce8fa;
+  font: 12px/1.55 var(--font-mono, monospace);
+  background: #0b1120;
+  padding: 10px 0;
+  white-space: pre;
+  user-select: text;
+}
+.quick-code-preview-line { display: flex; min-width: max-content; }
+.quick-code-preview-number {
+  position: sticky;
+  left: 0;
+  flex: none;
+  box-sizing: border-box;
+  width: 38px;
+  padding: 0 6px 0 4px;
+  text-align: right;
+  background: #0b1120;
+  color: #64748b;
+  border-right: 1px solid #1e293b;
+  user-select: none;
+}
+.quick-code-preview-text { padding: 0 12px; }
 .quick-code-wrap {
   flex: 1;
   min-height: 0;

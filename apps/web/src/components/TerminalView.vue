@@ -8,8 +8,8 @@
       <i class="ri-wifi-off-line"></i> {{ t('terminal.reconnecting') }}
     </div>
 
-    <!-- Expandable Touch Bar Container -->
-    <div class="terminal-touch-bar-container" @pointerdown.prevent>
+    <!-- Expandable Touch Bar Container (Hidden on Desktop devices) -->
+    <div v-if="!isDesktopDevice" class="terminal-touch-bar-container" @pointerdown.prevent>
       <!-- Row 1: Quick Bar with Fixed Expand Button at Start -->
       <div class="touch-bar">
         <!-- Fixed Expand Button -->
@@ -146,7 +146,7 @@
 
     <!-- Virtual Laptop Keyboard (Custom PC Layout) -->
     <VirtualLaptopKeyboard
-      v-if="isLaptopKeyboardOpen"
+      v-if="isLaptopKeyboardOpen && !isDesktopDevice"
       @key="sendKey"
       @paste="handlePaste"
       @close="isLaptopKeyboardOpen = false; resizeTerminal()"
@@ -166,6 +166,7 @@ import { attachTerminalTouchScrolling, dispatchTerminalWheel } from '../utils/te
 import InputModal from './InputModal.vue';
 import VirtualLaptopKeyboard from './VirtualLaptopKeyboard.vue';
 import { useI18n } from '../composables/useI18n.js';
+import { useDesktopDevice } from '../utils/device.js';
 
 const props = defineProps<{
   isActive?: boolean;
@@ -173,6 +174,7 @@ const props = defineProps<{
 
 const terminalStore = useTerminalStore();
 const { t } = useI18n();
+const { isDesktopDevice } = useDesktopDevice();
 const serverStore = useServerStore();
 
 const terminalRef = ref<HTMLElement | null>(null);

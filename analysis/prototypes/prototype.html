@@ -4186,7 +4186,7 @@
     .quick-tree-row.is-active { background:#274469; border-color:#5786bf; color:#fff; }
     .quick-tree-empty { padding:12px; color:#90a7c6; font-size:12px; line-height:1.5; }
     .quick-tree-foot { padding:10px 14px; border-top:1px solid #2b3c54; color:#8298b6; font-size:11px; }
-    #quick-tree-files[hidden], #quick-tree-git[hidden], #quick-tree-browser[hidden], #quick-file-workbench[hidden], #quick-file-preview[hidden], #quick-html-preview[hidden], #quick-file-editor-box[hidden], #quick-file-md-toggle[hidden], #quick-file-dirty[hidden] { display:none !important; }
+    #quick-tree-files[hidden], #quick-tree-git[hidden], #quick-tree-browser[hidden], #quick-file-workbench[hidden], #quick-file-preview[hidden], #quick-file-code-preview[hidden], #quick-html-preview[hidden], #quick-file-editor-box[hidden], #quick-file-md-toggle[hidden], #quick-file-dirty[hidden] { display:none !important; }
     #quick-tree-files, #quick-tree-git, #quick-tree-browser, #quick-file-workbench { flex:1; min-height:0; display:flex; flex-direction:column; }
     .quick-file-bar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:9px 10px; border-bottom:1px solid #2e415e; background:#0d1728; }
     .quick-file-meta { display:flex; align-items:center; gap:6px; min-width:0; flex:1; }
@@ -4205,6 +4205,10 @@
     .quick-file-textarea { flex:1; min-width:0; min-height:0; padding:12px; border:0; outline:0; resize:none; background:#09111f; color:#e6f0ff; font:12px/1.6 var(--font-mono); tab-size:2; white-space:pre; overflow:auto; scrollbar-color:#365072 #09111f; user-select:text; }
     .quick-file-preview { flex:1; min-height:0; overflow:auto; padding:14px; color:#dce8fa; font:13px/1.6 var(--font-sans); scrollbar-color:#365072 #09111f; user-select:text; }
     .quick-html-preview { flex:1; min-height:0; width:100%; height:100%; border:0; background:#ffffff; display:block; }
+    .quick-code-preview { padding:12px 0; font:12px/1.6 var(--font-mono); white-space:pre; }
+    .quick-code-preview-line { display:flex; min-width:max-content; }
+    .quick-code-preview-number { position:sticky; left:0; width:40px; flex:none; padding:0 6px; box-sizing:border-box; text-align:right; color:#64748b; border-right:1px solid #1e293b; background:#0b1120; user-select:none; }
+    .quick-code-preview-text { padding:0 12px; }
     .claude-md-table-wrap { overflow-x:auto; max-width:100%; margin:8px 0; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(15,23,42,0.55); }
     .claude-md-table { width:100%; border-collapse:collapse; font-size:12.5px; line-height:1.5; }
     .claude-md-table th, .claude-md-table td { padding:7px 10px; border:1px solid rgba(255,255,255,0.1); text-align:left; vertical-align:top; }
@@ -4238,9 +4242,17 @@
     .quick-git-actions #quick-git-commit { grid-column:1/-1; color:#ffe2b0; background:#624725; border-color:#956b38; }
     .quick-git-feedback { min-height:24px; padding:0 12px 10px; color:#aad3ad; font-size:11px; line-height:1.4; }
     .quick-tree-scrim { display:none; }
-    @media (min-width:800px) { #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:var(--quick-panel-width, 304px); } }
+    @media (min-width:800px) {
+      .quick-tree-panel { box-shadow:none; background:#0b1120; border-left:1px solid #1e293b; }
+      #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:var(--quick-panel-width, 304px); }
+    }
     @media (max-width:799px) {
       .quick-tree-scrim { display:block; position:absolute; inset:0; z-index:24; background:#020815b8; backdrop-filter:blur(3px); }
+    }
+    #app.is-desktop-device #terminal-touch-bar-container,
+    #app.is-desktop-device #claude-shortcut-bar,
+    #app.is-desktop-device #editor-keybar-container {
+      display: none !important;
     }
 </style>
 </head>
@@ -4419,6 +4431,7 @@
                 <textarea id="quick-file-textarea" class="quick-file-textarea" spellcheck="false" aria-label="Nội dung tệp" placeholder="Nội dung tệp..."></textarea>
               </div>
               <div id="quick-file-preview" class="quick-file-preview markdown-preview-container" hidden></div>
+              <div id="quick-file-code-preview" class="quick-file-preview quick-code-preview" hidden></div>
               <iframe id="quick-html-preview" class="quick-html-preview" sandbox="allow-scripts" title="HTML Preview" hidden></iframe>
             </div>
             <div class="quick-file-status"><span id="quick-file-path-label"></span><span id="quick-file-feedback">Đang xem tại chỗ</span></div>
@@ -4473,6 +4486,10 @@
           <div id="editor-md-preview-box" class="markdown-preview-container" style="display:none;">
             <!-- Rendered by JS -->
           </div>
+          <div id="editor-code-preview-box" class="quick-file-preview quick-code-preview" style="display:none;"></div>
+
+          <!-- 3. HTML Preview Box (Khi xem trước file .html / .htm) -->
+          <iframe id="editor-html-preview-box" class="quick-html-preview" sandbox="allow-scripts" title="HTML Preview" style="display:none;"></iframe>
         </div>
 
         <!-- Editor Quick Keybar Container với Nút Fixed Mở Rộng ở đầu -->
@@ -7071,6 +7088,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       const quickFileGutter = document.getElementById('quick-file-gutter');
       const quickFileTextarea = document.getElementById('quick-file-textarea');
       const quickFilePreview = document.getElementById('quick-file-preview');
+      const quickFileCodePreview = document.getElementById('quick-file-code-preview');
       const quickHtmlPreview = document.getElementById('quick-html-preview');
       const quickFilePathLabel = document.getElementById('quick-file-path-label');
       const quickFileFeedback = document.getElementById('quick-file-feedback');
@@ -7082,10 +7100,6 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
       function isHtmlFile(name) {
         return /\.(html|htm)$/i.test(name || '');
-      }
-
-      function isPreviewableFile(name) {
-        return isMarkdownFile(name) || isHtmlFile(name);
       }
 
       function updateQuickFileGutter() {
@@ -7105,11 +7119,11 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         if (!quickActiveFile) return;
         const isMd = isMarkdownFile(quickActiveFile.name);
         const isHtml = isHtmlFile(quickActiveFile.name);
-        const isPreviewable = isPreviewableFile(quickActiveFile.name);
-        quickFileMdToggle.hidden = !isPreviewable;
+        quickFileMdToggle.hidden = false;
         quickFileMdToggle.dataset.mdMode = quickActiveFile.mode;
-        quickFileMdToggle.classList.toggle('active', isPreviewable && quickActiveFile.mode === 'preview');
-        if (isPreviewable && quickActiveFile.mode === 'preview') {
+        quickFileMdToggle.classList.toggle('active', quickActiveFile.mode === 'preview');
+        quickFileCodePreview.hidden = true;
+        if (quickActiveFile.mode === 'preview') {
           quickFileMdToggle.innerHTML = '<i class="ri-edit-line"></i>';
           quickFileMdToggle.title = 'Chỉnh sửa mã nguồn';
           quickFileEditorBox.hidden = true;
@@ -7125,12 +7139,28 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               quickHtmlPreview.srcdoc = quickFileTextarea.value;
             }
             quickFileFeedback.textContent = 'Xem trước HTML';
+          } else {
+            quickFilePreview.hidden = true;
+            if (quickHtmlPreview) quickHtmlPreview.hidden = true;
+            quickFileCodePreview.hidden = false;
+            quickFileCodePreview.replaceChildren();
+            (quickFileTextarea.value || '').split('\n').forEach((line, index) => {
+              const row = document.createElement('div');
+              row.className = 'quick-code-preview-line';
+              const number = document.createElement('span');
+              number.className = 'quick-code-preview-number';
+              number.textContent = String(index + 1);
+              const content = document.createElement('span');
+              content.className = 'quick-code-preview-text';
+              content.textContent = line || ' ';
+              row.append(number, content);
+              quickFileCodePreview.append(row);
+            });
+            quickFileFeedback.textContent = 'Xem trước mã nguồn';
           }
         } else {
-          if (isPreviewable) {
-            quickFileMdToggle.innerHTML = '<i class="ri-eye-line"></i>';
-            quickFileMdToggle.title = 'Xem trước';
-          }
+          quickFileMdToggle.innerHTML = '<i class="ri-eye-line"></i>';
+          quickFileMdToggle.title = 'Xem trước';
           quickFilePreview.hidden = true;
           if (quickHtmlPreview) quickHtmlPreview.hidden = true;
           quickFileEditorBox.hidden = false;
@@ -7141,8 +7171,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
       function openQuickFileInline(path, name, node) {
         const content = node.content || '';
-        const isPreviewable = isPreviewableFile(name);
-        quickActiveFile = { path, name, node, original: content, dirty: false, mode: isPreviewable ? 'preview' : 'edit' };
+        quickActiveFile = { path, name, node, original: content, dirty: false, mode: 'preview' };
         quickTreeBrowser.hidden = true;
         quickFileWorkbench.hidden = false;
         quickFileName.textContent = name;
@@ -7733,19 +7762,49 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
       function updateMdView() {
         if (!activeOpenedFile) return;
+        const editorHtmlPreviewBox = document.getElementById('editor-html-preview-box');
+        const editorCodePreviewBox = document.getElementById('editor-code-preview-box');
+        const isHtml = /\.(html|htm)$/i.test(activeOpenedFile.name || '');
+        const isMd = /\.(md|markdown)$/i.test(activeOpenedFile.name || '');
+        editorCodePreviewBox.style.display = 'none';
         if (currentFileMode === 'md-preview') {
           btnMdToggle.classList.remove('hidden');
           btnMdToggle.innerHTML = '<i class="ri-edit-line"></i> Sửa';
           btnMdToggle.classList.remove('active');
-          editorMdPreviewBox.style.display = 'block';
           editorContentBox.style.display = 'none';
           editorKeybarContainer.style.display = 'none';
-          editorMdPreviewBox.innerHTML = renderMarkdown(editorTextarea.value || activeOpenedFile.originalContent);
+          if (isHtml && editorHtmlPreviewBox) {
+            editorMdPreviewBox.style.display = 'none';
+            editorHtmlPreviewBox.style.display = 'block';
+            editorHtmlPreviewBox.srcdoc = editorTextarea.value || activeOpenedFile.originalContent || '';
+          } else if (isMd) {
+            if (editorHtmlPreviewBox) editorHtmlPreviewBox.style.display = 'none';
+            editorMdPreviewBox.style.display = 'block';
+            editorMdPreviewBox.innerHTML = renderMarkdown(editorTextarea.value || activeOpenedFile.originalContent);
+          } else {
+            editorMdPreviewBox.style.display = 'none';
+            if (editorHtmlPreviewBox) editorHtmlPreviewBox.style.display = 'none';
+            editorCodePreviewBox.style.display = 'block';
+            editorCodePreviewBox.replaceChildren();
+            (editorTextarea.value || '').split('\n').forEach((line, index) => {
+              const row = document.createElement('div');
+              row.className = 'quick-code-preview-line';
+              const number = document.createElement('span');
+              number.className = 'quick-code-preview-number';
+              number.textContent = String(index + 1);
+              const content = document.createElement('span');
+              content.className = 'quick-code-preview-text';
+              content.textContent = line || ' ';
+              row.append(number, content);
+              editorCodePreviewBox.append(row);
+            });
+          }
         } else if (currentFileMode === 'md-edit') {
           btnMdToggle.classList.remove('hidden');
           btnMdToggle.innerHTML = '<i class="ri-eye-line"></i> Xem';
           btnMdToggle.classList.add('active');
           editorMdPreviewBox.style.display = 'none';
+          if (editorHtmlPreviewBox) editorHtmlPreviewBox.style.display = 'none';
           editorContentBox.style.display = 'flex';
           editorKeybarContainer.style.display = 'flex';
           updateGutter();
@@ -7753,6 +7812,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           // Standard code file (.js, .json, etc.)
           btnMdToggle.classList.add('hidden');
           editorMdPreviewBox.style.display = 'none';
+          if (editorHtmlPreviewBox) editorHtmlPreviewBox.style.display = 'none';
           editorContentBox.style.display = 'flex';
           editorKeybarContainer.style.display = 'flex';
           updateGutter();
@@ -7781,12 +7841,8 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         editorTextarea.value = content || '';
         setDirty(false);
 
-        // Check if markdown file -> default to preview!
-        if (name.toLowerCase().endsWith('.md')) {
-          currentFileMode = 'md-preview';
-        } else {
-          currentFileMode = 'code';
-        }
+        // All text files start in read-only Preview, matching the live File screen.
+        currentFileMode = 'md-preview';
         updateMdView();
 
         switchTab('view-editor');
@@ -10213,6 +10269,47 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       const inputNewProjectPath = document.getElementById('input-new-project-path');
       const workspaceSidebarBackdropEl = document.getElementById('workspace-sidebar-backdrop');
       const btnCloseWorkspaceSidebarEl = document.getElementById('btn-close-workspace-sidebar');
+
+      function detectDesktopDevice() {
+        if (window.__HUGREMOTE_DEVICE_TYPE === 'desktop') return true;
+        if (window.__HUGREMOTE_DEVICE_TYPE === 'mobile') return false;
+        const nav = window.navigator || {};
+        const ua = String(nav.userAgent || '');
+        if (nav.userAgentData && typeof nav.userAgentData.mobile === 'boolean' && nav.userAgentData.mobile) {
+          return false;
+        }
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet|Silk|Kindle|PlayBook|CriOS|FxiOS|EdgiOS/i.test(ua)) {
+          return false;
+        }
+        const platform = String(nav.platform || '');
+        if ((/Macintosh|MacIntel/i.test(ua) || /MacIntel/i.test(platform)) && Number(nav.maxTouchPoints || 0) > 1) {
+          return false;
+        }
+        if (typeof window.matchMedia === 'function') {
+          try {
+            if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) return false;
+          } catch (_) {}
+        }
+        if (/Windows NT|Macintosh|Mac OS X|X11;\s*(?:Linux|Ubuntu|Fedora|Arch|CrOS)|Linux x86_64|Linux aarch64|CrOS/i.test(ua)) {
+          return true;
+        }
+        if (typeof window.matchMedia === 'function') {
+          try {
+            if (window.matchMedia('(any-hover: hover) and (any-pointer: fine)').matches) return true;
+          } catch (_) {}
+        }
+        return false;
+      }
+
+      function syncDeviceTypeClass() {
+        const isDesktop = detectDesktopDevice();
+        if (appRootEl) {
+          appRootEl.classList.toggle('is-desktop-device', isDesktop);
+          appRootEl.setAttribute('data-device-type', isDesktop ? 'desktop' : 'mobile');
+        }
+      }
+      syncDeviceTypeClass();
+      window.addEventListener('resize', syncDeviceTypeClass);
 
       let isWorkspaceSidebarOpen = window.innerWidth >= 900;
 

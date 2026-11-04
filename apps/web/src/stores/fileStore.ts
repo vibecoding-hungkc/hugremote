@@ -102,12 +102,8 @@ export const useFileStore = defineStore('file', () => {
       };
 
       activeFileScope = { serverId, projectId };
-      const lowerName = data.name.toLowerCase();
-      if (lowerName.endsWith('.md') || lowerName.endsWith('.markdown')) {
-        fileMode.value = 'preview';
-      } else {
-        fileMode.value = 'code';
-      }
+      // Every text file opens read-only; editing is an explicit action.
+      fileMode.value = 'preview';
       return true;
     } catch (err: any) {
       if (!isCurrent()) return false;

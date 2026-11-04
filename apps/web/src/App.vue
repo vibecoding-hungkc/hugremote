@@ -6,7 +6,9 @@
     :class="{
       'quick-tree-open': isQuickPanelActive,
       'workspace-sidebar-open': isWorkspaceSidebarOpen,
+      'is-desktop-device': isDesktopDevice,
     }"
+    :data-device-type="isDesktopDevice ? 'desktop' : 'mobile'"
     :style="{ '--quick-panel-width': `${quickPanelWidth}px` }"
   >
     <!-- 1. Smart Unified Header -->
@@ -203,8 +205,10 @@ import { useGitStore } from './stores/gitStore.js';
 import { useAppBootstrap } from './composables/useAppBootstrap.js';
 import { useI18n } from './composables/useI18n.js';
 import { useAppRouter } from './app/router.js';
+import { useDesktopDevice } from './utils/device.js';
 
 const { authStore } = useAppBootstrap();
+const { isDesktopDevice } = useDesktopDevice();
 const serverStore = useServerStore();
 const fileStore = useFileStore();
 const terminalStore = useTerminalStore();
@@ -422,6 +426,8 @@ html, body {
 }
 
 .app-root {
+  --header-h: 64px;
+  --dock-h: 42px;
   position: fixed;
   inset: 0;
   width: 100%;

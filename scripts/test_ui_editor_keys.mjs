@@ -14,6 +14,7 @@ const { descriptor } = parse(source);
 let compiled = compileScript(descriptor, { id: 'editor-keys', inlineTemplate: true }).content
   .replace('let view: EditorView | null = null;', 'let view: EditorView | null = globalThis.__editorKeysView;')
   .replace(/import \{ useFileStore \} from ['"]\.\.\/stores\/fileStore\.js['"];?/, 'const useFileStore = () => globalThis.__editorKeysStore;')
+  .replace(/import \{ useDesktopDevice \} from ['"]\.\.\/utils\/device\.js['"];?/, 'const useDesktopDevice = () => ({ isDesktopDevice: false });')
   .replace(/new EditorView\(\{[\s\S]*?parent: editorContainer.value,?\s*\}\)/, 'globalThis.__editorKeysView');
 compiled = compiled.replace(/from (["'])([^"']+)\1/g, (_, quote, name) => `from ${quote}${import.meta.resolve(name)}${quote}`);
 const { code } = await transformWithEsbuild(compiled, 'CodeEditor.ts', { loader: 'ts', format: 'esm' });
@@ -161,7 +162,11 @@ let failures = 0;
     store.fileMode = 'preview';
     store.activeFile.name = 'code.js';
     await nextTick();
-    assert.ok(buttons().some(el => el.props.title === 'Undo'), 'non-Markdown files remain editable');
+    assert.equal(buttons().some(el => el.props.title === 'Undo'), false, 'code preview is read-only until Edit');
+    assert.ok(descendants(root).some(el => el.props.class === 'code-preview-box'), 'code preview renders source lines');
+    store.fileMode = 'code';
+    await nextTick();
+    assert.ok(buttons().some(el => el.props.title === 'Undo'), 'Edit restores the code controls');
   });
 }
 process.exitCode = failures ? 1 : 0;

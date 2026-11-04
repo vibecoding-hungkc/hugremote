@@ -1,6 +1,6 @@
 <template>
   <div class="code-editor-container">
-    <!-- View 1: Markdown Preview Mode -->
+    <!-- View 1a: Markdown Preview Mode -->
     <div
       v-if="fileStore.fileMode === 'preview' && isMarkdown"
       class="markdown-preview-box"
@@ -8,15 +8,32 @@
       @click="handlePreviewClick"
     ></div>
 
+    <!-- View 1b: HTML Preview Mode -->
+    <iframe
+      v-else-if="fileStore.fileMode === 'preview' && isHtml"
+      class="html-preview-box"
+      sandbox="allow-scripts"
+      :srcdoc="fileStore.activeFile?.content || ''"
+      :title="fileStore.activeFile?.name || 'HTML Preview'"
+    ></iframe>
+
+    <!-- Read-only source preview: no editor focus or virtual keyboard until Edit is chosen. -->
+    <div v-else-if="fileStore.fileMode === 'preview'" class="code-preview-box" role="region" aria-label="Xem trước mã nguồn">
+      <div v-for="(line, index) in previewLines" :key="index" class="code-preview-line">
+        <span class="code-preview-number" aria-hidden="true">{{ index + 1 }}</span>
+        <span class="code-preview-text">{{ line || ' ' }}</span>
+      </div>
+    </div>
+
     <!-- View 2: CodeMirror 6 Editor -->
-    <div v-show="fileStore.fileMode === 'code' || !isMarkdown" class="cm-wrapper" ref="editorContainer"></div>
+    <div v-show="fileStore.fileMode === 'code'" class="cm-wrapper" ref="editorContainer"></div>
 
     <div v-if="fileStore.saveNotice" class="save-toast">
       <i class="ri-check-line"></i> {{ fileStore.saveNotice }}
     </div>
 
-    <!-- Quick Programming Accessory Keybar -->
-    <div v-if="fileStore.fileMode === 'code' || !isMarkdown" class="editor-keybar" @pointerdown.prevent>
+    <!-- Quick Programming Accessory Keybar (Hidden on Desktop devices) -->
+    <div v-if="!isDesktopDevice && fileStore.fileMode === 'code'" class="editor-keybar" @pointerdown.prevent>
       <div class="keybar-row">
         <div class="keybar-scroll">
           <button type="button" class="key-pill" title="Undo" aria-label="Undo" @click="runEditorCommand(undo)">Undo</button>
@@ -59,6 +76,7 @@ import { python } from '@codemirror/lang-python';
 import { html } from '@codemirror/lang-html';
 import { marked, Renderer } from 'marked';
 import { useFileStore } from '../stores/fileStore.js';
+import { useDesktopDevice } from '../utils/device.js';
 
 const fileStore = useFileStore();
 const editorContainer = ref<HTMLDivElement | null>(null);
@@ -70,6 +88,14 @@ const isMarkdown = computed(() => {
   const name = fileStore.activeFile?.name?.toLowerCase() || '';
   return name.endsWith('.md') || name.endsWith('.markdown');
 });
+
+const isHtml = computed(() => {
+  const name = fileStore.activeFile?.name?.toLowerCase() || '';
+  return name.endsWith('.html') || name.endsWith('.htm');
+});
+
+const previewLines = computed(() => (fileStore.activeFile?.content || '').split('\n'));
+const { isDesktopDevice } = useDesktopDevice();
 
 function escapeHtml(value: string): string {
   return value
@@ -99,7 +125,11 @@ markdownRenderer.image = ({ href, title, text }: { href: string; title?: string 
 
 const renderedMarkdown = computed(() => {
   if (!fileStore.activeFile?.content) return '';
-  const parsed = marked.parse(fileStore.activeFile.content, { renderer: markdownRenderer });
+  const parsed = marked.parse(fileStore.activeFile.content, {
+    gfm: true,
+    breaks: true,
+    renderer: markdownRenderer,
+  });
   return typeof parsed === 'string' ? parsed : '';
 });
 
@@ -196,6 +226,44 @@ onBeforeUnmount(() => {
   height: 100%;
   overflow: hidden;
   background: #090d16;
+}
+
+.code-preview-box {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #0b1120;
+  color: #dce8fa;
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+  padding: 12px 0;
+  user-select: text;
+}
+.code-preview-line { display: flex; min-width: max-content; }
+.code-preview-number {
+  display: inline-block;
+  position: sticky;
+  left: 0;
+  flex: none;
+  width: 48px;
+  padding: 0 12px 0 4px;
+  box-sizing: border-box;
+  text-align: right;
+  color: #64748b;
+  background: #0b1120;
+  border-right: 1px solid #1e293b;
+  user-select: none;
+}
+.code-preview-text { padding: 0 16px; }
+
+.html-preview-box {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #ffffff;
+  display: block;
 }
 
 .cm-wrapper {

@@ -16,7 +16,7 @@
       <div class="dw-top-title">
         <i class="ri-layout-left-2-line"></i>
         <span>Workspace</span>
-        <span id="dw-active-project-pill" class="dw-project-scope-pill" :title="activeProjectPath">
+        <span id="dw-active-project-pill" class="dw-project-scope-pill">
           {{ activeProjectName }}
         </span>
       </div>
@@ -59,7 +59,6 @@
               <i :class="isHomeProject(proj) ? 'ri-home-4-line' : 'ri-folder-2-line'" style="color: #38bdf8"></i>
               <span>{{ proj.name }}</span>
             </div>
-            <div class="dw-item-sub">{{ proj.rootPath }}</div>
           </div>
           <div class="dw-item-actions" @click.stop>
             <button
@@ -103,7 +102,6 @@
               <i class="ri-terminal-box-line" style="color: #c084fc"></i>
               <span>{{ s.name }}</span>
             </div>
-            <div class="dw-item-sub">{{ s.cwd || activeProjectPath }}</div>
           </div>
           <div class="dw-item-actions" @click.stop>
             <button
@@ -156,7 +154,6 @@
               <i class="ri-sparkling-fill" style="color: #f59e0b"></i>
               <span>{{ s.name }}</span>
             </div>
-            <div class="dw-item-sub">{{ s.cwd || activeProjectPath }} • {{ s.model || 'Sonnet' }}</div>
           </div>
           <div class="dw-item-actions" @click.stop>
             <button
@@ -249,10 +246,6 @@ const activeProjectName = computed(() => {
   const ws = serverStore.currentServer.workspace || '~';
   const parts = ws.split('/').filter(Boolean);
   return parts[parts.length - 1] || '~';
-});
-
-const activeProjectPath = computed(() => {
-  return projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
 });
 
 function isHomeProject(project: ProjectItem) {

@@ -147,6 +147,31 @@ try {
     assert.doesNotMatch(htmlB, /claude-hugcode-session/, 'Project A claude session must not appear while Project B is active');
   });
 
+  await test('AC-5: Workspace rows display only names in the app and prototype', async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const serverStore = useServerStore();
+    const projectStore = useProjectStore();
+    const terminalStore = useTerminalStore();
+    const claudeStore = useClaudeStore();
+    const serverId = serverStore.currentServerId;
+    projectStore.projects = [{ id: 'name-only-project', serverId, name: 'My Project', rootPath: '/private/secret/project', lastOpenedAt: 100 }];
+    projectStore.activeProjectIdByServer[serverId] = 'name-only-project';
+    terminalStore.sessions = [{ id: 'name-only-term', serverId, projectId: 'name-only-project', name: 'Terminal A', cwd: '/private/secret/terminal', type: 'local' }];
+    terminalStore.activeSessionId = 'name-only-term';
+    claudeStore.sessions = [{ id: 'name-only-claude', serverId, projectId: 'name-only-project', name: 'Claude A', cwd: '/private/secret/claude', model: 'sonnet', messages: [], source: 'in-app' }];
+    claudeStore.activeSessionId = 'name-only-claude';
+    const app = createSSRApp(WorkspaceSidebar, { isOpen: true });
+    app.use(pinia);
+    const html = await renderToString(app);
+    for (const name of ['My Project', 'Terminal A', 'Claude A']) assert.match(html, new RegExp(name));
+    assert.doesNotMatch(html, /\/private\/secret\//, 'Workspace must not render file paths even in title attributes');
+    assert.doesNotMatch(html, /class="dw-item-sub"/, 'Workspace rows must have only one text line');
+
+    const prototype = fs.readFileSync(fileURLToPath(new URL('../analysis/prototypes/prototype.html', import.meta.url)), 'utf8');
+    assert.doesNotMatch(prototype, /<div class="dw-item-sub">/, 'prototype rows must have only one text line');
+  });
+
   await test('AC-4: Prototype HTML stays synchronized with Left Workspace Sidebar toggle and project-scoped sessions', async () => {
     const protoPath = fileURLToPath(new URL('../analysis/prototypes/prototype.html', import.meta.url));
     const protoHtml = fs.readFileSync(protoPath, 'utf8');
@@ -157,6 +182,8 @@ try {
     assert.match(protoHtml, /function activateProjectScope\(/);
     assert.match(protoHtml, /termByProject/);
     assert.match(protoHtml, /claudeByProject/);
+    assert.match(protoHtml, /const workspaceSidebarEl = document\.getElementById\('desktop-workspace-sidebar'\)/);
+    assert.match(protoHtml, /data-dw-layout-btn="section-groups"/);
   });
 } finally {
   await vite.close();

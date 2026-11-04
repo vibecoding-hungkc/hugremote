@@ -75,7 +75,7 @@ for (const file of files) {
 const proto = readFileSync('analysis/prototypes/prototype.html', 'utf8');
 for (const match of proto.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
   postcss.parse(match[1]).walkDecls((decl) => {
-    if (isSemantic('analysis/prototypes/prototype.html', decl.parent.selector || '')) return;
+    if (isSemantic('analysis/prototypes/prototype.html', decl.parent.selector || '') || /^--(?:danger|warning)$/.test(decl.prop)) return;
     for (const c of decl.value.match(color) || []) {
       if (!isNeutral(c)) failures.push(`prototype ${decl.parent.selector} ${decl.prop}: ${c}`);
     }

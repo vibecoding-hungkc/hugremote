@@ -1812,7 +1812,7 @@ function formatMarkdown(text: string): string {
   background-origin: padding-box, border-box;
   background-clip: padding-box, border-box;
   background-image:
-    linear-gradient(180deg, #21252c 0%, #1c2026 100%),
+    linear-gradient(#252525 0 0),
     linear-gradient(135deg, rgba(118, 196, 232, 0.44) 0%, rgba(126, 214, 196, 0.26) 50%, rgba(148, 168, 236, 0.38) 100%);
   border: 1px solid transparent;
   border-radius: 10px;
@@ -2458,7 +2458,7 @@ function formatMarkdown(text: string): string {
   background-origin: padding-box, border-box;
   background-clip: padding-box, border-box;
   background-image:
-    linear-gradient(180deg, #1f1e23 0%, #1a1a1e 100%),
+    linear-gradient(#1e1e1e 0 0),
     linear-gradient(135deg, rgba(232, 152, 118, 0.46) 0%, rgba(214, 158, 198, 0.28) 52%, rgba(164, 148, 224, 0.38) 100%);
   border: 1px solid transparent;
   border-radius: 12px;
@@ -2561,7 +2561,7 @@ function formatMarkdown(text: string): string {
 .claude-ext-input-box.focused,
 .claude-ext-input-box:focus-within {
   background-image:
-    linear-gradient(180deg, #222026 0%, #1c1b20 100%),
+    linear-gradient(#1e1e1e 0 0),
     linear-gradient(135deg, rgba(240, 162, 128, 0.68) 0%, rgba(224, 168, 210, 0.44) 52%, rgba(178, 162, 238, 0.56) 100%);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28), 0 0 18px rgba(232, 152, 118, 0.12);
 }

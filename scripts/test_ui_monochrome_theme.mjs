@@ -9,7 +9,8 @@ const semantic = /(?:^|[.\s:#])(?:danger|destructive|delete|remove|error|warning
 const semanticIcon = /(?:item-icon|zip-icon|drop-icon|folder-ic|file-ic|folder-icon|quick-git-badge|quick-file-meta i|quick-tree-title > i|quick-git-branch i|quick-tree-node\[data-node-type=)/;
 const semanticGit = /(?:\.plus\b|\.minus\b|\.stage-toggle\b|\.stage-label\b|\.status\b|\.diff-line\b|\.branch-picker\b|\.branch-row\.active\b|\.git-toast\b)/;
 function isSemantic(file, selector) {
-  return semantic.test(selector) || (file.endsWith('prototype.html') && /(?:claude-diff-(?:add|del)|quick-tree-icon|quick-git-status|git-file-stats \.plus|git-file-stats \.minus|claude-ext-input-box|claude-ext-user-msg)/.test(selector)) ||
+  return semantic.test(selector) || (/(?:BottomDock\.vue|prototype\.html)$/.test(file) && /\.dock-item\.active(?:::after)?\b/.test(selector)) ||
+    (file.endsWith('prototype.html') && /(?:claude-diff-(?:add|del)|quick-tree-icon|quick-git-status|git-file-stats \.plus|git-file-stats \.minus|claude-ext-input-box|claude-ext-user-msg)/.test(selector)) ||
     (file.endsWith('ClaudeView.vue') && /(?:claude-ext-input-box|claude-ext-user-msg)/.test(selector)) ||
     (file.endsWith('SmartHeader.vue') && /(?:project-selector-btn|term-session-pill|claude-session-pill|header-action-dropdown-wrapper:has\(\.header-dropdown-menu\)|header-dropdown-menu|quick-tree-trigger\[(?:aria-expanded|data-quick-panel))/.test(selector)) ||
     (file.endsWith('prototype.html') && /(?:project-selector-btn|term-session-pill|quick-tree-trigger\[aria-expanded|quick-tree-trigger\[data-quick-panel)/.test(selector)) ||

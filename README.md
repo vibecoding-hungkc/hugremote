@@ -1,265 +1,125 @@
-# 🐴 HugRemote — Mobile-First Web IDE & Terminal
+# HugRemote
 
-> **Mobile-first web IDE, multi-window terminal, and Claude Code coding assistant crafted for smartphones, remote servers, and Docker containers.**
+**IDE trên trình duyệt cho điện thoại, tablet và desktop.** Mở terminal, duyệt và sửa file, theo dõi Git, làm việc với Claude Code trên máy hiện tại hoặc máy chủ SSH — không cần cài agent trên máy đích.
 
-[![Release](https://img.shields.io/badge/release-v1.5.0-blue.svg)](https://github.com/vibecoding-hungkc/hugremote/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Docker-orange.svg)]()
-[![Mobile First](https://img.shields.io/badge/design-Mobile--First%20(390px)-purple.svg)]()
+[![Version](https://img.shields.io/badge/version-v1.6.7-38bdf8)](CHANGELOG.md) [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-5fa04e)](package.json) [![Release](https://img.shields.io/badge/channel-stable-c084fc)](https://github.com/vibecoding-hungkc/hugremote/releases/tag/v1.6.7)
 
----
+> **Bảo mật:** HugRemote có quyền truy cập terminal và file theo quyền của tài khoản đang chạy dịch vụ. Không đưa cổng HTTP ra Internet khi `AUTH_MODE=none`. Hãy bật xác thực và đặt ứng dụng sau HTTPS/reverse proxy trước khi cho phép truy cập từ xa.
 
-## 📱 Mobile-First Experience (Showcase on Remote Docker Container)
-
-HugRemote được thiết kế ưu tiên 100% cho màn hình di động, mang lại trải nghiệm lập trình, biên tập code và quản trị container mượt mà ngay trên điện thoại:
+## Trải nghiệm
 
 <p align="center">
-  <img src="docs/screenshots/mobile-terminal-keyboard.png" alt="HugRemote Mobile Terminal with Virtual Laptop Keyboard" width="31%" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-files-docker.png" alt="HugRemote Remote Docker Container Files" width="31%" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-editor-docker.png" alt="HugRemote Mobile CodeMirror Editor" width="31%" />
+  <img src="docs/screenshots/mobile-terminal-keyboard.png" alt="Terminal với bàn phím ảo trên điện thoại" width="31%">
+  <img src="docs/screenshots/mobile-files-docker.png" alt="Duyệt file trong container từ điện thoại" width="31%">
+  <img src="docs/screenshots/mobile-editor-docker.png" alt="Soạn thảo code trên điện thoại" width="31%">
 </p>
 
-<p align="center">
-  <em>Hình 1: Terminal với Bàn phím ảo Laptop (trái) · Duyệt file Docker Container qua SFTP (giữa) · Soạn thảo Code trực tiếp trên Mobile (phải)</em>
-</p>
+- **Terminal:** Nhiều phiên PTY, bàn phím ảo cho màn hình cảm ứng, phím điều hướng và tổ hợp phím thường dùng.
+- **Files & Editor:** Duyệt, tải lên/xuống và sửa file trên máy hiện tại hoặc qua SSH/SFTP. Tab Files đi theo **workspace của server**, không đổi thư mục khi chuyển Project; ghi nhớ thư mục đã mở theo server và workspace. Editor hỗ trợ xem trước Markdown/HTML.
+- **Git:** Xem repository và file thay đổi trong Project, trạng thái staged/unstaged và số dòng thêm/xóa. Trên mobile/tablet, chọn repository rồi vào màn chi tiết; desktop giữ bố cục hai cột.
+- **Claude Code:** Chạy Claude CLI trên server, chọn model, quản lý phiên theo Project, theo dõi nội dung trả về qua stream và nối lại khi quay về trang. Có nhập liệu giọng nói tiếng Việt khi trình duyệt hỗ trợ Web Speech API.
+- **Đa server:** Dùng server local, SSH và Docker/container; danh sách SSH đọc cả `Host` trong các file được `Include` từ `~/.ssh/config`.
 
-### 🎯 Tính năng cốt lõi trên Mobile
+Ảnh minh họa khác: [Terminal](docs/screenshots/mobile-terminal.png) · [Claude](docs/screenshots/mobile-claude.png) · [Server drawer](docs/screenshots/mobile-server-drawer.png). Ảnh có thể không phản ánh đúng mọi thay đổi giao diện trong phiên bản mới nhất.
 
-| Tính năng | Chi tiết |
-|---|---|
-| **⌨️ Bàn phím ảo Laptop (ANSI 5 hàng)** | Bố cục chuẩn laptop với đầy đủ hàng số, ký tự đặc biệt (`~`, `@`, `#`), phím điều hướng và các modifier dính thông minh (`Ctrl`, `Alt`, `Shift`, `Caps`). Khắc phục triệt để lỗi bàn phím hệ điều hành nhảy lên che màn hình. |
-| **🐳 Thao tác File Remote Container qua SFTP** | Duyệt cây thư mục, tạo mới tệp/folder, chỉnh sửa code, đổi tên và xóa đệ quy trực tiếp trên Docker container hoặc SSH VPS từ xa mà không cần cài agent. |
-| **🧭 Header 2 tầng tối ưu diện tích** | Tầng 1 (28px): Menu + Server + Project selector có icon dropdown; Tầng 2 (38px): Session Pill co giãn thông minh hiển thị cấp cuối thư mục, triệt tiêu 100% hiện tượng tràn viền (0px overflow). |
-| **⚡ Thanh phím tắt & Drawer 1 chạm** | Nút Dán nhanh (Bracketed Paste) nằm liền kề Ctrl+C; Drawer mở rộng tích hợp sẵn cụm lệnh Git Nhanh và Lệnh Nhanh 1 Chạm thường dùng. |
-| **🧹 Tự động dọn dẹp Session (Chống tràn 50)** | Cơ chế background sweeper tự động terminate các session idle quá 30 phút và cơ chế LRU eviction tự giải phóng session rác cũ khi đầy bộ nhớ. |
+## Bắt đầu
 
----
+### Điều kiện
 
-## 🎛️ Quản lý Đa Server & Đa Phiên trên Mobile
+- Linux hoặc macOS; WSL có thể chạy như môi trường Linux. Node.js **18+**, npm, Git, Python 3 và bộ công cụ biên dịch native (`make` + C/C++ compiler) để cài `node-pty`.
+- Quyền truy cập repository GitHub này để clone. Repository riêng tư cần xác thực GitHub; liên kết `raw.githubusercontent.com` công khai sẽ không tải được nếu bạn không có quyền truy cập.
+- Để dùng Claude Code, cài và đăng nhập Claude CLI trên **chính máy chạy HugRemote** hoặc máy đích tương ứng. Để dùng SSH, cấu hình kết nối trong `~/.ssh/config` của tài khoản chạy dịch vụ.
 
-<p align="center">
-  <img src="docs/screenshots/mobile-server-drawer.png" alt="HugRemote Mobile Server Drawer" width="31%" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-terminal-hub.png" alt="HugRemote Terminal Multi-Session Hub" width="31%" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-terminal-drawer.png" alt="HugRemote Terminal Quick Drawer" width="31%" />
-</p>
-
-<p align="center">
-  <em>Hình 2: Menu chọn Multi-Server SSH & Container (trái) · Hub quản lý đa phiên Terminal (giữa) · Drawer phím tắt lệnh 1 chạm (phải)</em>
-</p>
-
----
-
-## 🤖 Trợ lý Lập trình Claude Code trên Mobile
-
-Tài liệu kỹ thuật: [Claude Chat Realtime Streaming](docs/claude-realtime-streaming.md) — kiến trúc CLI/SSE/UI, reconcile snapshot, reconnect, cancellation, kiểm thử và giới hạn.
-
-<p align="center">
-  <img src="docs/screenshots/mobile-claude.png" alt="HugRemote Claude Code Assistant" width="48%" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/mobile-claude-models.png" alt="HugRemote Claude Model Selector" width="48%" />
-</p>
-
-<p align="center">
-  <em>Hình 3: Trợ lý Claude Code thời gian thực trên mobile (trái) · Popup chọn Model Claude động theo máy chủ (phải)</em>
-</p>
-
-* **Chạy nền kiên cường & Tái gắn kết nối SSE (Background Execution & Resilient Stream):** Tách biệt vòng đời thực thi của Claude CLI khỏi HTTP request. Tiến trình CLI chạy nền độc lập trên máy chủ daemon ngay cả khi đóng trình duyệt, khóa màn hình điện thoại (iOS Safari/Android Chrome) hoặc gián đoạn mạng; tự động tái gắn (re-attach) qua SSE stream và tự động đồng bộ kết quả tức thì khi người dùng quay lại tab (`visibilitychange` / `window focus`).
-* **Single Source of Truth Model Discovery (`claude -p /model`):** Phát hiện danh sách model chuẩn xác trực tiếp từ Claude CLI của từng máy chủ, hỗ trợ đầy đủ các alias 1M context (`sonnet[1m]`, `opus[1m]`, `fable[1m]`), `opusplan`, `best` và chuyển tiếp chính xác đối số `--model` vào tiến trình CLI.
-* **Theo dõi Token & Context Window động (200k / 1000k):** Bóc tách chính xác số lượng token từ transcript `.jsonl` và stream chunks; tự động phát hiện trần ngữ cảnh (200k mặc định hoặc 1000k cho model 1M); hỗ trợ slash command `/cost` hiển thị bảng chi tiết mức tiêu thụ và khuyến nghị `/compact`.
-* **Duy trì Trạng thái Đa tầng khi F5 / Đóng trình duyệt:** Lưu trữ Server, Project, Terminal session và Claude session đang chọn vào bộ nhớ cục bộ theo từng phạm vi, ngăn ngừa tình trạng F5 bị lệch root path hoặc mất ngữ cảnh đang gõ dở.
-* **Quản lý Phiên Claude CLI của Dự án (Project Sessions):**
-  * Quét và liên kết trực tiếp với các phiên Claude Code CLI thực tế tại `~/.claude/projects/<slug>/`.
-  * **Xem danh sách phiên:** Mở nhanh qua lệnh `/resume` trong khung chat hoặc nút lịch sử trên màn hình Claude và Header.
-  * **Đổi tên phiên (Inline Rename):** Chỉnh sửa tên phiên trực tiếp trên giao diện, tự động lưu metadata vào `.hugremote-meta.json` mà không làm hỏng cấu trúc transcript gốc.
-  * **Xóa phiên an toàn:** Xóa tệp transcript `.jsonl` và dọn dẹp metadata tương ứng chỉ bằng 1 chạm.
-  * **Đồng bộ Header Pill:** Khi khôi phục phiên (Resume), tên phiên tùy chỉnh và thư mục làm việc lập tức đồng bộ lên thanh điều hướng trên cùng.
-* **Tool Invocation Cards:** Hiển thị trực quan các lệnh bash, file read/edit của Claude Code dưới dạng thẻ thao tác gọn gàng.
-* **Theo dõi hạn mức & Token:** Popup kiểm tra hạn mức sử dụng 5 giờ và tuần, tính toán chi phí token trực quan.
-
----
-
-## 🧭 Client-Side Path Router cho các Tab
-
-HugRemote tích hợp hệ thống định tuyến URL Hash chuẩn hóa, hỗ trợ đồng bộ trạng thái 3 lớp:
-* **URL Hash hai chiều:** Tự động phản ánh tab đang hoạt động trên URL (`#/files`, `#/editor`, `#/terminal`, `#/claude`, `#/git`).
-* **Hỗ trợ điều hướng trình duyệt:** Tương thích hoàn toàn với nút **Back / Forward** của trình duyệt web hoặc cử chỉ vuốt trên smartphone (`window.history.back()`).
-* **Lưu vết khi F5:** Duy trì trạng thái tab đang mở qua reload mà không bị reset về trang mặc định.
-
----
-
-## 🏗️ Kiến trúc Fullstack Monorepo
-
-Dự án áp dụng mô hình monorepo chuẩn hóa với ranh giới trách nhiệm rõ ràng:
-
-```text
-hugremote/
-├── apps/
-│   ├── api/          # Fastify Backend Server (@hugremote/api)
-│   │   ├── src/routes/       # REST endpoints & WebSocket streams
-│   │   ├── src/services/     # Claude, SSH, PTY, Project, Git services
-│   │   └── public/           # Static build artifacts từ frontend
-│   └── web/          # Vue 3 + Vite Mobile-First Frontend (@hugremote/web)
-│       ├── src/components/   # Mobile Terminal, ClaudeView, Modals
-│       ├── src/stores/       # Pinia stores (claude, server, project,...)
-│       └── src/app/router.ts # Client-side Hash Router
-├── packages/
-│   └── shared/       # Universal Types & Contracts (@hugremote/shared)
-│       └── src/types/        # ClaudeSession, ServerConfig, Terminal types
-├── bin/hugremote.js  # CLI Entry Point toàn hệ thống
-├── install.sh        # Script cài đặt tự động cho bản Stable
-└── beta.sh           # Script cài đặt tự động cho bản Beta (Latest Main)
-```
-
----
-
-## ⚡ Quick Install
-
-**Bản Stable Release (v1.5.0):**
-```bash
-curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
-```
-
-**Bản Beta / Latest Main Branch (Cập nhật tính năng mới nhất):**
-```bash
-curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/beta.sh | bash
-```
-
-Hoặc chạy nhanh qua `npx`:
-```bash
-npx hugremote
-```
-
----
-
-## 🚀 CLI Usage, Cập nhật & Cấu hình Reverse Proxy
+### Chạy từ mã nguồn
 
 ```bash
-# Xem phiên bản hiện tại
+git clone https://github.com/vibecoding-hungkc/hugremote.git
+cd hugremote
+npm ci
+npm run build
+npm start
+```
+
+Mở `http://localhost:8099/` trên máy chạy dịch vụ. `npm start` chạy ở foreground; dừng bằng `Ctrl+C`. Mặc định dịch vụ lắng nghe trên `::` và **không xác thực** — trước khi truy cập từ máy khác, hãy cấu hình `HOST`, `AUTH_MODE` và lớp HTTPS bảo vệ phù hợp.
+
+Nếu có quyền truy cập script cài đặt của repository, `install.sh` chọn bản Stable đã phát hành; `beta.sh` theo nhánh `main`. Đọc script trước khi chạy, đặc biệt khi đã có bản cài đặt hoặc working tree có thay đổi. Xem [các bản phát hành](https://github.com/vibecoding-hungkc/hugremote/releases) và [changelog](CHANGELOG.md).
+
+## Sử dụng
+
+```bash
+hugremote --help
 hugremote --version
-
-# Cập nhật mã nguồn mới nhất & tự động build lại
-hugremote update
-
-# Ép buộc kéo mã nguồn và biên dịch lại ngay cả khi đã ở commit mới nhất
-hugremote update --force
-
-# Mặc định: cổng 8099, không yêu cầu xác thực
-hugremote
-
-# Chạy với subpath tiền tố cho Cloudflare Tunnel hoặc Nginx reverse proxy
 hugremote -p 8099 -b /remote
-
-# Xác thực bằng mật khẩu
-hugremote --auth password --password 'your-password'
-
-# Xác thực bằng tài khoản Google (OAuth 2.0)
-AUTH_MODE=google \
-APP_URL=https://your-domain.com \
-BASE_PATH=/remote \
-GOOGLE_CLIENT_ID=... \
-GOOGLE_CLIENT_SECRET=... \
-GOOGLE_ALLOWED_EMAILS=user@gmail.com,admin@domain.com \
-hugremote
+hugremote update --dry-run
+hugremote update --stable
+hugremote update --beta
 ```
 
-### File cấu hình lưu trữ (`.env`)
+Sau `npm ci`, nếu chưa có lệnh `hugremote` trên `PATH`, thay `hugremote` bằng `node bin/hugremote.js`. Lệnh `update` theo kênh đã chọn; `--stable` lấy GitHub Release chính thức mới nhất, `--beta` theo `main`. `--dry-run` chỉ kiểm tra; `--force` yêu cầu cài lại. Bản cài đặt cô lập được lưu trong `~/.local/share/hugremote/releases/` và `current` trỏ tới bản đang hoạt động.
 
-HugRemote tự động nạp file cấu hình chuẩn tại:
-```bash
-~/.config/hugremote/.env
-```
+### Cấu hình
 
-Ví dụ cấu hình chạy ngầm qua đường dẫn Cloudflare Tunnel `https://your-domain.com/remote/`:
+Tạo `~/.config/hugremote/.env` cho tài khoản chạy ứng dụng (không commit file này):
+
 ```env
 PORT=8099
 HOST=127.0.0.1
 BASE_PATH=/remote
-AUTH_MODE=none
+WORKSPACE_ROOT=/home/your-user/projects
+ALLOWED_ROOT=/home/your-user
+AUTH_MODE=password
+APP_URL=https://example.com
 ```
 
-Sau khi sửa file cấu hình, khởi động lại dịch vụ:
-```bash
-systemctl --user restart hugremote
-```
+`BASE_PATH` là đường dẫn giao diện sau reverse proxy; ví dụ trên phục vụ trang tại `/remote/`. `WORKSPACE_ROOT` là workspace mặc định của máy local, còn `ALLOWED_ROOT` giới hạn phạm vi file được phép truy cập. Các giá trị trên chỉ là mẫu: đổi đường dẫn và domain cho môi trường của bạn. Đừng đặt mật khẩu hoặc token trong câu lệnh shell hay README; nhập và lưu chúng qua kênh cấu hình an toàn, giới hạn quyền đọc file.
 
-### Bảng tùy chọn CLI
+Chế độ xác thực: `none` (chỉ dùng trong môi trường đã được bảo vệ), `password`, hoặc `google`. Với Google OAuth, cấu hình thêm `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_ALLOWED_EMAILS`; callback phụ thuộc `APP_URL` và `BASE_PATH`. Xem mã nguồn [cấu hình xác thực](apps/api/src/auth/config.ts) để kiểm tra các biến được hỗ trợ. Nếu bật Telegram sidecar, cần `TELEGRAM_BOT_TOKEN` và `TELEGRAM_ALLOWED_USERS`; **không** bật bot khi chưa giới hạn người dùng.
 
-| Tham số / Lệnh | Mô tả | Mặc định |
-|---|---|---|
-| `update` | Cập nhật HugRemote lên commit mới nhất & build lại | |
-| `-v, --version` | Xem phiên bản hiện tại | `1.5.0` |
-| `-p, --port <number>` | Cổng HTTP & WebSocket | `8099` hoặc `$PORT` |
-| `-h, --host <ip>` | Địa chỉ IP lắng nghe | `::` hoặc `$HOST` |
-| `-b, --base-path <path>` | Tiền tố đường dẫn subpath (vd: `/remote`) | `""` hoặc `$BASE_PATH` |
-| `-w, --workspace <dir>` | Thư mục workspace mặc định | `~/projects` hoặc `$WORKSPACE_ROOT` |
-| `-a, --allowed-root <dir>` | Thư mục giới hạn tối đa cho duyệt file | `~` hoặc `$ALLOWED_ROOT` |
-| `--auth <mode>` | Chế độ xác thực: `none`, `password`, `google` | `none` hoặc `$AUTH_MODE` |
-| `--password <pass>` | Mật khẩu ban đầu (mặc định: `123456`, bắt buộc đổi lần đầu) | `123456` |
-| `--app-url <url>` | Public app URL phục vụ callback Google OAuth | `http://localhost:8099` |
-| `--help` | Xem hướng dẫn câu lệnh | |
-
----
-
-## 🔐 Các Chế Độ Xác Thực
-
-### 1. No Auth (`none`)
-Thích hợp khi chạy trên mạng nội bộ (LAN) hoặc khi đã có lớp bảo vệ bên ngoài như **Cloudflare Access / Zero Trust**.
-
-### 2. Password Auth
-* Mật khẩu khởi tạo ban đầu là `123456`.
-* Hệ thống bắt buộc đổi mật khẩu ở lần đăng nhập đầu tiên.
-* Mật khẩu được băm bằng PBKDF2-SHA512 (100.000 vòng) kèm Salt 32-byte an toàn lưu tại `~/.config/hugremote/auth.json`.
-* Chống Brute-force: Tự động khóa 15 phút nếu nhập sai quá 5 lần liên tiếp.
-
-### 3. Google OAuth 2.0
-* Giới hạn quyền truy cập chỉ cho các email có trong danh sách `GOOGLE_ALLOWED_EMAILS`.
-* Redirect URI tương thích hoàn toàn khi chạy qua `BASE_PATH`: `${APP_URL}${BASE_PATH}/auth/google/callback`.
-
----
-
-## 🤖 Điều khiển qua Telegram Bot (Sidecar)
-
-HugRemote tích hợp sẵn Telegram Bot điều khiển Claude Code và Terminal từ xa:
-
-1. Thêm cấu hình vào `~/.config/hugremote/.env`:
-   ```env
-   TELEGRAM_BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
-   TELEGRAM_ALLOWED_USERS=123456789,my_username
-   TELEGRAM_TOPIC_MODE=true
-   ```
-2. Các lệnh điều khiển chính:
-   * `/new [tên] [cwd]`: Mở phiên Claude Code mới theo topic.
-   * `/terminal <lệnh>`: Thực thi lệnh Bash trực tiếp trên máy chủ.
-   * `/status`: Xem tình trạng phiên và hạn mức token Claude Code.
-   * `/compact`: Nén ngữ cảnh hội thoại tiết kiệm token.
-   * `/stop`: Dừng khẩn cấp tiến trình đang chạy.
-
----
-
-## 🛠️ Quản lý Systemd User Service
+Trên Linux có user service, kiểm tra sau khi thay đổi cấu hình:
 
 ```bash
-# Xem trạng thái service
-systemctl --user status hugremote
-
-# Khởi động lại service
-systemctl --user restart hugremote
-
-# Bật tự khởi động cùng hệ thống
-systemctl --user enable hugremote
-
-# Dừng service
-systemctl --user stop hugremote
+systemctl --user restart hugremote.service
+systemctl --user status hugremote.service
 ```
 
-File cấu hình service đặt tại: `~/.config/systemd/user/hugremote.service`.
+### Kết nối SSH với `Include`
 
----
+HugRemote đọc `~/.ssh/config` của **tài khoản chạy ứng dụng**, bao gồm các file được chỉ định bởi `Include`. Ví dụ không chứa thông tin kết nối thật:
 
-## 📄 License
+```sshconfig
+Include conf.d/*.conf
+```
 
-Phát hành theo giấy phép [MIT](LICENSE).
+```sshconfig
+# ~/.ssh/conf.d/example.conf
+Host demo-server
+    HostName example.invalid
+    User demo
+```
+
+Vào danh sách Server để chọn host. `Host` dạng wildcard không tạo thành một server riêng. Khi thay đổi cấu hình SSH bên ngoài ứng dụng, tải lại danh sách server. Để xem giới hạn của parser và cách cập nhật host trong file include, tham khảo [config.ts](apps/api/src/config.ts).
+
+## Phát triển và kiểm thử
+
+```bash
+npm ci
+npm run build
+npm run test:ui
+npm run test:git
+npx tsx scripts/test_ssh_config_include.ts
+npx tsx scripts/test_fs_server_scope.ts
+node scripts/test_file_tab_server_scope.mjs
+node scripts/test_ui_git_mobile_list_details.mjs
+```
+
+`npm run build` biên dịch shared types, kiểm tra kiểu và build Vue, sau đó build Fastify API. Một số bài test tích hợp có thể tạo fixture tạm hoặc yêu cầu công cụ hệ thống; xem từng script trước khi chạy trên máy chủ sản xuất.
+
+```text
+apps/api/         Fastify API, SSH, filesystem, Git, Claude và static frontend
+apps/web/         Vue 3, Vite, Pinia, giao diện responsive
+packages/shared/  Kiểu dữ liệu dùng chung
+bin/              CLI và isolated updater
+scripts/          Kiểm thử và công cụ bảo trì
+```
+
+Tài liệu thêm: [Claude realtime streaming](docs/claude-realtime-streaming.md) · [Changelog](CHANGELOG.md) · [GitHub Releases](https://github.com/vibecoding-hungkc/hugremote/releases).

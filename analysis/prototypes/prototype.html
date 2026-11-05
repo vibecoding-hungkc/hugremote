@@ -1704,11 +1704,19 @@
     }
     .dock-item:active { background: rgba(255,255,255,0.05); }
     .dock-item.active {
-      border: 1px solid transparent;
-      background-clip: padding-box, border-box;
-      background-image: linear-gradient(var(--bg-card) 0 0), linear-gradient(135deg, #38bdf8, #c084fc, #d97757);
+      background: var(--bg-card);
+      border-color: var(--border);
       color: #9c9c9c;
       font-weight: 700;
+    }
+    .dock-item.active::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #38bdf8, #c084fc, #d97757);
     }
     .dock-icon { font-size: 15px; }
     .dock-label { font-size: 12px; }

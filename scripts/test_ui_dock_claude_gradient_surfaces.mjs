@@ -27,9 +27,16 @@ function assertGradientBorder(style, selector, surface) {
 }
 
 for (const [style, label] of [[vueStyle(dockSource), 'app'], [prototype.match(/<style\b[^>]*>([\s\S]*?)<\/style>/i)?.[1] || '', 'prototype']]) {
-  const selector = label === 'app' ? '.dock-item.active' : '.dock-item.active';
-  assertGradientBorder(style, selector, label === 'app' ? '#171717' : 'var\\(--bg-card\\)');
-  console.log(`PASS ${label}: bottom active tab has visible gradient border without changing its fill`);
+  const active = declarations(style, '.dock-item.active');
+  const line = declarations(style, '.dock-item.active::after');
+  assert.equal(active.background, label === 'app' ? '#171717' : 'var(--bg-card)', `${label}: retain original active fill`);
+  assert.doesNotMatch(active['background-image'] || '', /gradient/, `${label}: no gradient around entire tab`);
+  assert.doesNotMatch(active.border || active['border-color'] || '', /gradient|#38bdf8|#c084fc|#d97757/, `${label}: no colored outline`);
+  assert.match(line.content || '', /^['"]{2}$/, `${label}: top line must exist`);
+  assert.equal(line.top, '0', `${label}: line must be at top`);
+  assert.equal(line.height, '2px', `${label}: line must remain thin`);
+  assert.match(line.background || '', /linear-gradient\(90deg,/, `${label}: top line must be gradient`);
+  console.log(`PASS ${label}: active tab has only a thin gradient top line and original fill`);
 }
 
 for (const [style, label] of [[vueStyle(claudeSource), 'app'], [prototype.match(/<style\b[^>]*>([\s\S]*?)<\/style>/i)?.[1] || '', 'prototype']]) {

@@ -44,6 +44,10 @@ Mở `http://localhost:8099/` trên máy chạy dịch vụ. `npm start` chạy 
 
 Nếu có quyền truy cập script cài đặt của repository, `install.sh` chọn bản Stable đã phát hành; `beta.sh` theo nhánh `main`. Đọc script trước khi chạy, đặc biệt khi đã có bản cài đặt hoặc working tree có thay đổi. Xem [các bản phát hành](https://github.com/vibecoding-hungkc/hugremote/releases) và [changelog](CHANGELOG.md).
 
+## Ứng dụng macOS tùy chọn
+
+HugRemote vẫn dùng qua trình duyệt và `npm start` như trước. Nếu muốn cửa sổ desktop riêng trên Mac, có thể build `.app` tùy chọn từ mã nguồn; Electron và công cụ đóng gói **không** được cài trong luồng web mặc định. Xem [hướng dẫn build, kiểm thử và giới hạn bản unsigned](docs/macos-app.md).
+
 ## Sử dụng
 
 ```bash

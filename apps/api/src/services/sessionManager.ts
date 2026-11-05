@@ -178,6 +178,14 @@ class SessionManager {
     }
   }
 
+  closeAll() {
+    for (const id of Array.from(this.sessions.keys())) this.close(id);
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+
   list(serverId?: string) {
     const list: Array<{
       id: string;

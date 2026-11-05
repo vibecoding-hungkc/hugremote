@@ -1,0 +1,66 @@
+name: Optional macOS app
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'desktop/**'
+      - 'apps/api/**'
+      - 'apps/web/**'
+      - 'packages/shared/**'
+      - 'scripts/build_macos_app.mjs'
+      - 'scripts/test_desktop_*'
+      - 'package*.json'
+      - '.github/workflows/macos-app.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  macos-app:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          architecture: ${{ matrix.arch }}
+          cache: npm
+      - name: Install and build web and backend
+        run: |
+          npm ci
+          npm ci --prefix desktop
+          npm run build
+          npm run test:desktop
+          npm run test:ui
+      - name: Package optional macOS app
+        run: node scripts/build_macos_app.mjs
+      - name: Inspect app bundle and smoke bundled backend
+        run: node scripts/smoke_macos_app.mjs
+      - name: Launch Electron app and verify Vue renders
+        run: node scripts/smoke_macos_gui.mjs
+      - name: Inspect app bundle archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="dist/macos-app/HugRemote-darwin-${{ matrix.arch }}/HugRemote.app"
+          test -x "$app/Contents/Resources/node/bin/node"
+          test -f "$app/Contents/Resources/hugremote/apps/api/dist/main.js"
+          test -f "$app/Contents/Resources/hugremote/apps/api/public/index.html"
+          runtime="$PWD/$app/Contents/Resources/node/bin/node"
+          payload="$PWD/$app/Contents/Resources/hugremote"
+          (cd "$payload" && "$runtime" -e "require('node-pty'); console.log('Bundled node-pty loads')")
+          ditto -c -k --sequesterRsrc --keepParent "$app" "dist/HugRemote-macOS-${{ matrix.arch }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HugRemote-macOS-${{ matrix.arch }}-unsigned
+          path: dist/HugRemote-macOS-${{ matrix.arch }}.zip
+          if-no-files-found: error

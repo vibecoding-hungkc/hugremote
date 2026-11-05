@@ -5,12 +5,27 @@ import fastifyStatic from '@fastify/static';
 import multipart from '@fastify/multipart';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+
+// Only the optional desktop launch enables this gate. The web server is unchanged.
+function desktopRequestAllowed(headers: Record<string, unknown>, secret: string): boolean {
+  const cookies = typeof headers.cookie === 'string' ? headers.cookie.split(';') : [];
+  const token = cookies.map((part) => part.trim()).find((part) => part.startsWith('hugremote_desktop_session='))?.slice('hugremote_desktop_session='.length);
+  if (!token || !/^[a-f0-9]{64}$/.test(token) || !/^[a-f0-9]{64}$/.test(secret)) return false;
+  if (!crypto.timingSafeEqual(Buffer.from(token), Buffer.from(secret))) return false;
+  const origin = headers.origin;
+  if (typeof origin === 'string') {
+    if (typeof headers.host !== 'string' || origin !== `http://${headers.host}`) return false;
+  }
+  return true;
+}
 import { PORT, HOST, BASE_PATH } from './config/index.js';
 import { apiRoutes } from './routes/api.js';
 import { wsRoutes } from './routes/ws.js';
 import { authGuard, authRoutes, validateAuthConfig } from './auth.js';
 import { stopTelegramBot } from './telegram/index.js';
+import { sessionManager } from './services/sessionManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,6 +66,10 @@ export async function createApp(): Promise<FastifyInstance> {
   }
 
   fastify.addHook('onRequest', async (req, reply) => {
+    const desktopSecret = process.env.HUGREMOTE_DESKTOP_SECRET;
+    if (desktopSecret && !desktopRequestAllowed(req.headers, desktopSecret)) {
+      return reply.status(403).send({ error: 'Desktop session required' });
+    }
     if (isBlockedPublicProbe(req.url)) {
       return reply.status(404).send({ error: 'Endpoint or asset not found' });
     }
@@ -174,6 +193,7 @@ export async function createApp(): Promise<FastifyInstance> {
   }
 
   fastify.addHook('onClose', async () => {
+    if (process.env.HUGREMOTE_DESKTOP_SECRET) sessionManager.closeAll();
     await stopTelegramBot();
   });
 

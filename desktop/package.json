@@ -1,0 +1,8 @@
+{
+  "name": "hugremote-macos-build-tools",
+  "private": true,
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^45.2.3"
+  }
+}

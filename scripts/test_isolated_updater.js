@@ -127,6 +127,44 @@ function seedPrevious(home) {
   return { paths, previous };
 }
 
+test('without systemctl and without a service, installs as a standalone CLI without creating a drop-in', () => {
+  const f = fixture();
+  const bin = path.join(f.root, 'bin');
+  mkdirSync(bin);
+  for (const name of ['git', 'npm', 'node', 'sh']) {
+    symlinkSync(execFileSync('which', [name], { encoding: 'utf8' }).trim(), path.join(bin, name));
+  }
+  const originalPath = process.env.PATH;
+  process.env.PATH = bin;
+  try {
+    const result = install(f, { service: undefined });
+    assert.equal(result.serviceRestarted, false);
+    assert.equal(existsSync(path.join(f.home, '.config/systemd/user/hugremote.service.d')), false);
+    assert.equal(readFileSync(path.join(result.releaseDir, 'built.txt'), 'utf8'), 'trusted\n');
+  } finally { process.env.PATH = originalPath; }
+});
+
+test('without systemctl an existing service unit fails closed before switching', () => {
+  const f = fixture();
+  const { paths, previous } = seedPrevious(f.home);
+  const unit = path.join(f.home, '.config/systemd/user/hugremote.service');
+  mkdirSync(path.dirname(unit), { recursive: true });
+  writeFileSync(unit, '[Service]\nExecStart=/old/path\n');
+  const bin = path.join(f.root, 'bin');
+  mkdirSync(bin);
+  for (const name of ['git', 'npm', 'node', 'sh']) {
+    symlinkSync(execFileSync('which', [name], { encoding: 'utf8' }).trim(), path.join(bin, name));
+  }
+  const originalPath = process.env.PATH;
+  process.env.PATH = bin;
+  try {
+    assert.throws(() => install(f, { service: undefined }), /systemctl.*(unavailable|not available|không)/i);
+    assert.equal(path.resolve(path.dirname(paths.currentLink), readlinkSync(paths.currentLink)), previous);
+    assert.equal(readFileSync(unit, 'utf8'), '[Service]\nExecStart=/old/path\n');
+    assert.equal(existsSync(path.join(f.home, '.config/systemd/user/hugremote.service.d')), false);
+  } finally { process.env.PATH = originalPath; }
+});
+
 test('pins the canonical repository, verifies expected commit, and preserves sourceRoot byte-for-byte', () => {
   const f = fixture();
   writeFileSync(path.join(f.install, 'package-lock.json'), `${readFileSync(path.join(f.install, 'package-lock.json'), 'utf8')}\nlocal-change\n`);

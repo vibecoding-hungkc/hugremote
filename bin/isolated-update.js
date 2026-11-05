@@ -19,37 +19,76 @@ function sleep(milliseconds) {
 function defaultService(homeDir) {
   const dropInDir = path.join(homeDir, '.config', 'systemd', 'user', 'hugremote.service.d');
   const dropInFile = path.join(dropInDir, '20-hugremote-release.conf');
-  return {
-    isActive() {
+  const unitFile = path.join(homeDir, '.config', 'systemd', 'user', 'hugremote.service');
+  // A missing manager is fine for a standalone CLI, but not for an installed
+  // service. Refuse to switch generations when that service cannot be managed.
+  const hasUnit = () => fs.existsSync(unitFile);
+  const systemctl = (() => {
+    if (process.platform !== 'linux') return null;
+    for (const dir of (process.env.PATH || '').split(path.delimiter).filter(Boolean)) {
+      const candidate = path.join(dir, 'systemctl');
       try {
-        return runFile('systemctl', ['--user', 'is-active', 'hugremote.service']).trim() === 'active';
+        fs.accessSync(candidate, fs.constants.X_OK);
+        if (fs.statSync(candidate).isFile()) return candidate;
+      } catch (_) {}
+    }
+    return null;
+  })();
+  let managerChecked = false;
+  function requireManager() {
+    if (!hasUnit()) return;
+    if (!systemctl) throw new Error('systemctl unavailable: cannot safely migrate installed HugRemote service.');
+    if (managerChecked) return;
+    try {
+      runFile(systemctl, ['--user', 'show', 'hugremote.service', '--property=LoadState', '--value'], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      managerChecked = true;
+    } catch (error) {
+      throw new Error(`systemctl user manager unavailable: ${error.message}`);
+    }
+  }
+  return {
+    preflight: requireManager,
+    isActive() {
+      requireManager();
+      if (!hasUnit()) return false;
+      try {
+        return runFile(systemctl, ['--user', 'is-active', 'hugremote.service'], { stdio: ['ignore', 'pipe', 'ignore'] }).trim() === 'active';
       } catch (_) {
         return false;
       }
     },
     getWorkingDirectory() {
+      requireManager();
+      if (!hasUnit()) return null;
       try {
-        const value = runFile('systemctl', [
+        const value = runFile(systemctl, [
           '--user', 'show', 'hugremote.service', '--property=WorkingDirectory', '--value',
-        ]).trim();
+        ], { stdio: ['ignore', 'pipe', 'ignore'] }).trim();
         return value || null;
       } catch (_) {
         return null;
       }
     },
     setWorkingDirectory(workingDirectory) {
+      requireManager();
+      if (!hasUnit()) return;
       if (workingDirectory) {
         fs.mkdirSync(dropInDir, { recursive: true, mode: 0o700 });
         atomicFile(`[Service]\nWorkingDirectory=${workingDirectory}\n`, dropInFile, 0o600);
       } else {
         fs.rmSync(dropInFile, { force: true });
       }
-      runFile('systemctl', ['--user', 'daemon-reload']);
+      runFile(systemctl, ['--user', 'daemon-reload']);
     },
     restart() {
-      runFile('systemctl', ['--user', 'restart', 'hugremote.service'], { stdio: 'inherit' });
+      requireManager();
+      if (hasUnit()) runFile(systemctl, ['--user', 'restart', 'hugremote.service'], { stdio: 'inherit' });
     },
     waitUntilActive(timeoutMs) {
+      requireManager();
+      if (!hasUnit()) return true;
       const deadline = Date.now() + timeoutMs;
       do {
         if (this.isActive()) return true;
@@ -270,6 +309,7 @@ export function installIsolatedRelease({
   let workingDirectoryChanged = false;
   let originalError = null;
 
+  const preflight = serviceMethod(service, 'preflight', () => {});
   const isActive = serviceMethod(service, 'isActive', () => false);
   const getWorkingDirectory = serviceMethod(service, 'getWorkingDirectory', () => null);
   const setWorkingDirectory = serviceMethod(service, 'setWorkingDirectory', () => {});
@@ -280,6 +320,8 @@ export function installIsolatedRelease({
   let previousWorkingDirectory = null;
 
   try {
+    // Preflight before staging/build and before any managed-path mutation.
+    preflight();
     // These snapshots intentionally happen while the lock is held and before clone/build lifecycle execution.
     serviceWasActive = isActive();
     previousWorkingDirectory = getWorkingDirectory();

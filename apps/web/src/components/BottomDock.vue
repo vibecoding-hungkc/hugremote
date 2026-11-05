@@ -1,10 +1,10 @@
 <template>
   <nav class="bottom-dock">
     <button class="dock-item" :class="{ active: activeTab === 'files' || activeTab === 'editor' }" @click="$emit('change-tab', 'files')">
-      <i class="ri-folder-2-line dock-icon"></i><span class="dock-label">{{ t('nav.files') }}</span>
+      <i class="ri-folder-2-line dock-icon" style="color: #38bdf8;"></i><span class="dock-label">{{ t('nav.files') }}</span>
     </button>
     <button class="dock-item" :class="{ active: activeTab === 'terminal' }" @click="$emit('change-tab', 'terminal')">
-      <i class="ri-terminal-box-line dock-icon"></i><span class="dock-label">{{ t('nav.terminal') }}</span><span class="dock-badge">{{ terminalStore.currentServerSessions.length }}</span>
+      <i class="ri-terminal-box-line dock-icon" style="color: #c084fc;"></i><span class="dock-label">{{ t('nav.terminal') }}</span><span class="dock-badge">{{ terminalStore.currentServerSessions.length }}</span>
     </button>
     <button class="dock-item" :class="{ active: activeTab === 'claude' }" @click="$emit('change-tab', 'claude')">
       <i class="ri-sparkling-fill dock-icon" style="color: #d97757;"></i><span class="dock-label">Claude</span><span class="dock-badge claude-badge">{{ claudeStore.currentServerSessions.length }}</span>

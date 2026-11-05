@@ -308,15 +308,53 @@ export const useClaudeStore = defineStore('claude', () => {
   };
   const streams = new Map<string, StreamOwner>();
   const resumes = new Map<string, Promise<void>>();
+  const pendingPostHeaders = new Set<string>();
   const runningSessionIds = ref<string[]>([]);
   let hydrationRequest = 0;
 
   function updateStreamFlags() {
-    runningSessionIds.value = Array.from(streams.keys());
+    const ids = new Set<string>(streams.keys());
+    for (const s of sessions.value) {
+      if (s.isRunning) ids.add(s.id);
+    }
+    runningSessionIds.value = Array.from(ids);
     const session = activeSession.value;
     const owner = session && streams.get(session.id);
     isGenerating.value = !!owner || !!session?.isRunning;
     isReconnecting.value = !!owner?.reconnecting;
+  }
+
+  function syncServerSessionsStatus(serverId: string, incomingList: ClaudeSession[]) {
+    if (!Array.isArray(incomingList)) return;
+    let changed = false;
+    for (const incoming of incomingList) {
+      if (!incoming?.id || (serverId && incoming.serverId && incoming.serverId !== serverId)) continue;
+      const existing = sessions.value.find((s) => s.id === incoming.id);
+      if (incoming.isRunning) {
+        if (existing && !existing.isRunning) {
+          existing.isRunning = true;
+          changed = true;
+        }
+      } else if (!streams.has(incoming.id) && !pendingPostHeaders.has(incoming.id)) {
+        if (existing && existing.isRunning) {
+          existing.isRunning = false;
+          if (Array.isArray(incoming.messages) && incoming.messages.length > 0) {
+            existing.messages = incoming.messages.map((m) => ({
+              ...m,
+              isWorking: false,
+              isThinking: false,
+            }));
+          } else {
+            existing.messages.forEach((m) => {
+              m.isWorking = false;
+              m.isThinking = false;
+            });
+          }
+          changed = true;
+        }
+      }
+    }
+    if (changed) updateStreamFlags();
   }
 
   function isSessionRunning(sessionId: string): boolean {
@@ -825,6 +863,7 @@ export const useClaudeStore = defineStore('claude', () => {
 
   async function completeStream(owner: StreamOwner) {
     if (streams.get(owner.sessionId) !== owner) return;
+    pendingPostHeaders.delete(owner.sessionId);
     const { session, message } = streamRow(owner);
     if (message) { message.isWorking = false; message.isThinking = false; }
     if (session) session.isRunning = false;
@@ -957,6 +996,7 @@ export const useClaudeStore = defineStore('claude', () => {
     const reactiveMsg = session.messages[session.messages.length - 1] as ClaudeMessage;
 
     session.isRunning = true;
+    pendingPostHeaders.add(session.id);
     const owner = ownStream(session, reactiveMsg);
     try {
       const response = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(session.id)}/messages/stream`), {
@@ -965,8 +1005,10 @@ export const useClaudeStore = defineStore('claude', () => {
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify({ prompt: prompt.trim() }),
       });
+      pendingPostHeaders.delete(session.id);
       if (await readStream(owner, response)) { await completeStream(owner); return; }
     } catch (error) {
+      pendingPostHeaders.delete(session.id);
       if (owner.controller.signal.aborted) return;
     }
     if (streams.get(owner.sessionId) === owner) await reconnectToBackgroundStream(owner);
@@ -981,6 +1023,7 @@ export const useClaudeStore = defineStore('claude', () => {
     if (!targetSessionId && (!session || !isGenerating.value)) return false;
 
     const owner = streams.get(targetId);
+    pendingPostHeaders.delete(targetId);
     if (owner) {
       releaseStream(owner);
     }
@@ -1425,6 +1468,7 @@ export const useClaudeStore = defineStore('claude', () => {
     isReconnecting,
     runningSessionIds,
     isSessionRunning,
+    syncServerSessionsStatus,
     currentSystemNotice,
     compactTaskMode,
     toggleCompactTaskMode,

@@ -70,8 +70,7 @@ export class ProjectService {
     }
     list(serverId) {
         const projects = this.state.projects
-            .filter((p) => p.serverId === serverId)
-            .sort((a, b) => b.updatedAt - a.updatedAt);
+            .filter((p) => p.serverId === serverId);
         return {
             activeProjectId: this.state.activeProjectByServer[serverId] || projects[0]?.id || '',
             projects,
@@ -132,7 +131,6 @@ export class ProjectService {
         const project = this.state.projects.find((p) => p.id === projectId && p.serverId === serverId);
         if (!project)
             return undefined;
-        project.updatedAt = Date.now();
         this.state.activeProjectByServer[serverId] = project.id;
         this.save();
         return project;

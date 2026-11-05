@@ -1095,27 +1095,44 @@ function toggleMicRecording() {
         rec.continuous = true;
         rec.interimResults = true;
         rec.onresult = (event: any) => {
-          let interim = '';
-          for (let i = event.resultIndex || 0; i < (event.results?.length || 0); i++) {
+          const parts: string[] = [];
+          for (let i = 0; i < (event.results?.length || 0); i++) {
             const res = event.results[i];
             const transcript = String(res?.[0]?.transcript || '').trim();
-            if (!transcript) continue;
-            if (res.isFinal) {
-              speechFinalSegments.push(transcript);
-            } else {
-              interim = interim ? `${interim} ${transcript}` : transcript;
+            if (transcript) parts.push(transcript);
+          }
+          speechInterimSegment = parts.join(' ').trim();
+        };
+        rec.onend = () => {
+          if (speechInterimSegment) {
+            speechFinalSegments.push(speechInterimSegment);
+            speechInterimSegment = '';
+          }
+          if (micState.value === 'recording' && speechRecognition === rec) {
+            try {
+              rec.start();
+            } catch {
+              // Ignore restart error
             }
           }
-          speechInterimSegment = interim;
         };
-        rec.onerror = () => {
-          // Keep state until user stops recording
+        rec.onerror = (err: any) => {
+          const code = String(err?.error || '');
+          if (code === 'not-allowed' || code === 'service-not-allowed') {
+            showActionToast('Vui lòng cấp quyền truy cập Micro cho trình duyệt', 'ri-mic-off-line', 'info');
+          } else if (code === 'audio-capture') {
+            showActionToast('Không tìm thấy thiết bị Micro khả dụng', 'ri-mic-off-line', 'info');
+          } else if (code === 'network') {
+            showActionToast('Dịch vụ nhận diện giọng nói của trình duyệt không thể kết nối mạng', 'ri-wifi-off-line', 'info');
+          }
         };
         speechRecognition = rec;
         rec.start();
       } catch {
         // Fallback handled on stop
       }
+    } else if (!(win && typeof win.__HUGREMOTE_MOCK_STT_TEXT__ === 'string')) {
+      showActionToast('Trình duyệt hiện tại không hỗ trợ Web Speech API', 'ri-mic-off-line', 'info');
     }
     return;
   }
@@ -1126,15 +1143,11 @@ function toggleMicRecording() {
     micTimer = null;
   }
   micState.value = 'transcribing';
-  if (speechRecognition) {
-    try {
-      speechRecognition.stop();
-    } catch {
-      // Ignore stop errors
-    }
-  }
 
-  micAnalyzeTimeout = setTimeout(() => {
+  let finalized = false;
+  const finalizeRecognition = () => {
+    if (finalized) return;
+    finalized = true;
     const win = typeof window !== 'undefined' ? (window as any) : null;
     const mockOverride = typeof win?.__HUGREMOTE_MOCK_STT_TEXT__ === 'string'
       ? win.__HUGREMOTE_MOCK_STT_TEXT__.trim()
@@ -1149,15 +1162,38 @@ function toggleMicRecording() {
 
     if (recognized) {
       const current = inputText.value.trim();
-      inputText.value = current ? `${current} ${recognized}` : recognized;
+      const nextValue = current ? `${current} ${recognized}` : recognized;
+      inputText.value = nextValue;
       nextTick(() => {
+        if (inputRef.value) {
+          inputRef.value.value = nextValue;
+          inputRef.value.dispatchEvent(new Event('input', { bubbles: true }));
+        }
         autoResize();
         inputRef.value?.focus();
       });
     }
     // Immediately return to 'idle' without displaying a 3rd "filled" status
     micState.value = 'idle';
-  }, 350);
+  };
+
+  if (speechRecognition) {
+    const rec = speechRecognition;
+    const prevOnEnd = rec.onend;
+    rec.onend = () => {
+      if (typeof prevOnEnd === 'function') prevOnEnd();
+      if (micAnalyzeTimeout) clearTimeout(micAnalyzeTimeout);
+      micAnalyzeTimeout = setTimeout(finalizeRecognition, 120);
+    };
+    try {
+      rec.stop();
+    } catch {
+      // Ignore stop errors
+    }
+    micAnalyzeTimeout = setTimeout(finalizeRecognition, 2500);
+  } else {
+    micAnalyzeTimeout = setTimeout(finalizeRecognition, 350);
+  }
 }
 
 function autoResize() {
@@ -1773,9 +1809,13 @@ function formatMarkdown(text: string): string {
 
 /* User Message Card */
 .claude-ext-user-msg {
-  background: #252525;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(180deg, #21252c 0%, #1c2026 100%),
+    linear-gradient(135deg, rgba(118, 196, 232, 0.44) 0%, rgba(126, 214, 196, 0.26) 50%, rgba(148, 168, 236, 0.38) 100%);
+  border: 1px solid transparent;
+  border-radius: 10px;
   padding: 10px 14px;
   font-size: 13.5px;
   color: #eeeeee;
@@ -1784,6 +1824,7 @@ function formatMarkdown(text: string): string {
   overflow-wrap: anywhere;
   max-width: 100%;
   box-sizing: border-box;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 /* Assistant Message */
@@ -2414,11 +2455,16 @@ function formatMarkdown(text: string): string {
 /* Signature Input Box */
 .claude-ext-input-box {
   position: relative;
-  background: #1e1e1e;
-  border: 1px solid rgba(125, 125, 125, 0.55);
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  background-image:
+    linear-gradient(180deg, #1f1e23 0%, #1a1a1e 100%),
+    linear-gradient(135deg, rgba(232, 152, 118, 0.46) 0%, rgba(214, 158, 198, 0.28) 52%, rgba(164, 148, 224, 0.38) 100%);
+  border: 1px solid transparent;
   border-radius: 12px;
   padding: 8px 10px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), 0 0 14px rgba(232, 152, 118, 0.06);
+  transition: background-image 0.18s ease, box-shadow 0.18s ease;
 }
 
 /* Slash Command Autocomplete Menu (Claude Design System) */
@@ -2512,9 +2558,12 @@ function formatMarkdown(text: string): string {
   }
 }
 
-.claude-ext-input-box.focused {
-  border-color: #7d7d7d;
-  box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.3);
+.claude-ext-input-box.focused,
+.claude-ext-input-box:focus-within {
+  background-image:
+    linear-gradient(180deg, #222026 0%, #1c1b20 100%),
+    linear-gradient(135deg, rgba(240, 162, 128, 0.68) 0%, rgba(224, 168, 210, 0.44) 52%, rgba(178, 162, 238, 0.56) 100%);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28), 0 0 18px rgba(232, 152, 118, 0.12);
 }
 
 .claude-ext-input-row {

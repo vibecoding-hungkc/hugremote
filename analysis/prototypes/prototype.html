@@ -3390,13 +3390,17 @@
       box-sizing: border-box;
     }
 
-    /* User Message: Full-width dark bordered card */
+    /* User Message: Full-width dark card with soft Cool Sky-Mint gradient border */
     .claude-ext-user-msg {
       width: 100%;
       max-width: 100%;
-      background: #252525;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 8px;
+      background-origin: padding-box, border-box;
+      background-clip: padding-box, border-box;
+      background-image:
+        linear-gradient(180deg, #21252c 0%, #1c2026 100%),
+        linear-gradient(135deg, rgba(118, 196, 232, 0.44) 0%, rgba(126, 214, 196, 0.26) 50%, rgba(148, 168, 236, 0.38) 100%);
+      border: 1px solid transparent;
+      border-radius: 10px;
       padding: 10px 14px;
       color: #eeeeee;
       font-size: 13.5px;
@@ -3404,6 +3408,7 @@
       word-break: break-word;
       overflow-wrap: anywhere;
       box-sizing: border-box;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.03);
     }
 
     /* Assistant Message: Minimalist with small dot ● on the left */
@@ -3548,21 +3553,27 @@
       color: #acacac;
     }
 
-    /* Coral/Terracotta Border Input Container */
+    /* Soft Warm Sunset Peach-Lavender Gradient Border Input Container */
     .claude-ext-input-box {
       display: flex;
       flex-direction: column;
-      background: #1e1e1e;
-      border: 1px solid rgba(125, 125, 125, 0.55);
+      background-origin: padding-box, border-box;
+      background-clip: padding-box, border-box;
+      background-image:
+        linear-gradient(180deg, #1f1e23 0%, #1a1a1e 100%),
+        linear-gradient(135deg, rgba(232, 152, 118, 0.46) 0%, rgba(214, 158, 198, 0.28) 52%, rgba(164, 148, 224, 0.38) 100%);
+      border: 1px solid transparent;
       border-radius: 12px;
       padding: 8px 10px;
       gap: 8px;
-      box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.15);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), 0 0 14px rgba(232, 152, 118, 0.06);
+      transition: background-image 0.18s ease, box-shadow 0.18s ease;
     }
     .claude-ext-input-box:focus-within {
-      border-color: #7d7d7d;
-      box-shadow: 0 0 0 1px rgba(64, 64, 64, 0.4);
+      background-image:
+        linear-gradient(180deg, #222026 0%, #1c1b20 100%),
+        linear-gradient(135deg, rgba(240, 162, 128, 0.68) 0%, rgba(224, 168, 210, 0.44) 52%, rgba(178, 162, 238, 0.56) 100%);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28), 0 0 18px rgba(232, 152, 118, 0.12);
     }
 
     /* Upper Row: Text Input + Mic Icon */
@@ -5185,11 +5196,11 @@
     <nav class="smart-bottom-dock" id="smart-bottom-dock">
       <div class="dock-tabs-group">
         <button class="dock-item active" data-target="view-files">
-          <span class="dock-icon"><i class="ri-folder-3-line"></i></span>
+          <span class="dock-icon"><i class="ri-folder-3-line" style="color:#38bdf8;"></i></span>
           <span class="dock-label">Files</span>
         </button>
         <button class="dock-item" data-target="view-terminal">
-          <span class="dock-icon"><i class="ri-terminal-box-line"></i></span>
+          <span class="dock-icon"><i class="ri-terminal-box-line" style="color:#c084fc;"></i></span>
           <span class="dock-label">Terminal</span>
           <span id="dock-term-count" class="dock-badge-num">1</span>
         </button>
@@ -9702,16 +9713,15 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       let isClaudeGenerating = false;
-      let claudeGenTimeout = null;
+      const claudeGenTimeouts = new Map();
 
       function stopClaudeGeneration(targetSession) {
         const session = targetSession || getActiveClaudeSession();
         if (!session && !isClaudeGenerating) return;
-        if (claudeGenTimeout) {
-          clearTimeout(claudeGenTimeout);
-          claudeGenTimeout = null;
+        if (session && claudeGenTimeouts.has(session.id)) {
+          clearTimeout(claudeGenTimeouts.get(session.id));
+          claudeGenTimeouts.delete(session.id);
         }
-        isClaudeGenerating = false;
         if (session) {
           session.isRunning = false;
           session.messages.push({
@@ -9720,6 +9730,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             text: 'Đã dừng yêu cầu.'
           });
         }
+        isClaudeGenerating = Boolean(getActiveClaudeSession()?.isRunning);
         renderClaudeScreen();
         if (typeof renderDesktopWorkspaceSidebar === 'function') renderDesktopWorkspaceSidebar();
         showToast('Đã dừng phiên Claude đang chạy', 'info');
@@ -9727,7 +9738,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
 
       function sendExactClaudeMessage(promptText) {
         const session = getActiveClaudeSession();
-        if (isClaudeGenerating || (session && session.isRunning)) {
+        if (session && session.isRunning) {
           stopClaudeGeneration(session);
           return;
         }
@@ -9762,8 +9773,13 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           claudeExtStream.scrollTop = claudeExtStream.scrollHeight;
         }
 
-        // 3. Simulate Assistant reply (6s so user can inspect running state & Stop button on Workspace)
-        claudeGenTimeout = setTimeout(() => {
+        // 3. Simulate Assistant reply per session so switching sessions keeps loading icon spinning
+        const targetSession = session;
+        if (claudeGenTimeouts.has(targetSession.id)) {
+          clearTimeout(claudeGenTimeouts.get(targetSession.id));
+        }
+        const timerId = setTimeout(() => {
+          claudeGenTimeouts.delete(targetSession.id);
           let replyText = '';
           let tools = [];
 
@@ -9783,24 +9799,24 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               output: '✓ PASS test/api.test.ts (4 tests passed)'
             });
           } else {
-            replyText = `I have analyzed the request: "${text}". Ready to assist with coding and file edits in ${session.cwd}.`;
+            replyText = `I have analyzed the request: "${text}". Ready to assist with coding and file edits in ${targetSession.cwd}.`;
           }
 
-          const curCtxNum = parseInt(session.contextTokens || '0', 10);
-          session.contextTokens = `${curCtxNum + 1}k`;
-          session.messages.push({
+          const curCtxNum = parseInt(targetSession.contextTokens || '0', 10);
+          targetSession.contextTokens = `${curCtxNum + 1}k`;
+          targetSession.messages.push({
             id: 'msg-' + Date.now(),
             sender: 'assistant',
             text: replyText,
             tools: tools.length > 0 ? tools : undefined
           });
 
-          session.isRunning = false;
-          isClaudeGenerating = false;
-          claudeGenTimeout = null;
+          targetSession.isRunning = false;
+          isClaudeGenerating = Boolean(getActiveClaudeSession()?.isRunning);
           renderClaudeScreen();
           if (typeof renderDesktopWorkspaceSidebar === 'function') renderDesktopWorkspaceSidebar();
-        }, 6000);
+        }, 8000);
+        claudeGenTimeouts.set(targetSession.id, timerId);
       }
 
       // Banner events
@@ -10022,8 +10038,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       let protoSpeechRecognition = null;
-      let protoFinalSegments = [];
-      let protoInterimSegment = '';
+      let protoAccumulatedChunks = [];
+      let protoLatestTranscript = '';
 
       if (btnClaudeMic) {
         btnClaudeMic.addEventListener('click', (e) => {
@@ -10033,8 +10049,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
 
           if (currentState === 'idle') {
             claudeMicSeconds = 0;
-            protoFinalSegments = [];
-            protoInterimSegment = '';
+            protoAccumulatedChunks = [];
+            protoLatestTranscript = '';
             activeTempRecordingPath = '';
             btnClaudeMic.setAttribute('data-mic-state', 'recording');
             btnClaudeMic.className = 'claude-mic-btn danger recording';
@@ -10060,15 +10076,22 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
                 rec.continuous = true;
                 rec.interimResults = true;
                 rec.onresult = (event) => {
-                  let interim = '';
-                  for (let i = event.resultIndex || 0; i < (event.results?.length || 0); i++) {
+                  const parts = [];
+                  for (let i = 0; i < (event.results?.length || 0); i++) {
                     const res = event.results[i];
                     const txt = String(res?.[0]?.transcript || '').trim();
-                    if (!txt) continue;
-                    if (res.isFinal) protoFinalSegments.push(txt);
-                    else interim = interim ? `${interim} ${txt}` : txt;
+                    if (txt) parts.push(txt);
                   }
-                  protoInterimSegment = interim;
+                  protoLatestTranscript = parts.join(' ').trim();
+                };
+                rec.onend = () => {
+                  if (protoLatestTranscript) {
+                    protoAccumulatedChunks.push(protoLatestTranscript);
+                    protoLatestTranscript = '';
+                  }
+                  if (btnClaudeMic.getAttribute('data-mic-state') === 'recording' && protoSpeechRecognition === rec) {
+                    try { rec.start(); } catch (_) {}
+                  }
                 };
                 rec.onerror = () => {};
                 protoSpeechRecognition = rec;
@@ -10085,9 +10108,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               clearInterval(claudeMicInterval);
               claudeMicInterval = null;
             }
-            if (protoSpeechRecognition) {
-              try { protoSpeechRecognition.stop(); } catch (_) {}
-            }
             btnClaudeMic.setAttribute('data-mic-state', 'transcribing');
             btnClaudeMic.className = 'claude-mic-btn status-indicator transcribing';
             btnClaudeMic.title = 'Đang phân tích Speech-to-Text...';
@@ -10098,18 +10118,22 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               claudeVoiceStatusText.textContent = 'Đang phân tích Speech-to-Text...';
             }
 
-            setTimeout(() => {
-              const spoken = [...protoFinalSegments, protoInterimSegment].map(s => s.trim()).filter(Boolean).join(' ').trim();
+            let finalized = false;
+            const finalizeTranscript = () => {
+              if (finalized) return;
+              finalized = true;
+              const spoken = [...protoAccumulatedChunks, protoLatestTranscript].map(s => s.trim()).filter(Boolean).join(' ').trim();
               const recognizedText = spoken || sttSamples[sttSampleIndex % sttSamples.length];
               if (!spoken) sttSampleIndex += 1;
-              protoFinalSegments = [];
-              protoInterimSegment = '';
+              protoAccumulatedChunks = [];
+              protoLatestTranscript = '';
               protoSpeechRecognition = null;
               if (claudeExtTextarea) {
                 const prefix = claudeExtTextarea.value.trim();
                 claudeExtTextarea.value = prefix ? `${prefix} ${recognizedText}` : recognizedText;
                 claudeExtTextarea.style.height = 'auto';
                 claudeExtTextarea.style.height = Math.min(claudeExtTextarea.scrollHeight, 120) + 'px';
+                claudeExtTextarea.dispatchEvent(new Event('input', { bubbles: true }));
                 claudeExtTextarea.focus();
               }
               if (btnClaudeSendArrow) btnClaudeSendArrow.classList.add('active');
@@ -10121,7 +10145,20 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               if (claudeMicIcon) claudeMicIcon.className = 'ri-mic-line';
               if (claudeVoiceStatus) claudeVoiceStatus.hidden = true;
               if (claudeVoiceTempFile) claudeVoiceTempFile.textContent = '';
-            }, 450);
+            };
+
+            if (protoSpeechRecognition) {
+              const rec = protoSpeechRecognition;
+              const prevOnEnd = rec.onend;
+              rec.onend = () => {
+                if (typeof prevOnEnd === 'function') prevOnEnd();
+                setTimeout(finalizeTranscript, 220);
+              };
+              try { rec.stop(); } catch (_) { setTimeout(finalizeTranscript, 350); }
+              setTimeout(finalizeTranscript, 650);
+            } else {
+              setTimeout(finalizeTranscript, 450);
+            }
           }
         });
       }
@@ -10582,10 +10619,16 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       function switchClaudeSession(id) {
-        if (id === activeClaudeId) return;
         activeClaudeId = id;
-        getCurrentServer().activeClaudeId = id;
+        const cur = getCurrentServer();
+        cur.activeClaudeId = id;
+        const sess = (cur.claudeSessions || []).find(s => s.id === id);
+        if (sess && sess.projectId && cur.projects) {
+          const proj = cur.projects.find(p => p.id === sess.projectId);
+          if (proj) proj.activeClaudeId = id;
+        }
         renderClaudeScreen();
+        if (typeof renderDesktopWorkspaceSidebar === 'function') renderDesktopWorkspaceSidebar();
       }
 
       function renameClaudeSession(id) {

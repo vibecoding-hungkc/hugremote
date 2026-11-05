@@ -215,6 +215,7 @@ async function refreshAllClaudeSessions() {
     const data = await response.json();
     if (request === sessionRequest && serverId === serverStore.currentServerId && Array.isArray(data.sessions)) {
       allClaudeSessions.value = data.sessions;
+      claudeStore.syncServerSessionsStatus?.(serverId, data.sessions);
     }
   } catch { /* Keep the previously fetched tree if offline. */ }
 }
@@ -229,7 +230,10 @@ watch(
     claudeStore.runningSessionIds.join('|'),
     claudeStore.sessions.map(s => `${s.id}:${s.name}:${s.isRunning ? 1 : 0}`).join('|'),
   ],
-  () => refreshAllClaudeSessions()
+  () => {
+    refreshAllClaudeSessions();
+    setTimeout(() => refreshAllClaudeSessions(), 350);
+  }
 );
 let runningPollTimer: ReturnType<typeof setInterval> | null = null;
 function syncRunningPoll() {
@@ -241,7 +245,7 @@ function syncRunningPoll() {
   if (hasAnyRunning && !runningPollTimer && typeof window !== 'undefined') {
     runningPollTimer = setInterval(() => {
       refreshAllClaudeSessions();
-    }, 2500);
+    }, 1200);
   } else if (!hasAnyRunning && runningPollTimer) {
     clearInterval(runningPollTimer);
     runningPollTimer = null;
@@ -298,7 +302,8 @@ function sessionsForProject(id: string, rootPath: string, kind: 'terminal' | 'cl
     if (s.serverId !== serverStore.currentServerId) continue;
     if (s.projectId ? s.projectId === id : s.cwd?.replace(/\/+$/, '') === rootPath.replace(/\/+$/, '')) {
       const prev = byId.get(s.id);
-      byId.set(s.id, prev ? { ...prev, ...s, isRunning: Boolean(s.isRunning) } : s);
+      const isRunning = Boolean(prev?.isRunning || s.isRunning || claudeStore.isSessionRunning(s.id));
+      byId.set(s.id, prev ? { ...prev, ...s, isRunning } : { ...s, isRunning });
     }
   }
   return [...byId.values()];

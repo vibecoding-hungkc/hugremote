@@ -1,6 +1,6 @@
 {
   "name": "@hugremote/shared",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "description": "Universal domain models, contracts, and schemas for HugRemote",
   "type": "module",
   "main": "dist/index.js",

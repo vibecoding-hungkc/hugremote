@@ -12,10 +12,11 @@ fs.mkdirSync(path.join(ssh, 'conf.d'), { recursive: true });
 fs.mkdirSync(path.join(ssh, 'nested'), { recursive: true });
 fs.writeFileSync(path.join(ssh, 'config'), [
   'Include conf.d/*.conf',
+  'Include conf.d/[unclosed.conf',
   'Host direct',
+  '  Include nested/extra.conf',
   '  HostName direct.example',
   '  User directuser',
-  'Include nested/extra.conf',
   'Include nested/cycle.conf',
   '# Include conf.d/ignored.conf',
 ].join('\n'));

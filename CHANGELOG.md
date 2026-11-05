@@ -1,5 +1,33 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.7] - 2026-11-05
+
+Bản phát hành bổ sung hỗ trợ đệ quy chỉ thị `Include` trong `~/.ssh/config`, tách biệt tab Files theo phạm vi Server Workspace độc lập với Project đang mở, nâng cấp luồng Git responsive trên Mobile/Tablet (`<=860px`), bổ sung cây thư mục Workspace có thanh kéo đổi kích thước, nhập liệu giọng nói tiếng Việt và đồng bộ tên phiên Claude CLI.
+
+### SSH Config `Include` & Quản lý Server
+- Mở rộng đệ quy chỉ thị `Include` trong `parseSshConfig()` theo chuẩn OpenSSH: hỗ trợ đường dẫn tương đối theo `~/.ssh`, `~/`, đường dẫn tuyệt đối, glob wildcard (`*`, `?`, `[...]`), nhiều mẫu đường dẫn trên cùng một dòng và cú pháp `Key=Value`.
+- Chống vòng lặp `Include` đệ quy bằng `realpathSync` kèm giới hạn độ sâu an toàn, áp dụng quy tắc first-match của OpenSSH và bảo toàn trạng thái khối `Host` bao ngoài khi đọc file con.
+- Cập nhật trực tiếp tại file cấu hình được include khi chỉnh sửa thông tin server (`POST /api/servers`) hoặc đổi đường dẫn `Workspace` (`POST /api/servers/workspace`).
+
+### Tab Files độc lập theo Server Workspace (`fsScope=server`)
+- Tách tab Files ở thanh điều hướng dưới khỏi Project đang chọn: luôn duyệt từ `workspace` của server hiện tại thông qua tham số `fsScope=server` trên toàn bộ `/api/fs`, `/api/fs/read`, `/api/fs/save`, `/api/fs/action`, `/api/fs/download`, `/api/fs/upload`.
+- Lưu và khôi phục thư mục đang mở theo từng cặp `[serverId, workspace]` trong `localStorage` (`hugremote_file_dirs_by_server`) khi chuyển tab, đổi Project, đổi Server hoặc tải lại trang; tự động quay về gốc `''` khi thư mục đã nhớ không còn tồn tại.
+- Ràng buộc chặt phạm vi đường dẫn (`strictWorkspace`) trong `fsService.resolveLocalPath`, chặn thoát khỏi `server.workspace` kể cả qua symlink trỏ sang thư mục ngang hàng.
+
+### Giao diện Git Mobile/Tablet & Đa Repository
+- Hỗ trợ quét đa repository trong dự án (tối đa 5 cấp, bỏ qua `node_modules`) kèm lọc nhanh `Tất cả` / `Có thay đổi`.
+- Trên màn hình Mobile & Tablet (`<=860px`): hiển thị danh sách repo thu gọn trước, chạm vào repo để mở màn chi tiết thay đổi (giữ nguyên danh sách file, nhãn trạng thái, `staged`/`unstaged`, bộ đếm `+ / -`) kèm nút quay lại `Danh sách repo`; giữ nguyên bố cục hai cột trên Desktop (`>=861px`).
+
+### Workspace Sidebar, Claude CLI & Trải nghiệm nhập liệu
+- Bổ sung thanh bên Workspace có thể kéo đổi kích thước (resizable) với hai đường dẫn cấp cây thư mục, giữ màu ngữ nghĩa cho icon Project, Terminal (`#c084fc`), Folder (`#38bdf8`) và viền chuyển sắc (gradient border) trên màn Claude.
+- Bổ sung nút nhập liệu giọng nói tiếng Việt (Web Speech API) trên khung chat Claude, giữ nguyên bản nháp khi xác nhận bộ gõ tiếng Việt (IME), đồng bộ tên phiên qua cờ `--name` của Claude CLI và hiển thị trạng thái đang chạy kèm nút dừng.
+- Băm toàn bộ `rootPath` bằng SHA-256 khi sinh Project ID (tránh trùng lặp tên thư mục) và kiểm tra trước `systemctl` khi cập nhật trên môi trường CLI độc lập không dùng systemd.
+
+### Kiểm chứng
+- PASS toàn bộ bộ kiểm thử: `scripts/test_ssh_config_include.ts`, `scripts/test_fs_server_scope.ts`, `scripts/test_file_tab_server_scope.mjs` (8 PASS), `scripts/test_ui_git_mobile_list_details.mjs` (4 PASS), và toàn bộ `npm run test:ui`.
+
+---
+
 ## [v1.6.6] - 2026-11-04
 
 Bản phát hành chuẩn hóa hệ màu Monochrome (Đen - Trắng - Xám) trên toàn bộ 29 màn hình/component của HugRemote kèm bảo toàn màu ngữ nghĩa (icon tệp/thư mục, tín hiệu Git diff, nút xóa/cảnh báo, viền màu nhấn cho dropdown trên Header), đồng thời nâng cấp trải nghiệm làm việc trên Desktop và chế độ Preview mặc định cho tệp văn bản.

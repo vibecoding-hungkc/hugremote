@@ -69,9 +69,15 @@ function expandSshInclude(sshDir, pattern) {
     let paths = [path.parse(absolute).root];
     for (const segment of segments) {
         const wildcard = /[*?\[]/.test(segment);
-        const matcher = wildcard
-            ? new RegExp('^' + segment.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$')
-            : null;
+        let matcher = null;
+        if (wildcard) {
+            try {
+                matcher = new RegExp('^' + segment.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+            }
+            catch {
+                return [];
+            }
+        }
         paths = paths.flatMap((dir) => {
             if (!wildcard)
                 return [path.join(dir, segment)];
@@ -219,12 +225,13 @@ export function parseSshConfig() {
             const [key, ...valParts] = normalizedLine.split(/\s+/);
             const val = valParts.join(' ').replace(/^['"]|['"]$/g, '');
             if (key.toLowerCase() === 'include') {
-                pushCurrentHost();
+                const savedHost = currentHost;
                 currentHost = null;
                 const patterns = valParts.join(' ').match(/"[^"]+"|'[^']+'|\S+/g)?.map((part) => part.replace(/^['"]|['"]$/g, '')) || [];
                 for (const pattern of patterns)
                     for (const included of expandInclude(pattern))
                         parseConfig(included, depth + 1);
+                currentHost = savedHost;
             }
             else if (key.toLowerCase() === 'host') {
                 pushCurrentHost();

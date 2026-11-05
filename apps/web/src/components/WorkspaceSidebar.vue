@@ -15,7 +15,7 @@
   >
     <div class="dw-top-header">
       <div class="dw-top-title">
-        <i class="ri-layout-left-2-line"></i>
+        <i class="ri-layout-left-2-line" style="color: #38bdf8"></i>
         <span>Workspace</span>
         <span id="dw-active-project-pill" class="dw-project-scope-pill">
           {{ activeProjectName }}
@@ -51,7 +51,7 @@
     <!-- Project tree -->
     <div class="dw-scroll-content"><div class="dw-section">
       <div class="dw-section-head">
-        <span><i class="ri-folder-2-line"></i> Projects</span>
+        <span><i class="ri-folder-2-line" style="color: #38bdf8"></i> Projects</span>
         <button
           id="btn-dw-manage-proj"
           type="button"
@@ -71,7 +71,7 @@
               <i :class="collapsedProjectIds.has(proj.id) ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'"></i>
             </button>
             <div class="dw-item-main"><div class="dw-item-title">
-              <i :class="isHomeProject(proj) ? 'ri-home-4-line' : 'ri-folder-2-line'"></i>
+              <i :class="isHomeProject(proj) ? 'ri-home-4-line' : 'ri-folder-2-line'" style="color: #38bdf8"></i>
               <span>{{ proj.name }}</span>
             </div></div>
             <span v-if="proj.id === projectStore.currentProject?.id" class="dw-active-dot" aria-label="Project đang chọn"></span>
@@ -82,7 +82,7 @@
           </div>
           <div v-if="!collapsedProjectIds.has(proj.id)" class="dw-proj-children">
             <div class="dw-sub-group">
-              <div class="dw-sub-header"><span><i class="ri-terminal-box-line"></i> Terminal</span>
+              <div class="dw-sub-header"><span><i class="ri-terminal-box-line" style="color: #c084fc"></i> Terminal</span>
                 <button type="button" :id="proj.id === projectStore.currentProject?.id ? 'btn-dw-new-term' : undefined"
                   title="Tạo Terminal trong Project" @click="handleOpenNewTerminal(proj.id)"><i class="ri-add-line"></i></button>
               </div>
@@ -90,7 +90,7 @@
                 <div v-for="s in sessionsForProject(proj.id, proj.rootPath, 'terminal')" :key="s.id"
                   class="dw-item term-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === terminalStore.activeSession?.id }"
                   :data-dw-term="s.id" :data-dw-term-project="proj.id" @click="handleSelectTerminal(s)">
-                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-terminal-box-line"></i><span>{{ s.name }}</span></div></div>
+                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-terminal-box-line" style="color: #c084fc"></i><span>{{ s.name }}</span></div></div>
                   <span v-if="proj.id === projectStore.currentProject?.id && s.id === terminalStore.activeSession?.id" class="dw-active-dot" aria-label="Terminal đang chọn"></span>
                   <div class="dw-item-actions" @click.stop>
                     <button type="button" class="btn-dw-term-edit" title="Chỉnh sửa phiên" @click="handleEditTerminal(s)"><i class="ri-edit-line"></i></button>
@@ -101,7 +101,7 @@
               </div>
             </div>
             <div class="dw-sub-group">
-              <div class="dw-sub-header"><span><i class="ri-sparkling-line"></i> Claude</span>
+              <div class="dw-sub-header"><span><i class="ri-sparkling-fill" style="color: #f59e0b"></i> Claude</span>
                 <button type="button" :id="proj.id === projectStore.currentProject?.id ? 'btn-dw-new-claude' : undefined"
                   title="Tạo Claude trong Project" @click="handleOpenNewClaude(proj.id)"><i class="ri-add-line"></i></button>
               </div>
@@ -109,7 +109,7 @@
                 <div v-for="s in sessionsForProject(proj.id, proj.rootPath, 'claude')" :key="s.id"
                   class="dw-item claude-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id }"
                   :data-dw-claude="s.id" :data-dw-claude-project="proj.id" @click="handleSelectClaude(s)">
-                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-sparkling-line"></i><span>{{ s.name }}</span></div></div>
+                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-sparkling-fill" style="color: #f59e0b"></i><span>{{ s.name }}</span></div></div>
                   <span v-if="proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id" class="dw-active-dot" aria-label="Claude đang chọn"></span>
                   <div class="dw-item-actions" @click.stop>
                     <button type="button" class="btn-dw-claude-edit" title="Chỉnh sửa phiên Claude" @click="handleEditClaude(s)"><i class="ri-edit-line"></i></button>

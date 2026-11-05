@@ -204,6 +204,9 @@ try {
     assert.match(source, /\.dw-list\s*\{[^}]*border-left:/);
     assert.match(source, /\.dw-session-list\s*\{[^}]*border-left:/);
     assert.doesNotMatch(source, /\.dw-item\s*\{[^}]*border:\s*1px/);
+    assert.match(source, /ri-folder-2-line['"][^>]*style="color:\s*#38bdf8"/);
+    assert.match(source, /ri-terminal-box-line"[^>]*style="color:\s*#c084fc"/);
+    assert.match(source, /ri-sparkling-fill"[^>]*style="color:\s*#f59e0b"/);
   });
 
   await test('AC-7: Selecting sessions in another Project selects its scope first', async () => {

@@ -4396,7 +4396,7 @@
       <aside id="desktop-workspace-sidebar" class="desktop-workspace-sidebar" data-dw-layout="project-tree" aria-label="Điều hướng nhanh Project và Session">
         <div class="dw-top-header">
           <div class="dw-top-title">
-            <i class="ri-layout-left-2-line"></i>
+            <i class="ri-layout-left-2-line" style="color:#38bdf8;"></i>
             <span>Workspace</span>
             <span id="dw-active-project-pill" class="dw-project-scope-pill">hugcode</span>
           </div>
@@ -4408,7 +4408,7 @@
           aria-orientation="vertical" aria-label="Điều chỉnh độ rộng Workspace" aria-valuemin="220" aria-valuemax="520" aria-valuenow="256"></div>
         <div class="dw-section" data-dw-sec="projects">
           <div class="dw-section-head">
-            <span><i class="ri-folder-2-line" style="color:#f59e0b;"></i> Projects</span>
+            <span><i class="ri-folder-2-line" style="color:#38bdf8;"></i> Projects</span>
             <button type="button" id="btn-dw-manage-proj"><i class="ri-equalizer-line"></i> Quản lý</button>
           </div>
           <div class="dw-list" id="dw-project-list"></div>
@@ -10676,7 +10676,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         item.innerHTML = `
           <div class="dw-item-main">
             <div class="dw-item-title">
-              <i class="ri-terminal-box-line" style="color:#d4d4d4;"></i>
+              <i class="ri-terminal-box-line" style="color:#c084fc;"></i>
               <span>${escapeHtml(sess.name)}</span>
             </div>
           </div>
@@ -10801,7 +10801,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               <div class="dw-item-main">
                 <div class="dw-item-title">
                   <span class="dw-proj-caret"><i class="${isCollapsed ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'}"></i></span>
-                  <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#f59e0b;"></i>
+                  <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#38bdf8;"></i>
                   <span>${escapeHtml(proj.name)}</span>
                 </div>
               </div>
@@ -10847,7 +10847,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               termSub.innerHTML = `
                 <div class="dw-sub-header">
                   <span class="dw-sub-label">
-                    <i class="ri-terminal-box-line"></i>
+                    <i class="ri-terminal-box-line" style="color:#c084fc;"></i>
                     <span>Terminal</span>
                     <span class="dw-sub-count">${tCount}</span>
                   </span>

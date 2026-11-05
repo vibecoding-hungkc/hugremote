@@ -20,13 +20,14 @@ export function useAppBootstrap() {
     await authStore.fetchMe();
     if (!authStore.authenticated || authStore.mustChangePassword) return;
     await serverStore.fetchServers();
+    // Files browsing is independent of project loading.
+    await fileStore.fetchFiles();
     try {
       await projectStore.fetchProjects(serverStore.currentServerId);
     } catch (err: any) {
-      fileStore.error = err.message || 'Không thể tải Project';
+      projectStore.error = err.message || 'Không thể tải Project';
       return;
     }
-    await fileStore.fetchFiles('');
     terminalStore.ensureServerSession();
     await Promise.all([
       claudeStore.fetchModels(serverStore.currentServerId),

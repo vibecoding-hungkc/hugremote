@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useServerStore } from './serverStore.js';
-import { useProjectStore } from './projectStore.js';
 import { apiUrl } from '../utils/api.js';
 
 export interface FileEntry {
@@ -22,8 +21,35 @@ export interface ActiveFile {
 }
 
 export const useFileStore = defineStore('file', () => {
-  const currentRel = ref('');
+  // The bottom Files tab follows the server workspace, not the selected project.
+  const FILE_DIRS_KEY = 'hugremote_file_dirs_by_server';
+  function savedDirs(): Record<string, string> {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem(FILE_DIRS_KEY) || '{}') : {};
+      return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    } catch { return {}; }
+  }
+  const fileDirs = savedDirs();
+  const serverStore = useServerStore();
+  const scopeKey = () => JSON.stringify([serverStore.currentServerId, serverStore.currentServer.workspace || '']);
+  let fileScopeKey = scopeKey();
+  const currentRel = ref(typeof fileDirs[fileScopeKey] === 'string' ? fileDirs[fileScopeKey] : '');
   const parentRel = ref<string | null>(null);
+  let listGeneration = 0;
+  function restoreServerDirectory(): string {
+    if (fileScopeKey !== scopeKey()) {
+      fileScopeKey = scopeKey();
+      currentRel.value = typeof fileDirs[fileScopeKey] === 'string' ? fileDirs[fileScopeKey] : '';
+      parentRel.value = null;
+      entries.value = [];
+      ++listGeneration;
+    }
+    return currentRel.value;
+  }
+  function rememberDirectory(rel: string) {
+    fileDirs[fileScopeKey] = rel;
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem(FILE_DIRS_KEY, JSON.stringify(fileDirs)); } catch { /* storage disabled */ }
+  }
   const entries = ref<FileEntry[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -43,29 +69,39 @@ export const useFileStore = defineStore('file', () => {
   let resolvePendingUnsaved: ((proceed: boolean) => void) | null = null;
   let activeFileScope: { serverId: string; projectId: string } | null = null;
 
-  const serverStore = useServerStore();
-  const projectStore = useProjectStore();
-
-  async function fetchFiles(path = '') {
+  async function fetchFiles(path?: string) {
+    restoreServerDirectory();
+    const serverId = serverStore.currentServerId;
+    const requestedScope = fileScopeKey;
+    const target = path ?? currentRel.value;
+    const generation = ++listGeneration;
     loading.value = true;
     error.value = null;
     try {
-      const serverId = serverStore.currentServerId;
-      const projectId = projectStore.currentProject?.id || '';
-      const res = await fetch(apiUrl(`/api/fs?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(path)}`));
+      const res = await fetch(apiUrl(`/api/fs?serverId=${encodeURIComponent(serverId)}&fsScope=server&path=${encodeURIComponent(target)}`));
       if (!res.ok) {
         const err = await res.json();
+        if (target && path === undefined &&
+          ((res.status === 400 && err.error === 'Directory does not exist') ||
+            (res.status === 404 && err.error === 'Directory not found'))) {
+          fileDirs[fileScopeKey] = '';
+          await fetchFiles('');
+          return;
+        }
         throw new Error(err.error || 'Failed to list directory');
       }
       const data = await res.json();
+      if (generation !== listGeneration || requestedScope !== scopeKey()) return;
       currentRel.value = data.currentRel || '';
       parentRel.value = data.parentRel;
       entries.value = data.entries || [];
+      rememberDirectory(currentRel.value);
     } catch (err: any) {
+      if (generation !== listGeneration || requestedScope !== scopeKey()) return;
       error.value = err.message;
       entries.value = [];
     } finally {
-      loading.value = false;
+      if (generation === listGeneration) loading.value = false;
     }
   }
 
@@ -73,12 +109,12 @@ export const useFileStore = defineStore('file', () => {
     if (!(await confirmUnsavedChanges())) return false;
     const generation = ++openGeneration;
     const serverId = serverStore.currentServerId;
-    const projectId = projectStore.currentProject?.id || '';
+    const projectId = '';
     const previousFile = activeFile.value;
     const previousContent = previousFile?.content;
     const isCurrent = () => generation === openGeneration
       && serverId === serverStore.currentServerId
-      && projectId === (projectStore.currentProject?.id || '')
+      && projectId === ''
       && activeFile.value === previousFile
       && activeFile.value?.content === previousContent
       && !activeFile.value?.isDirty;
@@ -86,7 +122,7 @@ export const useFileStore = defineStore('file', () => {
     error.value = null;
     try {
       if (!isCurrent()) return false;
-      const res = await fetch(apiUrl(`/api/fs/read?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(relPath)}`));
+      const res = await fetch(apiUrl(`/api/fs/read?serverId=${encodeURIComponent(serverId)}&fsScope=server&path=${encodeURIComponent(relPath)}`));
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to read file');
@@ -118,7 +154,7 @@ export const useFileStore = defineStore('file', () => {
     const file = activeFile.value;
     if (!file) return Promise.resolve();
     const content = file.content;
-    const scope = activeFileScope || { serverId: serverStore.currentServerId, projectId: projectStore.currentProject?.id || '' };
+    const scope = activeFileScope || { serverId: serverStore.currentServerId, projectId: '' };
     pendingSaves++;
     isSaving.value = true;
     const write = () => writeFile(file, content, scope);
@@ -138,7 +174,7 @@ export const useFileStore = defineStore('file', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serverId,
-          projectId: scope.projectId,
+          fsScope: 'server',
           path: file.relPath,
           content,
         }),
@@ -209,7 +245,7 @@ export const useFileStore = defineStore('file', () => {
       body: JSON.stringify({
         action: 'create',
         serverId,
-        projectId: projectStore.currentProject?.id || '',
+        fsScope: 'server',
         path: targetPath,
         type,
       }),
@@ -229,7 +265,7 @@ export const useFileStore = defineStore('file', () => {
       body: JSON.stringify({
         action: 'delete',
         serverId,
-        projectId: projectStore.currentProject?.id || '',
+        fsScope: 'server',
         path: relPath,
       }),
     });
@@ -248,7 +284,7 @@ export const useFileStore = defineStore('file', () => {
       body: JSON.stringify({
         action: 'rename',
         serverId,
-        projectId: projectStore.currentProject?.id || '',
+        fsScope: 'server',
         oldPath: oldRel,
         newPath: newRel,
       }),
@@ -267,8 +303,7 @@ export const useFileStore = defineStore('file', () => {
 
   function getDownloadUrl(relPath: string): string {
     const serverId = serverStore.currentServerId;
-    const projectId = projectStore.currentProject?.id || '';
-    return apiUrl(`/api/fs/download?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&path=${encodeURIComponent(relPath)}`);
+    return apiUrl(`/api/fs/download?serverId=${encodeURIComponent(serverId)}&fsScope=server&path=${encodeURIComponent(relPath)}`);
   }
 
   function downloadItem(relPath: string, fileName?: string) {
@@ -289,7 +324,6 @@ export const useFileStore = defineStore('file', () => {
 
     try {
       const serverId = serverStore.currentServerId;
-      const projectId = projectStore.currentProject?.id || '';
       const destRel = targetRel !== undefined ? targetRel : currentRel.value;
 
       const formData = new FormData();
@@ -302,7 +336,7 @@ export const useFileStore = defineStore('file', () => {
         formData.append('files', file, encodeURIComponent(relPath));
       });
 
-      const url = apiUrl(`/api/fs/upload?serverId=${encodeURIComponent(serverId)}&projectId=${encodeURIComponent(projectId)}&targetDir=${encodeURIComponent(destRel)}`);
+      const url = apiUrl(`/api/fs/upload?serverId=${encodeURIComponent(serverId)}&fsScope=server&targetDir=${encodeURIComponent(destRel)}`);
       const res = await fetch(url, {
         method: 'POST',
         body: formData,

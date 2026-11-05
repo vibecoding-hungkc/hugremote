@@ -144,19 +144,41 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     return { success: true };
   });
 
+  type FsScope = 'server' | 'project';
+  const serverScope = (request: { query?: unknown; body?: unknown }) =>
+    (request.query as { fsScope?: FsScope } | undefined)?.fsScope === 'server' ||
+    (request.body as { fsScope?: FsScope } | undefined)?.fsScope === 'server';
+
+  // A server-scoped Files request must remain under the configured server workspace.
+  fastify.addHook('preHandler', async (request, reply) => {
+    const pathname = new URL(request.url, 'http://local').pathname;
+    if (!/\/api\/fs(?:\/|$)/.test(pathname)) return;
+    const query = request.query as Record<string, unknown> | undefined;
+    const body = request.body as Record<string, unknown> | undefined;
+    if (query?.fsScope !== 'server' && body?.fsScope !== 'server') return;
+    for (const candidate of [query?.path, query?.targetDir, body?.path, body?.oldPath, body?.newPath]) {
+      if (candidate === undefined) continue;
+      if (typeof candidate !== 'string' || path.isAbsolute(candidate) || path.posix.isAbsolute(candidate) ||
+          candidate.startsWith('~') || candidate.includes('\\') || candidate.split('/').includes('..')) {
+        return reply.status(400).send({ error: 'Path must stay within server workspace' });
+      }
+    }
+  });
+
   // --- FS ROUTES ---
-  fastify.get<{ Querystring: { serverId?: string; projectId?: string; path?: string } }>('/api/fs', async (request, reply) => {
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; fsScope?: FsScope; path?: string } }>('/api/fs', async (request, reply) => {
     const serverId = request.query.serverId || 'server-local';
     const projectId = request.query.projectId;
     const relPath = request.query.path || '';
-    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const project = serverScope(request) ? null :
+      (projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId));
     const projectRoot = project?.rootPath;
 
     if (serverId === 'server-local') {
       try {
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
-        const data = await fsService.listLocal(relPath, projectRoot || localServer?.workspace);
+        const data = await fsService.listLocal(relPath, projectRoot || localServer?.workspace, serverScope(request));
         return data;
       } catch (err: any) {
         return reply.status(400).send({ error: err.message });
@@ -179,7 +201,8 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     const serverId = request.query.serverId || 'server-local';
     const projectId = request.query.projectId;
     const filePath = request.query.path;
-    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const project = serverScope(request) ? null :
+      (projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId));
     const projectRoot = project?.rootPath;
     if (!filePath) return reply.status(400).send({ error: 'path is required' });
 
@@ -187,7 +210,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       try {
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
-        return await fsService.readLocalFile(filePath, projectRoot || localServer?.workspace);
+        return await fsService.readLocalFile(filePath, projectRoot || localServer?.workspace, serverScope(request));
       } catch (err: any) {
         return reply.status(400).send({ error: err.message });
       }
@@ -205,12 +228,13 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   };
 
   // Support both /api/fs/read and legacy /api/file
-  fastify.get<{ Querystring: { serverId?: string; projectId?: string; path: string } }>('/api/fs/read', handleReadFile);
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; fsScope?: FsScope; path: string } }>('/api/fs/read', handleReadFile);
   fastify.get<{ Querystring: { serverId?: string; path: string } }>('/api/file', handleReadFile);
 
   const handleSaveFile = async (request: any, reply: any) => {
     const { serverId = 'server-local', projectId, path: filePath, content } = request.body || {};
-    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const project = serverScope(request) ? null :
+      (projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId));
     const projectRoot = project?.rootPath;
     if (!filePath) return reply.status(400).send({ error: 'path is required' });
 
@@ -218,7 +242,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       try {
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
-        const result = await fsService.writeLocalFile(filePath, content, projectRoot || localServer?.workspace);
+        const result = await fsService.writeLocalFile(filePath, content, projectRoot || localServer?.workspace, serverScope(request));
         return { success: true, ...result };
       } catch (err: any) {
         return reply.status(400).send({ error: err.message });
@@ -238,7 +262,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   };
 
   // Support both /api/fs/save and legacy /api/file
-  fastify.post<{ Body: { serverId?: string; projectId?: string; path: string; content: string } }>('/api/fs/save', handleSaveFile);
+  fastify.post<{ Body: { serverId?: string; projectId?: string; fsScope?: FsScope; path: string; content: string } }>('/api/fs/save', handleSaveFile);
   fastify.post<{ Body: { serverId?: string; path: string; content: string } }>('/api/file', handleSaveFile);
 
   fastify.post<{
@@ -246,6 +270,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       action: 'create' | 'delete' | 'rename';
       serverId?: string;
       projectId?: string;
+      fsScope?: FsScope;
       path?: string;
       type?: 'file' | 'dir';
       oldPath?: string;
@@ -254,7 +279,8 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   }>('/api/fs/action', async (request, reply) => {
     const { action, serverId = 'server-local', projectId, path: itemPath, type = 'file', oldPath, newPath } =
       request.body || {};
-    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const project = serverScope(request) ? null :
+      (projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId));
     const projectRoot = project?.rootPath;
 
     if (serverId === 'server-local') {
@@ -262,15 +288,16 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
         const ws = projectRoot || localServer?.workspace;
+        const strict = serverScope(request);
         if (action === 'create') {
           if (!itemPath) return reply.status(400).send({ error: 'path required' });
-          await fsService.createLocal(itemPath, type, ws);
+          await fsService.createLocal(itemPath, type, ws, strict);
         } else if (action === 'delete') {
           if (!itemPath) return reply.status(400).send({ error: 'path required' });
-          await fsService.deleteLocal(itemPath, ws);
+          await fsService.deleteLocal(itemPath, ws, strict);
         } else if (action === 'rename') {
           if (!oldPath || !newPath) return reply.status(400).send({ error: 'oldPath and newPath required' });
-          await fsService.renameLocal(oldPath, newPath, ws);
+          await fsService.renameLocal(oldPath, newPath, ws, strict);
         }
         return { success: true };
       } catch (err: any) {
@@ -302,11 +329,12 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   });
 
   // --- FS DOWNLOAD ROUTE ---
-  fastify.get<{ Querystring: { serverId?: string; projectId?: string; path?: string } }>('/api/fs/download', async (request, reply) => {
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; fsScope?: FsScope; path?: string } }>('/api/fs/download', async (request, reply) => {
     const serverId = request.query.serverId || 'server-local';
     const projectId = request.query.projectId;
     const itemPath = request.query.path || '';
-    const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+    const project = serverScope(request) ? null :
+      (projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId));
     const projectRoot = project?.rootPath;
 
     if (serverId === 'server-local') {
@@ -314,7 +342,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
         const ws = projectRoot || localServer?.workspace;
-        const fullPath = fsService.resolveLocalPath(itemPath, ws);
+        const fullPath = fsService.resolveLocalPath(itemPath, ws, serverScope(request));
         if (!fs.existsSync(fullPath)) {
           return reply.status(404).send({ error: 'File or directory not found' });
         }
@@ -381,13 +409,14 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
   });
 
   // --- FS UPLOAD ROUTE ---
-  fastify.post<{ Querystring: { serverId?: string; projectId?: string; targetDir?: string } }>(
+  fastify.post<{ Querystring: { serverId?: string; projectId?: string; fsScope?: FsScope; targetDir?: string } }>(
     '/api/fs/upload',
     async (request, reply) => {
       const serverId = request.query.serverId || 'server-local';
       const projectId = request.query.projectId;
       const targetRelDir = request.query.targetDir || '';
-      const project = projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId);
+      const project = serverScope(request) ? null :
+        (projectId ? projectService.getProject(projectId) : projectService.getActiveProject(serverId));
       const projectRoot = project?.rootPath;
 
       let uploadedCount = 0;
@@ -402,7 +431,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         const all = parseSshConfig();
         const localServer = all.find((s) => s.id === 'server-local');
         const ws = projectRoot || localServer?.workspace;
-        localBaseDir = fsService.resolveLocalPath(targetRelDir, ws);
+        localBaseDir = fsService.resolveLocalPath(targetRelDir, ws, serverScope(request));
         if (!fs.existsSync(localBaseDir)) {
           fs.mkdirSync(localBaseDir, { recursive: true });
         }

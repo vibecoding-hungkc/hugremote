@@ -302,7 +302,7 @@ async function handleOpenFile(relPath: string) {
 
 async function handleOpenFolderAsProject(relPath: string) {
   if (!(await fileStore.confirmUnsavedChanges())) return;
-  const root = projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
+  const root = serverStore.currentServer.workspace || '~';
   const fullPath = root.endsWith('/') ? `${root}${relPath}` : `${root}/${relPath}`;
   await projectStore.openProject(fullPath);
   await handleScopeChanged();
@@ -321,7 +321,7 @@ function openServerManager() {
 async function handleScopeChanged() {
   if (!(await fileStore.closeActiveFile())) return;
   if (activeTab.value === 'editor') activeTab.value = 'files';
-  await fileStore.fetchFiles('');
+  await fileStore.fetchFiles();
   terminalStore.ensureServerSession();
   await Promise.all([
     claudeStore.fetchModels(serverStore.currentServerId),

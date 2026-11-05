@@ -13,7 +13,7 @@ export interface FileEntry {
 }
 
 export class FsService {
-  public resolveLocalPath(requestedPath: string, workspaceOverride?: string): string {
+  public resolveLocalPath(requestedPath: string, workspaceOverride?: string, strictWorkspace = false): string {
     let base = workspaceOverride || LOCAL_WORKSPACE;
     if (!fs.existsSync(base)) {
       try {
@@ -29,11 +29,17 @@ export class FsService {
       : path.resolve(ALLOWED_ROOT);
 
     const rootWithSep = canonicalRoot.endsWith(path.sep) ? canonicalRoot : canonicalRoot + path.sep;
+    const canonicalBase = fs.existsSync(base)
+      ? fs.realpathSync(base)
+      : path.resolve(base);
+    const baseWithSep = canonicalBase.endsWith(path.sep) ? canonicalBase : canonicalBase + path.sep;
+    const withinBase = (candidate: string) =>
+      !strictWorkspace || candidate === canonicalBase || candidate.startsWith(baseWithSep);
 
     // If target exists, dereference symlinks to inspect real destination
     if (fs.existsSync(target)) {
       const canonicalTarget = fs.realpathSync(target);
-      const isAllowed = canonicalTarget === canonicalRoot || canonicalTarget.startsWith(rootWithSep);
+      const isAllowed = (canonicalTarget === canonicalRoot || canonicalTarget.startsWith(rootWithSep)) && withinBase(canonicalTarget);
       if (!isAllowed) {
         throw new Error('Access denied: Path resolves outside permitted root (symlink escape detected)');
       }
@@ -44,12 +50,12 @@ export class FsService {
     const parentDir = path.dirname(target);
     if (fs.existsSync(parentDir)) {
       const canonicalParent = fs.realpathSync(parentDir);
-      const isAllowed = canonicalParent === canonicalRoot || canonicalParent.startsWith(rootWithSep);
+      const isAllowed = (canonicalParent === canonicalRoot || canonicalParent.startsWith(rootWithSep)) && withinBase(canonicalParent);
       if (!isAllowed) {
         throw new Error('Access denied: Parent directory resolves outside permitted root');
       }
     } else {
-      const isAllowed = target === canonicalRoot || target.startsWith(rootWithSep);
+      const isAllowed = (target === canonicalRoot || target.startsWith(rootWithSep)) && withinBase(target);
       if (!isAllowed) {
         throw new Error('Access denied: Path is outside permitted root');
       }
@@ -59,7 +65,7 @@ export class FsService {
   }
 
   // --- LOCAL FS ---
-  async listLocal(relPath = '', workspaceOverride?: string): Promise<{ currentRel: string; parentRel: string | null; entries: FileEntry[] }> {
+  async listLocal(relPath = '', workspaceOverride?: string, strictWorkspace = false): Promise<{ currentRel: string; parentRel: string | null; entries: FileEntry[] }> {
     let base = workspaceOverride || LOCAL_WORKSPACE;
     if (!fs.existsSync(base)) {
       try {
@@ -67,7 +73,7 @@ export class FsService {
       } catch (_) {}
     }
 
-    const targetDir = this.resolveLocalPath(relPath, base);
+    const targetDir = this.resolveLocalPath(relPath, base, strictWorkspace);
     if (!fs.existsSync(targetDir)) {
       if (!relPath) {
         try {
@@ -106,7 +112,8 @@ export class FsService {
         return a.name.localeCompare(b.name);
       });
 
-    const parentDir = targetDir === ALLOWED_ROOT ? null : path.dirname(targetDir);
+    const canonicalBase = fs.existsSync(base) ? fs.realpathSync(base) : path.resolve(base);
+    const parentDir = (targetDir === ALLOWED_ROOT || (strictWorkspace && targetDir === canonicalBase)) ? null : path.dirname(targetDir);
     const parentRel = parentDir ? path.relative(base, parentDir) : null;
 
     return {
@@ -116,8 +123,8 @@ export class FsService {
     };
   }
 
-  async readLocalFile(relPath: string, workspaceOverride?: string): Promise<{ name: string; size: number; content: string }> {
-    const filePath = this.resolveLocalPath(relPath, workspaceOverride);
+  async readLocalFile(relPath: string, workspaceOverride?: string, strictWorkspace = false): Promise<{ name: string; size: number; content: string }> {
+    const filePath = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
     if (!fs.existsSync(filePath)) throw new Error('File not found');
 
     const stat = fs.statSync(filePath);
@@ -132,8 +139,8 @@ export class FsService {
     };
   }
 
-  async writeLocalFile(relPath: string, content: string, workspaceOverride?: string): Promise<{ size: number }> {
-    const filePath = this.resolveLocalPath(relPath, workspaceOverride);
+  async writeLocalFile(relPath: string, content: string, workspaceOverride?: string, strictWorkspace = false): Promise<{ size: number }> {
+    const filePath = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -142,8 +149,8 @@ export class FsService {
     return { size: stat.size };
   }
 
-  async createLocal(relPath: string, type: 'file' | 'dir', workspaceOverride?: string): Promise<void> {
-    const target = this.resolveLocalPath(relPath, workspaceOverride);
+  async createLocal(relPath: string, type: 'file' | 'dir', workspaceOverride?: string, strictWorkspace = false): Promise<void> {
+    const target = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
     if (fs.existsSync(target)) throw new Error('Item already exists');
 
     if (type === 'dir') {
@@ -155,9 +162,9 @@ export class FsService {
     }
   }
 
-  async deleteLocal(relPath: string, workspaceOverride?: string): Promise<void> {
+  async deleteLocal(relPath: string, workspaceOverride?: string, strictWorkspace = false): Promise<void> {
     const base = workspaceOverride || LOCAL_WORKSPACE;
-    const target = this.resolveLocalPath(relPath, workspaceOverride);
+    const target = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
     if (target === ALLOWED_ROOT || target === base) {
       throw new Error('Cannot delete root workspace');
     }
@@ -165,9 +172,9 @@ export class FsService {
     fs.rmSync(target, { recursive: true, force: true });
   }
 
-  async renameLocal(oldRel: string, newRel: string, workspaceOverride?: string): Promise<void> {
-    const oldTarget = this.resolveLocalPath(oldRel, workspaceOverride);
-    const newTarget = this.resolveLocalPath(newRel, workspaceOverride);
+  async renameLocal(oldRel: string, newRel: string, workspaceOverride?: string, strictWorkspace = false): Promise<void> {
+    const oldTarget = this.resolveLocalPath(oldRel, workspaceOverride, strictWorkspace);
+    const newTarget = this.resolveLocalPath(newRel, workspaceOverride, strictWorkspace);
     if (!fs.existsSync(oldTarget)) throw new Error('Source not found');
     if (fs.existsSync(newTarget)) throw new Error('Destination already exists');
     fs.renameSync(oldTarget, newTarget);

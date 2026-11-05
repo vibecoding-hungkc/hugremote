@@ -128,9 +128,15 @@ try {
     assert.match(htmlA, /id="workspace-sidebar-backdrop"/);
     assert.match(htmlA, /workspace-sidebar-backdrop/);
     assert.match(htmlA, /hugcode-shell/);
-    assert.doesNotMatch(htmlA, /hugremote-dev/, 'Project B terminal session must not appear while Project A is active');
+    assert.match(htmlA, /hugremote-dev/, 'Project B terminal must be visible under Project B');
     assert.match(htmlA, /claude-hugcode-session/);
-    assert.doesNotMatch(htmlA, /claude-hugremote-session/, 'Project B claude session must not appear while Project A is active');
+    assert.match(htmlA, /claude-hugremote-session/, 'Project B Claude must be visible under Project B');
+    assert.match(htmlA, /data-dw-project-group="proj-a"/);
+    assert.match(htmlA, /data-dw-project-group="proj-b"/);
+    assert.match(htmlA, /data-dw-term-project="proj-b"/);
+    assert.match(htmlA, /data-dw-claude-project="proj-b"/);
+    assert.equal((htmlA.match(/class="dw-active-dot"/g) || []).length, 3, 'only selected Project, Terminal and Claude show a dot');
+    assert.doesNotMatch(htmlA, /data-dw-layout-btn|dw-item-sub/);
 
     // Switch to Project B and verify sessions switch to Project B
     projectStore.activeProjectIdByServer[srvId] = 'proj-b';
@@ -142,9 +148,10 @@ try {
     const htmlB = await renderToString(appB);
 
     assert.match(htmlB, /hugremote-dev/);
-    assert.doesNotMatch(htmlB, /hugcode-shell/, 'Project A terminal session must not appear while Project B is active');
+    assert.match(htmlB, /hugcode-shell/, 'Project A sessions remain visible');
     assert.match(htmlB, /claude-hugremote-session/);
-    assert.doesNotMatch(htmlB, /claude-hugcode-session/, 'Project A claude session must not appear while Project B is active');
+    assert.match(htmlB, /claude-hugcode-session/, 'Project A sessions remain visible');
+    assert.equal((htmlB.match(/class="dw-active-dot"/g) || []).length, 3);
   });
 
   await test('AC-5: Workspace rows display only names in the app and prototype', async () => {
@@ -183,7 +190,32 @@ try {
     assert.match(protoHtml, /termByProject/);
     assert.match(protoHtml, /claudeByProject/);
     assert.match(protoHtml, /const workspaceSidebarEl = document\.getElementById\('desktop-workspace-sidebar'\)/);
-    assert.match(protoHtml, /data-dw-layout-btn="section-groups"/);
+    assert.doesNotMatch(protoHtml, /data-dw-layout-btn="section-groups"/);
+    assert.match(protoHtml, /id="dw-workspace-resize"/);
+  });
+
+  await test('AC-6: Workspace resizer and two tree guides exist without card borders', async () => {
+    const source = fs.readFileSync(fileURLToPath(new URL('../apps/web/src/components/WorkspaceSidebar.vue', import.meta.url)), 'utf8');
+    const app = fs.readFileSync(fileURLToPath(new URL('../apps/web/src/App.vue', import.meta.url)), 'utf8');
+    assert.match(source, /id="dw-workspace-resize"/);
+    assert.match(source, /@pointerdown="onResizePointerDown"/);
+    assert.match(source, /@keydown="onResizeKeyDown"/);
+    assert.match(app, /--workspace-sidebar-width/);
+    assert.match(source, /\.dw-list\s*\{[^}]*border-left:/);
+    assert.match(source, /\.dw-session-list\s*\{[^}]*border-left:/);
+    assert.doesNotMatch(source, /\.dw-item\s*\{[^}]*border:\s*1px/);
+  });
+
+  await test('AC-7: Selecting sessions in another Project selects its scope first', async () => {
+    const source = fs.readFileSync(fileURLToPath(new URL('../apps/web/src/components/WorkspaceSidebar.vue', import.meta.url)), 'utf8');
+    assert.match(source, /async function handleSelectTerminal\(session: TerminalSessionItem\)/);
+    assert.match(source, /async function handleSelectClaude\(session: ClaudeSession\)/);
+    assert.match(source, /await selectProjectScope\(session\.projectId/);
+    assert.match(source, /async function handleEditTerminal\(session: TerminalSessionItem\)/);
+    assert.match(source, /async function handleEditClaude\(session: ClaudeSession\)/);
+    assert.match(source, /async function handleDeleteClaude\(session: ClaudeSession\)/);
+    assert.match(source, /sessionsForProject\(session\.projectId,\s*'',\s*'terminal'\)\.length <= 1/);
+    assert.match(source, /claudeStore\.sessions\.map\(s => `\$\{s\.id\}:\$\{s\.name\}`\)\.join\('\|'\)/);
   });
 } finally {
   await vite.close();

@@ -9,7 +9,7 @@
       'is-desktop-device': isDesktopDevice,
     }"
     :data-device-type="isDesktopDevice ? 'desktop' : 'mobile'"
-    :style="{ '--quick-panel-width': `${quickPanelWidth}px` }"
+    :style="{ '--quick-panel-width': `${quickPanelWidth}px`, '--workspace-sidebar-width': `${workspaceSidebarWidth}px` }"
   >
     <!-- 1. Smart Unified Header -->
     <SmartHeader
@@ -32,6 +32,8 @@
     <!-- 1b. Left Workspace Sidebar (Projects + Project-Scoped Terminal & Claude Sessions) -->
     <WorkspaceSidebar
       :is-open="isWorkspaceSidebarOpen"
+      :panel-width="workspaceSidebarWidth"
+      @update:panel-width="handleWorkspaceSidebarWidthChange"
       @close="setWorkspaceSidebarOpen(false)"
       @open-project-modal="isProjectModalOpen = true"
       @project-selected="handleScopeChanged"
@@ -223,6 +225,16 @@ const isWorkspaceSidebarOpen = ref(
     ? window.innerWidth >= 900
     : false
 );
+const storedWorkspaceWidthText = typeof localStorage !== 'undefined'
+  ? localStorage.getItem('hugremote_workspace_sidebar_width') : null;
+const storedWorkspaceWidth = storedWorkspaceWidthText === null ? NaN : Number(storedWorkspaceWidthText);
+const workspaceSidebarWidth = ref(Number.isFinite(storedWorkspaceWidth)
+  ? Math.min(520, Math.max(220, storedWorkspaceWidth)) : 256);
+function handleWorkspaceSidebarWidthChange(width: number) {
+  workspaceSidebarWidth.value = width;
+  if (typeof localStorage !== 'undefined') localStorage.setItem('hugremote_workspace_sidebar_width', String(width));
+  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+}
 const isQuickPanelOpen = ref(false);
 const quickPanelMode = ref<'files' | 'git'>('files');
 const quickPanelWidth = ref(320);
@@ -457,7 +469,7 @@ html, body {
 
 @media (min-width: 900px) {
   .app-root.workspace-sidebar-open .main-content {
-    padding-left: 256px;
+    padding-left: var(--workspace-sidebar-width, 256px);
   }
 }
 

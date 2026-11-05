@@ -1261,7 +1261,7 @@
     .desktop-workspace-sidebar {
       display: flex;
       flex-direction: column;
-      width: 256px;
+      width: var(--workspace-sidebar-width, 256px);
       max-width: calc(100vw - 48px);
       position: absolute;
       top: 0;
@@ -1286,7 +1286,7 @@
     }
     @media (min-width: 900px) {
       #app.workspace-sidebar-open .views-wrapper > .view {
-        left: 256px;
+        left: var(--workspace-sidebar-width, 256px);
       }
     }
 
@@ -1465,147 +1465,31 @@
       color: #fca5a5;
     }
 
-    .dw-layout-bar {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 6px 8px;
-      border-bottom: 1px solid #2b2b2b;
-      background: #171717;
-    }
-    .dw-layout-btn {
-      flex: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      padding: 5px 6px;
-      border-radius: 6px;
-      border: 1px solid #2f2f2f;
-      background: #1e1e1e;
-      color: #9e9e9e;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.14s ease;
-    }
-    .dw-layout-btn:hover {
-      color: #e5e5e5;
-      border-color: #454545;
-    }
-    .dw-layout-btn.active {
-      background: #2e2e2e;
-      color: #f5f5f5;
-      border-color: #6b6b6b;
-    }
-    #desktop-workspace-sidebar[data-dw-layout="project-tree"] .dw-section[data-dw-sec="term"],
-    #desktop-workspace-sidebar[data-dw-layout="project-tree"] .dw-section[data-dw-sec="claude"] {
-      display: none;
-    }
-    .dw-project-group {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      margin-bottom: 4px;
-      border-radius: 8px;
-      background: rgba(26, 26, 26, 0.65);
-      border: 1px solid #292929;
-      padding: 3px;
-    }
-    .dw-project-group.active-group {
-      border-color: #4d4d4d;
-      background: rgba(36, 36, 36, 0.72);
-    }
-    .dw-proj-caret {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      color: #9a9a9a;
-      flex-shrink: 0;
-    }
-    .dw-proj-children {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      margin-left: 10px;
-      padding: 3px 2px 4px 8px;
-      border-left: 1px solid #343434;
-    }
-    .dw-project-group.collapsed .dw-proj-children {
-      display: none;
-    }
-    .dw-sub-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .dw-sub-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 3px 6px;
-      border-radius: 5px;
-      background: rgba(255, 255, 255, 0.03);
-    }
-    .dw-sub-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 10.5px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      color: #b5b5b5;
-    }
-    .dw-sub-count {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 16px;
-      height: 15px;
-      padding: 0 4px;
-      border-radius: 999px;
-      background: #2b2b2b;
-      border: 1px solid #404040;
-      color: #d4d4d4;
-      font-size: 9.5px;
-      font-weight: 700;
-    }
-    .dw-sub-add-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 19px;
-      height: 19px;
-      border-radius: 5px;
-      border: 1px solid #3b3b3b;
-      background: #222222;
-      color: #cfcfcf;
-      font-size: 11px;
-      cursor: pointer;
-    }
-    .dw-sub-add-btn:hover {
-      background: #333333;
-      color: #ffffff;
-      border-color: #5c5c5c;
-    }
-    .dw-sec-proj-group {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      padding: 4px;
-      border-radius: 7px;
-      border: 1px solid #2b2b2b;
-      background: rgba(25, 25, 25, 0.65);
-      margin-bottom: 4px;
-    }
-    .dw-sec-proj-group.active-group {
-      border-color: #4a4a4a;
-      background: rgba(35, 35, 35, 0.72);
-    }
+    .dw-project-group { display:flex; flex-direction:column; min-width:0; }
+    .dw-proj-caret { display:inline-flex; width:16px; flex-shrink:0; color:#aaa; cursor:pointer; }
+    .dw-proj-children { display:flex; flex-direction:column; gap:8px; margin-left:14px; padding:3px 0 7px 9px; }
+    .dw-project-group.collapsed .dw-proj-children { display:none; }
+    .dw-sub-group { display:flex; flex-direction:column; gap:2px; }
+    .dw-sub-header { display:flex; align-items:center; justify-content:space-between; min-height:24px; padding:2px 3px; color:#aaa; font-size:10.5px; font-weight:700; }
+    .dw-sub-label { display:inline-flex; align-items:center; gap:5px; }
+    .dw-sub-count { color:#8c8c8c; font-size:10px; }
+    .dw-sub-add-btn { border:0; background:transparent; color:#aaa; cursor:pointer; width:20px; height:20px; border-radius:4px; }
+    .dw-sub-add-btn:hover { background:rgba(255,255,255,.07); color:white; }
+    .dw-session-list { display:flex; flex-direction:column; gap:1px; margin-left:6px; padding-left:8px; border-left:1px solid #343434; }
 
+    .dw-workspace-resize { position:absolute; top:0; right:-5px; bottom:0; width:10px; z-index:3; cursor:ew-resize; touch-action:none; }
+    .dw-workspace-resize:hover, .dw-workspace-resize:focus-visible { background:rgba(160,160,160,.3); outline:none; }
+    @media (max-width:899px) { .dw-workspace-resize { display:none; } }
+    .dw-top-header { border-bottom:0; }
+    .dw-project-scope-pill { background:none; border:0; border-radius:0; padding:0; }
+    .dw-close-btn, .dw-section-head button { border:0; background:transparent; }
+    .dw-list { padding-left:8px; border-left:1px solid #454545; gap:3px; }
+    .dw-item { border:0; background:transparent; border-radius:4px; min-height:28px; padding:3px 4px; }
+    .dw-item:hover { border:0; background:rgba(255,255,255,.07); }
+    .dw-item.active.proj-item, .dw-item.active.term-item, .dw-item.active.claude-item { border:0; background:transparent; }
+    .dw-item.active::after { content:''; width:6px; height:6px; border-radius:50%; background:#e7e7e7; flex-shrink:0; order:1; }
+    .dw-item.active .dw-item-actions { order:2; }
+    .dw-project-group, .dw-project-group.active-group { border:0; background:transparent; padding:0; }
     .smart-header-left {
       display: flex;
       align-items: center;
@@ -4520,36 +4404,14 @@
             <i class="ri-close-line"></i>
           </button>
         </div>
-        <div class="dw-layout-bar" role="group" aria-label="Kiểu gom nhóm theo Project">
-          <button type="button" class="dw-layout-btn active" data-dw-layout-btn="project-tree">
-            <i class="ri-node-tree"></i>
-            <span>Gộp theo Project</span>
-          </button>
-          <button type="button" class="dw-layout-btn" data-dw-layout-btn="section-groups">
-            <i class="ri-stack-line"></i>
-            <span>Chia Khu Vực</span>
-          </button>
-        </div>
+        <div id="dw-workspace-resize" class="dw-workspace-resize" role="separator" tabindex="0"
+          aria-orientation="vertical" aria-label="Điều chỉnh độ rộng Workspace" aria-valuemin="220" aria-valuemax="520" aria-valuenow="256"></div>
         <div class="dw-section" data-dw-sec="projects">
           <div class="dw-section-head">
             <span><i class="ri-folder-2-line" style="color:#f59e0b;"></i> Projects</span>
             <button type="button" id="btn-dw-manage-proj"><i class="ri-equalizer-line"></i> Quản lý</button>
           </div>
           <div class="dw-list" id="dw-project-list"></div>
-        </div>
-        <div class="dw-section" data-dw-sec="term">
-          <div class="dw-section-head">
-            <span><i class="ri-terminal-box-line"></i> Phiên Terminal</span>
-            <button type="button" id="btn-dw-new-term"><i class="ri-add-line"></i> Tạo mới</button>
-          </div>
-          <div class="dw-list" id="dw-term-list"></div>
-        </div>
-        <div class="dw-section" data-dw-sec="claude">
-          <div class="dw-section-head">
-            <span><i class="ri-sparkling-fill" style="color:#f59e0b;"></i> Phiên Claude</span>
-            <button type="button" id="btn-dw-new-claude"><i class="ri-add-line"></i> Tạo mới</button>
-          </div>
-          <div class="dw-list" id="dw-claude-list"></div>
         </div>
       </aside>
 
@@ -10412,8 +10274,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       const dwActiveProjectPillEl = document.getElementById('dw-active-project-pill');
       const btnProjectMobilePill = document.getElementById('btn-project-mobile-pill');
       const dwProjectListEl = document.getElementById('dw-project-list');
-      const dwTermListEl = document.getElementById('dw-term-list');
-      const dwClaudeListEl = document.getElementById('dw-claude-list');
       const projectModalEl = document.getElementById('project-modal');
       const projectCardListEl = document.getElementById('project-card-list');
       const btnCloseProjectModal = document.getElementById('btn-close-project-modal');
@@ -10772,20 +10632,40 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         });
       }
 
-      let dwLayoutMode = 'project-tree';
       const collapsedProjectIds = new Set();
-
-      document.querySelectorAll('[data-dw-layout-btn]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const mode = btn.getAttribute('data-dw-layout-btn') || 'project-tree';
-          dwLayoutMode = mode;
-          if (workspaceSidebarEl) workspaceSidebarEl.setAttribute('data-dw-layout', mode);
-          document.querySelectorAll('[data-dw-layout-btn]').forEach(b => {
-            b.classList.toggle('active', b.getAttribute('data-dw-layout-btn') === mode);
-          });
-          renderDesktopWorkspaceSidebar();
+      const workspaceResizeEl = document.getElementById('dw-workspace-resize');
+      const clampWorkspaceWidth = width => Math.round(Math.max(220, Math.min(520, window.innerWidth - 320, width)));
+      function setWorkspaceWidth(width) {
+        const next = clampWorkspaceWidth(width);
+        document.getElementById('app').style.setProperty('--workspace-sidebar-width', next + 'px');
+        if (workspaceResizeEl) workspaceResizeEl.setAttribute('aria-valuenow', String(next));
+        try { localStorage.setItem('hugremote_workspace_sidebar_width', String(next)); } catch (_) {}
+      }
+      if (workspaceResizeEl) {
+        workspaceResizeEl.addEventListener('pointerdown', event => {
+          if (window.innerWidth < 900) return;
+          event.preventDefault();
+          const pointerId = event.pointerId;
+          const move = e => { if (e.pointerId === pointerId) setWorkspaceWidth(e.clientX); };
+          const stop = () => {
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', stop);
+            window.removeEventListener('pointercancel', stop);
+          };
+          window.addEventListener('pointermove', move);
+          window.addEventListener('pointerup', stop);
+          window.addEventListener('pointercancel', stop);
         });
-      });
+        workspaceResizeEl.addEventListener('keydown', e => {
+          if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+          e.preventDefault();
+          const current = parseInt(workspaceResizeEl.getAttribute('aria-valuenow') || '256', 10);
+          setWorkspaceWidth(current + (e.key === 'ArrowRight' ? 24 : -24));
+        });
+        let savedWidth = 256;
+        try { savedWidth = Number(localStorage.getItem('hugremote_workspace_sidebar_width')) || 256; } catch (_) {}
+        setWorkspaceWidth(savedWidth);
+      }
 
       function buildDwTermSessionRow(proj, sess, totalInProj, isProjectActive) {
         const isCurrent = isProjectActive && sess.id === activeSessionId;
@@ -10920,7 +10800,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             item.innerHTML = `
               <div class="dw-item-main">
                 <div class="dw-item-title">
-                  ${dwLayoutMode === 'project-tree' ? `<span class="dw-proj-caret"><i class="${isCollapsed ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'}"></i></span>` : ''}
+                  <span class="dw-proj-caret"><i class="${isCollapsed ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'}"></i></span>
                   <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#f59e0b;"></i>
                   <span>${escapeHtml(proj.name)}</span>
                 </div>
@@ -10930,7 +10810,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               </div>
             `;
             item.addEventListener('click', () => {
-              if (dwLayoutMode === 'project-tree' && isCurrent) {
+              if (isCurrent) {
                 if (collapsedProjectIds.has(proj.id)) collapsedProjectIds.delete(proj.id);
                 else collapsedProjectIds.add(proj.id);
                 renderDesktopWorkspaceSidebar();
@@ -10957,7 +10837,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             }
             groupWrap.appendChild(item);
 
-            if (dwLayoutMode === 'project-tree') {
+            {
               const childrenEl = document.createElement('div');
               childrenEl.className = 'dw-proj-children';
 
@@ -10984,9 +10864,12 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
                   if (btnAddTerm) btnAddTerm.click();
                 });
               }
+              const termList = document.createElement('div');
+              termList.className = 'dw-session-list';
               projTerms.forEach(sess => {
-                termSub.appendChild(buildDwTermSessionRow(proj, sess, tCount, isCurrent));
+                termList.appendChild(buildDwTermSessionRow(proj, sess, tCount, isCurrent));
               });
+              termSub.appendChild(termList);
               childrenEl.appendChild(termSub);
 
               // Sub-group: Claude
@@ -11012,9 +10895,12 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
                   openNewClaudeModal();
                 });
               }
+              const claudeList = document.createElement('div');
+              claudeList.className = 'dw-session-list';
               projClaudes.forEach(sess => {
-                claudeSub.appendChild(buildDwClaudeSessionRow(proj, sess, cCount, isCurrent));
+                claudeList.appendChild(buildDwClaudeSessionRow(proj, sess, cCount, isCurrent));
               });
+              claudeSub.appendChild(claudeList);
               childrenEl.appendChild(claudeSub);
 
               groupWrap.appendChild(childrenEl);
@@ -11024,75 +10910,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           });
         }
 
-        if (dwTermListEl) {
-          dwTermListEl.innerHTML = '';
-          projects.forEach(proj => {
-            const isCurrent = proj.id === cur.activeProjectId;
-            const projTerms = cur.termByProject[proj.id] || [];
-            const secGroup = document.createElement('div');
-            secGroup.className = 'dw-sec-proj-group' + (isCurrent ? ' active-group' : '');
-            secGroup.setAttribute('data-dw-term-group', proj.id);
-            secGroup.innerHTML = `
-              <div class="dw-sub-header">
-                <span class="dw-sub-label">
-                  <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#f59e0b;"></i>
-                  <span>${escapeHtml(proj.name)}</span>
-                  <span class="dw-sub-count">${projTerms.length}</span>
-                </span>
-                <button type="button" class="dw-sub-add-btn" title="Tạo Terminal mới trong ${escapeHtml(proj.name)}">
-                  <i class="ri-add-line"></i>
-                </button>
-              </div>
-            `;
-            const addBtn = secGroup.querySelector('.dw-sub-add-btn');
-            if (addBtn) {
-              addBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (cur.activeProjectId !== proj.id) switchProject(proj.id);
-                if (btnAddTerm) btnAddTerm.click();
-              });
-            }
-            projTerms.forEach(sess => {
-              secGroup.appendChild(buildDwTermSessionRow(proj, sess, projTerms.length, isCurrent));
-            });
-            dwTermListEl.appendChild(secGroup);
-          });
-        }
-
-        if (dwClaudeListEl) {
-          dwClaudeListEl.innerHTML = '';
-          projects.forEach(proj => {
-            const isCurrent = proj.id === cur.activeProjectId;
-            const projClaudes = cur.claudeByProject[proj.id] || [];
-            const secGroup = document.createElement('div');
-            secGroup.className = 'dw-sec-proj-group' + (isCurrent ? ' active-group' : '');
-            secGroup.setAttribute('data-dw-claude-group', proj.id);
-            secGroup.innerHTML = `
-              <div class="dw-sub-header">
-                <span class="dw-sub-label">
-                  <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#f59e0b;"></i>
-                  <span>${escapeHtml(proj.name)}</span>
-                  <span class="dw-sub-count">${projClaudes.length}</span>
-                </span>
-                <button type="button" class="dw-sub-add-btn" title="Tạo Claude mới trong ${escapeHtml(proj.name)}">
-                  <i class="ri-add-line"></i>
-                </button>
-              </div>
-            `;
-            const addBtn = secGroup.querySelector('.dw-sub-add-btn');
-            if (addBtn) {
-              addBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (cur.activeProjectId !== proj.id) switchProject(proj.id);
-                openNewClaudeModal();
-              });
-            }
-            projClaudes.forEach(sess => {
-              secGroup.appendChild(buildDwClaudeSessionRow(proj, sess, projClaudes.length, isCurrent));
-            });
-            dwClaudeListEl.appendChild(secGroup);
-          });
-        }
       }
 
       function syncDesktopProjectAndSessionUI() {
@@ -11176,10 +10993,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
 
       const btnDwManageProj = document.getElementById('btn-dw-manage-proj');
       if (btnDwManageProj) btnDwManageProj.addEventListener('click', openProjectModal);
-      const btnDwNewTerm = document.getElementById('btn-dw-new-term');
-      if (btnDwNewTerm) btnDwNewTerm.addEventListener('click', () => { if (btnAddTerm) btnAddTerm.click(); });
-      const btnDwNewClaude = document.getElementById('btn-dw-new-claude');
-      if (btnDwNewClaude) btnDwNewClaude.addEventListener('click', openNewClaudeModal);
 
       // --- STARTUP ---
       activateProjectScope(getCurrentServer(), getActiveProject());

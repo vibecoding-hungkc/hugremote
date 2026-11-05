@@ -1,6 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { createHash } from 'crypto';
 import { normalizeWorkspacePath } from '../config.js';
 
 export interface ProjectItem {
@@ -61,6 +62,19 @@ export class ProjectService {
         activeProjectByServer: parsed.activeProjectByServer || {},
         projects: Array.isArray(parsed.projects) ? parsed.projects : [],
       };
+      // Older IDs used only the first ten base64 characters of the path.
+      // Keep the first record's ID for existing references; repair colliding
+      // records using their full path while preserving the active selection.
+      const seen = new Set<string>();
+      let repaired = false;
+      for (const project of this.state.projects) {
+        if (seen.has(project.id)) {
+          project.id = this.uniqueProjectId(project.serverId, project.name, project.rootPath, seen);
+          repaired = true;
+        }
+        seen.add(project.id);
+      }
+      if (repaired) this.save();
     } catch (err) {
       console.warn('Failed to load projects config:', err);
       this.state = { activeProjectByServer: {}, projects: [] };
@@ -103,6 +117,14 @@ export class ProjectService {
     return this.openProject(serverId, '~', '~');
   }
 
+  private uniqueProjectId(serverId: string, name: string, rootPath: string, taken = new Set(this.state.projects.map(p => p.id))): string {
+    const digest = createHash('sha256').update(rootPath).digest('hex');
+    const base = `${serverId}:${slugPart(name)}:${digest}`;
+    let id = base;
+    for (let suffix = 2; taken.has(id); suffix++) id = `${base}:${suffix}`;
+    return id;
+  }
+
   openProject(serverId: string, rootPath: string, name?: string): ProjectItem {
     const normalizedRoot = normalizeWorkspacePath(rootPath || '~');
     const projectName = (name || basenameForProject(rootPath || normalizedRoot)).trim() || '~';
@@ -115,7 +137,7 @@ export class ProjectService {
       return existing;
     }
 
-    const id = `${serverId}:${slugPart(projectName)}:${Buffer.from(normalizedRoot).toString('base64url').slice(0, 10)}`;
+    const id = this.uniqueProjectId(serverId, projectName, normalizedRoot);
     const project: ProjectItem = {
       id,
       serverId,

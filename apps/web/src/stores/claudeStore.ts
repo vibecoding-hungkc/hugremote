@@ -308,13 +308,24 @@ export const useClaudeStore = defineStore('claude', () => {
   };
   const streams = new Map<string, StreamOwner>();
   const resumes = new Map<string, Promise<void>>();
+  const runningSessionIds = ref<string[]>([]);
   let hydrationRequest = 0;
 
   function updateStreamFlags() {
+    runningSessionIds.value = Array.from(streams.keys());
     const session = activeSession.value;
     const owner = session && streams.get(session.id);
     isGenerating.value = !!owner || !!session?.isRunning;
     isReconnecting.value = !!owner?.reconnecting;
+  }
+
+  function isSessionRunning(sessionId: string): boolean {
+    if (!sessionId) return false;
+    if (runningSessionIds.value.includes(sessionId)) return true;
+    if (activeSession.value?.id === sessionId && isGenerating.value) return true;
+    const session = sessions.value.find((s) => s.id === sessionId);
+    if (session?.isRunning) return true;
+    return Boolean(session?.messages?.some((m) => m.sender === 'assistant' && (m.isWorking || m.isThinking)));
   }
 
   function releaseStream(owner: StreamOwner) {
@@ -506,6 +517,13 @@ export const useClaudeStore = defineStore('claude', () => {
         if (fieldGenerations.get(key) !== updateGen) continue;
         const serverValue = data.session[key];
         (current as any)[key] = serverValue === undefined ? updates[key] : serverValue;
+      }
+      if (updates.name !== undefined && current.name && current.cliSessionId) {
+        current.isCustomNamed = true;
+        const cliItem = projectSessions.value.find((p) => p.id === current.cliSessionId);
+        if (cliItem) {
+          cliItem.summary = current.name;
+        }
       }
       return current;
     } catch (err) {
@@ -954,25 +972,37 @@ export const useClaudeStore = defineStore('claude', () => {
     if (streams.get(owner.sessionId) === owner) await reconnectToBackgroundStream(owner);
   }
 
-  async function cancelGeneration() {
-    const session = activeSession.value;
-    if (!session || !isGenerating.value) return false;
+  async function cancelGeneration(targetSessionId?: string) {
+    const session = targetSessionId
+      ? (sessions.value.find((s) => s.id === targetSessionId) || (activeSession.value?.id === targetSessionId ? activeSession.value : undefined))
+      : activeSession.value;
+    const targetId = targetSessionId || session?.id || '';
+    if (!targetId) return false;
+    if (!targetSessionId && (!session || !isGenerating.value)) return false;
 
-    // Stop every local activity indicator immediately; the stream's done/finish
-    // event will reconcile the canonical persisted message afterwards.
-    const workingMessage = [...session.messages]
-      .reverse()
-      .find((message) => message.sender === 'assistant' && message.isWorking);
-    if (workingMessage) {
-      workingMessage.isThinking = false;
-      workingMessage.isWorking = false;
-      workingMessage.tools?.forEach((tool) => {
-        if (!tool.status || tool.status === 'running') tool.status = 'error';
-      });
+    const owner = streams.get(targetId);
+    if (owner) {
+      releaseStream(owner);
     }
 
+    if (session) {
+      session.isRunning = false;
+      // Stop every local activity indicator immediately; the stream's done/finish
+      // event will reconcile the canonical persisted message afterwards.
+      (session.messages || []).forEach((message) => {
+        if (message.sender === 'assistant' && (message.isWorking || message.isThinking)) {
+          message.isThinking = false;
+          message.isWorking = false;
+          message.tools?.forEach((tool) => {
+            if (!tool.status || tool.status === 'running') tool.status = 'error';
+          });
+        }
+      });
+    }
+    updateStreamFlags();
+
     try {
-      const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(session.id)}/cancel`), {
+      const res = await fetch(apiUrl(`/api/claude/sessions/${encodeURIComponent(targetId)}/cancel`), {
         method: 'POST',
       });
       return res.ok;
@@ -1233,27 +1263,16 @@ export const useClaudeStore = defineStore('claude', () => {
       );
       const data = await res.json();
       if (data.session) {
-        const existing = sessions.value.find((s) => s.id === data.session.id);
-        const hasUserCustomName = Boolean(
-          existing?.isCustomNamed &&
-          existing.name &&
-          existing.name.trim() &&
-          existing.name !== 'chat' &&
-          existing.name !== 'claude'
-        );
-        if (hasUserCustomName && existing) {
-          data.session.name = existing.name;
+        const cliSess = projectSessions.value.find((p) => p.id === cliSessionId);
+        if (
+          (!data.session.isCustomNamed || data.session.name.startsWith('Claude ')) &&
+          cliSess?.summary &&
+          cliSess.summary !== 'Phiên chưa đặt tên'
+        ) {
+          data.session.name = cliSess.summary;
           data.session.isCustomNamed = true;
-        } else {
-          const cliSess = projectSessions.value.find((p) => p.id === cliSessionId);
-          if (
-            (!data.session.isCustomNamed || data.session.name === 'chat' || data.session.name === 'claude') &&
-            cliSess?.summary &&
-            cliSess.summary !== 'Phiên chưa đặt tên'
-          ) {
-            data.session.name = cliSess.summary;
-            data.session.isCustomNamed = true;
-          }
+        } else if (cliSess && data.session.name) {
+          cliSess.summary = data.session.name;
         }
         const idx = sessions.value.findIndex((s) => s.id === data.session.id);
         if (idx !== -1) {
@@ -1404,6 +1423,8 @@ export const useClaudeStore = defineStore('claude', () => {
     deleteProjectSession,
     isGenerating,
     isReconnecting,
+    runningSessionIds,
+    isSessionRunning,
     currentSystemNotice,
     compactTaskMode,
     toggleCompactTaskMode,

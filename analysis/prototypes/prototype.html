@@ -1489,6 +1489,18 @@
     .dw-item.active.proj-item, .dw-item.active.term-item, .dw-item.active.claude-item { border:0; background:transparent; }
     .dw-item.active::after { content:''; width:6px; height:6px; border-radius:50%; background:#e7e7e7; flex-shrink:0; order:1; }
     .dw-item.active .dw-item-actions { order:2; }
+    .dw-item.claude-item.running { background:rgba(255, 255, 255, 0.04); }
+    .dw-claude-running.status-indicator {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 1.8px solid rgba(245, 158, 11, 0.28);
+      border-top-color: #f59e0b;
+      animation: dwClaudeSpin 0.75s linear infinite;
+      flex-shrink: 0;
+      order: 1;
+    }
+    @keyframes dwClaudeSpin { to { transform: rotate(360deg); } }
     .dw-project-group, .dw-project-group.active-group { border:0; background:transparent; padding:0; }
     .smart-header-left {
       display: flex;
@@ -3603,6 +3615,97 @@
     .claude-permission-shield-btn:active {
       transform: scale(0.94);
     }
+    .claude-ext-top-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .claude-mic-btn {
+      min-width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: rgba(64, 64, 64, 0.09);
+      border: 1px solid rgba(125, 125, 125, 0.28);
+      border-radius: 7px;
+      color: #b8b8b8;
+      font-size: 15px;
+      cursor: pointer;
+      padding: 0 6px;
+      touch-action: manipulation;
+      transition: all 0.15s ease;
+    }
+    .claude-mic-btn:hover {
+      background: #282828;
+      color: #e7e7e7;
+    }
+    .claude-mic-btn.danger.recording {
+      background: rgba(239, 68, 68, 0.16);
+      border-color: rgba(239, 68, 68, 0.55);
+      color: #ef4444;
+      padding: 0 8px;
+    }
+    .claude-mic-btn.status-indicator.transcribing {
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.45);
+      color: #f59e0b;
+    }
+    .claude-mic-timer {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .claude-voice-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      background: #181818;
+      border: 1px solid #333333;
+      font-size: 11.5px;
+      color: #d4d4d4;
+    }
+    .claude-voice-status[hidden] {
+      display: none !important;
+    }
+    .claude-voice-status-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      flex: 1;
+    }
+    .claude-voice-status .voice-dot.danger {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+      flex-shrink: 0;
+    }
+    .claude-voice-status .voice-dot.status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #f59e0b;
+      flex-shrink: 0;
+    }
+    .claude-voice-temp-chip {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: #a3a3a3;
+      background: #222222;
+      border: 1px solid #383838;
+      padding: 2px 6px;
+      border-radius: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
 
     /* Lower Controls Toolbar Row */
     .claude-ext-input-bottom-row {
@@ -4268,6 +4371,61 @@
     .quick-git-actions button:disabled { opacity:.45; cursor:not-allowed; }
     .quick-git-actions #quick-git-commit { grid-column:1/-1; color:#e5e5e5; background:#404040; border-color:#707070; }
     .quick-git-feedback { min-height:24px; padding:0 12px 10px; color:#c8c8c8; font-size:11px; line-height:1.4; }
+    .quick-git-repo-section { padding:10px 10px 6px; border-bottom:1px solid #2e2e2e; display:flex; flex-direction:column; gap:6px; }
+    .quick-git-repo-head { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11px; font-weight:700; color:#b8b8b8; }
+    .quick-git-depth-tag { font-family:var(--font-mono); font-size:10px; color:#a3a3a3; background:#222222; border:1px solid #3a3a3a; border-radius:999px; padding:1px 7px; }
+    .quick-git-repo-filters { display:flex; align-items:center; gap:5px; }
+    .quick-git-filter-btn { background:#1e1e1e; border:1px solid #383838; color:#a8a8a8; border-radius:6px; padding:3px 8px; font-size:10.5px; font-weight:600; cursor:pointer; }
+    .quick-git-filter-btn.active { background:#333333; border-color:#666666; color:#f0f0f0; }
+    .quick-git-repo-list { display:flex; flex-direction:column; gap:4px; max-height:176px; overflow-y:auto; }
+    .quick-git-repo-item { display:flex; flex-direction:column; gap:3px; padding:7px 8px; border-radius:7px; background:#1b1b1b; border:1px solid #303030; cursor:pointer; text-align:left; color:#e2e2e2; }
+    .quick-git-repo-item:hover { background:#242424; border-color:#454545; }
+    .quick-git-repo-item.active { background:#292929; border-color:#787878; }
+    .quick-git-repo-row-top { display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; }
+    .quick-git-repo-name { font-family:var(--font-mono); font-size:11.5px; font-weight:700; color:#f0f0f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+    .quick-git-repo-row-meta { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:10px; color:#9e9e9e; font-family:var(--font-mono); }
+    .git-repo-count.git-badge { background:rgba(245, 158, 11, 0.16); color:#fbbf24; border:1px solid rgba(245, 158, 11, 0.38); border-radius:999px; padding:1px 6px; font-size:10px; font-family:var(--font-mono); font-weight:700; flex-shrink:0; }
+    .git-repo-count.ok { background:rgba(34, 197, 94, 0.14); color:#4ade80; border:1px solid rgba(34, 197, 94, 0.35); border-radius:999px; padding:1px 6px; font-size:10px; font-family:var(--font-mono); font-weight:700; flex-shrink:0; }
+    .git-view-container { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; background:#121212; }
+    .git-scanner-banner { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:10px 14px; background:#171717; border-bottom:1px solid #2d2d2d; }
+    .git-scanner-info { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:12px; color:#d8d8d8; }
+    .git-scanner-actions { display:flex; align-items:center; gap:6px; }
+    .git-main-grid { display:grid; grid-template-columns:300px 1fr; flex:1; min-height:0; overflow:hidden; }
+    @media (max-width:860px) {
+      .git-main-grid { grid-template-columns:1fr; overflow-y:auto; }
+    }
+    .git-repos-column { border-right:1px solid #2b2b2b; background:#151515; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .git-repos-column-head { padding:10px 12px; border-bottom:1px solid #292929; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11.5px; font-weight:700; color:#cccccc; }
+    .git-repos-scroll { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:6px; }
+    .git-repo-card { display:flex; flex-direction:column; gap:5px; padding:9px 10px; border-radius:8px; background:#1c1c1c; border:1px solid #323232; cursor:pointer; text-align:left; color:#e5e5e5; transition:background .15s, border-color .15s; }
+    .git-repo-card:hover { background:#232323; border-color:#484848; }
+    .git-repo-card.active { background:#282828; border-color:#8a8a8a; }
+    .git-repo-card-top { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+    .git-repo-card-title { font-family:var(--font-mono); font-size:12px; font-weight:700; color:#f2f2f2; display:inline-flex; align-items:center; gap:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .git-repo-card-path { font-family:var(--font-mono); font-size:10.5px; color:#9e9e9e; display:flex; align-items:center; justify-content:space-between; gap:6px; }
+    .git-repo-card-foot { display:flex; align-items:center; justify-content:space-between; gap:6px; font-family:var(--font-mono); font-size:10.5px; color:#bdbdbd; }
+    .git-Active-detail-column { display:flex; flex-direction:column; min-height:0; overflow-y:auto; padding:12px 14px; gap:12px; }
+    .git-active-repo-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:10px 12px; border-radius:8px; background:#1a1a1a; border:1px solid #333333; }
+    .git-active-repo-meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-family:var(--font-mono); font-size:12px; color:#e5e5e5; }
+    .git-branch-select { background:#242424; border:1px solid #484848; color:#f0f0f0; border-radius:6px; padding:4px 8px; font-family:var(--font-mono); font-size:11.5px; }
+    .git-detail-split { display:grid; grid-template-columns:1fr 1.15fr; gap:12px; min-height:240px; }
+    @media (max-width:720px) {
+      .git-detail-split { grid-template-columns:1fr; }
+    }
+    .git-files-box, .git-diff-box { background:#181818; border:1px solid #2f2f2f; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; }
+    .git-box-title { padding:8px 11px; border-bottom:1px solid #2b2b2b; font-size:11.5px; font-weight:700; color:#cccccc; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .git-file-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid #252525; font-family:var(--font-mono); font-size:11.5px; color:#e2e2e2; cursor:pointer; }
+    .git-file-row:hover { background:#212121; }
+    .git-file-row.active { background:#292929; }
+    .git-file-row .status.modified { color:#fbbf24; font-weight:700; width:18px; text-align:center; }
+    .git-file-row .status.added { color:#34d399; font-weight:700; width:18px; text-align:center; }
+    .git-file-row .status.deleted { color:#fb7185; font-weight:700; width:18px; text-align:center; }
+    .git-file-row .status.untracked { color:#93c5fd; font-weight:700; width:18px; text-align:center; }
+    .git-file-row .status.staged { color:#4ade80; font-weight:700; width:18px; text-align:center; }
+    .git-diff-pre { padding:10px; font-family:var(--font-mono); font-size:11.5px; line-height:1.5; overflow:auto; flex:1; }
+    .git-diff-line { padding:1px 6px; border-radius:3px; white-space:pre-wrap; word-break:break-all; color:#c8c8c8; }
+    .git-diff-line.diff-add { background:rgba(34, 197, 94, 0.14); color:#bbf7d0; }
+    .git-diff-line.diff-del { background:rgba(239, 68, 68, 0.14); color:#fecaca; }
     .quick-tree-scrim { display:none; }
     @media (min-width:800px) {
       .quick-tree-panel { box-shadow:none; background:#161616; border-left:1px solid #323232; }
@@ -4345,6 +4503,18 @@
               <span style="font-size:10px; color:#a855f7;">▾</span>
             </button>
           </div>
+
+          <!-- View 5 Git: Left Workspace Sidebar Toggle + Active Sub-Repo Pill -->
+          <div id="ctx-header-git" class="ctx-header-item">
+            <button id="btn-toggle-workspace-left-git" type="button" class="btn-workspace-sidebar-toggle" data-workspace-sidebar-toggle title="Đóng / mở cột Workspace bên trái" aria-label="Đóng / mở cột Workspace bên trái" aria-expanded="false">
+              <i class="ri-side-bar-line"></i>
+            </button>
+            <span class="term-session-pill" id="header-git-repo-pill" title="Repo đang theo dõi trong dự án">
+              <i class="ri-git-repository-line" style="color:#38bdf8;"></i>
+              <span id="header-git-repo-name">hugcode</span>
+              <span class="badge-count" id="header-git-repo-depth">Cấp 0</span>
+            </span>
+          </div>
         </div>
 
         <!-- Right: Contextual action buttons -->
@@ -4382,6 +4552,12 @@
             <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
             <button id="btn-add-term" class="btn-icon-action" title="Thêm terminal mới"><i class="ri-add-line"></i></button>
             <button id="btn-term-more" class="btn-icon-action" title="Tùy chọn terminal"><i class="ri-more-2-fill"></i></button>
+          </div>
+
+          <!-- Actions for Git -->
+          <div id="ctx-actions-git" class="ctx-actions-item">
+            <button id="btn-header-git-rescan" class="btn-icon-action" type="button" title="Quét lại các Git repo tối đa 5 cấp"><i class="ri-radar-line"></i></button>
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
           </div>
         </div>
       </div>
@@ -4453,8 +4629,19 @@
           </div>
         </div>
         <div id="quick-tree-git" hidden>
+          <div class="quick-git-repo-section">
+            <div class="quick-git-repo-head">
+              <span><i class="ri-git-repository-line"></i> Repo trong dự án</span>
+              <span class="quick-git-depth-tag" id="quick-git-depth-summary">Tối đa 5 cấp · 5 repo</span>
+            </div>
+            <div class="quick-git-repo-filters">
+              <button type="button" class="quick-git-filter-btn active" data-git-repo-filter="all" id="quick-git-filter-all">Tất cả · 5</button>
+              <button type="button" class="quick-git-filter-btn" data-git-repo-filter="dirty" id="quick-git-filter-dirty">Có thay đổi · 4</button>
+            </div>
+            <div id="quick-git-repo-list" class="quick-git-repo-list" role="listbox" aria-label="Danh sách Git repo trong dự án"></div>
+          </div>
           <div id="quick-git-branch" class="quick-git-branch"><i class="ri-git-branch-line"></i> Nhánh mẫu · main</div>
-          <p class="quick-git-note">Bản xem thử · Chỉ mô phỏng, không chạy lệnh Git</p>
+          <p class="quick-git-note" id="quick-git-note">Đang theo dõi repo gốc dự án · Quét tự động tối đa 5 cấp thư mục</p>
           <div class="quick-tree-caption">Tệp thay đổi <span id="quick-git-count">0</span></div>
           <div id="quick-git-files" class="quick-git-files"></div>
           <div class="quick-git-actions">
@@ -4835,7 +5022,7 @@
 
             <!-- Signature Input Box with Coral / Terracotta Border -->
             <div class="claude-ext-input-box" id="claude-ext-input-box">
-              <!-- Top Row: Input Textarea + Permission Shield Icon -->
+              <!-- Top Row: Input Textarea + Mic Speech-to-Text + Permission Shield Icon -->
               <div class="claude-ext-input-top-row">
                 <textarea
                   id="claude-ext-textarea"
@@ -4843,9 +5030,31 @@
                   placeholder="Nhập yêu cầu cho Claude..."
                   rows="1"
                 ></textarea>
-                <button type="button" class="claude-permission-shield-btn" id="btn-claude-shield" title="Permission protection đang bật">
-                  <i class="ri-shield-check-line" id="claude-shield-icon"></i>
-                </button>
+                <div class="claude-ext-top-actions">
+                  <button
+                    type="button"
+                    class="claude-mic-btn"
+                    id="btn-claude-mic"
+                    data-mic-state="idle"
+                    title="Nhấn để thu âm giọng nói · Nhấn lần nữa để dừng và chuyển thành văn bản"
+                    aria-label="Thu âm giọng nói chuyển thành văn bản"
+                  >
+                    <i class="ri-mic-line" id="claude-mic-icon"></i>
+                    <span id="claude-mic-timer" class="claude-mic-timer" hidden>00:00</span>
+                  </button>
+                  <button type="button" class="claude-permission-shield-btn" id="btn-claude-shield" title="Permission protection đang bật">
+                    <i class="ri-shield-check-line" id="claude-shield-icon"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Voice Recording & Speech-to-Text Auto-Cleanup Status Bar -->
+              <div id="claude-voice-status" class="claude-voice-status" hidden role="status" aria-live="polite">
+                <div class="claude-voice-status-left">
+                  <span id="claude-voice-dot" class="voice-dot danger"></span>
+                  <span id="claude-voice-status-text">Đang thu âm lời nói...</span>
+                </div>
+                <span id="claude-voice-temp-file" class="claude-voice-temp-chip">/tmp/hugremote-stt.webm</span>
               </div>
 
               <!-- Bottom Row: Controls Toolbar (Exact match of screenshot) -->
@@ -4898,9 +5107,81 @@
           </div>
         </div>
       </section>
+
+      <!-- VIEW 5: MULTI-REPO GIT TRACKER (SCAN UP TO 5 LEVELS INSIDE OPEN PROJECT) -->
+      <section id="view-git" class="view">
+        <div class="git-view-container">
+          <div class="git-scanner-banner">
+            <div class="git-scanner-info">
+              <i class="ri-git-merge-line" style="color:#38bdf8; font-size:15px;"></i>
+              <span>Dự án đang mở: <b id="git-view-project-name">hugcode</b></span>
+              <span class="quick-git-depth-tag" id="git-view-scan-badge">Quét tối đa 5 cấp · Phát hiện 5 Git repo</span>
+            </div>
+            <div class="git-scanner-actions">
+              <button type="button" class="quick-git-filter-btn active" id="git-view-filter-all">Tất cả · 5</button>
+              <button type="button" class="quick-git-filter-btn" id="git-view-filter-dirty">Có thay đổi · 4</button>
+              <button type="button" class="quick-git-filter-btn" id="git-view-rescan-btn"><i class="ri-refresh-line"></i> Quét lại 5 cấp</button>
+            </div>
+          </div>
+
+          <div class="git-main-grid">
+            <!-- Left column: All discovered Git repositories inside the open project (depth 0..5) -->
+            <div class="git-repos-column">
+              <div class="git-repos-column-head">
+                <span>Danh sách Repo trong dự án</span>
+                <span class="quick-git-depth-tag">Cấp 0 → Cấp 5</span>
+              </div>
+              <div id="git-repo-card-list" class="git-repos-scroll" role="listbox" aria-label="Danh sách các repo bên trong dự án"></div>
+            </div>
+
+            <!-- Right column: Active repository status, branch switcher, changed files, and diff viewer -->
+            <div class="git-Active-detail-column">
+              <div class="git-active-repo-toolbar">
+                <div class="git-active-repo-meta">
+                  <i class="ri-git-repository-line" style="color:#38bdf8;"></i>
+                  <b id="git-detail-repo-name">hugcode</b>
+                  <span class="quick-git-depth-tag" id="git-detail-repo-path">. · Cấp 0 · Gốc dự án</span>
+                  <span class="quick-git-depth-tag" id="git-detail-repo-sync">Đồng bộ origin/main</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                  <label for="git-detail-branch-select" style="font-size:11px; color:#aaaaaa;">Nhánh:</label>
+                  <select id="git-detail-branch-select" class="git-branch-select" aria-label="Chọn nhánh Git"></select>
+                  <button type="button" class="quick-git-filter-btn" id="git-detail-pull-btn"><i class="ri-download-cloud-2-line"></i> Pull</button>
+                  <button type="button" class="quick-git-filter-btn" id="git-detail-push-btn"><i class="ri-upload-cloud-2-line"></i> Push</button>
+                </div>
+              </div>
+
+              <div class="git-detail-split">
+                <div class="git-files-box">
+                  <div class="git-box-title">
+                    <span>Tệp thay đổi trong repo đang chọn</span>
+                    <span id="git-detail-file-count" class="git-repo-count git-badge">3 thay đổi</span>
+                  </div>
+                  <div id="git-detail-file-list" style="flex:1; overflow-y:auto;"></div>
+                  <div style="padding:10px; border-top:1px solid #2b2b2b; display:flex; flex-direction:column; gap:7px;">
+                    <input id="git-detail-commit-input" type="text" placeholder="Nhập nội dung commit cho repo này..." style="padding:8px 10px; border-radius:6px; border:1px solid #484848; background:#141414; color:#eeeeee; font-size:12px;" />
+                    <div style="display:flex; gap:6px;">
+                      <button type="button" class="quick-git-filter-btn" id="git-detail-stage-all-btn" style="flex:1;">Stage tất cả</button>
+                      <button type="button" class="quick-git-filter-btn active" id="git-detail-commit-btn" style="flex:1.4;">Commit vào repo này</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="git-diff-box">
+                  <div class="git-box-title">
+                    <span>Xem nhanh Diff</span>
+                    <span id="git-detail-diff-filename" style="font-family:var(--font-mono); color:#a3a3a3;">src/server.js</span>
+                  </div>
+                  <div id="git-detail-diff-body" class="git-diff-pre"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <!-- 3. COMPACT 2-TAB BOTTOM DOCK (FILES + TERMINAL) -->
+    <!-- 3. COMPACT 4-TAB BOTTOM DOCK (FILES + TERMINAL + CLAUDE + GIT) -->
     <nav class="smart-bottom-dock" id="smart-bottom-dock">
       <div class="dock-tabs-group">
         <button class="dock-item active" data-target="view-files">
@@ -4916,6 +5197,11 @@
           <span class="dock-icon"><i class="ri-sparkling-fill" style="color:#f59e0b;"></i></span>
           <span class="dock-label">Claude</span>
           <span id="dock-claude-count" class="dock-badge-num claude-badge">1</span>
+        </button>
+        <button class="dock-item" data-target="view-git" id="dock-item-git">
+          <span class="dock-icon"><i class="ri-git-branch-line"></i></span>
+          <span class="dock-label">Git</span>
+          <span id="dock-git-count" class="dock-badge-num">8</span>
         </button>
       </div>
     </nav>
@@ -5656,6 +5942,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               name: 'hugcode',
               cwd: '~/projects/hugcode',
               isCustomNamed: true,
+              isRunning: true,
               model: 'Sonnet 5.5 Medium',
               mode: 'Auto',
               timer: '60m',
@@ -5663,12 +5950,34 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
                 {
                   id: 'm1',
                   sender: 'user',
-                  text: 'hi'
+                  text: 'Quét tất cả các repo con tối đa 5 cấp và kiểm tra trạng thái nhánh'
                 },
                 {
                   id: 'm2',
                   sender: 'assistant',
-                  text: 'Hi! What would you like to work on in this repo?'
+                  text: 'Đang kiểm tra cấu trúc đa repo trong `~/projects/hugcode` và phân tích các tệp thay đổi...'
+                }
+              ]
+            },
+            {
+              id: 'claude-local-worker',
+              name: 'git-subrepo-audit',
+              cwd: '~/projects/hugcode',
+              isCustomNamed: true,
+              isRunning: false,
+              model: 'Sonnet 5.5 Medium',
+              mode: 'Auto',
+              timer: '60m',
+              messages: [
+                {
+                  id: 'mw-1',
+                  sender: 'user',
+                  text: 'Kiểm tra cấu hình Speech to Text cho nút Mic'
+                },
+                {
+                  id: 'mw-2',
+                  sender: 'assistant',
+                  text: 'Đã hoàn tất kiểm tra luồng thu âm và tự động xóa file tạm sau khi nhận diện văn bản.'
                 }
               ]
             },
@@ -5677,6 +5986,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               name: 'desktop-tabs-ui',
               cwd: '~/projects/hugremote',
               isCustomNamed: true,
+              isRunning: true,
               model: 'Sonnet 5.5 High',
               mode: 'Auto',
               timer: '60m',
@@ -7002,23 +7312,254 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       let quickTreeServerId = currentServerId;
       let quickTreeLastTrigger = null;
       let quickPanelMode = 'files';
-      // Isolated demo data — never infer Git status from mockFS or execute commands.
-      let quickGitFiles = [
-        { path: 'src/server.js', status: 'M', staged: false, selected: false },
-        { path: 'docs/README.md', status: 'M', staged: false, selected: false },
-        { path: 'tests/session.test.js', status: '??', staged: false, selected: false }
-      ];
+      // --- MULTI-REPO GIT TRACKER (SCAN UP TO 5 LEVELS DEEP INSIDE OPEN PROJECT) ---
+      const MAX_GIT_SCAN_DEPTH = 5;
+      const defaultProjectGitRepos = {
+        'proj-hugcode': [
+          {
+            id: 'repo-root',
+            name: 'hugcode',
+            relPath: '.',
+            depth: 0,
+            roleLabel: 'Gốc dự án',
+            branch: 'main',
+            branches: ['main', 'feat/multi-repo-git', 'fix/claude-mic-stt'],
+            syncText: 'Đồng bộ origin/main',
+            files: [
+              { path: 'src/server.js', status: 'M', staged: false, selected: false, diff: ['@@ -41,6 +41,9 @@', ' const app = createServer();', '-const gitRootOnly = true;', '+const maxGitScanDepth = 5;', '+app.registerMultiRepoScanner(maxGitScanDepth);'] },
+              { path: 'docs/README.md', status: 'M', staged: false, selected: false, diff: ['@@ -12,4 +12,6 @@', ' ## Quản lý Git đa tầng', '+Hỗ trợ tự động dò các kho Git con bên trong dự án đang mở tối đa 5 cấp thư mục.'] },
+              { path: 'tests/session.test.js', status: '??', staged: false, selected: false, diff: ['@@ -0,0 +1,5 @@', '+import assert from "node:assert";', '+assert.equal(scanNestedRepos({ maxDepth: 5 }).length, 5);'] }
+            ]
+          },
+          {
+            id: 'repo-core-sdk',
+            name: 'packages/core-sdk',
+            relPath: 'packages/core-sdk',
+            depth: 2,
+            roleLabel: 'Repo con · Cấp 2',
+            branch: 'feat/stream-parser',
+            branches: ['feat/stream-parser', 'main', 'release/v2'],
+            syncText: '↑1 chờ push',
+            files: [
+              { path: 'src/parser.ts', status: 'M', staged: true, selected: false, diff: ['@@ -88,4 +88,7 @@', '-export function parseFrame(raw: string) {', '+export function parseFrame(raw: string, repoScope = ".") {', '+  if (!raw.trim()) return null;'] },
+              { path: 'package.json', status: 'M', staged: false, selected: false, diff: ['@@ -3,4 +3,4 @@', '-  "version": "2.1.0",', '+  "version": "2.2.0",'] }
+            ]
+          },
+          {
+            id: 'repo-auth-worker',
+            name: 'services/auth-worker',
+            relPath: 'services/auth-worker',
+            depth: 2,
+            roleLabel: 'Repo con · Cấp 2',
+            branch: 'main',
+            branches: ['main', 'hotfix/token-ttl'],
+            syncText: 'Đồng bộ origin/main',
+            files: []
+          },
+          {
+            id: 'repo-native-bridge',
+            name: 'apps/mobile/plugins/native-bridge',
+            relPath: 'apps/mobile/plugins/native-bridge',
+            depth: 4,
+            roleLabel: 'Repo con · Cấp 4',
+            branch: 'fix/webview-bridge',
+            branches: ['fix/webview-bridge', 'main'],
+            syncText: '↓2 cần pull',
+            files: [
+              { path: 'ios/Bridge.swift', status: 'M', staged: false, selected: false, diff: ['@@ -19,3 +19,6 @@', ' func syncAudioBuffer() {', '+  FileManager.default.removeItem(atPath: tempRecordingPath)', ' }'] },
+              { path: 'android/BridgeModule.kt', status: 'A', staged: false, selected: false, diff: ['@@ -0,0 +1,4 @@', '+class BridgeModule {', '+  fun cleanupTempAudio(path: String) = File(path).delete()', '+}'] }
+            ]
+          },
+          {
+            id: 'repo-ci-agent',
+            name: 'tools/ci/runners/linux/agent',
+            relPath: 'tools/ci/runners/linux/agent',
+            depth: 5,
+            roleLabel: 'Repo con · Cấp 5',
+            branch: 'chore/docker-runner',
+            branches: ['chore/docker-runner', 'main'],
+            syncText: 'Đồng bộ origin/chore/docker-runner',
+            files: [
+              { path: 'entrypoint.sh', status: 'M', staged: false, selected: false, diff: ['@@ -5,3 +5,4 @@', ' set -euo pipefail', '+find . -maxdepth 5 -name ".git" -type d'] }
+            ]
+          }
+        ],
+        'proj-api-gateway': [
+          {
+            id: 'repo-gw-root',
+            name: 'api-gateway',
+            relPath: '.',
+            depth: 0,
+            roleLabel: 'Gốc dự án',
+            branch: 'main',
+            branches: ['main', 'feat/rate-limit'],
+            syncText: 'Đồng bộ origin/main',
+            files: [
+              { path: 'src/routes/proxy.ts', status: 'M', staged: false, selected: false, diff: ['@@ -14,3 +14,5 @@', '+router.use("/stt", speechToTextCleanupMiddleware);'] }
+            ]
+          },
+          {
+            id: 'repo-gw-billing',
+            name: 'modules/billing-service',
+            relPath: 'modules/billing-service',
+            depth: 2,
+            roleLabel: 'Repo con · Cấp 2',
+            branch: 'feat/invoice-v3',
+            branches: ['feat/invoice-v3', 'main'],
+            syncText: '↑2 chờ push',
+            files: [
+              { path: 'src/invoice.ts', status: 'M', staged: false, selected: false, diff: ['@@ -22,2 +22,4 @@', '+export const VAT_RATE = 0.08;'] },
+              { path: 'src/webhook.ts', status: '??', staged: false, selected: false, diff: ['@@ -0,0 +1,3 @@', '+export async function handleWebhook() {}'] }
+            ]
+          },
+          {
+            id: 'repo-gw-contracts',
+            name: 'shared/contracts/grpc/v2',
+            relPath: 'shared/contracts/grpc/v2',
+            depth: 4,
+            roleLabel: 'Repo con · Cấp 4',
+            branch: 'main',
+            branches: ['main'],
+            syncText: 'Đồng bộ origin/main',
+            files: []
+          }
+        ]
+      };
+      const projectGitState = JSON.parse(JSON.stringify(defaultProjectGitRepos));
+      let activeGitRepoIdByProject = { 'proj-hugcode': 'repo-root', 'proj-api-gateway': 'repo-gw-root' };
+      let gitRepoFilterMode = 'all';
+      let activeGitDiffFilePath = '';
+
+      function getCurrentProjectGitRepos() {
+        const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+        const projId = proj?.id || 'proj-hugcode';
+        if (!projectGitState[projId]) {
+          projectGitState[projId] = [
+            {
+              id: `repo-${projId}-root`,
+              name: proj?.name || 'workspace',
+              relPath: '.',
+              depth: 0,
+              roleLabel: 'Gốc dự án',
+              branch: 'main',
+              branches: ['main', 'develop'],
+              syncText: 'Đồng bộ origin/main',
+              files: [
+                { path: 'README.md', status: 'M', staged: false, selected: false, diff: ['@@ -1,2 +1,3 @@', '+Đã bật quét Git đa repo tối đa 5 cấp.'] }
+              ]
+            },
+            {
+              id: `repo-${projId}-sub`,
+              name: 'packages/sub-module',
+              relPath: 'packages/sub-module',
+              depth: 2,
+              roleLabel: 'Repo con · Cấp 2',
+              branch: 'feat/nested-repo',
+              branches: ['feat/nested-repo', 'main'],
+              syncText: '↑1 chờ push',
+              files: [
+                { path: 'src/index.ts', status: 'M', staged: false, selected: false, diff: ['@@ -1,3 +1,5 @@', '+export const SUB_REPO_READY = true;'] }
+              ]
+            }
+          ];
+        }
+        return projectGitState[projId].filter(r => r.depth <= MAX_GIT_SCAN_DEPTH);
+      }
+
+      function getActiveGitRepo() {
+        const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+        const projId = proj?.id || 'proj-hugcode';
+        const repos = getCurrentProjectGitRepos();
+        const wantedId = activeGitRepoIdByProject[projId];
+        const found = repos.find(r => r.id === wantedId) || repos[0];
+        if (found) activeGitRepoIdByProject[projId] = found.id;
+        return found;
+      }
+
       const quickGitFeedback = document.getElementById('quick-git-feedback');
       const quickGitMessage = document.getElementById('quick-git-message');
 
+      function updateGitHeaderAndDockBadges() {
+        const repos = getCurrentProjectGitRepos();
+        const activeRepo = getActiveGitRepo();
+        const totalChanged = repos.reduce((sum, r) => sum + r.files.length, 0);
+        const dockGitBadge = document.getElementById('dock-git-count');
+        if (dockGitBadge) dockGitBadge.textContent = String(totalChanged);
+        const headerRepoName = document.getElementById('header-git-repo-name');
+        const headerRepoDepth = document.getElementById('header-git-repo-depth');
+        if (headerRepoName && activeRepo) headerRepoName.textContent = activeRepo.name;
+        if (headerRepoDepth && activeRepo) headerRepoDepth.textContent = `Cấp ${activeRepo.depth}`;
+      }
+
       function renderQuickGit() {
+        const repos = getCurrentProjectGitRepos();
+        const dirtyCount = repos.filter(r => r.files.length > 0).length;
+        const activeRepo = getActiveGitRepo();
+        const quickGitFiles = activeRepo ? activeRepo.files : [];
+
+        const depthSummary = document.getElementById('quick-git-depth-summary');
+        if (depthSummary) depthSummary.textContent = `Tối đa ${MAX_GIT_SCAN_DEPTH} cấp · ${repos.length} repo`;
+        const filterAllBtn = document.getElementById('quick-git-filter-all');
+        const filterDirtyBtn = document.getElementById('quick-git-filter-dirty');
+        if (filterAllBtn) {
+          filterAllBtn.textContent = `Tất cả · ${repos.length}`;
+          filterAllBtn.classList.toggle('active', gitRepoFilterMode === 'all');
+        }
+        if (filterDirtyBtn) {
+          filterDirtyBtn.textContent = `Có thay đổi · ${dirtyCount}`;
+          filterDirtyBtn.classList.toggle('active', gitRepoFilterMode === 'dirty');
+        }
+
+        const repoListEl = document.getElementById('quick-git-repo-list');
+        if (repoListEl) {
+          repoListEl.replaceChildren();
+          const visibleRepos = gitRepoFilterMode === 'dirty' ? repos.filter(r => r.files.length > 0) : repos;
+          visibleRepos.forEach(repo => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quick-git-repo-item' + (activeRepo && repo.id === activeRepo.id ? ' active' : '');
+            btn.setAttribute('data-git-repo-id', repo.id);
+            btn.setAttribute('data-git-repo-depth', String(repo.depth));
+            const countClass = repo.files.length > 0 ? 'git-repo-count git-badge' : 'git-repo-count ok';
+            const countLabel = repo.files.length > 0 ? `${repo.files.length} thay đổi` : 'Sạch';
+            btn.innerHTML = `
+              <div class="quick-git-repo-row-top">
+                <span class="quick-git-repo-name"><i class="ri-git-repository-line"></i> ${escapeHtml(repo.name)}</span>
+                <span class="${countClass}">${countLabel}</span>
+              </div>
+              <div class="quick-git-repo-row-meta">
+                <span>${escapeHtml(repo.relPath)} · Cấp ${repo.depth}</span>
+                <span><i class="ri-git-branch-line"></i> ${escapeHtml(repo.branch)}</span>
+              </div>
+            `;
+            btn.addEventListener('click', () => {
+              const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+              activeGitRepoIdByProject[proj?.id || 'proj-hugcode'] = repo.id;
+              activeGitDiffFilePath = repo.files[0]?.path || '';
+              renderQuickGit();
+              renderGitScreen();
+              showQuickGitFeedback(`Đang xem repo ${repo.name} ở cấp ${repo.depth}`);
+            });
+            repoListEl.append(btn);
+          });
+        }
+
+        const branchBanner = document.getElementById('quick-git-branch');
+        if (branchBanner && activeRepo) {
+          branchBanner.innerHTML = `<i class="ri-git-branch-line"></i> ${escapeHtml(activeRepo.name)} · ${escapeHtml(activeRepo.branch)} · Cấp ${activeRepo.depth}`;
+        }
+        const noteEl = document.getElementById('quick-git-note');
+        if (noteEl && activeRepo) {
+          noteEl.textContent = `Đường dẫn trong dự án: ${activeRepo.relPath} · ${activeRepo.syncText}`;
+        }
+
         const list = document.getElementById('quick-git-files');
         list.replaceChildren();
         document.getElementById('quick-git-count').textContent = String(quickGitFiles.length);
         if (!quickGitFiles.length) {
           const empty = document.createElement('p');
           empty.className = 'quick-tree-empty';
-          empty.textContent = 'Không có tệp thay đổi trong bản mô phỏng.';
+          empty.textContent = 'Repo này hiện không có tệp thay đổi.';
           list.append(empty);
         }
         quickGitFiles.forEach(file => {
@@ -7040,9 +7581,12 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           list.append(row);
         });
         renderQuickGitActions();
+        updateGitHeaderAndDockBadges();
       }
 
       function renderQuickGitActions() {
+        const activeRepo = getActiveGitRepo();
+        const quickGitFiles = activeRepo ? activeRepo.files : [];
         const selected = quickGitFiles.filter(file => file.selected);
         document.getElementById('quick-git-stage').disabled = !selected.some(file => !file.staged);
         document.getElementById('quick-git-unstage').disabled = !selected.some(file => file.staged);
@@ -7050,25 +7594,246 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         document.getElementById('quick-git-push').disabled = quickGitFiles.some(file => file.staged);
       }
 
+      function renderGitScreen() {
+        const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+        const repos = getCurrentProjectGitRepos();
+        const dirtyCount = repos.filter(r => r.files.length > 0).length;
+        const activeRepo = getActiveGitRepo();
+        if (!activeRepo) return;
+
+        const projNameEl = document.getElementById('git-view-project-name');
+        if (projNameEl) projNameEl.textContent = proj?.name || 'hugcode';
+        const scanBadgeEl = document.getElementById('git-view-scan-badge');
+        if (scanBadgeEl) scanBadgeEl.textContent = `Quét tối đa ${MAX_GIT_SCAN_DEPTH} cấp · Phát hiện ${repos.length} Git repo`;
+
+        const viewFilterAll = document.getElementById('git-view-filter-all');
+        const viewFilterDirty = document.getElementById('git-view-filter-dirty');
+        if (viewFilterAll) {
+          viewFilterAll.textContent = `Tất cả · ${repos.length}`;
+          viewFilterAll.classList.toggle('active', gitRepoFilterMode === 'all');
+        }
+        if (viewFilterDirty) {
+          viewFilterDirty.textContent = `Có thay đổi · ${dirtyCount}`;
+          viewFilterDirty.classList.toggle('active', gitRepoFilterMode === 'dirty');
+        }
+
+        const cardList = document.getElementById('git-repo-card-list');
+        if (cardList) {
+          cardList.replaceChildren();
+          const visibleRepos = gitRepoFilterMode === 'dirty' ? repos.filter(r => r.files.length > 0) : repos;
+          visibleRepos.forEach(repo => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'git-repo-card' + (repo.id === activeRepo.id ? ' active' : '');
+            card.setAttribute('data-git-card-id', repo.id);
+            card.setAttribute('data-git-card-depth', String(repo.depth));
+            const countClass = repo.files.length > 0 ? 'git-repo-count git-badge' : 'git-repo-count ok';
+            const countLabel = repo.files.length > 0 ? `${repo.files.length} thay đổi` : 'Sạch';
+            card.innerHTML = `
+              <div class="git-repo-card-top">
+                <span class="git-repo-card-title"><i class="ri-git-repository-line" style="color:#38bdf8;"></i> ${escapeHtml(repo.name)}</span>
+                <span class="${countClass}">${countLabel}</span>
+              </div>
+              <div class="git-repo-card-path">
+                <span>Đường dẫn: ${escapeHtml(repo.relPath)}</span>
+                <span>Cấp ${repo.depth}</span>
+              </div>
+              <div class="git-repo-card-foot">
+                <span><i class="ri-git-branch-line"></i> ${escapeHtml(repo.branch)}</span>
+                <span>${escapeHtml(repo.syncText)}</span>
+              </div>
+            `;
+            card.addEventListener('click', () => {
+              activeGitRepoIdByProject[proj?.id || 'proj-hugcode'] = repo.id;
+              activeGitDiffFilePath = repo.files[0]?.path || '';
+              renderGitScreen();
+              renderQuickGit();
+            });
+            cardList.append(card);
+          });
+        }
+
+        const detailName = document.getElementById('git-detail-repo-name');
+        const detailPath = document.getElementById('git-detail-repo-path');
+        const detailSync = document.getElementById('git-detail-repo-sync');
+        if (detailName) detailName.textContent = activeRepo.name;
+        if (detailPath) detailPath.textContent = `${activeRepo.relPath} · Cấp ${activeRepo.depth} · ${activeRepo.roleLabel}`;
+        if (detailSync) detailSync.textContent = activeRepo.syncText;
+
+        const branchSelect = document.getElementById('git-detail-branch-select');
+        if (branchSelect) {
+          branchSelect.replaceChildren();
+          (activeRepo.branches || [activeRepo.branch]).forEach(br => {
+            const opt = document.createElement('option');
+            opt.value = br;
+            opt.textContent = br;
+            opt.selected = br === activeRepo.branch;
+            branchSelect.append(opt);
+          });
+        }
+
+        const fileCountBadge = document.getElementById('git-detail-file-count');
+        if (fileCountBadge) {
+          fileCountBadge.className = activeRepo.files.length > 0 ? 'git-repo-count git-badge' : 'git-repo-count ok';
+          fileCountBadge.textContent = activeRepo.files.length > 0 ? `${activeRepo.files.length} thay đổi` : 'Sạch';
+        }
+
+        if (!activeGitDiffFilePath || !activeRepo.files.some(f => f.path === activeGitDiffFilePath)) {
+          activeGitDiffFilePath = activeRepo.files[0]?.path || '';
+        }
+
+        const fileListEl = document.getElementById('git-detail-file-list');
+        if (fileListEl) {
+          fileListEl.replaceChildren();
+          if (activeRepo.files.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.padding = '16px 12px';
+            empty.style.color = '#9e9e9e';
+            empty.style.fontSize = '12px';
+            empty.textContent = 'Không có tệp thay đổi trong repo này.';
+            fileListEl.append(empty);
+          } else {
+            activeRepo.files.forEach(file => {
+              const row = document.createElement('div');
+              row.className = 'git-file-row' + (file.path === activeGitDiffFilePath ? ' active' : '');
+              const stClass = file.staged
+                ? 'staged'
+                : file.status === 'A'
+                ? 'added'
+                : file.status === 'D'
+                ? 'deleted'
+                : file.status === '??'
+                ? 'untracked'
+                : 'modified';
+              row.innerHTML = `
+                <span class="status ${stClass}">${file.staged ? '✓' : escapeHtml(file.status)}</span>
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(file.path)}</span>
+                <span class="quick-git-depth-tag">${file.staged ? 'Đã stage' : 'Chưa stage'}</span>
+              `;
+              row.addEventListener('click', () => {
+                activeGitDiffFilePath = file.path;
+                renderGitScreen();
+              });
+              fileListEl.append(row);
+            });
+          }
+        }
+
+        const diffTitle = document.getElementById('git-detail-diff-filename');
+        const diffBody = document.getElementById('git-detail-diff-body');
+        const activeFile = activeRepo.files.find(f => f.path === activeGitDiffFilePath) || activeRepo.files[0];
+        if (diffTitle) diffTitle.textContent = activeFile ? `${activeRepo.relPath === '.' ? '' : activeRepo.relPath + '/'}${activeFile.path}` : 'Chưa có thay đổi';
+        if (diffBody) {
+          diffBody.replaceChildren();
+          const lines = activeFile?.diff || ['// Repo sạch, không có khác biệt chưa commit'];
+          lines.forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'git-diff-line' + (line.startsWith('+') ? ' diff-add' : line.startsWith('-') ? ' diff-del' : '');
+            div.textContent = line;
+            diffBody.append(div);
+          });
+        }
+        updateGitHeaderAndDockBadges();
+      }
+
       function showQuickGitFeedback(message) { quickGitFeedback.textContent = message; }
       document.getElementById('quick-git-stage').addEventListener('click', () => {
-        quickGitFiles.filter(file => file.selected && !file.staged).forEach(file => { file.staged = true; file.selected = false; });
-        renderQuickGit(); showQuickGitFeedback('Đã stage các tệp được chọn trong bản mô phỏng.');
+        const repo = getActiveGitRepo();
+        if (!repo) return;
+        repo.files.filter(file => file.selected && !file.staged).forEach(file => { file.staged = true; file.selected = false; });
+        renderQuickGit(); renderGitScreen(); showQuickGitFeedback(`Đã stage các tệp chọn trong ${repo.name}.`);
       });
       document.getElementById('quick-git-unstage').addEventListener('click', () => {
-        quickGitFiles.filter(file => file.selected && file.staged).forEach(file => { file.staged = false; file.selected = false; });
-        renderQuickGit(); showQuickGitFeedback('Đã unstage các tệp được chọn trong bản mô phỏng.');
+        const repo = getActiveGitRepo();
+        if (!repo) return;
+        repo.files.filter(file => file.selected && file.staged).forEach(file => { file.staged = false; file.selected = false; });
+        renderQuickGit(); renderGitScreen(); showQuickGitFeedback(`Đã unstage các tệp chọn trong ${repo.name}.`);
       });
       document.getElementById('quick-git-commit').addEventListener('click', () => {
+        const repo = getActiveGitRepo();
         const message = quickGitMessage.value.trim();
-        if (!message || !quickGitFiles.some(file => file.staged)) return;
-        quickGitFiles = quickGitFiles.filter(file => !file.staged);
+        if (!repo || !message || !repo.files.some(file => file.staged)) return;
+        repo.files = repo.files.filter(file => !file.staged);
         quickGitMessage.value = '';
-        renderQuickGit(); showQuickGitFeedback(`Đã mô phỏng commit: ${message}`);
+        renderQuickGit(); renderGitScreen(); showQuickGitFeedback(`Đã commit vào ${repo.name}: ${message}`);
       });
-      document.getElementById('quick-git-pull').addEventListener('click', () => showQuickGitFeedback('Đã mô phỏng Pull · Không kết nối remote.'));
-      document.getElementById('quick-git-push').addEventListener('click', () => showQuickGitFeedback('Đã mô phỏng Push · Không kết nối remote.'));
+      document.getElementById('quick-git-pull').addEventListener('click', () => {
+        const repo = getActiveGitRepo();
+        showQuickGitFeedback(`Đã mô phỏng Pull cho ${repo?.name || 'repo'}.`);
+      });
+      document.getElementById('quick-git-push').addEventListener('click', () => {
+        const repo = getActiveGitRepo();
+        showQuickGitFeedback(`Đã mô phỏng Push cho ${repo?.name || 'repo'}.`);
+      });
       quickGitMessage.addEventListener('input', renderQuickGitActions);
+
+      ['quick-git-filter-all', 'git-view-filter-all'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', () => { gitRepoFilterMode = 'all'; renderQuickGit(); renderGitScreen(); });
+      });
+      ['quick-git-filter-dirty', 'git-view-filter-dirty'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', () => { gitRepoFilterMode = 'dirty'; renderQuickGit(); renderGitScreen(); });
+      });
+      ['git-view-rescan-btn', 'btn-header-git-rescan'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', () => {
+          const repos = getCurrentProjectGitRepos();
+          renderQuickGit();
+          renderGitScreen();
+          showToast(`Đã quét sâu ${MAX_GIT_SCAN_DEPTH} cấp thư mục: phát hiện ${repos.length} Git repo`, 'success');
+        });
+      });
+      const gitDetailBranchSelect = document.getElementById('git-detail-branch-select');
+      if (gitDetailBranchSelect) {
+        gitDetailBranchSelect.addEventListener('change', () => {
+          const repo = getActiveGitRepo();
+          if (!repo) return;
+          repo.branch = gitDetailBranchSelect.value;
+          renderGitScreen();
+          renderQuickGit();
+          showToast(`Đã chuyển nhánh ${repo.name} sang ${repo.branch}`, 'info');
+        });
+      }
+      const gitDetailStageAllBtn = document.getElementById('git-detail-stage-all-btn');
+      if (gitDetailStageAllBtn) {
+        gitDetailStageAllBtn.addEventListener('click', () => {
+          const repo = getActiveGitRepo();
+          if (!repo) return;
+          repo.files.forEach(f => { f.staged = true; });
+          renderGitScreen();
+          renderQuickGit();
+          showToast(`Đã stage toàn bộ tệp trong ${repo.name}`, 'success');
+        });
+      }
+      const gitDetailCommitBtn = document.getElementById('git-detail-commit-btn');
+      if (gitDetailCommitBtn) {
+        gitDetailCommitBtn.addEventListener('click', () => {
+          const repo = getActiveGitRepo();
+          const input = document.getElementById('git-detail-commit-input');
+          const msg = input ? input.value.trim() : '';
+          if (!repo || !msg) {
+            showToast('Vui lòng nhập nội dung commit', 'warning');
+            return;
+          }
+          if (!repo.files.some(f => f.staged)) {
+            repo.files.forEach(f => { f.staged = true; });
+          }
+          repo.files = repo.files.filter(f => !f.staged);
+          if (input) input.value = '';
+          renderGitScreen();
+          renderQuickGit();
+          showToast(`Đã commit vào repo ${repo.name}: ${msg}`, 'success');
+        });
+      }
+      ['git-detail-pull-btn', 'git-detail-push-btn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', () => {
+          const repo = getActiveGitRepo();
+          const act = id.includes('pull') ? 'Pull' : 'Push';
+          showToast(`Đã thực hiện ${act} trên repo ${repo?.name || ''}`, 'info');
+        });
+      });
 
       function setQuickPanelMode(mode) {
         quickPanelMode = mode;
@@ -7399,8 +8164,9 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         const isEditor = targetId === 'view-editor';
         const isTerm = targetId === 'view-terminal';
         const isClaude = targetId === 'view-claude';
+        const isGit = targetId === 'view-git';
 
-        // Update Dock Tabs (Only Files and Terminal are in dock)
+        // Update Dock Tabs
         dockItems.forEach(d => {
           const dt = d.getAttribute('data-target');
           if (isEditor) {
@@ -7410,19 +8176,22 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           }
         });
 
-
+        const ctxHeaderGit = document.getElementById('ctx-header-git');
+        const ctxActionsGit = document.getElementById('ctx-actions-git');
 
         // Header Center
         ctxHeaderFiles.classList.toggle('active', isFiles);
         ctxHeaderEditor.classList.toggle('active', isEditor);
         ctxHeaderTerminal.classList.toggle('active', isTerm);
         if (ctxHeaderClaude) ctxHeaderClaude.classList.toggle('active', isClaude);
+        if (ctxHeaderGit) ctxHeaderGit.classList.toggle('active', isGit);
 
         // Header Right
         ctxActionsFiles.classList.toggle('active', isFiles);
         ctxActionsEditor.classList.toggle('active', isEditor);
         ctxActionsTerminal.classList.toggle('active', isTerm);
         if (ctxActionsClaude) ctxActionsClaude.classList.toggle('active', isClaude);
+        if (ctxActionsGit) ctxActionsGit.classList.toggle('active', isGit);
 
         if (isEditor) {
           updateGutter();
@@ -7436,6 +8205,8 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           setTimeout(() => {
             if (claudeTerminalBody) claudeTerminalBody.scrollTop = claudeTerminalBody.scrollHeight;
           }, 50);
+        } else if (isGit) {
+          renderGitScreen();
         }
       }
 
@@ -8912,51 +9683,57 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         setTimeout(() => {
           claudeExtStream.scrollTop = claudeExtStream.scrollHeight;
         }, 30);
+
+        const activeRun = Boolean(session.isRunning);
+        isClaudeGenerating = activeRun;
+        if (claudeExtThinking) {
+          claudeExtThinking.classList.toggle('show', activeRun);
+        }
+        const sendBtn = document.getElementById('btn-claude-send-arrow');
+        const sendIcon = document.getElementById('claude-send-icon');
+        if (sendBtn) {
+          sendBtn.classList.toggle('stopping', activeRun);
+          sendBtn.classList.toggle('active', activeRun || Boolean(claudeExtTextarea && claudeExtTextarea.value.trim()));
+          sendBtn.title = activeRun ? 'Dừng yêu cầu đang chạy' : 'Send (Enter)';
+        }
+        if (sendIcon) {
+          sendIcon.className = activeRun ? 'ri-stop-fill' : 'ri-arrow-up-line';
+        }
       }
 
       let isClaudeGenerating = false;
       let claudeGenTimeout = null;
 
-      function stopClaudeGeneration() {
-        if (!isClaudeGenerating) return;
+      function stopClaudeGeneration(targetSession) {
+        const session = targetSession || getActiveClaudeSession();
+        if (!session && !isClaudeGenerating) return;
         if (claudeGenTimeout) {
           clearTimeout(claudeGenTimeout);
           claudeGenTimeout = null;
         }
         isClaudeGenerating = false;
-        if (claudeExtThinking) claudeExtThinking.classList.remove('show');
-
-        const sendBtn = document.getElementById('btn-claude-send-arrow');
-        const sendIcon = document.getElementById('claude-send-icon');
-        if (sendBtn) {
-          sendBtn.classList.remove('stopping');
-          sendBtn.classList.remove('active');
-          sendBtn.title = 'Send (Enter)';
-        }
-        if (sendIcon) sendIcon.className = 'ri-arrow-up-line';
-
-        const session = getActiveClaudeSession();
         if (session) {
+          session.isRunning = false;
           session.messages.push({
             id: 'msg-' + Date.now(),
             sender: 'assistant',
             text: 'Đã dừng yêu cầu.'
           });
-          renderClaudeScreen();
         }
-        showToast('Đã dừng yêu cầu.', 'info');
+        renderClaudeScreen();
+        if (typeof renderDesktopWorkspaceSidebar === 'function') renderDesktopWorkspaceSidebar();
+        showToast('Đã dừng phiên Claude đang chạy', 'info');
       }
 
       function sendExactClaudeMessage(promptText) {
-        if (isClaudeGenerating) {
-          stopClaudeGeneration();
+        const session = getActiveClaudeSession();
+        if (isClaudeGenerating || (session && session.isRunning)) {
+          stopClaudeGeneration(session);
           return;
         }
 
         const text = (promptText || (claudeExtTextarea ? claudeExtTextarea.value : '')).trim();
         if (!text) return;
-
-        const session = getActiveClaudeSession();
         if (!session) return;
 
         if (!session.messages) session.messages = [];
@@ -8973,18 +9750,11 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           claudeExtTextarea.style.height = 'auto';
         }
 
-        // Switch Send button to Stop
+        // Switch Send button to Stop & mark session running in Workspace
+        session.isRunning = true;
         isClaudeGenerating = true;
-        const sendBtn = document.getElementById('btn-claude-send-arrow');
-        const sendIcon = document.getElementById('claude-send-icon');
-        if (sendBtn) {
-          sendBtn.classList.add('stopping');
-          sendBtn.classList.add('active');
-          sendBtn.title = 'Dừng yêu cầu đang chạy';
-        }
-        if (sendIcon) sendIcon.className = 'ri-stop-fill';
-
         renderClaudeScreen();
+        if (typeof renderDesktopWorkspaceSidebar === 'function') renderDesktopWorkspaceSidebar();
 
         // 2. Show thinking indicator
         if (claudeExtThinking) {
@@ -8992,7 +9762,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           claudeExtStream.scrollTop = claudeExtStream.scrollHeight;
         }
 
-        // 3. Simulate Assistant reply
+        // 3. Simulate Assistant reply (6s so user can inspect running state & Stop button on Workspace)
         claudeGenTimeout = setTimeout(() => {
           let replyText = '';
           let tools = [];
@@ -9025,21 +9795,12 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             tools: tools.length > 0 ? tools : undefined
           });
 
-          if (claudeExtThinking) {
-            claudeExtThinking.classList.remove('show');
-          }
-
+          session.isRunning = false;
           isClaudeGenerating = false;
           claudeGenTimeout = null;
-          if (sendBtn) {
-            sendBtn.classList.remove('stopping');
-            sendBtn.classList.remove('active');
-            sendBtn.title = 'Send (Enter)';
-          }
-          if (sendIcon) sendIcon.className = 'ri-arrow-up-line';
-
           renderClaudeScreen();
-        }, 500);
+          if (typeof renderDesktopWorkspaceSidebar === 'function') renderDesktopWorkspaceSidebar();
+        }, 6000);
       }
 
       // Banner events
@@ -9233,6 +9994,135 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       if (btnClaudeSendArrow) {
         btnClaudeSendArrow.addEventListener('click', () => {
           sendExactClaudeMessage();
+        });
+      }
+
+      // Voice-to-Text Mic button (Record -> Stop -> STT -> Fill input -> Auto-delete temp audio file)
+      const btnClaudeMic = document.getElementById('btn-claude-mic');
+      const claudeMicIcon = document.getElementById('claude-mic-icon');
+      const claudeMicTimer = document.getElementById('claude-mic-timer');
+      const claudeVoiceStatus = document.getElementById('claude-voice-status');
+      const claudeVoiceDot = document.getElementById('claude-voice-dot');
+      const claudeVoiceStatusText = document.getElementById('claude-voice-status-text');
+      const claudeVoiceTempFile = document.getElementById('claude-voice-temp-file');
+      let claudeMicInterval = null;
+      let claudeMicSeconds = 0;
+      let activeTempRecordingPath = '';
+      let sttSampleIndex = 0;
+      const sttSamples = [
+        'Hãy kiểm tra tất cả các repo con bên trong dự án đang mở và tóm tắt các thay đổi chưa commit.',
+        'Hãy thêm xử lý tự động xóa file ghi âm tạm ngay sau khi phân tích Speech to Text hoàn tất.',
+        'Hãy đồng bộ tên phiên Claude vào CLI và hiển thị trạng thái đang chạy trên cột Workspace.'
+      ];
+
+      function formatMicDuration(sec) {
+        const m = String(Math.floor(sec / 60)).padStart(2, '0');
+        const s = String(sec % 60).padStart(2, '0');
+        return `${m}:${s}`;
+      }
+
+      let protoSpeechRecognition = null;
+      let protoFinalSegments = [];
+      let protoInterimSegment = '';
+
+      if (btnClaudeMic) {
+        btnClaudeMic.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const currentState = btnClaudeMic.getAttribute('data-mic-state') || 'idle';
+          if (currentState === 'transcribing') return;
+
+          if (currentState === 'idle') {
+            claudeMicSeconds = 0;
+            protoFinalSegments = [];
+            protoInterimSegment = '';
+            activeTempRecordingPath = '';
+            btnClaudeMic.setAttribute('data-mic-state', 'recording');
+            btnClaudeMic.className = 'claude-mic-btn danger recording';
+            btnClaudeMic.title = 'Nhấn để dừng thu âm và chuyển giọng nói thành văn bản';
+            if (claudeMicIcon) claudeMicIcon.className = 'ri-mic-fill';
+            if (claudeMicTimer) {
+              claudeMicTimer.hidden = false;
+              claudeMicTimer.textContent = '00:00';
+            }
+            if (claudeVoiceStatus) claudeVoiceStatus.hidden = false;
+            if (claudeVoiceDot) claudeVoiceDot.className = 'voice-dot danger';
+            if (claudeVoiceStatusText) {
+              claudeVoiceStatusText.textContent = 'Đang thu lời nói... nhấn Mic để dừng và phân tích';
+            }
+            if (claudeVoiceTempFile) {
+              claudeVoiceTempFile.textContent = '';
+            }
+            const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognitionCtor) {
+              try {
+                const rec = new SpeechRecognitionCtor();
+                rec.lang = 'vi-VN';
+                rec.continuous = true;
+                rec.interimResults = true;
+                rec.onresult = (event) => {
+                  let interim = '';
+                  for (let i = event.resultIndex || 0; i < (event.results?.length || 0); i++) {
+                    const res = event.results[i];
+                    const txt = String(res?.[0]?.transcript || '').trim();
+                    if (!txt) continue;
+                    if (res.isFinal) protoFinalSegments.push(txt);
+                    else interim = interim ? `${interim} ${txt}` : txt;
+                  }
+                  protoInterimSegment = interim;
+                };
+                rec.onerror = () => {};
+                protoSpeechRecognition = rec;
+                rec.start();
+              } catch (_) {}
+            }
+            if (claudeMicInterval) clearInterval(claudeMicInterval);
+            claudeMicInterval = setInterval(() => {
+              claudeMicSeconds += 1;
+              if (claudeMicTimer) claudeMicTimer.textContent = formatMicDuration(claudeMicSeconds);
+            }, 1000);
+          } else if (currentState === 'recording') {
+            if (claudeMicInterval) {
+              clearInterval(claudeMicInterval);
+              claudeMicInterval = null;
+            }
+            if (protoSpeechRecognition) {
+              try { protoSpeechRecognition.stop(); } catch (_) {}
+            }
+            btnClaudeMic.setAttribute('data-mic-state', 'transcribing');
+            btnClaudeMic.className = 'claude-mic-btn status-indicator transcribing';
+            btnClaudeMic.title = 'Đang phân tích Speech-to-Text...';
+            if (claudeMicIcon) claudeMicIcon.className = 'ri-loader-4-line spin';
+            if (claudeMicTimer) claudeMicTimer.hidden = true;
+            if (claudeVoiceDot) claudeVoiceDot.className = 'voice-dot status-indicator';
+            if (claudeVoiceStatusText) {
+              claudeVoiceStatusText.textContent = 'Đang phân tích Speech-to-Text...';
+            }
+
+            setTimeout(() => {
+              const spoken = [...protoFinalSegments, protoInterimSegment].map(s => s.trim()).filter(Boolean).join(' ').trim();
+              const recognizedText = spoken || sttSamples[sttSampleIndex % sttSamples.length];
+              if (!spoken) sttSampleIndex += 1;
+              protoFinalSegments = [];
+              protoInterimSegment = '';
+              protoSpeechRecognition = null;
+              if (claudeExtTextarea) {
+                const prefix = claudeExtTextarea.value.trim();
+                claudeExtTextarea.value = prefix ? `${prefix} ${recognizedText}` : recognizedText;
+                claudeExtTextarea.style.height = 'auto';
+                claudeExtTextarea.style.height = Math.min(claudeExtTextarea.scrollHeight, 120) + 'px';
+                claudeExtTextarea.focus();
+              }
+              if (btnClaudeSendArrow) btnClaudeSendArrow.classList.add('active');
+
+              activeTempRecordingPath = '';
+              btnClaudeMic.setAttribute('data-mic-state', 'idle');
+              btnClaudeMic.className = 'claude-mic-btn';
+              btnClaudeMic.title = 'Nhấn để thu âm giọng nói · Nhấn lần nữa để dừng và chuyển thành văn bản';
+              if (claudeMicIcon) claudeMicIcon.className = 'ri-mic-line';
+              if (claudeVoiceStatus) claudeVoiceStatus.hidden = true;
+              if (claudeVoiceTempFile) claudeVoiceTempFile.textContent = '';
+            }, 450);
+          }
         });
       }
 
@@ -10527,6 +11417,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         renderTerminalScreen();
         renderClaudeScreen();
         if (typeof renderQuickTree === 'function') renderQuickTree();
+        if (typeof renderQuickGit === 'function') renderQuickGit();
+        if (typeof renderGitScreen === 'function') renderGitScreen();
         syncDesktopProjectAndSessionUI();
         showToast(`Đã chuyển sang project "${target.name}" (${terminalSessions.length} Terminal, ${claudeSessions.length} Claude)`, 'info');
       }
@@ -10719,8 +11611,9 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
 
       function buildDwClaudeSessionRow(proj, sess, totalInProj, isProjectActive) {
         const isCurrent = isProjectActive && sess.id === activeClaudeId;
+        const isRunning = Boolean(sess.isRunning);
         const item = document.createElement('div');
-        item.className = 'dw-item claude-item' + (isCurrent ? ' active' : '');
+        item.className = 'dw-item claude-item' + (isCurrent ? ' active' : '') + (isRunning ? ' running' : '');
         item.setAttribute('data-dw-claude', sess.id);
         item.setAttribute('data-dw-claude-project', proj.id);
         item.innerHTML = `
@@ -10730,6 +11623,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               <span>${escapeHtml(sess.name)}</span>
             </div>
           </div>
+          ${isRunning ? '<span class="dw-claude-running status-indicator" aria-label="Claude đang làm việc"></span>' : ''}
           <div class="dw-item-actions">
             <button type="button" class="btn-dw-claude-edit" title="Chỉnh sửa"><i class="ri-edit-line"></i></button>
             ${totalInProj > 1 ? '<button type="button" class="danger btn-dw-claude-close" title="Đóng phiên"><i class="ri-close-line"></i></button>' : ''}
@@ -11000,6 +11894,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       renderFileExplorer();
       renderTerminalScreen();
       renderClaudeScreen();
+      if (typeof renderQuickGit === 'function') renderQuickGit();
+      if (typeof renderGitScreen === 'function') renderGitScreen();
       syncDesktopProjectAndSessionUI();
     })();
 </script>

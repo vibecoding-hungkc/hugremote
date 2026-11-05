@@ -293,8 +293,8 @@ const displayClaudeSessionName = computed(() => {
   const sess = claudeStore.activeSession;
   if (!sess) return 'claude';
 
-  // 1. Always prioritize the session name set by the user in HugRemote
-  if (sess.name && sess.name.trim() && sess.name !== 'claude' && sess.name !== 'chat') {
+  // 1. Always prioritize the session name set in HugRemote
+  if (sess.name && sess.name.trim()) {
     const clean = sess.name.trim();
     if (!sess.isCustomNamed && sess.cwd && clean === sess.cwd.trim()) {
       const parts = clean.replace(/[/\\]+$/, '').split(/[/\\]/).filter(Boolean);

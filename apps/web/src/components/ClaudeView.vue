@@ -313,9 +313,10 @@
           </button>
         </div>
 
-        <!-- Top Row: Input Textarea + Mic -->
+        <!-- Top Row: Input Textarea + Mic + Shield -->
         <div class="claude-ext-input-row">
           <textarea
+            id="claude-ext-textarea"
             ref="inputRef"
             v-model="inputText"
             class="claude-ext-textarea"
@@ -329,16 +330,81 @@
             @paste="onTextareaPaste"
             @input="autoResize"
           ></textarea>
-          <button
-            type="button"
-            class="claude-permission-shield-btn"
-            :class="{ bypass: activeSession?.bypassPermissions }"
-            :title="activeSession?.bypassPermissions ? t('claudeView.shieldBypassOn') : t('claudeView.shieldBypassOff')"
-            :aria-label="activeSession?.bypassPermissions ? t('claudeView.shieldTurnOff') : t('claudeView.shieldTurnOn')"
-            @click="toggleBypassPermissions"
-          >
-            <i :class="activeSession?.bypassPermissions ? 'ri-shield-cross-line' : 'ri-shield-check-line'"></i>
-          </button>
+          <div class="claude-ext-top-actions">
+            <button
+              id="btn-claude-mic"
+              type="button"
+              class="claude-mic-btn"
+              :class="{
+                'danger recording': micState === 'recording',
+                'status-indicator transcribing': micState === 'transcribing',
+              }"
+              :data-mic-state="micState"
+              :title="
+                micState === 'recording'
+                  ? 'Nhấn để dừng thu và phân tích tiếng Việt'
+                  : micState === 'transcribing'
+                    ? 'Đang phân tích giọng nói tiếng Việt...'
+                    : 'Thu âm giọng nói tiếng Việt (Speech-to-Text)'
+              "
+              :aria-label="
+                micState === 'recording'
+                  ? 'Dừng thu âm giọng nói'
+                  : 'Thu âm giọng nói tiếng Việt'
+              "
+              @click="toggleMicRecording"
+            >
+              <i
+                id="claude-mic-icon"
+                :class="
+                  micState === 'recording'
+                    ? 'ri-mic-fill'
+                    : micState === 'transcribing'
+                      ? 'ri-loader-4-line spin'
+                      : 'ri-mic-line'
+                "
+              ></i>
+              <span
+                v-if="micState === 'recording'"
+                id="claude-mic-timer"
+                class="claude-mic-timer"
+              >
+                {{ micTimerLabel }}
+              </span>
+            </button>
+            <button
+              id="btn-claude-shield"
+              type="button"
+              class="claude-permission-shield-btn"
+              :class="{ bypass: activeSession?.bypassPermissions }"
+              :title="activeSession?.bypassPermissions ? t('claudeView.shieldBypassOn') : t('claudeView.shieldBypassOff')"
+              :aria-label="activeSession?.bypassPermissions ? t('claudeView.shieldTurnOff') : t('claudeView.shieldTurnOn')"
+              @click="toggleBypassPermissions"
+            >
+              <i :class="activeSession?.bypassPermissions ? 'ri-shield-cross-line' : 'ri-shield-check-line'"></i>
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-if="micState === 'recording' || micState === 'transcribing'"
+          id="claude-voice-status"
+          class="claude-voice-status"
+          role="status"
+          aria-live="polite"
+        >
+          <span
+            id="claude-voice-dot"
+            class="voice-dot"
+            :class="micState === 'recording' ? 'danger recording' : 'status-indicator transcribing'"
+          ></span>
+          <span id="claude-voice-status-text" class="voice-status-text">
+            {{
+              micState === 'recording'
+                ? 'Đang thu lời nói... nhấn Mic để dừng và phân tích'
+                : 'Đang phân tích Speech-to-Text...'
+            }}
+          </span>
         </div>
 
         <!-- Bottom Controls Bar -->
@@ -930,6 +996,16 @@ watch(() => props.isActive, (active) => {
     if (isDesktopDevice.value) {
       setTimeout(() => inputRef.value?.focus(), 40);
     }
+  } else if (micState.value !== 'idle') {
+    cleanupMicRecognition();
+    micState.value = 'idle';
+  }
+});
+
+watch(() => activeSession.value?.id, () => {
+  if (micState.value !== 'idle') {
+    cleanupMicRecognition();
+    micState.value = 'idle';
   }
 });
 
@@ -958,7 +1034,131 @@ onUnmounted(() => {
     window.removeEventListener('paste', handleClaudeWindowPaste, true);
   }
   if (elapsedTimer) clearInterval(elapsedTimer);
+  cleanupMicRecognition();
 });
+
+const micState = ref<'idle' | 'recording' | 'transcribing'>('idle');
+const micElapsedSeconds = ref(0);
+let micTimer: ReturnType<typeof setInterval> | null = null;
+let micAnalyzeTimeout: ReturnType<typeof setTimeout> | null = null;
+let speechRecognition: any = null;
+let speechFinalSegments: string[] = [];
+let speechInterimSegment = '';
+
+const micTimerLabel = computed(() => {
+  const mins = String(Math.floor(micElapsedSeconds.value / 60)).padStart(2, '0');
+  const secs = String(micElapsedSeconds.value % 60).padStart(2, '0');
+  return `${mins}:${secs}`;
+});
+
+function cleanupMicRecognition() {
+  if (micTimer) {
+    clearInterval(micTimer);
+    micTimer = null;
+  }
+  if (micAnalyzeTimeout) {
+    clearTimeout(micAnalyzeTimeout);
+    micAnalyzeTimeout = null;
+  }
+  if (speechRecognition) {
+    try {
+      speechRecognition.onresult = null;
+      speechRecognition.onerror = null;
+      speechRecognition.onend = null;
+      speechRecognition.abort?.();
+    } catch {
+      // Ignore abort errors
+    }
+    speechRecognition = null;
+  }
+  speechFinalSegments = [];
+  speechInterimSegment = '';
+}
+
+function toggleMicRecording() {
+  if (micState.value === 'transcribing') return;
+
+  if (micState.value === 'idle') {
+    cleanupMicRecognition();
+    micState.value = 'recording';
+    micElapsedSeconds.value = 0;
+    micTimer = setInterval(() => {
+      micElapsedSeconds.value += 1;
+    }, 1000);
+
+    const win = typeof window !== 'undefined' ? (window as any) : null;
+    const SpeechRecognitionCtor = win?.SpeechRecognition || win?.webkitSpeechRecognition;
+    if (SpeechRecognitionCtor) {
+      try {
+        const rec = new SpeechRecognitionCtor();
+        rec.lang = 'vi-VN';
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.onresult = (event: any) => {
+          let interim = '';
+          for (let i = event.resultIndex || 0; i < (event.results?.length || 0); i++) {
+            const res = event.results[i];
+            const transcript = String(res?.[0]?.transcript || '').trim();
+            if (!transcript) continue;
+            if (res.isFinal) {
+              speechFinalSegments.push(transcript);
+            } else {
+              interim = interim ? `${interim} ${transcript}` : transcript;
+            }
+          }
+          speechInterimSegment = interim;
+        };
+        rec.onerror = () => {
+          // Keep state until user stops recording
+        };
+        speechRecognition = rec;
+        rec.start();
+      } catch {
+        // Fallback handled on stop
+      }
+    }
+    return;
+  }
+
+  // Stop recording -> Enter 'transcribing' (Đang phân tích) state
+  if (micTimer) {
+    clearInterval(micTimer);
+    micTimer = null;
+  }
+  micState.value = 'transcribing';
+  if (speechRecognition) {
+    try {
+      speechRecognition.stop();
+    } catch {
+      // Ignore stop errors
+    }
+  }
+
+  micAnalyzeTimeout = setTimeout(() => {
+    const win = typeof window !== 'undefined' ? (window as any) : null;
+    const mockOverride = typeof win?.__HUGREMOTE_MOCK_STT_TEXT__ === 'string'
+      ? win.__HUGREMOTE_MOCK_STT_TEXT__.trim()
+      : '';
+    const recognized = [...speechFinalSegments, speechInterimSegment]
+      .map(s => s.trim())
+      .filter(Boolean)
+      .join(' ')
+      .trim() || mockOverride;
+
+    cleanupMicRecognition();
+
+    if (recognized) {
+      const current = inputText.value.trim();
+      inputText.value = current ? `${current} ${recognized}` : recognized;
+      nextTick(() => {
+        autoResize();
+        inputRef.value?.focus();
+      });
+    }
+    // Immediately return to 'idle' without displaying a 3rd "filled" status
+    micState.value = 'idle';
+  }, 350);
+}
 
 function autoResize() {
   const el = inputRef.value;
@@ -2339,6 +2539,83 @@ function formatMarkdown(text: string): string {
 
 .claude-ext-textarea::placeholder {
   color: #989898;
+}
+
+.claude-ext-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.claude-mic-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(64, 64, 64, 0.09);
+  border: 1px solid rgba(125, 125, 125, 0.28);
+  border-radius: 7px;
+  color: #b8b8b8;
+  font-size: 15px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.claude-mic-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #eeeeee;
+}
+
+.claude-mic-btn.danger.recording {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+
+.claude-mic-btn.status-indicator.transcribing {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+.claude-mic-timer {
+  font-family: var(--font-mono, monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.claude-voice-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  color: #d4d4d4;
+}
+
+.claude-voice-status .voice-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #a3a3a3;
+}
+
+.claude-voice-status .voice-dot.danger.recording {
+  background: #ef4444;
+}
+
+.claude-voice-status .voice-dot.status-indicator.transcribing {
+  background: #f59e0b;
 }
 
 .claude-permission-shield-btn {

@@ -259,6 +259,78 @@
 
     <!-- GIT PANE: Quick Git Management -->
     <div v-else id="quick-pane-git" class="quick-pane">
+      <div class="quick-git-repo-section" id="quick-git-repo-section">
+        <div class="quick-git-repo-head">
+          <div class="quick-git-repo-title">
+            <i class="ri-git-repository-line"></i>
+            <span>Repositories</span>
+            <span id="quick-git-repo-count-badge" class="quick-git-repo-badge">
+              {{ gitStore.dirtyRepoCount }}/{{ gitStore.repos.length }}
+            </span>
+          </div>
+          <div class="quick-git-repo-filters">
+            <button
+              type="button"
+              class="quick-git-filter-btn"
+              :class="{ active: gitStore.repoFilter === 'all' }"
+              data-git-repo-filter="all"
+              @click="gitStore.repoFilter = 'all'"
+            >
+              Tất cả
+            </button>
+            <button
+              type="button"
+              class="quick-git-filter-btn"
+              :class="{ active: gitStore.repoFilter === 'dirty' }"
+              data-git-repo-filter="dirty"
+              @click="gitStore.repoFilter = 'dirty'"
+            >
+              Có thay đổi
+            </button>
+            <span class="quick-git-depth-tag" title="Quét tối đa 5 cấp thư mục">Tối đa {{ gitStore.maxDepth }} cấp</span>
+          </div>
+        </div>
+        <div id="quick-git-repo-list" class="quick-git-repo-list" role="listbox" aria-label="Danh sách Git repository trong dự án">
+          <div v-if="gitStore.filteredRepos.length === 0" class="quick-git-repo-empty">
+            Không có repository nào khớp bộ lọc
+          </div>
+          <button
+            v-for="repo in gitStore.filteredRepos"
+            :key="repo.relPath"
+            type="button"
+            class="quick-git-repo-item"
+            :class="{ active: repo.relPath === gitStore.selectedRepoPath }"
+            :data-git-repo-path="repo.relPath"
+            :style="{ paddingLeft: `${8 + Math.min(repo.depth, 5) * 8}px` }"
+            @click="gitStore.selectRepo(repo.relPath)"
+          >
+            <div class="quick-git-repo-row-top">
+              <div class="quick-git-repo-name">
+                <i :class="repo.depth === 0 ? 'ri-git-repository-fill' : 'ri-git-repository-line'"></i>
+                <span :title="repo.relPath === '.' ? `${repo.name} (gốc)` : repo.relPath">
+                  {{ repo.relPath === '.' ? repo.name : repo.relPath }}
+                </span>
+                <span class="quick-git-repo-depth">Cấp {{ repo.depth }}</span>
+              </div>
+              <span
+                class="quick-git-repo-change-pill"
+                :class="repo.changedCount > 0 ? 'dirty status-indicator' : 'clean'"
+              >
+                {{ repo.changedCount > 0 ? `${repo.changedCount} thay đổi` : 'Sạch' }}
+              </span>
+            </div>
+            <div class="quick-git-repo-row-sub">
+              <span class="quick-git-repo-branch">
+                <i class="ri-git-branch-line"></i> {{ repo.branch }}
+              </span>
+              <span v-if="repo.ahead > 0 || repo.behind > 0" class="quick-git-repo-sync">
+                ↑{{ repo.ahead }} ↓{{ repo.behind }}
+              </span>
+            </div>
+          </button>
+        </div>
+      </div>
+
       <div class="quick-git-summary">
         <div class="quick-git-branch">
           <i class="ri-git-branch-line"></i>
@@ -936,7 +1008,7 @@ async function handlePush() {
 
 async function handleRefresh() {
   if (props.mode === 'git') {
-    await gitStore.fetchStatus();
+    await Promise.all([gitStore.fetchRepos(), gitStore.fetchStatus()]);
   } else {
     childrenByPath.value = {};
     await loadRootTree();
@@ -948,6 +1020,7 @@ watch(
   ([open, currentMode]) => {
     if (!open) return;
     if (currentMode === 'git') {
+      gitStore.fetchRepos();
       gitStore.fetchStatus();
     } else if (rootEntries.value.length === 0) {
       loadRootTree();
@@ -963,18 +1036,24 @@ watch(
     rootEntries.value = [];
     childrenByPath.value = {};
     expandedPaths.value = {};
+    gitStore.selectedRepoPath = '.';
     // Preserve unsaved content with its original save scope across project/server switches.
     if (!activeInlineFile.value?.dirty) {
       activeInlineFile.value = null;
       inlineScope.value = null;
     }
     if (props.isOpen && props.mode === 'files') loadRootTree();
+    else if (props.isOpen && props.mode === 'git') {
+      gitStore.fetchRepos();
+      gitStore.fetchStatus();
+    }
   }
 );
 
 onMounted(() => {
   if (props.isOpen) {
     if (props.mode === 'git') {
+      gitStore.fetchRepos();
       gitStore.fetchStatus();
     } else if (rootEntries.value.length === 0) {
       loadRootTree();
@@ -1496,6 +1575,155 @@ onBeforeUnmount(() => {
 }
 .quick-git-count {
   color: var(--text-secondary, #a1a1a1);
+}
+
+.quick-git-repo-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.015);
+}
+.quick-git-repo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.quick-git-repo-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary, #eeeeee);
+}
+.quick-git-repo-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d4d4d4;
+}
+.quick-git-repo-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.quick-git-filter-btn {
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: #989898;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.quick-git-filter-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f5f5f5;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+.quick-git-depth-tag {
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  color: #989898;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.quick-git-repo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 156px;
+  overflow-y: auto;
+}
+.quick-git-repo-empty {
+  padding: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #989898;
+}
+.quick-git-repo-item {
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: #d4d4d4;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.quick-git-repo-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.quick-git-repo-item.active {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+.quick-git-repo-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.quick-git-repo-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+}
+.quick-git-repo-name > span:first-of-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-git-repo-depth {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #a3a3a3;
+  flex-shrink: 0;
+}
+.quick-git-repo-change-pill {
+  font-family: var(--font-mono, monospace);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.quick-git-repo-change-pill.dirty.status-indicator {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.14);
+}
+.quick-git-repo-change-pill.clean {
+  color: #989898;
+  background: rgba(255, 255, 255, 0.05);
+}
+.quick-git-repo-row-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: #989898;
 }
 
 .quick-git-files {

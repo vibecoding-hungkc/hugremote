@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { apiUrl } from '../utils/api.js';
 import { useServerStore } from './serverStore.js';
 import { useProjectStore } from './projectStore.js';
@@ -24,9 +24,31 @@ export interface GitBranchItem {
   current: boolean;
 }
 
+export interface GitRepoSummary {
+  relPath: string;
+  name: string;
+  depth: number;
+  branch: string;
+  ahead: number;
+  behind: number;
+  hasUpstream: boolean;
+  upstream: string;
+  changedCount: number;
+  stagedCount: number;
+  unstagedCount: number;
+  untrackedCount: number;
+  clean: boolean;
+}
+
 export const useGitStore = defineStore('git', () => {
   const serverStore = useServerStore();
   const projectStore = useProjectStore();
+  const maxDepth = ref(5);
+  const repos = ref<GitRepoSummary[]>([]);
+  const selectedRepoPath = ref('.');
+  const repoFilter = ref<'all' | 'dirty'>('all');
+  const scanningRepos = ref(false);
+
   const branch = ref('');
   const upstream = ref('');
   const hasUpstream = ref(false);
@@ -42,9 +64,98 @@ export const useGitStore = defineStore('git', () => {
   const error = ref<string | null>(null);
   const actionMessage = ref<string | null>(null);
 
+  watch(
+    () => `${serverStore.currentServerId}:${projectStore.currentProject?.id || ''}`,
+    () => {
+      selectedRepoPath.value = '.';
+      repos.value = [];
+      selectedFile.value = null;
+      diffLines.value = [];
+    }
+  );
+
+  const dirtyRepoCount = computed(() =>
+    repos.value.filter(r => !r.clean || r.changedCount > 0).length
+  );
+
+  const filteredRepos = computed(() => {
+    if (repoFilter.value === 'dirty') {
+      return repos.value.filter(
+        r => !r.clean || r.changedCount > 0 || r.relPath === selectedRepoPath.value
+      );
+    }
+    return repos.value;
+  });
+
+  function repoQuerySuffix(): string {
+    const rel = (selectedRepoPath.value || '.').trim();
+    return rel && rel !== '.' ? `&repoPath=${encodeURIComponent(rel)}` : '';
+  }
+
+  function syncActiveRepoSummaryFromStatus() {
+    const idx = repos.value.findIndex(r => r.relPath === selectedRepoPath.value);
+    if (idx === -1) return;
+    const stagedCount = files.value.filter(f => f.staged).length;
+    const untrackedCount = files.value.filter(f => f.status === '??').length;
+    const unstagedCount = files.value.filter(f => !f.staged && f.status !== '??').length;
+    const changedCount = files.value.length;
+    repos.value[idx] = {
+      ...repos.value[idx],
+      branch: branch.value || repos.value[idx].branch,
+      ahead: ahead.value,
+      behind: behind.value,
+      hasUpstream: hasUpstream.value,
+      upstream: upstream.value,
+      changedCount,
+      stagedCount,
+      unstagedCount,
+      untrackedCount,
+      clean: changedCount === 0,
+    };
+  }
+
+  async function fetchRepos() {
+    const projectId = projectStore.currentProject?.id;
+    if (!projectId) {
+      repos.value = [];
+      selectedRepoPath.value = '.';
+      return;
+    }
+    scanningRepos.value = true;
+    try {
+      const res = await fetch(
+        apiUrl(
+          `/api/git/repos?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`
+        )
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (typeof data.maxDepth === 'number') maxDepth.value = data.maxDepth;
+      const list: GitRepoSummary[] = Array.isArray(data.repos) ? data.repos : [];
+      repos.value = list;
+      if (list.length > 0 && !list.some(r => r.relPath === selectedRepoPath.value)) {
+        selectedRepoPath.value = list[0].relPath;
+      }
+    } catch {
+      // Keep existing repo list if scan fails
+    } finally {
+      scanningRepos.value = false;
+    }
+  }
+
+  async function selectRepo(relPath: string) {
+    const next = (relPath || '.').trim() || '.';
+    selectedRepoPath.value = next;
+    selectedFile.value = null;
+    diffLines.value = [];
+    await Promise.all([fetchStatus(), fetchBranches()]);
+  }
+
   async function fetchStatus() {
     const projectId = projectStore.currentProject?.id;
     if (!projectId) {
+      repos.value = [];
+      selectedRepoPath.value = '.';
       applyStatus({});
       error.value = null;
       loading.value = false;
@@ -53,10 +164,15 @@ export const useGitStore = defineStore('git', () => {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(apiUrl(`/api/git/status?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`));
+      const res = await fetch(
+        apiUrl(
+          `/api/git/status?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}${repoQuerySuffix()}`
+        )
+      );
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git status');
       const data = await res.json();
       applyStatus(data);
+      syncActiveRepoSummaryFromStatus();
     } catch (err: any) {
       error.value = err.message;
       applyStatus({});
@@ -69,7 +185,11 @@ export const useGitStore = defineStore('git', () => {
     const projectId = projectStore.currentProject?.id;
     if (!projectId) return;
     try {
-      const res = await fetch(apiUrl(`/api/git/branches?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}`));
+      const res = await fetch(
+        apiUrl(
+          `/api/git/branches?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}${repoQuerySuffix()}`
+        )
+      );
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git branches');
       const data = await res.json();
       branches.value = data.branches || [];
@@ -86,7 +206,11 @@ export const useGitStore = defineStore('git', () => {
     loading.value = true;
     error.value = null;
     try {
-      const res = await fetch(apiUrl(`/api/git/diff?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}&file=${encodeURIComponent(file)}`));
+      const res = await fetch(
+        apiUrl(
+          `/api/git/diff?serverId=${encodeURIComponent(serverStore.currentServerId)}&projectId=${encodeURIComponent(projectId)}&file=${encodeURIComponent(file)}${repoQuerySuffix()}`
+        )
+      );
       if (!res.ok) throw new Error((await res.json()).error || 'Failed to load git diff');
       const data = await res.json();
       diffLines.value = data.lines || [];
@@ -110,7 +234,10 @@ export const useGitStore = defineStore('git', () => {
   }
 
   function applyActionData(data: any) {
-    if (data.status) applyStatus(data.status);
+    if (data.status) {
+      applyStatus(data.status);
+      syncActiveRepoSummaryFromStatus();
+    }
     if (data.branches) branches.value = data.branches;
   }
 
@@ -120,11 +247,15 @@ export const useGitStore = defineStore('git', () => {
     loading.value = true;
     error.value = null;
     actionMessage.value = null;
+    const rel = (selectedRepoPath.value || '.').trim();
+    const payload = rel && rel !== '.'
+      ? { serverId: serverStore.currentServerId, projectId, repoPath: rel, ...body }
+      : { serverId: serverStore.currentServerId, projectId, ...body };
     try {
       const res = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serverId: serverStore.currentServerId, projectId, ...body }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Git action failed');
       const data = await res.json();
@@ -148,8 +279,8 @@ export const useGitStore = defineStore('git', () => {
     actionMessage.value = 'Push complete';
   }
 
-  async function checkout(branch: string) {
-    await postGitAction('/api/git/checkout', { branch });
+  async function checkout(branchName: string) {
+    await postGitAction('/api/git/checkout', { branch: branchName });
   }
 
   async function stageFile(file: string) {
@@ -169,5 +300,39 @@ export const useGitStore = defineStore('git', () => {
     diffLines.value = [];
   }
 
-  return { branch, upstream, hasUpstream, repoRoot, ahead, behind, fetchedAt, files, branches, selectedFile, diffLines, loading, error, actionMessage, fetchStatus, fetchBranches, fetchDiff, pull, push, checkout, stageFile, unstageFile, commit, backToList };
+  return {
+    maxDepth,
+    repos,
+    selectedRepoPath,
+    repoFilter,
+    scanningRepos,
+    dirtyRepoCount,
+    filteredRepos,
+    branch,
+    upstream,
+    hasUpstream,
+    repoRoot,
+    ahead,
+    behind,
+    fetchedAt,
+    files,
+    branches,
+    selectedFile,
+    diffLines,
+    loading,
+    error,
+    actionMessage,
+    fetchRepos,
+    selectRepo,
+    fetchStatus,
+    fetchBranches,
+    fetchDiff,
+    pull,
+    push,
+    checkout,
+    stageFile,
+    unstageFile,
+    commit,
+    backToList,
+  };
 });

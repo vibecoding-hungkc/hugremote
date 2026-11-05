@@ -1,10 +1,10 @@
 <template>
-  <div class="git-view">
+  <div class="git-view" :class="{ 'mobile-detail-open': mobileDetailOpen }">
     <div class="git-multi-repo-bar" id="git-multi-repo-bar">
       <div class="git-multi-repo-header">
         <div class="git-multi-repo-title">
           <i class="ri-git-repository-line"></i>
-          <span>Repositories trong dự án (Tối đa {{ gitStore.maxDepth }} cấp)</span>
+          <span>Repositories trong dự án</span>
           <span class="git-multi-repo-badge" id="git-view-repo-count">
             {{ gitStore.dirtyRepoCount }}/{{ gitStore.repos.length }} có thay đổi
           </span>
@@ -36,7 +36,7 @@
             @click="rescanRepos"
           >
             <i class="ri-radar-line" :class="{ spin: gitStore.scanningRepos }"></i>
-            <span>Quét lại {{ gitStore.maxDepth }} cấp</span>
+            <span>Quét lại</span>
           </button>
         </div>
       </div>
@@ -49,14 +49,13 @@
           class="git-multi-repo-card"
           :class="{ active: repo.relPath === gitStore.selectedRepoPath }"
           :data-git-repo-path="repo.relPath"
-          @click="gitStore.selectRepo(repo.relPath)"
+          @click="openRepo(repo.relPath)"
         >
           <div class="git-multi-repo-card-top">
             <span class="git-multi-repo-name">
               <i :class="repo.depth === 0 ? 'ri-git-repository-fill' : 'ri-git-repository-line'"></i>
               {{ repo.relPath === '.' ? `${repo.name} (gốc)` : repo.relPath }}
             </span>
-            <span class="git-multi-repo-depth">Cấp {{ repo.depth }}</span>
           </div>
           <div class="git-multi-repo-card-bottom">
             <span class="git-multi-repo-branch">
@@ -73,6 +72,10 @@
       </div>
     </div>
 
+    <div class="git-repo-detail">
+      <button type="button" class="git-mobile-back" aria-label="Quay lại danh sách repo" @click="backToRepos">
+        <i class="ri-arrow-left-line" aria-hidden="true"></i> Danh sách repo
+      </button>
     <div class="git-summary">
       <button class="branch-picker" @click="showBranchSheet = true">
         <i class="ri-git-branch-line"></i>
@@ -133,6 +136,8 @@
       </div>
     </template>
 
+    </div>
+
     <div v-if="showBranchSheet" class="branch-overlay" @click.self="showBranchSheet = false">
       <div class="branch-sheet">
         <div class="branch-sheet-header">
@@ -159,8 +164,20 @@ const projectStore = useProjectStore();
 const commitMessage = ref('');
 const pullBusy = ref(false);
 const showBranchSheet = ref(false);
+const mobileDetailOpen = ref(false);
+
+async function openRepo(relPath: string) {
+  mobileDetailOpen.value = true;
+  await gitStore.selectRepo(relPath);
+}
+
+function backToRepos() {
+  mobileDetailOpen.value = false;
+  gitStore.backToList();
+}
 
 async function refreshGit() {
+  mobileDetailOpen.value = false;
   gitStore.selectedRepoPath = '.';
   await gitStore.fetchRepos();
   await gitStore.fetchStatus();
@@ -186,6 +203,8 @@ async function checkout(branch: string) { await gitStore.checkout(branch); showB
 
 <style scoped>
 .git-view { flex:1; min-height:0; background:#161616; color:#d4d4d4; display:flex; flex-direction:column; overflow:hidden; }
+.git-repo-detail { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.git-mobile-back { display:none; }
 .git-multi-repo-bar { flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:8px 10px; border-bottom:1px solid #323232; background:#171717; }
 .git-multi-repo-header { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
 .git-multi-repo-title { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#e5e5e5; }
@@ -198,7 +217,6 @@ async function checkout(branch: string) { await gitStore.checkout(branch); showB
 .git-multi-repo-card.active { border-color:#7d7d7d; background:#2a2a2a; color:#ffffff; }
 .git-multi-repo-card-top, .git-multi-repo-card-bottom { display:flex; align-items:center; justify-content:space-between; gap:6px; }
 .git-multi-repo-name { font-family:monospace; font-size:11.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; }
-.git-multi-repo-depth { font-family:monospace; font-size:9.5px; padding:0 5px; border-radius:4px; background:rgba(255,255,255,.07); color:#a8a8a8; flex-shrink:0; }
 .git-multi-repo-branch { font-family:monospace; font-size:10.5px; color:#a3a3a3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .git-multi-repo-status { font-family:monospace; font-size:10px; font-weight:700; padding:1px 6px; border-radius:999px; flex-shrink:0; }
 .git-multi-repo-status.dirty.status-indicator { color:#f59e0b; background:rgba(245,158,11,.14); }
@@ -252,5 +270,17 @@ async function checkout(branch: string) { await gitStore.checkout(branch); showB
 .branch-sheet-header button { width:30px; height:30px; border-radius:8px; border:1px solid #3f3f3f; background:#282828; color:#d4d4d4; }
 .branch-row { min-height:40px; border:1px solid #323232; border-radius:9px; background:#181818; color:#d4d4d4; padding:0 10px; display:flex; align-items:center; justify-content:space-between; font-family:monospace; font-size:12px; }
 .branch-row.active { border-color:#7d7d7d; background:rgba(64, 64, 64, .09); color:#c1c1c1; }
+@media (max-width:860px) {
+  .git-view:not(.mobile-detail-open) .git-repo-detail { display:none; }
+  .git-view.mobile-detail-open .git-multi-repo-bar { display:none; }
+  .git-multi-repo-bar { flex:1; min-height:0; overflow:hidden; }
+  .git-multi-repo-list { flex:1; min-height:0; flex-direction:column; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+  .git-multi-repo-card { width:100%; max-width:none; min-width:0; min-height:58px; }
+  .git-mobile-back { display:inline-flex; flex-shrink:0; align-items:center; gap:6px; align-self:flex-start; min-height:36px; margin:4px 10px; padding:0 3px; border:0; background:transparent; color:#e7e7e7; font-size:12px; font-weight:700; cursor:pointer; }
+  .git-repo-detail { overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .file-open { gap:5px; padding-right:8px; }
+  .file-path { font-size:11px; }
+  .stage-label { white-space:nowrap; }
+}
 @media (max-width:390px){ .git-remote-actions button{padding:0 6px;} .branch-picker{max-width:42%;} }
 </style>

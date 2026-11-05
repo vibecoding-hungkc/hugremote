@@ -3,7 +3,7 @@ import path from 'path';
 import { LOCAL_WORKSPACE, ALLOWED_ROOT } from '../config.js';
 import { sshPool } from './sshPool.js';
 export class FsService {
-    resolveLocalPath(requestedPath, workspaceOverride) {
+    resolveLocalPath(requestedPath, workspaceOverride, strictWorkspace = false) {
         let base = workspaceOverride || LOCAL_WORKSPACE;
         if (!fs.existsSync(base)) {
             try {
@@ -18,10 +18,15 @@ export class FsService {
             ? fs.realpathSync(ALLOWED_ROOT)
             : path.resolve(ALLOWED_ROOT);
         const rootWithSep = canonicalRoot.endsWith(path.sep) ? canonicalRoot : canonicalRoot + path.sep;
+        const canonicalBase = fs.existsSync(base)
+            ? fs.realpathSync(base)
+            : path.resolve(base);
+        const baseWithSep = canonicalBase.endsWith(path.sep) ? canonicalBase : canonicalBase + path.sep;
+        const withinBase = (candidate) => !strictWorkspace || candidate === canonicalBase || candidate.startsWith(baseWithSep);
         // If target exists, dereference symlinks to inspect real destination
         if (fs.existsSync(target)) {
             const canonicalTarget = fs.realpathSync(target);
-            const isAllowed = canonicalTarget === canonicalRoot || canonicalTarget.startsWith(rootWithSep);
+            const isAllowed = (canonicalTarget === canonicalRoot || canonicalTarget.startsWith(rootWithSep)) && withinBase(canonicalTarget);
             if (!isAllowed) {
                 throw new Error('Access denied: Path resolves outside permitted root (symlink escape detected)');
             }
@@ -31,13 +36,13 @@ export class FsService {
         const parentDir = path.dirname(target);
         if (fs.existsSync(parentDir)) {
             const canonicalParent = fs.realpathSync(parentDir);
-            const isAllowed = canonicalParent === canonicalRoot || canonicalParent.startsWith(rootWithSep);
+            const isAllowed = (canonicalParent === canonicalRoot || canonicalParent.startsWith(rootWithSep)) && withinBase(canonicalParent);
             if (!isAllowed) {
                 throw new Error('Access denied: Parent directory resolves outside permitted root');
             }
         }
         else {
-            const isAllowed = target === canonicalRoot || target.startsWith(rootWithSep);
+            const isAllowed = (target === canonicalRoot || target.startsWith(rootWithSep)) && withinBase(target);
             if (!isAllowed) {
                 throw new Error('Access denied: Path is outside permitted root');
             }
@@ -45,7 +50,7 @@ export class FsService {
         return target;
     }
     // --- LOCAL FS ---
-    async listLocal(relPath = '', workspaceOverride) {
+    async listLocal(relPath = '', workspaceOverride, strictWorkspace = false) {
         let base = workspaceOverride || LOCAL_WORKSPACE;
         if (!fs.existsSync(base)) {
             try {
@@ -53,7 +58,7 @@ export class FsService {
             }
             catch (_) { }
         }
-        const targetDir = this.resolveLocalPath(relPath, base);
+        const targetDir = this.resolveLocalPath(relPath, base, strictWorkspace);
         if (!fs.existsSync(targetDir)) {
             if (!relPath) {
                 try {
@@ -93,7 +98,8 @@ export class FsService {
                 return a.isDirectory ? -1 : 1;
             return a.name.localeCompare(b.name);
         });
-        const parentDir = targetDir === ALLOWED_ROOT ? null : path.dirname(targetDir);
+        const canonicalBase = fs.existsSync(base) ? fs.realpathSync(base) : path.resolve(base);
+        const parentDir = (targetDir === ALLOWED_ROOT || (strictWorkspace && targetDir === canonicalBase)) ? null : path.dirname(targetDir);
         const parentRel = parentDir ? path.relative(base, parentDir) : null;
         return {
             currentRel: path.relative(base, targetDir),
@@ -101,8 +107,8 @@ export class FsService {
             entries,
         };
     }
-    async readLocalFile(relPath, workspaceOverride) {
-        const filePath = this.resolveLocalPath(relPath, workspaceOverride);
+    async readLocalFile(relPath, workspaceOverride, strictWorkspace = false) {
+        const filePath = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
         if (!fs.existsSync(filePath))
             throw new Error('File not found');
         const stat = fs.statSync(filePath);
@@ -117,8 +123,8 @@ export class FsService {
             content,
         };
     }
-    async writeLocalFile(relPath, content, workspaceOverride) {
-        const filePath = this.resolveLocalPath(relPath, workspaceOverride);
+    async writeLocalFile(relPath, content, workspaceOverride, strictWorkspace = false) {
+        const filePath = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
         const dir = path.dirname(filePath);
         if (!fs.existsSync(dir))
             fs.mkdirSync(dir, { recursive: true });
@@ -126,8 +132,8 @@ export class FsService {
         const stat = fs.statSync(filePath);
         return { size: stat.size };
     }
-    async createLocal(relPath, type, workspaceOverride) {
-        const target = this.resolveLocalPath(relPath, workspaceOverride);
+    async createLocal(relPath, type, workspaceOverride, strictWorkspace = false) {
+        const target = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
         if (fs.existsSync(target))
             throw new Error('Item already exists');
         if (type === 'dir') {
@@ -140,9 +146,9 @@ export class FsService {
             fs.writeFileSync(target, '', 'utf8');
         }
     }
-    async deleteLocal(relPath, workspaceOverride) {
+    async deleteLocal(relPath, workspaceOverride, strictWorkspace = false) {
         const base = workspaceOverride || LOCAL_WORKSPACE;
-        const target = this.resolveLocalPath(relPath, workspaceOverride);
+        const target = this.resolveLocalPath(relPath, workspaceOverride, strictWorkspace);
         if (target === ALLOWED_ROOT || target === base) {
             throw new Error('Cannot delete root workspace');
         }
@@ -150,9 +156,9 @@ export class FsService {
             throw new Error('Target not found');
         fs.rmSync(target, { recursive: true, force: true });
     }
-    async renameLocal(oldRel, newRel, workspaceOverride) {
-        const oldTarget = this.resolveLocalPath(oldRel, workspaceOverride);
-        const newTarget = this.resolveLocalPath(newRel, workspaceOverride);
+    async renameLocal(oldRel, newRel, workspaceOverride, strictWorkspace = false) {
+        const oldTarget = this.resolveLocalPath(oldRel, workspaceOverride, strictWorkspace);
+        const newTarget = this.resolveLocalPath(newRel, workspaceOverride, strictWorkspace);
         if (!fs.existsSync(oldTarget))
             throw new Error('Source not found');
         if (fs.existsSync(newTarget))

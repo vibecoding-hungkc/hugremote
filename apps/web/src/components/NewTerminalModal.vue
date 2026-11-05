@@ -160,7 +160,8 @@ function initDefaults() {
     if (fileStore.currentRel.startsWith('/')) {
       targetCwd.value = fileStore.currentRel;
     } else {
-      const base = projectStore.currentProject?.rootPath || curServer.workspace || '';
+      // Files tab paths are relative to the server workspace, not the selected project.
+      const base = curServer.workspace || '';
       targetCwd.value = base ? `${base}/${fileStore.currentRel}` : fileStore.currentRel;
     }
   } else {

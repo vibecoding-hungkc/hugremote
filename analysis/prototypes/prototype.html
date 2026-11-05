@@ -4388,33 +4388,61 @@
     .quick-git-repo-filters { display:flex; align-items:center; gap:5px; }
     .quick-git-filter-btn { background:#1e1e1e; border:1px solid #383838; color:#a8a8a8; border-radius:6px; padding:3px 8px; font-size:10.5px; font-weight:600; cursor:pointer; }
     .quick-git-filter-btn.active { background:#333333; border-color:#666666; color:#f0f0f0; }
-    .quick-git-repo-list { display:flex; flex-direction:column; gap:4px; max-height:176px; overflow-y:auto; }
-    .quick-git-repo-item { display:flex; flex-direction:column; gap:3px; padding:7px 8px; border-radius:7px; background:#1b1b1b; border:1px solid #303030; cursor:pointer; text-align:left; color:#e2e2e2; }
+    .quick-git-repo-list { display:flex; flex-direction:column; gap:3px; max-height:176px; overflow-y:auto; }
+    .quick-git-repo-item { display:flex; align-items:center; gap:7px; min-width:0; padding:7px 8px; border-radius:7px; background:#1b1b1b; border:1px solid #303030; cursor:pointer; text-align:left; color:#e2e2e2; }
     .quick-git-repo-item:hover { background:#242424; border-color:#454545; }
-    .quick-git-repo-item.active { background:#292929; border-color:#787878; }
-    .quick-git-repo-row-top { display:flex; align-items:center; justify-content:space-between; gap:6px; width:100%; }
-    .quick-git-repo-name { font-family:var(--font-mono); font-size:11.5px; font-weight:700; color:#f0f0f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
-    .quick-git-repo-row-meta { display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:10px; color:#9e9e9e; font-family:var(--font-mono); }
+    .quick-git-repo-item.active { background:#292929; border-color:#787878; box-shadow:inset 2px 0 #a6a6a6; }
+    .quick-git-repo-name { flex:1; min-width:0; font-family:var(--font-mono); font-size:11.5px; font-weight:700; color:#f0f0f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .quick-git-repo-item > .ri-git-repository-line { color:#a6a6a6; font-size:13px; flex:none; }
+    .quick-git-repo-item .git-repo-count { margin-left:auto; }
     .git-repo-count.git-badge { background:rgba(245, 158, 11, 0.16); color:#fbbf24; border:1px solid rgba(245, 158, 11, 0.38); border-radius:999px; padding:1px 6px; font-size:10px; font-family:var(--font-mono); font-weight:700; flex-shrink:0; }
     .git-repo-count.ok { background:rgba(34, 197, 94, 0.14); color:#4ade80; border:1px solid rgba(34, 197, 94, 0.35); border-radius:999px; padding:1px 6px; font-size:10px; font-family:var(--font-mono); font-weight:700; flex-shrink:0; }
     .git-view-container { display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden; background:#121212; }
     .git-scanner-banner { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:10px 14px; background:#171717; border-bottom:1px solid #2d2d2d; }
     .git-scanner-info { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:12px; color:#d8d8d8; }
+    .git-scanner-info .git-view-title { font-weight:700; color:#e8e8e8; }
+    .git-scanner-info .git-view-project { color:#9e9e9e; }
+    .git-scanner-info .git-view-project b { color:#d8d8d8; font-weight:600; }
     .git-scanner-actions { display:flex; align-items:center; gap:6px; }
     .git-main-grid { display:grid; grid-template-columns:300px 1fr; flex:1; min-height:0; overflow:hidden; }
     @media (max-width:860px) {
-      .git-main-grid { grid-template-columns:1fr; overflow-y:auto; }
+      .git-view-container { min-height:0; }
+      #view-git .git-main-grid { display:block; overflow-y:auto; }
+      .git-main-grid .git-repos-column { display:flex; border-right:0; min-height:100%; }
+      .git-main-grid .git-repos-scroll { flex:none; overflow:visible; }
+      .git-main-grid .git-Active-detail-column { display:none; }
+      .git-main-grid.mobile-detail-open .git-repos-column { display:none; }
+      .git-main-grid.mobile-detail-open .git-Active-detail-column { display:flex; min-height:100%; }
+      .git-view-container.mobile-detail-open .git-scanner-banner { display:none; }
+      .git-scanner-banner .git-scanner-actions { display:flex; }
+      .git-main-grid .git-mobile-back { display:inline-flex; align-items:center; gap:6px; min-height:36px; width:max-content; max-width:100%; border:0; background:transparent; color:#e7e7e7; font:700 12px var(--font-sans); cursor:pointer; padding:0 3px; }
+      .git-repo-card { min-height:58px; }
+      .git-repo-card-sub { font-size:10.5px; }
+      .git-detail-split { grid-template-columns:1fr; }
+      .git-file-row { min-height:48px; }
+      .git-file-row .git-file-path { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .git-file-row .git-file-stage { flex:none; }
+      .git-main-grid .git-file-stats { display:inline-flex; gap:5px; flex:none; font-size:10px; font-weight:700; }
+      .git-file-stats .plus { color:#34d399; }
+      .git-file-stats .minus { color:#fb7185; }
     }
+    .git-mobile-back { display:none; }
+    .git-file-stats { display:none; }
     .git-repos-column { border-right:1px solid #2b2b2b; background:#151515; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
     .git-repos-column-head { padding:10px 12px; border-bottom:1px solid #292929; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11.5px; font-weight:700; color:#cccccc; }
-    .git-repos-scroll { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:6px; }
-    .git-repo-card { display:flex; flex-direction:column; gap:5px; padding:9px 10px; border-radius:8px; background:#1c1c1c; border:1px solid #323232; cursor:pointer; text-align:left; color:#e5e5e5; transition:background .15s, border-color .15s; }
+    .git-repos-scroll { flex:1; overflow-y:auto; padding:5px 7px; display:flex; flex-direction:column; gap:3px; }
+    .git-repo-card { display:flex; align-items:center; gap:7px; width:100%; min-width:0; padding:8px 9px; border-radius:7px; background:#1c1c1c; border:1px solid #303030; cursor:pointer; text-align:left; color:#e5e5e5; transition:background .15s, border-color .15s; }
     .git-repo-card:hover { background:#232323; border-color:#484848; }
-    .git-repo-card.active { background:#282828; border-color:#8a8a8a; }
-    .git-repo-card-top { display:flex; align-items:center; justify-content:space-between; gap:6px; }
-    .git-repo-card-title { font-family:var(--font-mono); font-size:12px; font-weight:700; color:#f2f2f2; display:inline-flex; align-items:center; gap:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .git-repo-card-path { font-family:var(--font-mono); font-size:10.5px; color:#9e9e9e; display:flex; align-items:center; justify-content:space-between; gap:6px; }
-    .git-repo-card-foot { display:flex; align-items:center; justify-content:space-between; gap:6px; font-family:var(--font-mono); font-size:10.5px; color:#bdbdbd; }
+    .git-repo-card.active { background:#282828; border-color:#8a8a8a; box-shadow:inset 2px 0 #a6a6a6; }
+    .git-repo-card-icon { flex:none; color:#9e9e9e; font-size:14px; }
+    .git-repo-card.active .git-repo-card-icon { color:#d3d3d3; }
+    .git-repo-card-main { display:flex; flex-direction:column; min-width:0; flex:1; gap:2px; }
+    .git-repo-card-title { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--font-mono); font-size:11.5px; font-weight:700; color:#ededed; }
+    .git-repo-card-sub { display:flex; min-width:0; align-items:center; gap:5px; font-family:var(--font-mono); font-size:10px; color:#9e9e9e; }
+    .git-repo-card-path { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    .git-repo-card-branch { flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px; }
+    .git-repo-card-sub .git-repo-separator { flex:none; color:#666; }
+    .git-repo-card > .git-repo-count { margin-left:auto; }
     .git-Active-detail-column { display:flex; flex-direction:column; min-height:0; overflow-y:auto; padding:12px 14px; gap:12px; }
     .git-active-repo-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:10px 12px; border-radius:8px; background:#1a1a1a; border:1px solid #333333; }
     .git-active-repo-meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-family:var(--font-mono); font-size:12px; color:#e5e5e5; }
@@ -4426,6 +4454,7 @@
     .git-files-box, .git-diff-box { background:#181818; border:1px solid #2f2f2f; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; }
     .git-box-title { padding:8px 11px; border-bottom:1px solid #2b2b2b; font-size:11.5px; font-weight:700; color:#cccccc; display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .git-file-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border-bottom:1px solid #252525; font-family:var(--font-mono); font-size:11.5px; color:#e2e2e2; cursor:pointer; }
+    .git-file-path { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .git-file-row:hover { background:#212121; }
     .git-file-row.active { background:#292929; }
     .git-file-row .status.modified { color:#fbbf24; font-weight:700; width:18px; text-align:center; }
@@ -4523,7 +4552,6 @@
             <span class="term-session-pill" id="header-git-repo-pill" title="Repo đang theo dõi trong dự án">
               <i class="ri-git-repository-line" style="color:#38bdf8;"></i>
               <span id="header-git-repo-name">hugcode</span>
-              <span class="badge-count" id="header-git-repo-depth">Cấp 0</span>
             </span>
           </div>
         </div>
@@ -4567,7 +4595,7 @@
 
           <!-- Actions for Git -->
           <div id="ctx-actions-git" class="ctx-actions-item">
-            <button id="btn-header-git-rescan" class="btn-icon-action" type="button" title="Quét lại các Git repo tối đa 5 cấp"><i class="ri-radar-line"></i></button>
+            <button id="btn-header-git-rescan" class="btn-icon-action" type="button" title="Quét lại Git repo trong dự án"><i class="ri-radar-line"></i></button>
             <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
           </div>
         </div>
@@ -4643,7 +4671,7 @@
           <div class="quick-git-repo-section">
             <div class="quick-git-repo-head">
               <span><i class="ri-git-repository-line"></i> Repo trong dự án</span>
-              <span class="quick-git-depth-tag" id="quick-git-depth-summary">Tối đa 5 cấp · 5 repo</span>
+              <span class="quick-git-depth-tag" id="quick-git-depth-summary">5 repo</span>
             </div>
             <div class="quick-git-repo-filters">
               <button type="button" class="quick-git-filter-btn active" data-git-repo-filter="all" id="quick-git-filter-all">Tất cả · 5</button>
@@ -4652,7 +4680,7 @@
             <div id="quick-git-repo-list" class="quick-git-repo-list" role="listbox" aria-label="Danh sách Git repo trong dự án"></div>
           </div>
           <div id="quick-git-branch" class="quick-git-branch"><i class="ri-git-branch-line"></i> Nhánh mẫu · main</div>
-          <p class="quick-git-note" id="quick-git-note">Đang theo dõi repo gốc dự án · Quét tự động tối đa 5 cấp thư mục</p>
+          <p class="quick-git-note" id="quick-git-note">Đang theo dõi repo gốc dự án · Tự động tìm repo con trong dự án</p>
           <div class="quick-tree-caption">Tệp thay đổi <span id="quick-git-count">0</span></div>
           <div id="quick-git-files" class="quick-git-files"></div>
           <div class="quick-git-actions">
@@ -5119,39 +5147,40 @@
         </div>
       </section>
 
-      <!-- VIEW 5: MULTI-REPO GIT TRACKER (SCAN UP TO 5 LEVELS INSIDE OPEN PROJECT) -->
+      <!-- VIEW 5: MULTI-REPO GIT TRACKER -->
       <section id="view-git" class="view">
         <div class="git-view-container">
           <div class="git-scanner-banner">
             <div class="git-scanner-info">
               <i class="ri-git-merge-line" style="color:#38bdf8; font-size:15px;"></i>
-              <span>Dự án đang mở: <b id="git-view-project-name">hugcode</b></span>
-              <span class="quick-git-depth-tag" id="git-view-scan-badge">Quét tối đa 5 cấp · Phát hiện 5 Git repo</span>
+              <span class="git-view-title">Repositories trong dự án</span>
+              <span class="git-view-project">· <b id="git-view-project-name">hugcode</b></span>
+              <span class="quick-git-depth-tag" id="git-view-scan-badge">5 repo</span>
             </div>
             <div class="git-scanner-actions">
               <button type="button" class="quick-git-filter-btn active" id="git-view-filter-all">Tất cả · 5</button>
               <button type="button" class="quick-git-filter-btn" id="git-view-filter-dirty">Có thay đổi · 4</button>
-              <button type="button" class="quick-git-filter-btn" id="git-view-rescan-btn"><i class="ri-refresh-line"></i> Quét lại 5 cấp</button>
+              <button type="button" class="quick-git-filter-btn" id="git-view-rescan-btn"><i class="ri-refresh-line"></i> Quét lại</button>
             </div>
           </div>
 
           <div class="git-main-grid">
-            <!-- Left column: All discovered Git repositories inside the open project (depth 0..5) -->
+            <!-- Left column: discovered Git repositories inside the open project -->
             <div class="git-repos-column">
               <div class="git-repos-column-head">
-                <span>Danh sách Repo trong dự án</span>
-                <span class="quick-git-depth-tag">Cấp 0 → Cấp 5</span>
+                <span>Danh sách repo</span>
               </div>
               <div id="git-repo-card-list" class="git-repos-scroll" role="listbox" aria-label="Danh sách các repo bên trong dự án"></div>
             </div>
 
             <!-- Right column: Active repository status, branch switcher, changed files, and diff viewer -->
             <div class="git-Active-detail-column">
+              <button type="button" id="git-mobile-back" class="git-mobile-back" aria-label="Quay lại danh sách repo"><i class="ri-arrow-left-line" aria-hidden="true"></i> Danh sách repo</button>
               <div class="git-active-repo-toolbar">
                 <div class="git-active-repo-meta">
                   <i class="ri-git-repository-line" style="color:#38bdf8;"></i>
                   <b id="git-detail-repo-name">hugcode</b>
-                  <span class="quick-git-depth-tag" id="git-detail-repo-path">. · Cấp 0 · Gốc dự án</span>
+                  <span class="quick-git-depth-tag" id="git-detail-repo-path">Gốc dự án</span>
                   <span class="quick-git-depth-tag" id="git-detail-repo-sync">Đồng bộ origin/main</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -5961,7 +5990,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
                 {
                   id: 'm1',
                   sender: 'user',
-                  text: 'Quét tất cả các repo con tối đa 5 cấp và kiểm tra trạng thái nhánh'
+                  text: 'Tìm các repo con trong dự án và kiểm tra trạng thái nhánh'
                 },
                 {
                   id: 'm2',
@@ -7338,7 +7367,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             syncText: 'Đồng bộ origin/main',
             files: [
               { path: 'src/server.js', status: 'M', staged: false, selected: false, diff: ['@@ -41,6 +41,9 @@', ' const app = createServer();', '-const gitRootOnly = true;', '+const maxGitScanDepth = 5;', '+app.registerMultiRepoScanner(maxGitScanDepth);'] },
-              { path: 'docs/README.md', status: 'M', staged: false, selected: false, diff: ['@@ -12,4 +12,6 @@', ' ## Quản lý Git đa tầng', '+Hỗ trợ tự động dò các kho Git con bên trong dự án đang mở tối đa 5 cấp thư mục.'] },
+              { path: 'docs/README.md', status: 'M', staged: false, selected: false, diff: ['@@ -12,4 +12,6 @@', ' ## Quản lý Git đa tầng', '+Tự động dò các kho Git con bên trong dự án đang mở.'] },
               { path: 'tests/session.test.js', status: '??', staged: false, selected: false, diff: ['@@ -0,0 +1,5 @@', '+import assert from "node:assert";', '+assert.equal(scanNestedRepos({ maxDepth: 5 }).length, 5);'] }
             ]
           },
@@ -7456,7 +7485,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               branches: ['main', 'develop'],
               syncText: 'Đồng bộ origin/main',
               files: [
-                { path: 'README.md', status: 'M', staged: false, selected: false, diff: ['@@ -1,2 +1,3 @@', '+Đã bật quét Git đa repo tối đa 5 cấp.'] }
+                { path: 'README.md', status: 'M', staged: false, selected: false, diff: ['@@ -1,2 +1,3 @@', '+Đã bật quét Git đa repo trong dự án.'] }
               ]
             },
             {
@@ -7497,9 +7526,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         const dockGitBadge = document.getElementById('dock-git-count');
         if (dockGitBadge) dockGitBadge.textContent = String(totalChanged);
         const headerRepoName = document.getElementById('header-git-repo-name');
-        const headerRepoDepth = document.getElementById('header-git-repo-depth');
         if (headerRepoName && activeRepo) headerRepoName.textContent = activeRepo.name;
-        if (headerRepoDepth && activeRepo) headerRepoDepth.textContent = `Cấp ${activeRepo.depth}`;
       }
 
       function renderQuickGit() {
@@ -7509,7 +7536,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         const quickGitFiles = activeRepo ? activeRepo.files : [];
 
         const depthSummary = document.getElementById('quick-git-depth-summary');
-        if (depthSummary) depthSummary.textContent = `Tối đa ${MAX_GIT_SCAN_DEPTH} cấp · ${repos.length} repo`;
+        if (depthSummary) depthSummary.textContent = `${repos.length} repo`;
         const filterAllBtn = document.getElementById('quick-git-filter-all');
         const filterDirtyBtn = document.getElementById('quick-git-filter-dirty');
         if (filterAllBtn) {
@@ -7532,16 +7559,12 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             btn.setAttribute('data-git-repo-id', repo.id);
             btn.setAttribute('data-git-repo-depth', String(repo.depth));
             const countClass = repo.files.length > 0 ? 'git-repo-count git-badge' : 'git-repo-count ok';
-            const countLabel = repo.files.length > 0 ? `${repo.files.length} thay đổi` : 'Sạch';
+            const countLabel = repo.files.length > 0 ? `${repo.files.length} file` : 'Sạch';
+            btn.title = `${repo.relPath} · ${repo.branch}`;
             btn.innerHTML = `
-              <div class="quick-git-repo-row-top">
-                <span class="quick-git-repo-name"><i class="ri-git-repository-line"></i> ${escapeHtml(repo.name)}</span>
-                <span class="${countClass}">${countLabel}</span>
-              </div>
-              <div class="quick-git-repo-row-meta">
-                <span>${escapeHtml(repo.relPath)} · Cấp ${repo.depth}</span>
-                <span><i class="ri-git-branch-line"></i> ${escapeHtml(repo.branch)}</span>
-              </div>
+              <i class="ri-git-repository-line" aria-hidden="true"></i>
+              <span class="quick-git-repo-name">${escapeHtml(repo.relPath === '.' ? repo.name : repo.relPath)}</span>
+              <span class="${countClass}">${countLabel}</span>
             `;
             btn.addEventListener('click', () => {
               const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
@@ -7549,7 +7572,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
               activeGitDiffFilePath = repo.files[0]?.path || '';
               renderQuickGit();
               renderGitScreen();
-              showQuickGitFeedback(`Đang xem repo ${repo.name} ở cấp ${repo.depth}`);
+              showQuickGitFeedback(`Đang xem repo ${repo.name}`);
             });
             repoListEl.append(btn);
           });
@@ -7557,7 +7580,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
         const branchBanner = document.getElementById('quick-git-branch');
         if (branchBanner && activeRepo) {
-          branchBanner.innerHTML = `<i class="ri-git-branch-line"></i> ${escapeHtml(activeRepo.name)} · ${escapeHtml(activeRepo.branch)} · Cấp ${activeRepo.depth}`;
+          branchBanner.innerHTML = `<i class="ri-git-branch-line"></i> ${escapeHtml(activeRepo.name)} · ${escapeHtml(activeRepo.branch)}`;
         }
         const noteEl = document.getElementById('quick-git-note');
         if (noteEl && activeRepo) {
@@ -7605,6 +7628,15 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         document.getElementById('quick-git-push').disabled = quickGitFiles.some(file => file.staged);
       }
 
+      function setMobileGitDetail(open) {
+        const grid = document.querySelector('#view-git .git-main-grid');
+        const container = document.querySelector('#view-git .git-view-container');
+        grid?.classList.toggle('mobile-detail-open', open);
+        container?.classList.toggle('mobile-detail-open', open);
+        if (grid) grid.scrollTop = 0;
+      }
+      document.getElementById('git-mobile-back')?.addEventListener('click', () => setMobileGitDetail(false));
+
       function renderGitScreen() {
         const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
         const repos = getCurrentProjectGitRepos();
@@ -7615,7 +7647,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         const projNameEl = document.getElementById('git-view-project-name');
         if (projNameEl) projNameEl.textContent = proj?.name || 'hugcode';
         const scanBadgeEl = document.getElementById('git-view-scan-badge');
-        if (scanBadgeEl) scanBadgeEl.textContent = `Quét tối đa ${MAX_GIT_SCAN_DEPTH} cấp · Phát hiện ${repos.length} Git repo`;
+        if (scanBadgeEl) scanBadgeEl.textContent = `${repos.length} repo`;
 
         const viewFilterAll = document.getElementById('git-view-filter-all');
         const viewFilterDirty = document.getElementById('git-view-filter-dirty');
@@ -7639,26 +7671,26 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             card.setAttribute('data-git-card-id', repo.id);
             card.setAttribute('data-git-card-depth', String(repo.depth));
             const countClass = repo.files.length > 0 ? 'git-repo-count git-badge' : 'git-repo-count ok';
-            const countLabel = repo.files.length > 0 ? `${repo.files.length} thay đổi` : 'Sạch';
+            const countLabel = repo.files.length > 0 ? `${repo.files.length} file` : 'Sạch';
+            card.title = `${repo.relPath} · ${repo.branch} · ${repo.syncText}`;
             card.innerHTML = `
-              <div class="git-repo-card-top">
-                <span class="git-repo-card-title"><i class="ri-git-repository-line" style="color:#38bdf8;"></i> ${escapeHtml(repo.name)}</span>
-                <span class="${countClass}">${countLabel}</span>
-              </div>
-              <div class="git-repo-card-path">
-                <span>Đường dẫn: ${escapeHtml(repo.relPath)}</span>
-                <span>Cấp ${repo.depth}</span>
-              </div>
-              <div class="git-repo-card-foot">
-                <span><i class="ri-git-branch-line"></i> ${escapeHtml(repo.branch)}</span>
-                <span>${escapeHtml(repo.syncText)}</span>
-              </div>
+              <i class="ri-git-repository-line git-repo-card-icon" aria-hidden="true"></i>
+              <span class="git-repo-card-main">
+                <span class="git-repo-card-title">${escapeHtml(repo.name)}</span>
+                <span class="git-repo-card-sub">
+                  <span class="git-repo-card-path"><i class="ri-git-branch-line"></i> ${escapeHtml(repo.branch)}</span>
+                  <span class="git-repo-separator">·</span>
+                  <span class="git-repo-card-branch">${escapeHtml(repo.relPath === '.' ? 'Gốc dự án' : repo.syncText)}</span>
+                </span>
+              </span>
+              <span class="${countClass}">${countLabel}</span>
             `;
             card.addEventListener('click', () => {
               activeGitRepoIdByProject[proj?.id || 'proj-hugcode'] = repo.id;
               activeGitDiffFilePath = repo.files[0]?.path || '';
               renderGitScreen();
               renderQuickGit();
+              if (window.matchMedia('(max-width: 860px)').matches) setMobileGitDetail(true);
             });
             cardList.append(card);
           });
@@ -7668,7 +7700,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         const detailPath = document.getElementById('git-detail-repo-path');
         const detailSync = document.getElementById('git-detail-repo-sync');
         if (detailName) detailName.textContent = activeRepo.name;
-        if (detailPath) detailPath.textContent = `${activeRepo.relPath} · Cấp ${activeRepo.depth} · ${activeRepo.roleLabel}`;
+        if (detailPath) detailPath.textContent = activeRepo.relPath === '.' ? 'Gốc dự án' : activeRepo.relPath;
         if (detailSync) detailSync.textContent = activeRepo.syncText;
 
         const branchSelect = document.getElementById('git-detail-branch-select');
@@ -7716,10 +7748,13 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
                 : file.status === '??'
                 ? 'untracked'
                 : 'modified';
+              const additions = (file.diff || []).filter(line => line.startsWith('+') && !line.startsWith('+++')).length;
+              const deletions = (file.diff || []).filter(line => line.startsWith('-') && !line.startsWith('---')).length;
               row.innerHTML = `
                 <span class="status ${stClass}">${file.staged ? '✓' : escapeHtml(file.status)}</span>
-                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(file.path)}</span>
-                <span class="quick-git-depth-tag">${file.staged ? 'Đã stage' : 'Chưa stage'}</span>
+                <span class="git-file-path" title="${escapeHtml(file.path)}">${escapeHtml(file.path)}</span>
+                <span class="quick-git-depth-tag git-file-stage">${file.staged ? 'Đã stage' : 'Chưa stage'}</span>
+                <span class="git-file-stats" aria-label="${additions} dòng thêm, ${deletions} dòng xóa"><span class="plus">+${additions}</span><span class="minus">-${deletions}</span></span>
               `;
               row.addEventListener('click', () => {
                 activeGitDiffFilePath = file.path;
@@ -7792,7 +7827,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           const repos = getCurrentProjectGitRepos();
           renderQuickGit();
           renderGitScreen();
-          showToast(`Đã quét sâu ${MAX_GIT_SCAN_DEPTH} cấp thư mục: phát hiện ${repos.length} Git repo`, 'success');
+          showToast(`Đã tìm thấy ${repos.length} Git repo trong dự án`, 'success');
         });
       });
       const gitDetailBranchSelect = document.getElementById('git-detail-branch-select');
@@ -8217,6 +8252,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             if (claudeTerminalBody) claudeTerminalBody.scrollTop = claudeTerminalBody.scrollHeight;
           }, 50);
         } else if (isGit) {
+          if (window.matchMedia('(max-width: 860px)').matches) setMobileGitDetail(false);
           renderGitScreen();
         }
       }

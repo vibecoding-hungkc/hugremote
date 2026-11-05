@@ -77,6 +77,59 @@ export function getAvailableSshKeys(): string[] {
   }
 }
 
+// OpenSSH Include patterns are relative to ~/.ssh, including nested files.
+function expandSshInclude(sshDir: string, pattern: string): string[] {
+  const expanded = pattern === '~' ? os.homedir()
+    : pattern.startsWith('~/') ? path.join(os.homedir(), pattern.slice(2))
+    : path.isAbsolute(pattern) ? pattern : path.join(sshDir, pattern);
+  const absolute = path.resolve(expanded);
+  const segments = absolute.split(path.sep).filter(Boolean);
+  let paths = [path.parse(absolute).root];
+  for (const segment of segments) {
+    const wildcard = /[*?\[]/.test(segment);
+    const matcher = wildcard
+      ? new RegExp('^' + segment.replace(/[.+^${}()|\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$')
+      : null;
+    paths = paths.flatMap((dir) => {
+      if (!wildcard) return [path.join(dir, segment)];
+      try {
+        return fs.readdirSync(dir).filter((name) => !name.startsWith('.') && matcher!.test(name))
+          .map((name) => path.join(dir, name));
+      } catch { return []; }
+    }).slice(0, 256);
+  }
+  return paths.filter((file) => {
+    try { return fs.statSync(file).isFile(); } catch { return false; }
+  }).sort();
+}
+
+function listSshConfigFiles(sshConfigPath: string): string[] {
+  const sshDir = path.dirname(sshConfigPath);
+  const files: string[] = [];
+  const active = new Set<string>();
+  const visit = (file: string, depth = 0) => {
+    if (depth > 16 || files.length >= 256) return;
+    let canonical: string;
+    try { canonical = fs.realpathSync(file); } catch { return; }
+    if (active.has(canonical)) return;
+    active.add(canonical);
+    files.push(canonical);
+    try {
+      for (const rawLine of fs.readFileSync(canonical, 'utf8').split('\n')) {
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        const normalizedLine = line.replace(/^([A-Za-z][A-Za-z0-9]*)\s*=\s*/, '$1 ');
+        const [key, ...valParts] = normalizedLine.split(/\s+/);
+        if (key.toLowerCase() !== 'include') continue;
+        const patterns = valParts.join(' ').match(/"[^"]+"|'[^']+'|\S+/g)?.map((part) => part.replace(/^['"]|['"]$/g, '')) || [];
+        for (const pattern of patterns) for (const included of expandSshInclude(sshDir, pattern)) visit(included, depth + 1);
+      }
+    } finally { active.delete(canonical); }
+  };
+  visit(sshConfigPath);
+  return files;
+}
+
 export function parseSshConfig(): ServerConfig[] {
   const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
   const creds = loadCredentials();
@@ -110,13 +163,72 @@ export function parseSshConfig(): ServerConfig[] {
   }
 
   try {
-    const content = fs.readFileSync(sshConfigPath, 'utf8');
-    const lines = content.split('\n');
     let currentHost: Partial<ServerConfig> | null = null;
+    const seenHosts = new Set<string>();
+    const activeFiles = new Set<string>();
+    let expandedFiles = 0;
+
+    const sshDir = path.dirname(sshConfigPath);
+    function expandInclude(pattern: string): string[] {
+      return expandSshInclude(sshDir, pattern);
+    }
+
+    function parseConfig(file: string, depth = 0) {
+      if (depth > 16 || expandedFiles >= 256) return;
+      let canonical: string;
+      try { canonical = fs.realpathSync(file); } catch { return; }
+      if (activeFiles.has(canonical)) return;
+      activeFiles.add(canonical);
+      expandedFiles++;
+      try {
+        for (const rawLine of fs.readFileSync(canonical, 'utf8').split('\n')) {
+          parseLine(rawLine, depth);
+        }
+        pushCurrentHost();
+        currentHost = null;
+      } finally { activeFiles.delete(canonical); }
+    }
+
+    function parseLine(rawLine: string, depth: number) {
+      const line = rawLine.trim();
+      if (!line) return;
+      if (line.toLowerCase().startsWith('# workspace')) {
+        const wsVal = line.replace(/^#\s*workspace\s*/i, '').trim();
+        if (wsVal && currentHost) currentHost.workspace = wsVal;
+        return;
+      }
+      if (line.toLowerCase().startsWith('# authtype')) {
+        const atVal = line.replace(/^#\s*authtype\s*/i, '').trim().toLowerCase();
+        if ((atVal === 'password' || atVal === 'key') && currentHost) currentHost.authType = atVal as 'password' | 'key';
+        return;
+      }
+      if (line.startsWith('#')) return;
+      const normalizedLine = line.replace(/^([A-Za-z][A-Za-z0-9]*)\s*=\s*/, '$1 ');
+      const [key, ...valParts] = normalizedLine.split(/\s+/);
+      const val = valParts.join(' ').replace(/^['"]|['"]$/g, '');
+      if (key.toLowerCase() === 'include') {
+        pushCurrentHost();
+        currentHost = null;
+        const patterns = valParts.join(' ').match(/"[^"]+"|'[^']+'|\S+/g)?.map((part) => part.replace(/^['"]|['"]$/g, '')) || [];
+        for (const pattern of patterns) for (const included of expandInclude(pattern)) parseConfig(included, depth + 1);
+      } else if (key.toLowerCase() === 'host') {
+        pushCurrentHost();
+        const alias = valParts.find((part) => !part.startsWith('!') && !/[?*]/.test(part));
+        currentHost = alias ? { name: alias } : null;
+      } else if (currentHost) {
+        const lowerKey = key.toLowerCase();
+        if (lowerKey === 'hostname') currentHost.host = val;
+        else if (lowerKey === 'user') currentHost.user = val;
+        else if (lowerKey === 'port') currentHost.port = parseInt(val, 10);
+        else if (lowerKey === 'identityfile') currentHost.key = val;
+      }
+    }
 
     function pushCurrentHost() {
-      if (currentHost && currentHost.name && currentHost.name !== '*') {
+      if (currentHost && currentHost.name && currentHost.name !== '*' && !/[?*]/.test(currentHost.name)) {
         const hName = currentHost.name;
+        if (seenHosts.has(hName)) return;
+        seenHosts.add(hName);  // OpenSSH applies the first matching Host stanza.
         const pass = creds[hName];
         const defaultWs = (currentHost.user && currentHost.user !== 'root') ? `/home/${currentHost.user}` : '/root';
         servers.push({
@@ -137,43 +249,7 @@ export function parseSshConfig(): ServerConfig[] {
       }
     }
 
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (!line) continue;
-
-      if (line.toLowerCase().startsWith('# workspace')) {
-        const wsVal = line.replace(/^#\s*workspace\s*/i, '').trim();
-        if (wsVal && currentHost) {
-          currentHost.workspace = wsVal;
-        }
-        continue;
-      }
-
-      if (line.toLowerCase().startsWith('# authtype')) {
-        const atVal = line.replace(/^#\s*authtype\s*/i, '').trim().toLowerCase();
-        if ((atVal === 'password' || atVal === 'key') && currentHost) {
-          currentHost.authType = atVal as any;
-        }
-        continue;
-      }
-
-      if (line.startsWith('#')) continue;
-
-      const [key, ...valParts] = line.split(/\s+/);
-      const val = valParts.join(' ');
-
-      if (key.toLowerCase() === 'host') {
-        pushCurrentHost();
-        currentHost = { name: val };
-      } else if (currentHost) {
-        const lowerKey = key.toLowerCase();
-        if (lowerKey === 'hostname') currentHost.host = val;
-        else if (lowerKey === 'user') currentHost.user = val;
-        else if (lowerKey === 'port') currentHost.port = parseInt(val, 10);
-        else if (lowerKey === 'identityfile') currentHost.key = val;
-      }
-    }
-
+    parseConfig(sshConfigPath);
     pushCurrentHost();
   } catch (err) {
     console.warn('Failed to parse ~/.ssh/config:', err);
@@ -189,9 +265,8 @@ export function saveOrUpdateSshConfigHost(server: ServerConfig): void {
   }
 
   const sshConfigPath = path.join(sshDir, 'config');
-  let content = fs.existsSync(sshConfigPath) ? fs.readFileSync(sshConfigPath, 'utf8') : '';
-
-  const hostRegex = new RegExp(`(^|\\n)Host\\s+${server.name}\\b([\\s\\S]*?)(?=\\nHost\\s+|$)`, 'i');
+  const escaped = server.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const hostRegex = new RegExp(`(^|\\n)Host\\s+${escaped}(?:\\s[^\\n]*)?([\\s\\S]*?)(?=\\nHost\\s+|$)`, 'i');
 
   let newBlock = `Host ${server.name}\n`;
   newBlock += `    HostName ${server.host}\n`;
@@ -209,16 +284,24 @@ export function saveOrUpdateSshConfigHost(server: ServerConfig): void {
   newBlock += `    StrictHostKeyChecking no\n`;
   newBlock += `    UserKnownHostsFile /dev/null\n`;
 
-  if (hostRegex.test(content)) {
-    content = content.replace(hostRegex, (match, prefix) => {
-      return (prefix ? '\n' : '') + newBlock.trim();
-    });
-  } else {
-    content = content.trim();
-    content = content ? `${content}\n\n${newBlock}` : newBlock;
+  let updatedInPlace = false;
+  if (fs.existsSync(sshConfigPath)) {
+    for (const configFile of listSshConfigFiles(sshConfigPath)) {
+      const fileContent = fs.readFileSync(configFile, 'utf8');
+      if (!hostRegex.test(fileContent)) continue;
+      const nextContent = fileContent.replace(hostRegex, (_match, prefix) => (prefix ? '\n' : '') + newBlock.trim());
+      fs.writeFileSync(configFile, nextContent.trim() + '\n', { mode: 0o600 });
+      updatedInPlace = true;
+      break;
+    }
   }
 
-  fs.writeFileSync(sshConfigPath, content.trim() + '\n', { mode: 0o600 });
+  if (!updatedInPlace) {
+    let content = fs.existsSync(sshConfigPath) ? fs.readFileSync(sshConfigPath, 'utf8') : '';
+    content = content.trim();
+    content = content ? `${content}\n\n${newBlock}` : newBlock;
+    fs.writeFileSync(sshConfigPath, content.trim() + '\n', { mode: 0o600 });
+  }
 
   if (server.password) {
     const creds = loadCredentials();
@@ -240,22 +323,20 @@ export function updateSshConfigHostWorkspace(serverName: string, newWorkspace: s
 
   const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
   if (!fs.existsSync(sshConfigPath)) return;
-  let content = fs.readFileSync(sshConfigPath, 'utf8');
-
-  const hostRegex = new RegExp(`(^|\\n)(Host\\s+${serverName}\\b[\\s\\S]*?)(?=\\nHost\\s+|$)`, 'i');
-  const match = content.match(hostRegex);
-  if (!match) return;
-
-  let block = match[2];
-  if (/#\s*Workspace\s+[^\n]+/i.test(block)) {
-    block = block.replace(/#\s*Workspace\s+[^\n]+/i, `# Workspace ${normalized}`);
-  } else {
-    block = block.trimEnd() + `\n    # Workspace ${normalized}\n`;
+  const escaped = serverName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const hostRegex = new RegExp(`(^|\\n)(Host\\s+${escaped}(?:\\s[^\\n]*)?[\\s\\S]*?)(?=\\nHost\\s+|$)`, 'i');
+  for (const configFile of listSshConfigFiles(sshConfigPath)) {
+    let content = fs.readFileSync(configFile, 'utf8');
+    const match = content.match(hostRegex);
+    if (!match) continue;
+    let block = match[2];
+    if (/#\s*Workspace\s+[^\n]+/i.test(block)) {
+      block = block.replace(/#\s*Workspace\s+[^\n]+/i, `# Workspace ${normalized}`);
+    } else {
+      block = block.trimEnd() + `\n    # Workspace ${normalized}\n`;
+    }
+    content = content.replace(hostRegex, (_m, prefix) => (prefix ? '\n' : '') + block.trim());
+    fs.writeFileSync(configFile, content.trim() + '\n', { mode: 0o600 });
+    return;
   }
-
-  content = content.replace(hostRegex, (m, prefix) => {
-    return (prefix ? '\n' : '') + block.trim();
-  });
-
-  fs.writeFileSync(sshConfigPath, content.trim() + '\n', { mode: 0o600 });
 }

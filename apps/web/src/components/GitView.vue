@@ -1,5 +1,78 @@
 <template>
   <div class="git-view">
+    <div class="git-multi-repo-bar" id="git-multi-repo-bar">
+      <div class="git-multi-repo-header">
+        <div class="git-multi-repo-title">
+          <i class="ri-git-repository-line"></i>
+          <span>Repositories trong dự án (Tối đa {{ gitStore.maxDepth }} cấp)</span>
+          <span class="git-multi-repo-badge" id="git-view-repo-count">
+            {{ gitStore.dirtyRepoCount }}/{{ gitStore.repos.length }} có thay đổi
+          </span>
+        </div>
+        <div class="git-multi-repo-actions">
+          <button
+            type="button"
+            class="git-repo-filter-btn"
+            :class="{ active: gitStore.repoFilter === 'all' }"
+            data-git-repo-filter="all"
+            @click="gitStore.repoFilter = 'all'"
+          >
+            Tất cả ({{ gitStore.repos.length }})
+          </button>
+          <button
+            type="button"
+            class="git-repo-filter-btn"
+            :class="{ active: gitStore.repoFilter === 'dirty' }"
+            data-git-repo-filter="dirty"
+            @click="gitStore.repoFilter = 'dirty'"
+          >
+            Có thay đổi ({{ gitStore.dirtyRepoCount }})
+          </button>
+          <button
+            id="btn-rescan-git-repos"
+            type="button"
+            class="git-rescan-btn"
+            :disabled="gitStore.scanningRepos"
+            @click="rescanRepos"
+          >
+            <i class="ri-radar-line" :class="{ spin: gitStore.scanningRepos }"></i>
+            <span>Quét lại {{ gitStore.maxDepth }} cấp</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="git-multi-repo-list" class="git-multi-repo-list" role="listbox" aria-label="Danh sách Git repository trong dự án">
+        <button
+          v-for="repo in gitStore.filteredRepos"
+          :key="repo.relPath"
+          type="button"
+          class="git-multi-repo-card"
+          :class="{ active: repo.relPath === gitStore.selectedRepoPath }"
+          :data-git-repo-path="repo.relPath"
+          @click="gitStore.selectRepo(repo.relPath)"
+        >
+          <div class="git-multi-repo-card-top">
+            <span class="git-multi-repo-name">
+              <i :class="repo.depth === 0 ? 'ri-git-repository-fill' : 'ri-git-repository-line'"></i>
+              {{ repo.relPath === '.' ? `${repo.name} (gốc)` : repo.relPath }}
+            </span>
+            <span class="git-multi-repo-depth">Cấp {{ repo.depth }}</span>
+          </div>
+          <div class="git-multi-repo-card-bottom">
+            <span class="git-multi-repo-branch">
+              <i class="ri-git-branch-line"></i> {{ repo.branch }}
+            </span>
+            <span
+              class="git-multi-repo-status"
+              :class="repo.changedCount > 0 ? 'dirty status-indicator' : 'clean'"
+            >
+              {{ repo.changedCount > 0 ? `${repo.changedCount} file` : 'Clean' }}
+            </span>
+          </div>
+        </button>
+      </div>
+    </div>
+
     <div class="git-summary">
       <button class="branch-picker" @click="showBranchSheet = true">
         <i class="ri-git-branch-line"></i>
@@ -28,7 +101,9 @@
         </button>
       </div>
 
-      <div class="git-section-title">Changed files · {{ gitStore.files.length }}</div>
+      <div class="git-section-title">
+        Changed files ({{ gitStore.selectedRepoPath === '.' ? 'repo gốc' : gitStore.selectedRepoPath }}) · {{ gitStore.files.length }}
+      </div>
       <div v-for="file in gitStore.files" :key="file.path" class="file-row">
         <button class="stage-toggle" :class="{ staged: file.staged }" :title="file.staged ? 'Unstage' : 'Stage'" @click.stop="toggleStage(file)">
           <i :class="file.staged ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
@@ -86,6 +161,14 @@ const pullBusy = ref(false);
 const showBranchSheet = ref(false);
 
 async function refreshGit() {
+  gitStore.selectedRepoPath = '.';
+  await gitStore.fetchRepos();
+  await gitStore.fetchStatus();
+  await gitStore.fetchBranches();
+}
+
+async function rescanRepos() {
+  await gitStore.fetchRepos();
   await gitStore.fetchStatus();
   await gitStore.fetchBranches();
 }
@@ -103,6 +186,23 @@ async function checkout(branch: string) { await gitStore.checkout(branch); showB
 
 <style scoped>
 .git-view { flex:1; min-height:0; background:#161616; color:#d4d4d4; display:flex; flex-direction:column; overflow:hidden; }
+.git-multi-repo-bar { flex-shrink:0; display:flex; flex-direction:column; gap:8px; padding:8px 10px; border-bottom:1px solid #323232; background:#171717; }
+.git-multi-repo-header { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.git-multi-repo-title { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#e5e5e5; }
+.git-multi-repo-badge { font-family:monospace; font-size:10.5px; padding:1px 7px; border-radius:999px; background:rgba(255,255,255,.08); color:#d4d4d4; }
+.git-multi-repo-actions { display:inline-flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.git-repo-filter-btn, .git-rescan-btn { height:24px; padding:0 8px; border-radius:6px; border:1px solid #3f3f3f; background:#242424; color:#b5b5b5; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; cursor:pointer; }
+.git-repo-filter-btn.active { background:#3a3a3a; color:#ffffff; border-color:#686868; }
+.git-multi-repo-list { display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
+.git-multi-repo-card { min-width:170px; max-width:240px; flex-shrink:0; padding:6px 9px; border-radius:8px; border:1px solid #323232; background:#1c1c1c; color:#d4d4d4; display:flex; flex-direction:column; gap:4px; text-align:left; cursor:pointer; }
+.git-multi-repo-card.active { border-color:#7d7d7d; background:#2a2a2a; color:#ffffff; }
+.git-multi-repo-card-top, .git-multi-repo-card-bottom { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+.git-multi-repo-name { font-family:monospace; font-size:11.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-flex; align-items:center; gap:4px; }
+.git-multi-repo-depth { font-family:monospace; font-size:9.5px; padding:0 5px; border-radius:4px; background:rgba(255,255,255,.07); color:#a8a8a8; flex-shrink:0; }
+.git-multi-repo-branch { font-family:monospace; font-size:10.5px; color:#a3a3a3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.git-multi-repo-status { font-family:monospace; font-size:10px; font-weight:700; padding:1px 6px; border-radius:999px; flex-shrink:0; }
+.git-multi-repo-status.dirty.status-indicator { color:#f59e0b; background:rgba(245,158,11,.14); }
+.git-multi-repo-status.clean { color:#989898; background:rgba(255,255,255,.05); }
 .git-summary { min-height:42px; flex-shrink:0; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 10px; border-bottom:1px solid #323232; background:#171717; }
 .branch-picker { min-width:0; max-width:48%; height:30px; display:flex; align-items:center; gap:5px; border:1px solid rgba(125, 125, 125, .28); border-radius:8px; background:rgba(64, 64, 64, .08); color:#c1c1c1; padding:0 8px; font-size:12px; font-weight:800; }
 .branch-picker span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

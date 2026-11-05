@@ -107,9 +107,10 @@
               </div>
               <div class="dw-session-list">
                 <div v-for="s in sessionsForProject(proj.id, proj.rootPath, 'claude')" :key="s.id"
-                  class="dw-item claude-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id }"
+                  class="dw-item claude-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id, running: isClaudeSessionRunning(s) }"
                   :data-dw-claude="s.id" :data-dw-claude-project="proj.id" @click="handleSelectClaude(s)">
-                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-sparkling-fill" style="color: #f59e0b"></i><span>{{ s.name }}</span></div></div>
+                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-sparkling-fill" style="color: #f59e0b"></i><span>{{ displayClaudeName(s) }}</span></div></div>
+                  <span v-if="isClaudeSessionRunning(s)" class="dw-claude-running status-indicator" aria-label="Claude đang làm việc"></span>
                   <span v-if="proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id" class="dw-active-dot" aria-label="Claude đang chọn"></span>
                   <div class="dw-item-actions" @click.stop>
                     <button type="button" class="btn-dw-claude-edit" title="Chỉnh sửa phiên Claude" @click="handleEditClaude(s)"><i class="ri-edit-line"></i></button>
@@ -221,9 +222,66 @@ watch(() => serverStore.currentServerId, () => {
   allClaudeSessions.value = [];
   refreshAllClaudeSessions();
 });
-watch(() => [projectStore.currentProject?.id, claudeStore.sessions.map(s => `${s.id}:${s.name}`).join('|')], () => refreshAllClaudeSessions());
-onMounted(() => refreshAllClaudeSessions());
-onBeforeUnmount(() => { sessionRequest++; stopResize(); });
+watch(
+  () => [
+    projectStore.currentProject?.id,
+    claudeStore.isGenerating,
+    claudeStore.runningSessionIds.join('|'),
+    claudeStore.sessions.map(s => `${s.id}:${s.name}:${s.isRunning ? 1 : 0}`).join('|'),
+  ],
+  () => refreshAllClaudeSessions()
+);
+let runningPollTimer: ReturnType<typeof setInterval> | null = null;
+function syncRunningPoll() {
+  const hasAnyRunning =
+    claudeStore.isGenerating ||
+    claudeStore.runningSessionIds.length > 0 ||
+    claudeStore.sessions.some((s) => s.isRunning) ||
+    allClaudeSessions.value.some((s) => s.isRunning);
+  if (hasAnyRunning && !runningPollTimer && typeof window !== 'undefined') {
+    runningPollTimer = setInterval(() => {
+      refreshAllClaudeSessions();
+    }, 2500);
+  } else if (!hasAnyRunning && runningPollTimer) {
+    clearInterval(runningPollTimer);
+    runningPollTimer = null;
+  }
+}
+watch(
+  () => [
+    claudeStore.isGenerating,
+    claudeStore.runningSessionIds.length,
+    claudeStore.sessions.some((s) => s.isRunning),
+    allClaudeSessions.value.some((s) => s.isRunning),
+  ],
+  () => syncRunningPoll()
+);
+onMounted(() => {
+  refreshAllClaudeSessions();
+  syncRunningPoll();
+});
+onBeforeUnmount(() => {
+  sessionRequest++;
+  stopResize();
+  if (runningPollTimer) {
+    clearInterval(runningPollTimer);
+    runningPollTimer = null;
+  }
+});
+
+function isClaudeSessionRunning(session: ClaudeSession): boolean {
+  return Boolean(session.isRunning) || claudeStore.isSessionRunning(session.id);
+}
+
+function displayClaudeName(session: ClaudeSession): string {
+  const raw = (session.name || '').trim();
+  if (!raw) return 'chat';
+  if (!session.isCustomNamed && session.cwd && raw === session.cwd.trim()) {
+    const parts = raw.replace(/[/\\]+$/, '').split(/[/\\]/).filter(Boolean);
+    return parts[parts.length - 1] || raw;
+  }
+  return raw;
+}
 
 function resolveClaudeProjectId(session: ClaudeSession) {
   return session.projectId || projectStore.currentServerProjects.find(p =>
@@ -238,7 +296,10 @@ function sessionsForProject(id: string, rootPath: string, kind: 'terminal' | 'cl
   const byId = new Map<string, ClaudeSession>();
   for (const s of [...allClaudeSessions.value, ...claudeStore.sessions]) {
     if (s.serverId !== serverStore.currentServerId) continue;
-    if (s.projectId ? s.projectId === id : s.cwd?.replace(/\/+$/, '') === rootPath.replace(/\/+$/, '')) byId.set(s.id, s);
+    if (s.projectId ? s.projectId === id : s.cwd?.replace(/\/+$/, '') === rootPath.replace(/\/+$/, '')) {
+      const prev = byId.get(s.id);
+      byId.set(s.id, prev ? { ...prev, ...s, isRunning: Boolean(s.isRunning) } : s);
+    }
   }
   return [...byId.values()];
 }
@@ -443,9 +504,15 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-item-title > i { color: #a8a8a8; flex-shrink: 0; }
 .dw-item-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dw-active-dot { width: 6px; height: 6px; border-radius: 50%; background: #e7e7e7; flex-shrink: 0; }
+.dw-claude-running.status-indicator {
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 1.8px solid rgba(245, 158, 11, .28); border-top-color: #f59e0b;
+  animation: dwClaudeSpin .75s linear infinite; flex-shrink: 0;
+}
 .dw-item-actions { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
 .dw-item-actions button { width: 19px; height: 20px; font-size: 11px; }
 .dw-item-actions button.danger:hover { color: #fca5a5; }
+@keyframes dwClaudeSpin { to { transform: rotate(360deg); } }
 .dw-proj-children { display: flex; flex-direction: column; gap: 8px; margin-left: 13px; padding: 3px 0 8px 9px; }
 .dw-sub-group { display: flex; flex-direction: column; gap: 2px; }
 .dw-sub-header { min-height: 24px; padding: 2px 3px; color: #aaa; font-size: 10.5px; font-weight: 700; }

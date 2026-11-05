@@ -218,7 +218,82 @@ try {
     assert.match(source, /async function handleEditClaude\(session: ClaudeSession\)/);
     assert.match(source, /async function handleDeleteClaude\(session: ClaudeSession\)/);
     assert.match(source, /sessionsForProject\(session\.projectId,\s*'',\s*'terminal'\)\.length <= 1/);
-    assert.match(source, /claudeStore\.sessions\.map\(s => `\$\{s\.id\}:\$\{s\.name\}`\)\.join\('\|'\)/);
+    assert.match(source, /claudeStore\.sessions\.map\(s => `\$\{s\.id\}:\$\{s\.name\}/);
+  });
+
+  await test('AC-8: Claude session name sync (--name CLI flag) and Workspace running state with Stop button', async () => {
+    const claudeServiceSource = fs.readFileSync(
+      fileURLToPath(new URL('../apps/api/src/services/claudeService.ts', import.meta.url)),
+      'utf8'
+    );
+    assert.match(
+      claudeServiceSource,
+      /args\.push\('--name',\s*cleanSessionName\)/,
+      'ClaudeService must pass --name <session.name> when spawning claude CLI'
+    );
+    assert.match(
+      claudeServiceSource,
+      /this\.renameProjectSession\(session\.cliSessionId,\s*session\.name/,
+      'ClaudeService.updateSession must sync renamed session to bound CLI project session'
+    );
+
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const serverStore = useServerStore();
+    const projectStore = useProjectStore();
+    const claudeStore = useClaudeStore();
+    const srvId = serverStore.currentServerId;
+
+    projectStore.projects = [
+      { id: 'proj-run', serverId: srvId, name: 'hugremote', rootPath: '/home/user/hugremote', lastOpenedAt: 100 },
+    ];
+    projectStore.activeProjectIdByServer[srvId] = 'proj-run';
+
+    claudeStore.sessions = [
+      {
+        id: 'claude-run-1',
+        serverId: srvId,
+        projectId: 'proj-run',
+        name: 'chat',
+        isCustomNamed: true,
+        cliSessionId: 'cli-uuid-1',
+        cwd: '/home/user/hugremote',
+        model: 'Default Medium',
+        mode: 'Auto',
+        messages: [],
+        isRunning: true,
+      },
+      {
+        id: 'claude-idle-2',
+        serverId: srvId,
+        projectId: 'proj-run',
+        name: 'Backend Refactor',
+        isCustomNamed: true,
+        cliSessionId: 'cli-uuid-2',
+        cwd: '/home/user/hugremote',
+        model: 'Default Medium',
+        mode: 'Auto',
+        messages: [],
+        isRunning: false,
+      },
+    ];
+    claudeStore.projectSessions = [
+      { id: 'cli-uuid-1', summary: 'Prompt text should not overwrite chat name', userMsgs: 1, asstMsgs: 1, model: 'sonnet', updatedAt: 100, size: 10 },
+    ];
+    claudeStore.activeSessionId = 'claude-run-1';
+
+    const headerApp = createSSRApp(SmartHeader, { activeTab: 'claude', workspaceSidebarOpen: true });
+    headerApp.use(pinia);
+    const headerHtml = await renderToString(headerApp);
+    assert.match(headerHtml, /class="claude-session-pill"[^>]*>[\s\S]*?<span>chat<\/span>/, 'SmartHeader must keep configured session name even when named chat');
+
+    const wsApp = createSSRApp(WorkspaceSidebar, { isOpen: true });
+    wsApp.use(pinia);
+    const wsHtml = await renderToString(wsApp);
+    assert.match(wsHtml, /data-dw-claude="claude-run-1"[^>]*class="[^"]*running[^"]*"|class="[^"]*running[^"]*"[^>]*data-dw-claude="claude-run-1"/);
+    assert.match(wsHtml, /class="dw-claude-running status-indicator"/);
+    assert.doesNotMatch(wsHtml, /btn-dw-claude-stop/);
+    assert.equal((wsHtml.match(/class="dw-claude-running status-indicator"/g) || []).length, 1, 'Only running Claude session should render running indicator');
   });
 } finally {
   await vite.close();

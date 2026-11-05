@@ -424,12 +424,51 @@ export class ClaudeService {
               changed = true;
               return;
             }
-            if (typeof s.cliSessionId === 'string' && s.cliSessionId.trim() && !s.cliSessionId.includes('\0') && (!s.isCustomNamed || s.name === 'chat' || s.name === 'claude')) {
-              const detail = this.getLocalProjectSessionDetail(s.cliSessionId.trim(), typeof s.cwd === 'string' ? s.cwd : '');
-              if (detail && detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
-                s.name = detail.summary;
+            if (typeof s.cliSessionId === 'string' && s.cliSessionId.trim() && !s.cliSessionId.includes('\0')) {
+              const cliId = s.cliSessionId.trim();
+              const sessionCwd = typeof s.cwd === 'string' ? s.cwd : '';
+              const isLocalServer = (s.serverId || 'server-local') === 'server-local';
+              const pdir = isLocalServer ? this.resolveClaudeProjectDir(sessionCwd || process.cwd()) : null;
+              const meta = pdir ? this.readProjectMeta(pdir) : {};
+              const cleanCwd = sessionCwd.replace(/\/+$/, '');
+              const defaultProjName = (!cleanCwd || cleanCwd === os.homedir() || cleanCwd === '~')
+                ? 'chat'
+                : (path.basename(cleanCwd) || 'chat');
+              const userPrompts = Array.isArray(s.messages)
+                ? s.messages
+                    .filter((m: any) => m && m.sender === 'user' && typeof m.text === 'string')
+                    .map((m: any) => m.text.trim().replace(/\n/g, ' '))
+                : [];
+              if (
+                !meta[cliId]?.name &&
+                typeof s.name === 'string' &&
+                s.name.trim() &&
+                s.name.trim() !== 'chat' &&
+                s.name.trim() !== defaultProjName &&
+                userPrompts.includes(s.name.trim())
+              ) {
+                s.name = defaultProjName;
                 s.isCustomNamed = true;
                 changed = true;
+              }
+              if (typeof s.name === 'string' && s.name.trim() && s.name !== 'hugcode') {
+                if (pdir) {
+                  if (meta[cliId]?.name !== s.name.trim()) {
+                    meta[cliId] = { name: s.name.trim(), updatedAt: Date.now() };
+                    this.writeProjectMeta(pdir, meta);
+                  }
+                }
+                if (!s.isCustomNamed) {
+                  s.isCustomNamed = true;
+                  changed = true;
+                }
+              } else {
+                const detail = this.getLocalProjectSessionDetail(cliId, sessionCwd);
+                if (detail && detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
+                  s.name = detail.summary;
+                  s.isCustomNamed = true;
+                  changed = true;
+                }
               }
             }
             this.sessions.set(s.id, s);
@@ -549,13 +588,14 @@ export class ClaudeService {
       });
     }
 
+    const cleanInitialName = (name || '').trim() || 'chat';
     const session: ClaudeSession = {
       id,
       serverId,
       projectId,
-      name: name || 'chat',
+      name: cleanInitialName,
       cwd: normalizedCwd,
-      isCustomNamed: Boolean(name && name !== 'chat' && name !== 'hugcode'),
+      isCustomNamed: Boolean(cleanInitialName && cleanInitialName !== 'hugcode'),
       model,
       mode,
       ownerEmail,
@@ -579,9 +619,11 @@ export class ClaudeService {
       this.clearContextUsageCacheForSession(id);
     }
 
+    let nameUpdated = false;
     if (updates.name !== undefined) {
       session.name = updates.name.trim();
       session.isCustomNamed = true;
+      nameUpdated = true;
     }
     if (updates.cwd !== undefined) {
       const server = this.serverConfigResolver(session.serverId);
@@ -598,6 +640,10 @@ export class ClaudeService {
 
     session.updatedAt = Date.now();
     this.saveSessions();
+
+    if (nameUpdated && session.cliSessionId && session.name) {
+      this.renameProjectSession(session.cliSessionId, session.name, session.cwd, session.serverId).catch(() => {});
+    }
     return session;
   }
 
@@ -715,11 +761,19 @@ export class ClaudeService {
     const isRemote = serverId !== 'server-local';
     const server = isRemote ? this.serverConfigResolver(serverId) : undefined;
 
-    if (isRemote && server) {
-      return this.listRemoteProjectSessions(server, cwd);
-    }
+    const items = isRemote && server
+      ? await this.listRemoteProjectSessions(server, cwd)
+      : this.listLocalProjectSessions(cwd);
 
-    return this.listLocalProjectSessions(cwd);
+    for (const item of items) {
+      const bound = Array.from(this.sessions.values()).find(
+        (s) => s.cliSessionId === item.id && (s.serverId || 'server-local') === serverId
+      );
+      if (bound && bound.name && bound.name.trim()) {
+        item.summary = bound.name.trim();
+      }
+    }
+    return items;
   }
 
   private readProjectMeta(projectDir: string): Record<string, { name: string; updatedAt: number }> {
@@ -920,11 +974,19 @@ export class ClaudeService {
     const isRemote = serverId !== 'server-local';
     const server = isRemote ? this.serverConfigResolver(serverId) : undefined;
 
-    if (isRemote && server) {
-      return this.getRemoteProjectSessionDetail(server, sessionId, cwd);
-    }
+    const detail = isRemote && server
+      ? await this.getRemoteProjectSessionDetail(server, sessionId, cwd)
+      : this.getLocalProjectSessionDetail(sessionId, cwd);
 
-    return this.getLocalProjectSessionDetail(sessionId, cwd);
+    if (detail) {
+      const bound = Array.from(this.sessions.values()).find(
+        (s) => s.cliSessionId === sessionId && (s.serverId || 'server-local') === serverId
+      );
+      if (bound && bound.name && bound.name.trim()) {
+        detail.summary = bound.name.trim();
+      }
+    }
+    return detail;
   }
 
   private getLocalProjectSessionDetail(
@@ -1086,27 +1148,38 @@ export class ClaudeService {
       session = this.createSession(serverId, projectId || '', `Claude ${cliSessionId.slice(0, 8)}`, targetCwd);
     }
 
+    const prevCliId = session.cliSessionId;
     session.cliSessionId = cliSessionId;
     session.messages = detail.messages;
     if (projectId) {
       session.projectId = projectId;
     }
     if (detail.model) session.model = detail.model;
-    const hasUserCustomName = Boolean(
+    const folderDefaultName = path.basename((targetCwd || session.cwd || '').replace(/\/+$/, ''));
+    const isGenericOrDefaultName =
+      !session.name ||
+      !session.name.trim() ||
+      session.name === 'chat' ||
+      session.name === 'claude' ||
+      session.name === 'hugcode' ||
+      session.name === folderDefaultName ||
+      session.name.startsWith('Claude ');
+    const preserveWebCustomName = Boolean(
       session.isCustomNamed &&
-      session.name &&
-      session.name.trim() &&
-      session.name !== 'chat' &&
-      session.name !== 'claude'
+      !isGenericOrDefaultName &&
+      (!prevCliId || prevCliId === cliSessionId)
     );
-    if (!hasUserCustomName) {
+    if (!preserveWebCustomName) {
       if (detail.summary && detail.summary !== 'Phiên chưa đặt tên') {
         session.name = detail.summary;
         session.isCustomNamed = true;
-      } else {
+      } else if (!session.name || !session.name.trim() || prevCliId !== cliSessionId) {
         session.name = detail.summary || `Claude ${cliSessionId.slice(0, 8)}`;
         session.isCustomNamed = true;
       }
+    } else if (session.name && session.name.trim()) {
+      session.isCustomNamed = true;
+      this.renameProjectSession(cliSessionId, session.name.trim(), targetCwd || session.cwd, serverId).catch(() => {});
     }
     if (targetCwd) {
       session.cwd = targetCwd;
@@ -1259,10 +1332,31 @@ export class ClaudeService {
     cwd?: string
   ): Promise<boolean> {
     try {
-      const escapedId = shellEscape(sessionId);
-      const escapedName = shellEscape(newName.trim());
-      const pyScript = `import os, glob, json, time; files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + ${escapedId} + '.jsonl'));\nif files:\n  f = files[0]; entry = json.dumps({'type': 'custom-title', 'customTitle': ${escapedName}, 'updatedAt': int(time.time()*1000)})\n  with open(f, 'a') as fp: fp.write('\\n' + entry + '\\n')\n  pdir = os.path.dirname(f); meta_path = os.path.join(pdir, '.hugremote-meta.json'); meta = {}\n  if os.path.exists(meta_path): meta = json.load(open(meta_path))\n  meta[${escapedId}] = {'name': ${escapedName}, 'updatedAt': int(time.time()*1000)}\n  json.dump(meta, open(meta_path, 'w'), indent=2); print('ok')\nelse: print('not_found')`;
-      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null`;
+      const cleanName = newName.trim();
+      if (!cleanName) return false;
+      const pyScript = [
+        'import os, sys, glob, json, time',
+        'sid = sys.argv[1]',
+        'name = sys.argv[2]',
+        "files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + sid + '.jsonl'))",
+        'if files:',
+        '  f = files[0]',
+        "  entry = json.dumps({'type': 'custom-title', 'customTitle': name, 'updatedAt': int(time.time()*1000)})",
+        "  with open(f, 'a', encoding='utf-8') as fp: fp.write('\\n' + entry + '\\n')",
+        '  pdir = os.path.dirname(f)',
+        "  meta_path = os.path.join(pdir, '.hugremote-meta.json')",
+        '  meta = {}',
+        '  if os.path.exists(meta_path):',
+        '    try:',
+        "      with open(meta_path, 'r', encoding='utf-8') as mf: meta = json.load(mf)",
+        '    except Exception: meta = {}',
+        "  meta[sid] = {'name': name, 'updatedAt': int(time.time()*1000)}",
+        "  with open(meta_path, 'w', encoding='utf-8') as mf: json.dump(meta, mf, indent=2)",
+        "  print('ok')",
+        'else:',
+        "  print('not_found')",
+      ].join('\n');
+      const cmd = `python3 -c ${shellEscape(pyScript)} ${shellEscape(sessionId)} ${shellEscape(cleanName)} 2>/dev/null`;
       const stream = await sshPool.executeCommand(server, cmd);
       let data = '';
       await new Promise((resolve) => {
@@ -1270,7 +1364,19 @@ export class ClaudeService {
         stream.on('close', resolve);
         stream.on('exit', resolve);
       });
-      return data.trim() === 'ok';
+      const ok = data.trim() === 'ok';
+      if (ok) {
+        let sessionsModified = false;
+        this.sessions.forEach((s) => {
+          if (s.cliSessionId === sessionId && s.serverId === server.id) {
+            s.name = cleanName;
+            s.isCustomNamed = true;
+            sessionsModified = true;
+          }
+        });
+        if (sessionsModified) this.saveSessions();
+      }
+      return ok;
     } catch (_) {
       return false;
     }
@@ -1282,9 +1388,17 @@ export class ClaudeService {
     cwd?: string
   ): Promise<boolean> {
     try {
-      const escapedId = shellEscape(sessionId);
-      const pyScript = `import os, glob; files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + ${escapedId} + '.jsonl'));\nif files: os.remove(files[0]); print('ok')\nelse: print('not_found')`;
-      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null`;
+      const pyScript = [
+        'import os, sys, glob',
+        'sid = sys.argv[1]',
+        "files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + sid + '.jsonl'))",
+        'if files:',
+        '  os.remove(files[0])',
+        "  print('ok')",
+        'else:',
+        "  print('not_found')",
+      ].join('\n');
+      const cmd = `python3 -c ${shellEscape(pyScript)} ${shellEscape(sessionId)} 2>/dev/null`;
       const stream = await sshPool.executeCommand(server, cmd);
       let data = '';
       await new Promise((resolve) => {
@@ -1303,9 +1417,41 @@ export class ClaudeService {
     cwd: string
   ): Promise<ClaudeProjectSessionSummary[]> {
     try {
-      const escapedCwd = shellEscape(cwd || server.workspace || '~');
-      const pyScript = `import os, glob, json; cwd = os.path.expanduser(${escapedCwd}); slug = cwd.replace('/', '-'); pdir = os.path.expanduser('~/.claude/projects/' + slug); files = glob.glob(pdir + '/*.jsonl') if os.path.exists(pdir) else glob.glob(os.path.expanduser('~/.claude/projects/*/*.jsonl')); out = [];\nfor f in sorted(files, key=os.path.getmtime, reverse=True)[:20]:\n  sid = os.path.basename(f).replace('.jsonl', ''); s = ''; fp = '';\n  for l in open(f, errors='ignore'):\n    try:\n      d = json.loads(l)\n      if d.get('type') == 'user' and not fp: fp = str(d['message']['content'])[:80]\n      elif d.get('type') == 'last-prompt': s = str(d['lastPrompt'])[:80]\n    except: pass\n  out.append({'id': sid, 'summary': s or fp or 'Phiên chưa đặt tên', 'model': 'sonnet', 'userMsgs': 1, 'asstMsgs': 1, 'updatedAt': os.path.getmtime(f) * 1000, 'size': os.path.getsize(f)})\nprint(json.dumps(out))`;
-      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null || node -e 'console.log("[]")'`;
+      const targetCwd = cwd || server.workspace || '~';
+      const pyScript = [
+        'import os, sys, glob, json',
+        'cwd = os.path.expanduser(sys.argv[1])',
+        "slug = cwd.replace('/', '-')",
+        "pdir = os.path.expanduser('~/.claude/projects/' + slug)",
+        "files = glob.glob(pdir + '/*.jsonl') if os.path.exists(pdir) else glob.glob(os.path.expanduser('~/.claude/projects/*/*.jsonl'))",
+        'out = []',
+        'for f in sorted(files, key=os.path.getmtime, reverse=True)[:20]:',
+        "  sid = os.path.basename(f).replace('.jsonl', '')",
+        '  fdir = os.path.dirname(f)',
+        "  meta_path = os.path.join(fdir, '.hugremote-meta.json')",
+        '  meta_name = ""',
+        '  if os.path.exists(meta_path):',
+        '    try:',
+        "      m = json.load(open(meta_path, encoding='utf-8'))",
+        "      meta_name = str((m.get(sid) or {}).get('name') or '').strip()",
+        '    except Exception: pass',
+        '  custom_title = ""',
+        '  s = ""',
+        '  fp = ""',
+        "  for l in open(f, errors='ignore'):",
+        '    try:',
+        '      d = json.loads(l)',
+        "      t = d.get('type')",
+        "      if t == 'custom-title' and d.get('customTitle'): custom_title = str(d['customTitle']).strip()",
+        "      elif t == 'agent-name' and d.get('agentName') and not custom_title: custom_title = str(d['agentName']).strip()",
+        "      elif t == 'user' and not fp: fp = str(d['message']['content'])[:80]",
+        "      elif t == 'last-prompt': s = str(d['lastPrompt'])[:80]",
+        '    except Exception: pass',
+        '  summary = meta_name or custom_title or s or fp or "Phiên chưa đặt tên"',
+        "  out.append({'id': sid, 'summary': summary, 'model': 'sonnet', 'userMsgs': 1, 'asstMsgs': 1, 'updatedAt': os.path.getmtime(f) * 1000, 'size': os.path.getsize(f)})",
+        'print(json.dumps(out))',
+      ].join('\n');
+      const cmd = `python3 -c ${shellEscape(pyScript)} ${shellEscape(targetCwd)} 2>/dev/null || node -e 'console.log("[]")'`;
       const stream = await sshPool.executeCommand(server, cmd);
       let data = '';
       await new Promise((resolve) => {
@@ -1327,9 +1473,44 @@ export class ClaudeService {
     cwd: string
   ): Promise<ClaudeProjectSessionDetail | null> {
     try {
-      const escapedId = shellEscape(sessionId);
-      const pyScript = `import os, glob, json; files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + ${escapedId} + '.jsonl'));\nif not files: print('null')\nelse:\n  f = files[0]; msgs = []\n  for l in open(f, errors='ignore'):\n    try:\n      d = json.loads(l)\n      if d.get('type') in ['user', 'assistant'] and 'message' in d:\n        c = d['message'].get('content', '')\n        text = c if isinstance(c, str) else ' '.join(x.get('text', '') for x in c if isinstance(x, dict))\n        if text.strip(): msgs.append({'id': d.get('uuid', str(len(msgs))), 'sender': d['type'], 'text': text.strip(), 'time': '12:00'})\n    except: pass\n  print(json.dumps({'id': ${escapedId}, 'summary': 'Phiên Claude', 'model': 'sonnet', 'userMsgs': len(msgs), 'asstMsgs': 0, 'updatedAt': os.path.getmtime(f)*1000, 'size': os.path.getsize(f), 'messages': msgs}))`;
-      const cmd = `python3 -c ${shellEscape(pyScript)} 2>/dev/null`;
+      const pyScript = [
+        'import os, sys, glob, json',
+        'sid = sys.argv[1]',
+        "files = glob.glob(os.path.expanduser('~/.claude/projects/*/' + sid + '.jsonl'))",
+        'if not files:',
+        "  print('null')",
+        'else:',
+        '  f = files[0]',
+        '  fdir = os.path.dirname(f)',
+        "  meta_path = os.path.join(fdir, '.hugremote-meta.json')",
+        '  meta_name = ""',
+        '  if os.path.exists(meta_path):',
+        '    try:',
+        "      m = json.load(open(meta_path, encoding='utf-8'))",
+        "      meta_name = str((m.get(sid) or {}).get('name') or '').strip()",
+        '    except Exception: pass',
+        '  custom_title = ""',
+        '  last_prompt = ""',
+        '  first_prompt = ""',
+        '  msgs = []',
+        "  for l in open(f, errors='ignore'):",
+        '    try:',
+        '      d = json.loads(l)',
+        "      t = d.get('type')",
+        "      if t == 'custom-title' and d.get('customTitle'): custom_title = str(d['customTitle']).strip()",
+        "      elif t == 'agent-name' and d.get('agentName') and not custom_title: custom_title = str(d['agentName']).strip()",
+        "      elif t == 'last-prompt' and d.get('lastPrompt'): last_prompt = str(d['lastPrompt']).strip()[:80]",
+        "      elif t in ['user', 'assistant'] and 'message' in d:",
+        "        c = d['message'].get('content', '')",
+        "        text = c if isinstance(c, str) else ' '.join(x.get('text', '') for x in c if isinstance(x, dict))",
+        '        if text.strip():',
+        "          if t == 'user' and not first_prompt: first_prompt = text.strip()[:80]",
+        "          msgs.append({'id': d.get('uuid', str(len(msgs))), 'sender': t, 'text': text.strip(), 'time': '12:00'})",
+        '    except Exception: pass',
+        '  summary = meta_name or custom_title or last_prompt or first_prompt or "Phiên Claude"',
+        "  print(json.dumps({'id': sid, 'summary': summary, 'model': 'sonnet', 'userMsgs': len(msgs), 'asstMsgs': 0, 'updatedAt': os.path.getmtime(f)*1000, 'size': os.path.getsize(f), 'messages': msgs}))",
+      ].join('\n');
+      const cmd = `python3 -c ${shellEscape(pyScript)} ${shellEscape(sessionId)} 2>/dev/null`;
       const stream = await sshPool.executeCommand(server, cmd);
       let data = '';
       await new Promise((resolve) => {
@@ -2346,7 +2527,8 @@ export class ClaudeService {
     session: ClaudeSession,
     userPrompt: string,
     onEvent: (event: ClaudeStreamEvent) => void,
-    attempt = 0
+    attempt = 0,
+    omitNameFlag = false
   ): Promise<{ text: string; thinking?: string; tools?: ClaudeToolCall[] }> {
     const server = session.serverId ? this.serverConfigResolver(session.serverId) : undefined;
     const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
@@ -2496,6 +2678,10 @@ export class ClaudeService {
     ];
     if (session.bypassPermissions) {
       args.push('--dangerously-skip-permissions');
+    }
+    const cleanSessionName = (session.name || '').trim();
+    if (cleanSessionName && !omitNameFlag) {
+      args.push('--name', cleanSessionName);
     }
     if (session.cliSessionId) {
       let cliExists = true;
@@ -2697,9 +2883,21 @@ export class ClaudeService {
               }
             }
 
-            // 1. Session Init
-            if (obj.type === 'system' && obj.subtype === 'init' && obj.session_id) {
+            // 1. Session Init / Title Change
+            if (
+              obj.type === 'system' &&
+              (obj.subtype === 'init' || obj.subtype === 'session_title_changed' || obj.subtype === 'hook_started') &&
+              obj.session_id &&
+              typeof obj.session_id === 'string'
+            ) {
+              const prevCliId = session.cliSessionId;
               session.cliSessionId = obj.session_id;
+              if (prevCliId !== obj.session_id) {
+                this.saveSessions();
+                if (cleanSessionName) {
+                  this.renameProjectSession(obj.session_id, cleanSessionName, session.cwd, session.serverId).catch(() => {});
+                }
+              }
             }
 
             // 2. Thinking start
@@ -2871,7 +3069,14 @@ export class ClaudeService {
               // after its terminal result lets the persistent CLI exit cleanly.
               try { handle.stdin?.end?.(); } catch (_) {}
               if (obj.session_id && typeof obj.session_id === 'string') {
+                const prevCliId = session.cliSessionId;
                 session.cliSessionId = obj.session_id;
+                if (prevCliId !== obj.session_id) {
+                  this.saveSessions();
+                  if (cleanSessionName) {
+                    this.renameProjectSession(obj.session_id, cleanSessionName, session.cwd, session.serverId).catch(() => {});
+                  }
+                }
               }
               if (obj.result && typeof obj.result === 'string') {
                 fullText = obj.result;
@@ -2988,6 +3193,26 @@ export class ClaudeService {
         }
 
         const capturedStderr = getCapturedStderr();
+        const unsupportedNameFlag =
+          !omitNameFlag &&
+          Boolean(cleanSessionName) &&
+          !sawAssistantFrame &&
+          !sawNativeActivity &&
+          !fullText &&
+          tools.length === 0 &&
+          /unknown option[^'\n]*--name|unrecognized option[^'\n]*--name|invalid option[^'\n]*--name|unexpected argument[^'\n]*--name/i.test(
+            capturedStderr
+          );
+        if (unsupportedNameFlag) {
+          isSettled = true;
+          this.streamClaudePrompt(session, userPrompt, onEvent, attempt, true).then(resolve, (err: any) => {
+            const retryError = `Không thể thử lại Claude Code: ${err.message || err}`;
+            onEvent({ type: 'error', error: retryError });
+            resolve({ text: retryError });
+          });
+          return;
+        }
+
         const bunCrash = isBunRuntimeCrash(capturedStderr, code, signal);
         if (bunCrash && session.cliSessionId) {
           // An init frame is not proof this CLI session is resumable. Do not

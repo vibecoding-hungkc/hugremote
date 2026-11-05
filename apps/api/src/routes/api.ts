@@ -19,7 +19,7 @@ import {
   ContextUsageConcurrencyError,
 } from '../services/claudeService.js';
 import { projectService } from '../services/projectService.js';
-import { createGitService } from '../services/gitService.js';
+import { createGitService, MAX_GIT_SCAN_DEPTH, resolveProjectSubpath } from '../services/gitService.js';
 import { tempZipService } from '../services/tempZipService.js';
 import { sessionStore, authConfig } from '../auth.js';
 import type { ClaudeSession } from '@hugremote/shared';
@@ -978,19 +978,33 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
 
 
   // --- GIT ---
-  fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/status', async (request, reply) => {
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/repos', async (request, reply) => {
     const serverId = request.query.serverId || 'server-local';
     const target = getGitProject(serverId, request.query.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
     const { project, service } = target;
     try {
-      return await service.getStatus(project.rootPath);
+      const repos = await service.discoverRepos(project.rootPath, MAX_GIT_SCAN_DEPTH);
+      return { maxDepth: MAX_GIT_SCAN_DEPTH, repos };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
   });
 
-  fastify.get<{ Querystring: { serverId?: string; projectId?: string; file?: string } }>('/api/git/diff', async (request, reply) => {
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; repoPath?: string } }>('/api/git/status', async (request, reply) => {
+    const serverId = request.query.serverId || 'server-local';
+    const target = getGitProject(serverId, request.query.projectId);
+    if ('error' in target) return reply.status(404).send({ error: target.error });
+    const { project, service } = target;
+    try {
+      const { targetPath } = resolveProjectSubpath(project.rootPath, request.query.repoPath, MAX_GIT_SCAN_DEPTH);
+      return await service.getStatus(targetPath);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; repoPath?: string; file?: string } }>('/api/git/diff', async (request, reply) => {
     const serverId = request.query.serverId || 'server-local';
     const target = getGitProject(serverId, request.query.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
@@ -998,7 +1012,8 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     const file = request.query.file || '';
     if (!file) return reply.status(400).send({ error: 'file is required' });
     try {
-      return await service.getDiff(project.rootPath, file);
+      const { targetPath } = resolveProjectSubpath(project.rootPath, request.query.repoPath, MAX_GIT_SCAN_DEPTH);
+      return await service.getDiff(targetPath, file);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
@@ -1012,71 +1027,60 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     return { project, service: createGitService(server) } as const;
   }
 
-  fastify.get<{ Querystring: { serverId?: string; projectId?: string } }>('/api/git/branches', async (request, reply) => {
+  fastify.get<{ Querystring: { serverId?: string; projectId?: string; repoPath?: string } }>('/api/git/branches', async (request, reply) => {
     const serverId = request.query.serverId || 'server-local';
     const target = getGitProject(serverId, request.query.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
     try {
-      return { branches: await target.service.getBranches(target.project.rootPath) };
+      const { targetPath } = resolveProjectSubpath(target.project.rootPath, request.query.repoPath, MAX_GIT_SCAN_DEPTH);
+      return { branches: await target.service.getBranches(targetPath) };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
   });
 
-  fastify.post<{ Body: { serverId?: string; projectId?: string; branch?: string } }>('/api/git/checkout', async (request, reply) => {
+  fastify.post<{ Body: { serverId?: string; projectId?: string; repoPath?: string; branch?: string } }>('/api/git/checkout', async (request, reply) => {
     const serverId = request.body?.serverId || 'server-local';
     const target = getGitProject(serverId, request.body?.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
     const branch = request.body?.branch || '';
     if (!branch.trim()) return reply.status(400).send({ error: 'branch is required' });
     try {
-      await target.service.checkout(target.project.rootPath, branch);
-      return { success: true, status: await target.service.getStatus(target.project.rootPath), branches: await target.service.getBranches(target.project.rootPath) };
+      const { targetPath } = resolveProjectSubpath(target.project.rootPath, request.body?.repoPath, MAX_GIT_SCAN_DEPTH);
+      await target.service.checkout(targetPath, branch);
+      return { success: true, status: await target.service.getStatus(targetPath), branches: await target.service.getBranches(targetPath) };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
   });
 
-  fastify.post<{ Body: { serverId?: string; projectId?: string } }>('/api/git/pull', async (request, reply) => {
+  fastify.post<{ Body: { serverId?: string; projectId?: string; repoPath?: string } }>('/api/git/pull', async (request, reply) => {
     const serverId = request.body?.serverId || 'server-local';
     const target = getGitProject(serverId, request.body?.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
     try {
-      const output = await target.service.pull(target.project.rootPath);
-      return { success: true, output, status: await target.service.getStatus(target.project.rootPath), branches: await target.service.getBranches(target.project.rootPath) };
+      const { targetPath } = resolveProjectSubpath(target.project.rootPath, request.body?.repoPath, MAX_GIT_SCAN_DEPTH);
+      const output = await target.service.pull(targetPath);
+      return { success: true, output, status: await target.service.getStatus(targetPath), branches: await target.service.getBranches(targetPath) };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
   });
 
-  fastify.post<{ Body: { serverId?: string; projectId?: string } }>('/api/git/push', async (request, reply) => {
+  fastify.post<{ Body: { serverId?: string; projectId?: string; repoPath?: string } }>('/api/git/push', async (request, reply) => {
     const serverId = request.body?.serverId || 'server-local';
     const target = getGitProject(serverId, request.body?.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
     try {
-      const output = await target.service.push(target.project.rootPath);
-      return { success: true, output, status: await target.service.getStatus(target.project.rootPath), branches: await target.service.getBranches(target.project.rootPath) };
+      const { targetPath } = resolveProjectSubpath(target.project.rootPath, request.body?.repoPath, MAX_GIT_SCAN_DEPTH);
+      const output = await target.service.push(targetPath);
+      return { success: true, output, status: await target.service.getStatus(targetPath), branches: await target.service.getBranches(targetPath) };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
   });
 
-  fastify.post<{ Body: { serverId?: string; projectId?: string; file?: string } }>('/api/git/stage', async (request, reply) => {
-    const serverId = request.body?.serverId || 'server-local';
-    const target = getGitProject(serverId, request.body?.projectId);
-    if ('error' in target) return reply.status(404).send({ error: target.error });
-    const { project, service } = target;
-    const file = request.body?.file || '';
-    if (!file) return reply.status(400).send({ error: 'file is required' });
-    try {
-      await service.stage(project.rootPath, file);
-      return { success: true, status: await service.getStatus(project.rootPath) };
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
-    }
-  });
-
-  fastify.post<{ Body: { serverId?: string; projectId?: string; file?: string } }>('/api/git/unstage', async (request, reply) => {
+  fastify.post<{ Body: { serverId?: string; projectId?: string; repoPath?: string; file?: string } }>('/api/git/stage', async (request, reply) => {
     const serverId = request.body?.serverId || 'server-local';
     const target = getGitProject(serverId, request.body?.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
@@ -1084,14 +1088,31 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     const file = request.body?.file || '';
     if (!file) return reply.status(400).send({ error: 'file is required' });
     try {
-      await service.unstage(project.rootPath, file);
-      return { success: true, status: await service.getStatus(project.rootPath) };
+      const { targetPath } = resolveProjectSubpath(project.rootPath, request.body?.repoPath, MAX_GIT_SCAN_DEPTH);
+      await service.stage(targetPath, file);
+      return { success: true, status: await service.getStatus(targetPath) };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
   });
 
-  fastify.post<{ Body: { serverId?: string; projectId?: string; message?: string } }>('/api/git/commit', async (request, reply) => {
+  fastify.post<{ Body: { serverId?: string; projectId?: string; repoPath?: string; file?: string } }>('/api/git/unstage', async (request, reply) => {
+    const serverId = request.body?.serverId || 'server-local';
+    const target = getGitProject(serverId, request.body?.projectId);
+    if ('error' in target) return reply.status(404).send({ error: target.error });
+    const { project, service } = target;
+    const file = request.body?.file || '';
+    if (!file) return reply.status(400).send({ error: 'file is required' });
+    try {
+      const { targetPath } = resolveProjectSubpath(project.rootPath, request.body?.repoPath, MAX_GIT_SCAN_DEPTH);
+      await service.unstage(targetPath, file);
+      return { success: true, status: await service.getStatus(targetPath) };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.post<{ Body: { serverId?: string; projectId?: string; repoPath?: string; message?: string } }>('/api/git/commit', async (request, reply) => {
     const serverId = request.body?.serverId || 'server-local';
     const target = getGitProject(serverId, request.body?.projectId);
     if ('error' in target) return reply.status(404).send({ error: target.error });
@@ -1099,8 +1120,9 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     const message = request.body?.message || '';
     if (!message.trim()) return reply.status(400).send({ error: 'Commit message is required' });
     try {
-      const output = await service.commit(project.rootPath, message);
-      return { success: true, output, status: await service.getStatus(project.rootPath) };
+      const { targetPath } = resolveProjectSubpath(project.rootPath, request.body?.repoPath, MAX_GIT_SCAN_DEPTH);
+      const output = await service.commit(targetPath, message);
+      return { success: true, output, status: await service.getStatus(targetPath) };
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

@@ -1,7 +1,61 @@
 import { spawn } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { sshPool } from './sshPool.js';
+export const MAX_GIT_SCAN_DEPTH = 5;
 const GIT_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_BYTES = 8 * 1024 * 1024;
+const IGNORED_SCAN_DIRS = new Set([
+    '.git',
+    'node_modules',
+    'dist',
+    'build',
+    '.next',
+    '.nuxt',
+    'vendor',
+    'target',
+    '.venv',
+    'venv',
+    '__pycache__',
+    '.cache',
+    'coverage',
+]);
+export function resolveProjectSubpath(rootPath, repoPath, maxDepth = MAX_GIT_SCAN_DEPTH) {
+    const rawInput = (repoPath ?? '').trim();
+    if (!rawInput || rawInput === '.') {
+        return { targetPath: rootPath, relPath: '.', depth: 0 };
+    }
+    const raw = rawInput.replace(/^(\.\/)+/, '').replace(/\/+$/, '');
+    if (!raw || raw === '.') {
+        return { targetPath: rootPath, relPath: '.', depth: 0 };
+    }
+    if (raw.includes('\0') || raw.includes('\\') || raw.startsWith('/') || raw.startsWith('~')) {
+        throw new Error('Invalid repoPath');
+    }
+    const segments = raw.split('/');
+    if (segments.some(seg => !seg || seg === '.' || seg === '..')) {
+        throw new Error('Invalid repoPath');
+    }
+    if (segments.length > maxDepth) {
+        throw new Error(`Repository path exceeds maximum depth of ${maxDepth}`);
+    }
+    const targetPath = rootPath === '~'
+        ? `~/${raw}`
+        : `${rootPath.replace(/\/+$/, '')}/${raw}`;
+    if (!rootPath.startsWith('~')) {
+        const absRoot = path.resolve(rootPath);
+        const absTarget = path.resolve(targetPath);
+        if (fs.existsSync(absRoot) && fs.existsSync(absTarget)) {
+            const realRoot = fs.realpathSync(absRoot);
+            const realTarget = fs.realpathSync(absTarget);
+            if (realTarget !== realRoot && !realTarget.startsWith(realRoot + path.sep)) {
+                throw new Error('Invalid repoPath');
+            }
+        }
+    }
+    return { targetPath, relPath: raw, depth: segments.length };
+}
 function shellQuote(value) {
     if (value.includes('\0'))
         throw new Error('Git arguments must not contain NUL');
@@ -83,8 +137,64 @@ export function createRemoteGitExecutor(server, executeCommand = sshPool.execute
         });
     };
 }
+export function createRemoteRepoScanner(server, executeCommand = sshPool.executeCommand.bind(sshPool), timeoutMs = GIT_TIMEOUT_MS) {
+    if (server.type !== 'ssh')
+        throw new Error('Remote Git scanner requires an SSH server');
+    return (rootPath, maxDepth) => {
+        const directory = rootPath === '~' ? '"$HOME"' : rootPath.startsWith('~/')
+            ? `"$HOME"/${shellQuote(rootPath.slice(2))}` : shellQuote(rootPath);
+        const findDepth = Math.max(1, Math.min(maxDepth, MAX_GIT_SCAN_DEPTH)) + 1;
+        const pruneExpr = Array.from(IGNORED_SCAN_DIRS)
+            .filter(d => d !== '.git')
+            .map(d => `-name ${shellQuote(d)}`)
+            .join(' -o ');
+        const command = `cd ${directory} && find . -maxdepth ${findDepth} \\( ${pruneExpr} \\) -prune -o -name .git -print`;
+        return new Promise((resolve, reject) => {
+            let channel;
+            let settled = false;
+            const stdout = [];
+            const stop = () => { try {
+                channel?.signal('TERM');
+                channel?.close();
+            }
+            catch { } };
+            const finish = (err) => {
+                if (settled)
+                    return;
+                settled = true;
+                clearTimeout(timer);
+                if (err)
+                    reject(err);
+                else {
+                    const raw = Buffer.concat(stdout).toString('utf8');
+                    const rels = raw
+                        .split('\n')
+                        .map(l => l.trim())
+                        .filter(Boolean)
+                        .map(l => l.replace(/^\.\//, '').replace(/\/?\.git$/, '') || '.');
+                    resolve(Array.from(new Set(rels)));
+                }
+            };
+            const timer = setTimeout(() => { finish(new Error('Remote Git scan timed out')); stop(); }, timeoutMs);
+            Promise.resolve().then(() => executeCommand(server, command)).then(stream => {
+                channel = stream;
+                if (settled) {
+                    stream.on('error', () => { });
+                    stop();
+                    return;
+                }
+                stream.on('data', (data) => stdout.push(Buffer.isBuffer(data) ? data : Buffer.from(data)));
+                stream.stderr?.on('data', () => { });
+                stream.on('error', () => finish(new Error('Remote Git scan stream error')));
+                stream.on('close', () => finish());
+            }, () => finish(new Error('Remote Git scan connection error')));
+        });
+    };
+}
 export function createGitService(server) {
-    return server.type === 'local' ? gitService : new GitService(createRemoteGitExecutor(server));
+    return server.type === 'local'
+        ? gitService
+        : new GitService(createRemoteGitExecutor(server), createRemoteRepoScanner(server));
 }
 function parseNumstat(raw) {
     const map = new Map();
@@ -123,8 +233,113 @@ function parseDiff(raw) {
 }
 export class GitService {
     executor;
-    constructor(executor) {
+    remoteScanner;
+    constructor(executor, remoteScanner) {
         this.executor = executor;
+        this.remoteScanner = remoteScanner;
+    }
+    expandLocalPath(rawPath) {
+        if (rawPath === '~')
+            return os.homedir();
+        if (rawPath.startsWith('~/'))
+            return path.join(os.homedir(), rawPath.slice(2));
+        return path.resolve(rawPath);
+    }
+    scanLocalGitDirs(rootPath, maxDepth = MAX_GIT_SCAN_DEPTH) {
+        const absRoot = this.expandLocalPath(rootPath);
+        const found = [];
+        const walk = (absDir, relPath, depth) => {
+            try {
+                if (fs.existsSync(path.join(absDir, '.git'))) {
+                    found.push(relPath);
+                }
+            }
+            catch {
+                // Ignore unreadable .git entry
+            }
+            if (depth >= maxDepth)
+                return;
+            let entries = [];
+            try {
+                entries = fs.readdirSync(absDir, { withFileTypes: true });
+            }
+            catch {
+                return;
+            }
+            entries.sort((a, b) => a.name.localeCompare(b.name));
+            for (const entry of entries) {
+                if (!entry.isDirectory())
+                    continue;
+                if (entry.name.startsWith('.') || IGNORED_SCAN_DIRS.has(entry.name))
+                    continue;
+                const childRel = relPath === '.' ? entry.name : `${relPath}/${entry.name}`;
+                walk(path.join(absDir, entry.name), childRel, depth + 1);
+            }
+        };
+        walk(absRoot, '.', 0);
+        return found;
+    }
+    async discoverRepos(rootPath, maxDepth = MAX_GIT_SCAN_DEPTH) {
+        const effectiveMaxDepth = Math.max(0, Math.min(maxDepth, MAX_GIT_SCAN_DEPTH));
+        let candidateRels = [];
+        if (this.executor) {
+            if (this.remoteScanner) {
+                candidateRels = await this.remoteScanner(rootPath, effectiveMaxDepth).catch(() => []);
+            }
+            if (candidateRels.length === 0) {
+                candidateRels = ['.'];
+            }
+        }
+        else {
+            candidateRels = this.scanLocalGitDirs(rootPath, effectiveMaxDepth);
+            if (candidateRels.length === 0) {
+                const absRoot = this.expandLocalPath(rootPath);
+                const topLevel = await this.execGit(absRoot, ['rev-parse', '--show-toplevel']).then(s => s.trim()).catch(() => '');
+                if (topLevel)
+                    candidateRels = ['.'];
+            }
+        }
+        const validTargets = [];
+        for (const rel of candidateRels) {
+            try {
+                const resolved = resolveProjectSubpath(rootPath, rel, effectiveMaxDepth);
+                validTargets.push(resolved);
+            }
+            catch {
+                // Ignore paths outside allowed depth
+            }
+        }
+        validTargets.sort((a, b) => a.depth - b.depth || a.relPath.localeCompare(b.relPath));
+        const rootName = path.posix.basename(rootPath.replace(/\/+$/, '')) || rootPath;
+        const summaries = await Promise.all(validTargets.map(async ({ relPath, targetPath, depth }) => {
+            try {
+                const execTarget = this.executor ? targetPath : this.expandLocalPath(targetPath);
+                const st = await this.getStatus(execTarget, { fetch: false });
+                const stagedCount = st.files.filter(f => f.staged).length;
+                const untrackedCount = st.files.filter(f => f.status === '??').length;
+                const unstagedCount = st.files.filter(f => !f.staged && f.status !== '??').length;
+                const changedCount = st.files.length;
+                return {
+                    relPath,
+                    name: relPath === '.' ? rootName : path.posix.basename(relPath),
+                    depth,
+                    branch: st.branch || 'main',
+                    ahead: st.ahead || 0,
+                    behind: st.behind || 0,
+                    hasUpstream: Boolean(st.hasUpstream),
+                    upstream: st.upstream || '',
+                    changedCount,
+                    stagedCount,
+                    unstagedCount,
+                    untrackedCount,
+                    clean: changedCount === 0,
+                };
+            }
+            catch {
+                return null;
+            }
+        }));
+        return summaries.filter((item) => item !== null);
     }
     execGit(cwd, args) {
         if (this.executor)
@@ -168,7 +383,7 @@ export class GitService {
         }
         const [rootRaw, branchRaw, statusRaw, numstatRaw, aheadBehind] = await Promise.all([
             this.execGit(cwd, ['rev-parse', '--show-toplevel']),
-            this.execGit(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']),
+            this.execGit(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']).catch(() => this.execGit(cwd, ['symbolic-ref', '--short', 'HEAD']).catch(() => 'main')),
             this.execGit(cwd, ['status', '--porcelain=v1']),
             this.execGit(cwd, ['diff', '--numstat', 'HEAD']).catch(() => ''),
             this.countAheadBehind(cwd),

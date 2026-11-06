@@ -4478,7 +4478,9 @@
     .quick-tree-scrim { display:none; }
     @media (min-width:800px) {
       .quick-tree-panel { box-shadow:none; background:#161616; border-left:1px solid #323232; }
-      #app.quick-tree-open #view-terminal.active, #app.quick-tree-open #view-claude.active { right:var(--quick-panel-width, 304px); }
+      #app.quick-tree-open .views-wrapper > .view.active,
+      #app.quick-tree-open #view-terminal.active,
+      #app.quick-tree-open #view-claude.active { right:var(--quick-panel-width, 304px); }
     }
     @media (max-width:799px) {
       .quick-tree-scrim { display:block; position:absolute; inset:0; z-index:24; background:rgba(22, 22, 22, 0.722); backdrop-filter:blur(3px); }
@@ -4490,7 +4492,7 @@
     }
 
     /* ========================================================
-       SHORTCUT INDEX BADGES & SETTINGS VIEW (MONOCHROME CHROME)
+       SHORTCUT THIN INDEX, TOGGLEABLE LABELS & SETTINGS BLOCK
        ======================================================== */
     @media (max-width: 440px) {
       .smart-bottom-dock {
@@ -4529,31 +4531,21 @@
       justify-content: center;
       font-family: var(--font-mono);
       font-size: 10px;
-      font-weight: 700;
-      line-height: 1.2;
-      padding: 1px 5px;
-      border-radius: 5px;
-      background: #262626;
-      border: 1px solid #3d3d3d;
-      color: #d4d4d4;
+      font-weight: 400;
+      line-height: 1;
+      min-width: 11px;
+      padding: 0 1px;
+      color: #8a8a8a;
+      background: transparent;
+      border: none;
       flex-shrink: 0;
     }
 
-    .dw-idx-badge {
-      font-size: 9.5px;
-      padding: 0 4px;
-      background: #222222;
-      border-color: #383838;
-      color: #bdbdbd;
-    }
-
     .dw-item.active .dw-idx-badge {
-      background: #303030;
-      border-color: #525252;
-      color: #f0f0f0;
+      color: #d4d4d4;
+      font-weight: 600;
     }
 
-    .dw-kbd-tag,
     .kbd-hint,
     .shortcut-kbd-badge {
       display: inline-flex;
@@ -4573,40 +4565,91 @@
     }
 
     .dw-kbd-tag {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
       font-size: 9.5px;
-      padding: 1px 4px;
+      font-weight: 600;
+      line-height: 1.2;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #1f1f1f;
+      border: 1px solid #3a3a3a;
+      color: #b8b8b8;
+      white-space: nowrap;
+      flex-shrink: 0;
       margin-left: auto;
       margin-right: 4px;
-      color: #9e9e9e;
+    }
+
+    .kbd-hint {
+      display: none;
+    }
+
+    #app.shortcut-labels-visible .kbd-hint,
+    #app.shortcut-labels-visible .dw-kbd-tag {
+      display: inline-flex;
+    }
+
+    .quick-tree-row-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .quick-tree-row-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #242424;
+      border: 1px solid #3b3b3b;
+      color: #c4c4c4;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .quick-tree-row-btn:hover {
+      background: #343434;
+      border-color: #5c5c5c;
+      color: #ffffff;
     }
 
     .settings-view-container {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 12px 14px 28px 14px;
+      padding: 16px 14px 28px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .settings-shortcut-card {
+      width: 100%;
+      max-width: 680px;
+      background: #191919;
+      border: 1px solid #303030;
+      border-radius: 12px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    .settings-top-banner {
+    .settings-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 10px;
-      padding: 12px 14px;
-      background: #1a1a1a;
-      border: 1px solid #323232;
-      border-radius: 10px;
-    }
-
-    .settings-banner-left {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #2b2b2b;
     }
 
     .settings-banner-title {
@@ -4618,29 +4661,23 @@
       color: #f0f0f0;
     }
 
-    .settings-banner-desc {
-      font-size: 12px;
-      color: #a3a3a3;
-      line-height: 1.4;
-    }
-
     .settings-banner-controls {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
     }
 
     .settings-pill-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
+      gap: 5px;
+      padding: 5px 9px;
       border-radius: 7px;
       background: #242424;
       border: 1px solid #3d3d3d;
       color: #d4d4d4;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       cursor: pointer;
     }
@@ -4656,71 +4693,17 @@
       color: #ffffff;
     }
 
-    .settings-scope-bar {
+    .settings-rules-list {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 10px 14px;
-      background: #181818;
-      border: 1px solid #2e2e2e;
-      border-radius: 10px;
-    }
-
-    .settings-scope-group {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .settings-scope-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #cccccc;
-      margin-right: 4px;
-    }
-
-    .shortcut-live-tester {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
+      flex-direction: column;
       gap: 8px;
-      padding: 9px 12px;
-      background: #1c1c1c;
-      border: 1px solid #363636;
-      border-radius: 9px;
-      font-size: 12px;
-      color: #cfcfcf;
-    }
-
-    .shortcut-tester-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .settings-rules-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    @media (max-width: 760px) {
-      .settings-rules-grid {
-        grid-template-columns: 1fr;
-      }
     }
 
     .shortcut-rule-card {
-      background: #1a1a1a;
-      border: 1px solid #303030;
-      border-radius: 10px;
-      padding: 11px 12px;
+      background: #1e1e1e;
+      border: 1px solid #2f2f2f;
+      border-radius: 9px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -4737,8 +4720,8 @@
       display: flex;
       align-items: center;
       gap: 7px;
-      font-size: 13px;
-      font-weight: 700;
+      font-size: 12.5px;
+      font-weight: 600;
       color: #ededed;
     }
 
@@ -4763,7 +4746,7 @@
     .shortcut-preset-btn {
       padding: 4px 8px;
       border-radius: 6px;
-      background: #222222;
+      background: #242424;
       border: 1px solid #383838;
       color: #b5b5b5;
       font-family: var(--font-mono);
@@ -4790,160 +4773,13 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
+      margin-left: auto;
     }
 
     .shortcut-record-btn.recording {
       background: #3d3d3d;
       border-color: #8c8c8c;
       color: #ffffff;
-    }
-
-    .settings-lists-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    @media (max-width: 920px) {
-      .settings-lists-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .settings-section-box {
-      background: #181818;
-      border: 1px solid #2f2f2f;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .settings-section-head {
-      padding: 10px 12px;
-      background: #1e1e1e;
-      border-bottom: 1px solid #2d2d2d;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #e6e6e6;
-    }
-
-    .settings-item-list {
-      display: flex;
-      flex-direction: column;
-      divide-y: 1px solid #252525;
-    }
-
-    .shortcut-item-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 9px 11px;
-      border-bottom: 1px solid #242424;
-      background: #181818;
-    }
-
-    .shortcut-item-row:last-child {
-      border-bottom: none;
-    }
-
-    .shortcut-item-row.active {
-      background: #212121;
-    }
-
-    .shortcut-item-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .shortcut-item-info {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      gap: 2px;
-    }
-
-    .shortcut-item-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #ededed;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .shortcut-item-sub {
-      font-family: var(--font-mono);
-      font-size: 10.5px;
-      color: #8f8f8f;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .shortcut-item-right {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      flex-shrink: 0;
-    }
-
-    @media (max-width: 640px) {
-      .shortcut-item-row {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 7px;
-      }
-      .shortcut-item-right {
-        justify-content: flex-end;
-        flex-wrap: wrap;
-      }
-    }
-
-    .shortcut-order-btn {
-      width: 24px;
-      height: 24px;
-      border-radius: 5px;
-      background: #242424;
-      border: 1px solid #3a3a3a;
-      color: #bdbdbd;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .shortcut-order-btn:disabled {
-      opacity: 0.35;
-      pointer-events: none;
-    }
-
-    .shortcut-jump-btn {
-      padding: 4px 8px;
-      border-radius: 6px;
-      background: #2a2a2a;
-      border: 1px solid #444444;
-      color: #eaeaea;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .shortcut-jump-btn:hover {
-      background: #363636;
     }
 </style>
 </head>
@@ -4956,7 +4792,7 @@
         <div class="server-row-left">
           <button id="btn-server-manage" class="server-selector-btn" title="Quản lý Server & Kết nối SSH">
             <span id="server-status-dot" class="server-status-dot local"></span>
-            <span id="current-server-idx" class="header-idx-badge">#1</span>
+            <span id="current-server-idx" class="header-idx-badge">1</span>
             <span id="current-server-label" class="server-name-text">hungpc</span>
             <i class="ri-arrow-down-s-line" style="font-size:12px; color:var(--text-muted);"></i>
           </button>
@@ -4965,7 +4801,7 @@
 
           <button id="btn-project-mobile-pill" class="project-selector-btn" title="Chuyển hoặc quản lý Project">
             <i class="ri-folder-2-line"></i>
-            <span id="current-project-idx" class="header-idx-badge">#2</span>
+            <span id="current-project-idx" class="header-idx-badge">2</span>
             <span id="current-project-label">hugcode</span>
             <i class="ri-arrow-down-s-line"></i>
           </button>
@@ -4975,15 +4811,21 @@
       <!-- TẦNG 2: CONTEXTUAL BAR (BREADCRUMB / EDITOR / SESSION DROPDOWN + WORKSPACE TOGGLE) + ACTIONS -->
       <div class="context-row">
         <div class="smart-header-center">
-          <!-- View 1 Files: Breadcrumb -->
+          <!-- View 1 Files: Left Workspace Sidebar Toggle + Breadcrumb -->
           <div id="ctx-header-files" class="ctx-header-item active">
+            <button id="btn-toggle-workspace-left-files" type="button" class="btn-workspace-sidebar-toggle" data-workspace-sidebar-toggle title="Đóng / mở cột Workspace bên trái" aria-label="Đóng / mở cột Workspace bên trái" aria-expanded="false">
+              <i class="ri-side-bar-line"></i>
+            </button>
             <div class="breadcrumb-bar" id="file-breadcrumb">
               <!-- Rendered by JS -->
             </div>
           </div>
 
-          <!-- View 2 Editor: Active file title -->
+          <!-- View 2 Editor: Left Workspace Sidebar Toggle + Active file title -->
           <div id="ctx-header-editor" class="ctx-header-item">
+            <button id="btn-toggle-workspace-left-editor" type="button" class="btn-workspace-sidebar-toggle" data-workspace-sidebar-toggle title="Đóng / mở cột Workspace bên trái" aria-label="Đóng / mở cột Workspace bên trái" aria-expanded="false">
+              <i class="ri-side-bar-line"></i>
+            </button>
             <span class="editor-file-title" id="editor-filename">Chưa chọn file</span>
             <span id="editor-dirty-pill" class="dirty-pill hidden">● Sửa</span>
           </div>
@@ -5039,6 +4881,7 @@
         <div class="smart-header-right">
           <!-- Actions for Files -->
           <div id="ctx-actions-files" class="ctx-actions-item active">
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Mở sidebar thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Mở sidebar thư mục"><i class="ri-folder-2-line"></i></button>
             <button id="btn-quick-upload" class="btn-icon-action" title="Tải lên"><i class="ri-upload-2-line"></i></button>
             <button id="btn-quick-download-zip" class="btn-icon-action" title="Nén và tải về thư mục này" aria-label="Nén và tải về thư mục này"><i class="ri-download-2-line" aria-hidden="true"></i></button>
             <button id="btn-quick-new" class="btn-icon-action" title="Tạo file hoặc thư mục mới"><i class="ri-add-line"></i></button>
@@ -5050,6 +4893,7 @@
 
           <!-- Actions for Editor -->
           <div id="ctx-actions-editor" class="ctx-actions-item">
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Mở sidebar thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Mở sidebar thư mục"><i class="ri-folder-2-line"></i></button>
             <button id="btn-md-toggle" class="btn-md-toggle hidden" title="Chuyển chế độ xem trước hoặc sửa"><i class="ri-eye-line"></i> Xem</button>
             <button id="btn-save-file" class="btn-icon-action primary" disabled title="Lưu file"><i class="ri-save-line"></i></button>
             <button id="btn-close-file" class="btn-icon-action" title="Đóng file"><i class="ri-close-line"></i></button>
@@ -5080,6 +4924,7 @@
 
           <!-- Actions for Settings -->
           <div id="ctx-actions-settings" class="ctx-actions-item">
+            <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Mở sidebar thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Mở sidebar thư mục"><i class="ri-folder-2-line"></i></button>
             <button id="btn-header-reset-shortcuts" class="btn-icon-action" type="button" title="Khôi phục phím tắt mặc định"><i class="ri-restart-line"></i></button>
           </div>
         </div>
@@ -5118,14 +4963,25 @@
       <aside id="quick-tree-panel" class="quick-tree-panel" aria-label="Xem nhanh workspace" hidden>
         <button id="quick-tree-resize" class="quick-tree-resize" type="button" role="separator" aria-orientation="vertical" aria-label="Kéo để đổi chiều rộng bảng" aria-valuemin="220" aria-valuemax="560" aria-valuenow="304" title="Kéo để đổi chiều rộng"></button>
         <div class="quick-tree-head">
-          <div class="quick-tree-head-top"><span class="quick-tree-heading"><i id="quick-tree-heading-icon" class="ri-folder-2-line"></i><span id="quick-tree-heading-text">Thư mục dự án</span></span><div class="quick-tree-tools"><button id="quick-tree-refresh" type="button" aria-label="Làm mới bảng" title="Làm mới"><i class="ri-refresh-line"></i></button><button id="quick-tree-close" type="button" aria-label="Đóng bảng" title="Đóng"><i class="ri-close-line"></i></button></div></div>
+          <div class="quick-tree-head-top">
+            <span class="quick-tree-heading"><i id="quick-tree-heading-icon" class="ri-folder-2-line"></i><span id="quick-tree-heading-text">Thư mục dự án</span></span>
+            <div class="quick-tree-tools">
+              <button id="quick-tree-upload-files" type="button" aria-label="Tải tệp lên" title="Tải tệp lên thư mục đang chọn"><i class="ri-upload-2-line"></i></button>
+              <button id="quick-tree-upload-folder" type="button" aria-label="Tải thư mục lên" title="Tải thư mục lên"><i class="ri-folder-upload-line"></i></button>
+              <button id="quick-tree-download-zip" type="button" aria-label="Tải về ZIP thư mục" title="Tải về ZIP thư mục"><i class="ri-download-2-line"></i></button>
+              <button id="quick-tree-refresh" type="button" aria-label="Làm mới bảng" title="Làm mới"><i class="ri-refresh-line"></i></button>
+              <button id="quick-tree-close" type="button" aria-label="Đóng bảng" title="Đóng"><i class="ri-close-line"></i></button>
+            </div>
+          </div>
           <div id="quick-tree-path" class="quick-tree-path"></div>
         </div>
+        <input type="file" id="quick-input-upload-files" multiple style="display:none;" />
+        <input type="file" id="quick-input-upload-folder" webkitdirectory directory multiple style="display:none;" />
         <div id="quick-tree-files">
           <div id="quick-tree-browser">
             <div class="quick-tree-caption">Cây thư mục</div>
             <div id="quick-tree-scroll" class="quick-tree-scroll" role="tree" aria-label="Các tệp trong workspace"></div>
-            <div class="quick-tree-foot">Chọn thư mục để mở rộng · Chọn tệp để xem và sửa ngay tại đây</div>
+            <div class="quick-tree-foot">Chọn thư mục để mở rộng · Chọn tệp để xem, sửa, tải lên hoặc tải xuống ngay tại đây</div>
           </div>
           <div id="quick-file-workbench" hidden>
             <div class="quick-file-bar">
@@ -5136,6 +4992,7 @@
               </div>
               <div class="quick-file-actions">
                 <button id="quick-file-md-toggle" type="button" data-md-mode="preview" title="Chuyển chế độ Xem trước / Chỉnh sửa" aria-label="Chuyển chế độ Xem trước / Chỉnh sửa" hidden><i class="ri-edit-line"></i></button>
+                <button id="quick-file-download" type="button" title="Tải xuống tệp này" aria-label="Tải xuống tệp đang mở"><i class="ri-download-2-line"></i> Tải về</button>
                 <button id="quick-file-save" type="button" disabled><i class="ri-save-3-line"></i> Lưu</button>
               </div>
             </div>
@@ -5707,90 +5564,28 @@
       <!-- VIEW 6: SETTINGS & SHORTCUT MANAGER -->
       <section id="view-settings" class="view">
         <div class="settings-view-container">
-          <div class="settings-top-banner">
-            <div class="settings-banner-left">
+          <div class="settings-shortcut-card" id="settings-shortcut-card">
+            <div class="settings-card-header">
               <div class="settings-banner-title">
                 <i class="ri-keyboard-box-line" style="color:#38bdf8; font-size:17px;"></i>
-                <span>Phím tắt chuyển nhanh &amp; Số thứ tự điều hướng</span>
+                <span>Cài đặt phím tắt</span>
               </div>
-              <div class="settings-banner-desc">
-                Mỗi Server, Project và Session được gắn số thứ tự trực quan. Bạn có thể chuyển nhanh bằng bộ phím tắt theo số 1..9 hoặc gán phím riêng cho từng mục.
+              <div class="settings-banner-controls">
+                <button type="button" id="shortcut-labels-toggle-btn" class="settings-pill-btn" aria-pressed="false">
+                  <i class="ri-price-tag-3-line"></i>
+                  <span id="shortcut-labels-toggle-text">Nhãn phím tắt: Đang ẩn</span>
+                </button>
+                <button type="button" id="shortcut-enabled-toggle" class="settings-pill-btn active" aria-pressed="true">
+                  <i class="ri-flashlight-fill" style="color:#34d399;"></i>
+                  <span id="shortcut-enabled-label">Đang bật</span>
+                </button>
+                <button type="button" id="btn-reset-shortcuts-default" class="settings-pill-btn">
+                  <i class="ri-restart-line"></i>
+                  <span>Mặc định</span>
+                </button>
               </div>
             </div>
-            <div class="settings-banner-controls">
-              <button type="button" id="shortcut-enabled-toggle" class="settings-pill-btn active" aria-pressed="true">
-                <i class="ri-flashlight-fill" style="color:#34d399;"></i>
-                <span id="shortcut-enabled-label">Phím tắt: Đang bật</span>
-              </button>
-              <button type="button" id="btn-reset-shortcuts-default" class="settings-pill-btn">
-                <i class="ri-restart-line"></i>
-                <span>Khôi phục mặc định</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="settings-scope-bar">
-            <div class="settings-scope-group">
-              <span class="settings-scope-label"><i class="ri-list-ordered" style="color:#c084fc;"></i> Phạm vi đánh số Session:</span>
-              <button type="button" id="shortcut-session-scope-server" class="settings-pill-btn active" data-session-scope="server">
-                Theo toàn Server
-              </button>
-              <button type="button" id="shortcut-session-scope-project" class="settings-pill-btn" data-session-scope="project">
-                Theo Project đang mở
-              </button>
-            </div>
-            <div class="settings-scope-group">
-              <span class="settings-scope-label"><i class="ri-filter-3-line" style="color:#f59e0b;"></i> Hiển thị bảng:</span>
-              <button type="button" class="settings-pill-btn active" data-settings-filter="all">Tất cả</button>
-              <button type="button" class="settings-pill-btn" data-settings-filter="projects">Projects</button>
-              <button type="button" class="settings-pill-btn" data-settings-filter="claudes">Claude</button>
-              <button type="button" class="settings-pill-btn" data-settings-filter="terminals">Terminal</button>
-              <button type="button" class="settings-pill-btn" data-settings-filter="servers">Servers</button>
-            </div>
-          </div>
-
-          <div class="shortcut-live-tester" id="shortcut-live-tester">
-            <div class="shortcut-tester-status">
-              <i class="ri-terminal-window-line" style="color:#38bdf8; font-size:15px;"></i>
-              <span id="shortcut-last-triggered-text">Nhấn thử tổ hợp phím trên bàn phím hoặc bấm nút Chuyển tới ở bất kỳ mục nào bên dưới để kiểm tra điều hướng.</span>
-            </div>
-            <kbd class="shortcut-kbd-badge" id="shortcut-last-combo-badge">Sẵn sàng</kbd>
-          </div>
-
-          <div id="settings-shortcut-group-list" class="settings-rules-grid"></div>
-
-          <div class="settings-lists-grid" id="settings-lists-grid">
-            <div class="settings-section-box" data-settings-section="projects">
-              <div class="settings-section-head">
-                <span><i class="ri-folder-2-line" style="color:#38bdf8;"></i> Projects theo số thứ tự</span>
-                <span class="dw-idx-badge" id="settings-projects-count">0</span>
-              </div>
-              <div class="settings-item-list" id="settings-shortcut-projects"></div>
-            </div>
-
-            <div class="settings-section-box" data-settings-section="claudes">
-              <div class="settings-section-head">
-                <span><i class="ri-sparkling-fill" style="color:#f59e0b;"></i> Phiên Claude theo số thứ tự</span>
-                <span class="dw-idx-badge" id="settings-claudes-count">0</span>
-              </div>
-              <div class="settings-item-list" id="settings-shortcut-claudes"></div>
-            </div>
-
-            <div class="settings-section-box" data-settings-section="terminals">
-              <div class="settings-section-head">
-                <span><i class="ri-terminal-box-line" style="color:#c084fc;"></i> Phiên Terminal theo số thứ tự</span>
-                <span class="dw-idx-badge" id="settings-terminals-count">0</span>
-              </div>
-              <div class="settings-item-list" id="settings-shortcut-terminals"></div>
-            </div>
-
-            <div class="settings-section-box" data-settings-section="servers">
-              <div class="settings-section-head">
-                <span><i class="ri-server-line" style="color:#34d399;"></i> Servers theo số thứ tự</span>
-                <span class="dw-idx-badge" id="settings-servers-count">0</span>
-              </div>
-              <div class="settings-item-list" id="settings-shortcut-servers"></div>
-            </div>
+            <div id="settings-shortcut-group-list" class="settings-rules-list"></div>
           </div>
         </div>
       </section>
@@ -7420,7 +7215,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             <div class="card-main-row">
               <div class="card-left-meta">
                 <span class="status-indicator-dot ${dotClass}" title="${dotTitle}"></span>
-                <span class="idx-badge" data-server-index="${serverNum}">#${serverNum}</span>
+                <span class="idx-badge" data-server-index="${serverNum}">${serverNum}</span>
                 <i class="${icon} type-icon"></i>
                 <span class="server-name-text">${escapeHtml(s.name)}</span>
                 <span class="auth-tag">${authTagText}</span>
@@ -8643,6 +8438,119 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       });
       quickFileSave.addEventListener('click', saveQuickFileInline);
 
+      let quickUploadTargetDirPath = '';
+      const quickInputUploadFiles = document.getElementById('quick-input-upload-files');
+      const quickInputUploadFolder = document.getElementById('quick-input-upload-folder');
+      const quickFileDownloadBtn = document.getElementById('quick-file-download');
+      const quickTreeUploadFilesBtn = document.getElementById('quick-tree-upload-files');
+      const quickTreeUploadFolderBtn = document.getElementById('quick-tree-upload-folder');
+      const quickTreeDownloadZipBtn = document.getElementById('quick-tree-download-zip');
+
+      function resolveQuickTreeDirNode(relPath) {
+        if (!relPath) return mockFS;
+        const segments = String(relPath).split('/').filter(Boolean);
+        let curr = mockFS;
+        for (const seg of segments) {
+          if (!curr.children) curr.children = {};
+          if (!curr.children[seg] || curr.children[seg].type !== 'dir') {
+            curr.children[seg] = { type: 'dir', children: {} };
+          }
+          curr = curr.children[seg];
+        }
+        return curr;
+      }
+
+      function downloadQuickFileNode(name, nodeOrContent) {
+        const content = typeof nodeOrContent === 'string'
+          ? nodeOrContent
+          : (nodeOrContent && typeof nodeOrContent.content === 'string' ? nodeOrContent.content : '');
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        downloadBlob(blob, name || 'download.txt');
+        showToast(`Đã tải xuống tệp "${name}"`, 'success');
+      }
+
+      if (quickFileDownloadBtn) {
+        quickFileDownloadBtn.addEventListener('click', () => {
+          if (!quickActiveFile) return;
+          downloadQuickFileNode(quickActiveFile.name, quickFileTextarea.value);
+        });
+      }
+
+      function handleQuickTreeUploadFiles(files, targetDirPath = quickUploadTargetDirPath) {
+        if (!files || files.length === 0) return;
+        const fileArr = Array.from(files);
+        const targetNode = resolveQuickTreeDirNode(targetDirPath);
+        if (!targetNode.children) targetNode.children = {};
+        if (targetDirPath) quickTreeExpanded.set(targetDirPath, true);
+        let added = 0;
+        fileArr.forEach(file => {
+          if (typeof file.content === 'string' && !(file instanceof Blob)) {
+            const sizeStr = `${Math.max(0.1, (file.content.length / 1024)).toFixed(1)} KB`;
+            targetNode.children[file.name] = {
+              type: 'file',
+              size: sizeStr,
+              modified: 'Vừa tải lên',
+              content: file.content
+            };
+            added++;
+            if (added === fileArr.length) {
+              renderQuickTree();
+              renderFileExplorer();
+              showToast(`Đã tải lên ${fileArr.length} tệp vào ${targetDirPath || (mockFS?.name || 'workspace')}`, 'success');
+            }
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const content = e.target.result || '';
+            const sizeStr = `${Math.max(1, (file.size / 1024)).toFixed(1)} KB`;
+            targetNode.children[file.name] = {
+              type: 'file',
+              size: sizeStr,
+              modified: 'Vừa tải lên',
+              content
+            };
+            added++;
+            if (added === fileArr.length) {
+              renderQuickTree();
+              renderFileExplorer();
+              showToast(`Đã tải lên ${fileArr.length} tệp vào ${targetDirPath || (mockFS?.name || 'workspace')}`, 'success');
+              if (quickInputUploadFiles) quickInputUploadFiles.value = '';
+            }
+          };
+          reader.readAsText(file);
+        });
+      }
+      window.uploadFilesToQuickTree = handleQuickTreeUploadFiles;
+
+      if (quickTreeUploadFilesBtn && quickInputUploadFiles) {
+        quickTreeUploadFilesBtn.addEventListener('click', () => {
+          quickUploadTargetDirPath = '';
+          quickInputUploadFiles.click();
+        });
+        quickInputUploadFiles.addEventListener('change', (e) => {
+          handleQuickTreeUploadFiles(e.target.files, quickUploadTargetDirPath);
+        });
+      }
+
+      if (quickTreeUploadFolderBtn && quickInputUploadFolder) {
+        quickTreeUploadFolderBtn.addEventListener('click', () => {
+          quickUploadTargetDirPath = '';
+          quickInputUploadFolder.click();
+        });
+        quickInputUploadFolder.addEventListener('change', (e) => {
+          handleUploadFolder(e.target.files);
+          setTimeout(() => renderQuickTree(), 80);
+        });
+      }
+
+      if (quickTreeDownloadZipBtn) {
+        quickTreeDownloadZipBtn.addEventListener('click', () => {
+          const rootLabel = mockFS?.name || 'workspace';
+          executeFolderZipDownload(rootLabel, mockFS);
+        });
+      }
+
       function quickTreeRow(name, node, depth, path) {
         const isDir = node.type === 'dir';
         const expanded = isDir && quickTreeExpanded.has(path);
@@ -8650,10 +8558,11 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         row.type = 'button';
         row.className = `quick-tree-row${!isDir && quickActiveFile?.path === path ? ' is-active' : ''}`;
         row.dataset.kind = isDir ? 'directory' : 'file';
+        row.dataset.path = path;
         row.style.paddingLeft = `${8 + depth * 15}px`;
         row.setAttribute('role', 'treeitem');
         row.setAttribute('aria-label', `${name}, ${isDir ? 'thư mục' : 'tệp'}`);
-        row.title = path;
+        row.title = path || name;
         if (isDir) row.setAttribute('aria-expanded', String(expanded));
         const chevron = document.createElement('i');
         chevron.className = `quick-tree-chevron ${isDir ? (expanded ? 'ri-arrow-down-s-line' : 'ri-arrow-right-s-line') : ''}`;
@@ -8662,7 +8571,42 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         const label = document.createElement('span');
         label.className = 'quick-tree-name';
         label.textContent = name;
-        row.append(chevron, icon, label);
+
+        const actions = document.createElement('span');
+        actions.className = 'quick-tree-row-actions';
+        if (isDir) {
+          const upBtn = document.createElement('span');
+          upBtn.className = 'quick-tree-row-btn quick-tree-row-upload';
+          upBtn.setAttribute('role', 'button');
+          upBtn.setAttribute('tabindex', '0');
+          upBtn.title = `Tải tệp lên ${name}`;
+          upBtn.setAttribute('aria-label', `Tải tệp lên ${name}`);
+          upBtn.innerHTML = '<i class="ri-upload-2-line"></i>';
+          upBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            quickUploadTargetDirPath = path;
+            if (quickInputUploadFiles) quickInputUploadFiles.click();
+          });
+          actions.appendChild(upBtn);
+        }
+        const dlBtn = document.createElement('span');
+        dlBtn.className = 'quick-tree-row-btn quick-tree-row-download';
+        dlBtn.setAttribute('role', 'button');
+        dlBtn.setAttribute('tabindex', '0');
+        dlBtn.title = isDir ? `Tải về ZIP ${name}` : `Tải xuống ${name}`;
+        dlBtn.setAttribute('aria-label', isDir ? `Tải về ZIP ${name}` : `Tải xuống ${name}`);
+        dlBtn.innerHTML = '<i class="ri-download-2-line"></i>';
+        dlBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (isDir) {
+            executeFolderZipDownload(name || 'workspace', node);
+          } else {
+            downloadQuickFileNode(name, node);
+          }
+        });
+        actions.appendChild(dlBtn);
+
+        row.append(chevron, icon, label, actions);
         row.addEventListener('click', () => {
           if (isDir) {
             expanded ? quickTreeExpanded.delete(path) : quickTreeExpanded.set(path, true);
@@ -8787,7 +8731,11 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
       // --- TAB SWITCHING (SMART DYNAMIC CONTEXT) ---
       function switchTab(targetId) {
-        closeQuickTree();
+        if (window.innerWidth < 800) {
+          closeQuickTree();
+        } else if (!quickTreePanel.hidden && quickPanelMode === 'git' && targetId !== 'view-terminal' && targetId !== 'view-claude') {
+          setQuickPanelMode('files');
+        }
         closeAllPopovers();
         views.forEach(v => v.classList.toggle('active', v.id === targetId));
 
@@ -9458,7 +9406,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
 
           card.innerHTML = `
             <div class="session-card-top">
-              <span class="session-card-name"><span class="idx-badge">#${sessIndex}</span> <i class="ri-terminal-box-line"></i> ${escapeHtml(s.name)}</span>
+              <span class="session-card-name"><span class="idx-badge">${sessIndex}</span> <i class="ri-terminal-box-line"></i> ${escapeHtml(s.name)}</span>
               ${sessShortcut ? `<kbd class="kbd-hint">${escapeHtml(sessShortcut)}</kbd>` : ''}
               ${tuiModeBadge}
               ${isCurrent ? '<span class="session-card-badge active-badge">● Đang chọn</span>' : ''}
@@ -11214,7 +11162,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           card.innerHTML = `
             <div class="session-card-top">
               <span class="session-card-name">
-                <span class="idx-badge">#${claudeIndex}</span>
+                <span class="idx-badge">${claudeIndex}</span>
                 <i class="ri-sparkling-fill" style="color:#d97757;"></i> ${escapeHtml(session.name)}
               </span>
               ${claudeShortcut ? `<kbd class="kbd-hint">${escapeHtml(claudeShortcut)}</kbd>` : ''}
@@ -12163,7 +12111,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           card.innerHTML = `
             <div class="session-card-top">
               <span class="session-card-name">
-                <span class="idx-badge" data-project-index="${projNum}">#${projNum}</span>
+                <span class="idx-badge" data-project-index="${projNum}">${projNum}</span>
                 <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#38bdf8;"></i>
                 ${escapeHtml(proj.name)}
               </span>
@@ -12251,18 +12199,17 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       // --- SHORTCUT & SEQUENTIAL NUMBERING ENGINE ---
-      const SHORTCUT_STORAGE_KEY = 'hugremote_prototype_shortcuts_v1';
+      const SHORTCUT_STORAGE_KEY = 'hugremote_prototype_shortcuts_v2';
       const DEFAULT_SHORTCUT_CONFIG = {
         enabled: true,
-        sessionScope: 'server',
-        filter: 'all',
+        showLabels: false,
+        toggleLabelsCombo: 'Alt+K',
         groupPrefixes: {
           project: 'Alt',
           claude: 'Alt+Shift',
           terminal: 'Ctrl+Alt',
           server: 'Ctrl+Shift'
-        },
-        customBindings: {}
+        }
       };
 
       function loadShortcutConfig() {
@@ -12272,15 +12219,14 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           const parsed = JSON.parse(raw);
           return {
             enabled: parsed.enabled !== false,
-            sessionScope: parsed.sessionScope === 'project' ? 'project' : 'server',
-            filter: parsed.filter || 'all',
+            showLabels: Boolean(parsed.showLabels),
+            toggleLabelsCombo: parsed.toggleLabelsCombo || 'Alt+K',
             groupPrefixes: {
               project: (parsed.groupPrefixes && parsed.groupPrefixes.project) || 'Alt',
               claude: (parsed.groupPrefixes && parsed.groupPrefixes.claude) || 'Alt+Shift',
               terminal: (parsed.groupPrefixes && parsed.groupPrefixes.terminal) || 'Ctrl+Alt',
               server: (parsed.groupPrefixes && parsed.groupPrefixes.server) || 'Ctrl+Shift'
-            },
-            customBindings: (parsed.customBindings && typeof parsed.customBindings === 'object') ? parsed.customBindings : {}
+            }
           };
         } catch (_) {
           return JSON.parse(JSON.stringify(DEFAULT_SHORTCUT_CONFIG));
@@ -12289,15 +12235,32 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
 
       let shortcutConfig = loadShortcutConfig();
       let shortcutRecordingState = null;
-      let lastTriggeredShortcutInfo = {
-        combo: 'Sẵn sàng',
-        label: 'Nhấn thử tổ hợp phím trên bàn phím hoặc bấm nút Chuyển tới ở bất kỳ mục nào bên dưới để kiểm tra điều hướng.'
-      };
 
       function saveShortcutConfig() {
         try {
           localStorage.setItem(SHORTCUT_STORAGE_KEY, JSON.stringify(shortcutConfig));
         } catch (_) {}
+      }
+
+      function syncShortcutLabelsClass() {
+        const appEl = document.getElementById('app');
+        if (appEl) {
+          appEl.classList.toggle('shortcut-labels-visible', Boolean(shortcutConfig.showLabels));
+        }
+      }
+
+      function toggleShortcutLabelsVisibility(forceValue) {
+        shortcutConfig.showLabels = typeof forceValue === 'boolean' ? forceValue : !shortcutConfig.showLabels;
+        syncShortcutLabelsClass();
+        saveShortcutConfig();
+        if (typeof renderSettingsScreen === 'function') renderSettingsScreen();
+        showToast(
+          shortcutConfig.showLabels
+            ? 'Đã hiện nhãn tổ hợp phím tắt trên Sidebar'
+            : 'Đã ẩn nhãn tổ hợp phím tắt, chỉ giữ thin index',
+          'info'
+        );
+        return shortcutConfig.showLabels;
       }
 
       function formatShortcutCombo(combo) {
@@ -12335,41 +12298,24 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         const srv = server || getCurrentServer();
         const projects = ensureServerProjects(srv);
         ensureProjectSessionBuckets(srv);
-        const activeProj = getActiveProject();
         const list = [];
-        if (shortcutConfig.sessionScope === 'project' && activeProj) {
-          const terms = srv.termByProject[activeProj.id] || [];
-          terms.forEach((sess, idx) => {
+        let counter = 0;
+        projects.forEach(proj => {
+          const terms = srv.termByProject[proj.id] || [];
+          terms.forEach(sess => {
+            counter++;
             list.push({
               category: 'terminal',
               item: sess,
-              proj: activeProj,
+              proj,
               id: sess.id,
               name: sess.name,
-              sub: `${activeProj.name} · ${sess.cwd || activeProj.path}`,
-              index: idx + 1,
-              isActive: sess.id === activeSessionId
+              sub: `${proj.name} · ${sess.cwd || proj.path}`,
+              index: counter,
+              isActive: proj.id === srv.activeProjectId && sess.id === activeSessionId
             });
           });
-        } else {
-          let counter = 0;
-          projects.forEach(proj => {
-            const terms = srv.termByProject[proj.id] || [];
-            terms.forEach(sess => {
-              counter++;
-              list.push({
-                category: 'terminal',
-                item: sess,
-                proj,
-                id: sess.id,
-                name: sess.name,
-                sub: `${proj.name} · ${sess.cwd || proj.path}`,
-                index: counter,
-                isActive: proj.id === srv.activeProjectId && sess.id === activeSessionId
-              });
-            });
-          });
-        }
+        });
         return list;
       }
 
@@ -12377,41 +12323,24 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         const srv = server || getCurrentServer();
         const projects = ensureServerProjects(srv);
         ensureProjectSessionBuckets(srv);
-        const activeProj = getActiveProject();
         const list = [];
-        if (shortcutConfig.sessionScope === 'project' && activeProj) {
-          const claudes = srv.claudeByProject[activeProj.id] || [];
-          claudes.forEach((sess, idx) => {
+        let counter = 0;
+        projects.forEach(proj => {
+          const claudes = srv.claudeByProject[proj.id] || [];
+          claudes.forEach(sess => {
+            counter++;
             list.push({
               category: 'claude',
               item: sess,
-              proj: activeProj,
+              proj,
               id: sess.id,
               name: sess.name,
-              sub: `${activeProj.name} · ${sess.model || 'Sonnet 5.5 Medium'}`,
-              index: idx + 1,
-              isActive: sess.id === activeClaudeId
+              sub: `${proj.name} · ${sess.model || 'Sonnet 5.5 Medium'}`,
+              index: counter,
+              isActive: proj.id === srv.activeProjectId && sess.id === activeClaudeId
             });
           });
-        } else {
-          let counter = 0;
-          projects.forEach(proj => {
-            const claudes = srv.claudeByProject[proj.id] || [];
-            claudes.forEach(sess => {
-              counter++;
-              list.push({
-                category: 'claude',
-                item: sess,
-                proj,
-                id: sess.id,
-                name: sess.name,
-                sub: `${proj.name} · ${sess.model || 'Sonnet 5.5 Medium'}`,
-                index: counter,
-                isActive: proj.id === srv.activeProjectId && sess.id === activeClaudeId
-              });
-            });
-          });
-        }
+        });
         return list;
       }
 
@@ -12426,10 +12355,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       function getEffectiveItemShortcut(category, itemId, indexNum) {
-        const key = `${category}:${itemId}`;
-        if (shortcutConfig.customBindings && shortcutConfig.customBindings[key]) {
-          return formatShortcutCombo(shortcutConfig.customBindings[key]);
-        }
         const prefix = (shortcutConfig.groupPrefixes && shortcutConfig.groupPrefixes[category]) || '';
         if (prefix && indexNum >= 1 && indexNum <= 9) {
           return formatShortcutCombo(`${prefix}+${indexNum}`);
@@ -12441,23 +12366,23 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         const cur = getCurrentServer();
         const srvIdx = Math.max(1, serverList.findIndex(s => s.id === cur.id) + 1);
         const srvIdxEl = document.getElementById('current-server-idx');
-        if (srvIdxEl) srvIdxEl.textContent = `#${srvIdx}`;
+        if (srvIdxEl) srvIdxEl.textContent = `${srvIdx}`;
 
         const projects = ensureServerProjects(cur);
         const activeProj = getActiveProject();
         const projIdx = activeProj ? Math.max(1, projects.findIndex(p => p.id === activeProj.id) + 1) : 1;
         const projIdxEl = document.getElementById('current-project-idx');
-        if (projIdxEl) projIdxEl.textContent = `#${projIdx}`;
+        if (projIdxEl) projIdxEl.textContent = `${projIdx}`;
 
         const activeTerm = typeof getActiveSession === 'function' ? getActiveSession() : null;
         if (activeTerm && currentTermName) {
           const tIdx = getTerminalSessionNumber(activeTerm.id, 1);
-          currentTermName.innerHTML = `<span class="header-idx-badge">#${tIdx}</span> <i class="ri-terminal-box-line"></i> ${escapeHtml(activeTerm.name)}`;
+          currentTermName.innerHTML = `<span class="header-idx-badge">${tIdx}</span> <i class="ri-terminal-box-line"></i> ${escapeHtml(activeTerm.name)}`;
         }
         const activeClaude = typeof getActiveClaudeSession === 'function' ? getActiveClaudeSession() : null;
         if (activeClaude && currentClaudeName) {
           const cIdx = getClaudeSessionNumber(activeClaude.id, 1);
-          currentClaudeName.innerHTML = `<span class="header-idx-badge">#${cIdx}</span> <i class="ri-sparkling-fill" style="color:#d97757;"></i> ${escapeHtml(activeClaude.name)}`;
+          currentClaudeName.innerHTML = `<span class="header-idx-badge">${cIdx}</span> <i class="ri-sparkling-fill" style="color:#d97757;"></i> ${escapeHtml(activeClaude.name)}`;
         }
       }
 
@@ -12472,7 +12397,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         item.innerHTML = `
           <div class="dw-item-main">
             <div class="dw-item-title">
-              <span class="dw-idx-badge" data-term-index="${resolvedIdx}">#${resolvedIdx}</span>
+              <span class="dw-idx-badge" data-term-index="${resolvedIdx}">${resolvedIdx}</span>
               <i class="ri-terminal-box-line" style="color:#c084fc;"></i>
               <span>${escapeHtml(sess.name)}</span>
             </div>
@@ -12527,7 +12452,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         item.innerHTML = `
           <div class="dw-item-main">
             <div class="dw-item-title">
-              <span class="dw-idx-badge" data-claude-index="${resolvedIdx}">#${resolvedIdx}</span>
+              <span class="dw-idx-badge" data-claude-index="${resolvedIdx}">${resolvedIdx}</span>
               <i class="ri-sparkling-fill" style="color:#f59e0b;"></i>
               <span>${escapeHtml(sess.name)}</span>
             </div>
@@ -12611,7 +12536,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               <div class="dw-item-main">
                 <div class="dw-item-title">
                   <span class="dw-proj-caret"><i class="${isCollapsed ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'}"></i></span>
-                  <span class="dw-idx-badge" data-proj-index="${projNum}">#${projNum}</span>
+                  <span class="dw-idx-badge" data-proj-index="${projNum}">${projNum}</span>
                   <i class="${proj.isHome ? 'ri-home-4-line' : 'ri-folder-2-line'}" style="color:#38bdf8;"></i>
                   <span>${escapeHtml(proj.name)}</span>
                 </div>
@@ -12678,10 +12603,9 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               }
               const termList = document.createElement('div');
               termList.className = 'dw-session-list';
-              projTerms.forEach((sess, localTIdx) => {
+              projTerms.forEach(sess => {
                 runningTermCounter++;
-                const tIdx = shortcutConfig.sessionScope === 'project' ? (localTIdx + 1) : runningTermCounter;
-                termList.appendChild(buildDwTermSessionRow(proj, sess, tCount, isCurrent, tIdx));
+                termList.appendChild(buildDwTermSessionRow(proj, sess, tCount, isCurrent, runningTermCounter));
               });
               termSub.appendChild(termList);
               childrenEl.appendChild(termSub);
@@ -12711,10 +12635,9 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
               }
               const claudeList = document.createElement('div');
               claudeList.className = 'dw-session-list';
-              projClaudes.forEach((sess, localCIdx) => {
+              projClaudes.forEach(sess => {
                 runningClaudeCounter++;
-                const cIdx = shortcutConfig.sessionScope === 'project' ? (localCIdx + 1) : runningClaudeCounter;
-                claudeList.appendChild(buildDwClaudeSessionRow(proj, sess, cCount, isCurrent, cIdx));
+                claudeList.appendChild(buildDwClaudeSessionRow(proj, sess, cCount, isCurrent, runningClaudeCounter));
               });
               claudeSub.appendChild(claudeList);
               childrenEl.appendChild(claudeSub);
@@ -12819,31 +12742,43 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       const SHORTCUT_GROUP_META = [
         {
           key: 'project',
-          title: 'Project theo số thứ tự',
+          title: 'Chuyển nhanh Project',
           icon: 'ri-folder-2-line',
           color: '#38bdf8',
-          presets: ['Alt', 'Ctrl+Alt', 'Alt+Shift', 'Ctrl+Shift', 'Meta+Alt']
+          presets: ['Alt', 'Ctrl+Alt', 'Alt+Shift', 'Ctrl+Shift', 'Meta+Alt'],
+          isSingleCombo: false
         },
         {
           key: 'claude',
-          title: 'Phiên Claude theo số thứ tự',
+          title: 'Chuyển nhanh Phiên Claude',
           icon: 'ri-sparkling-fill',
           color: '#f59e0b',
-          presets: ['Alt+Shift', 'Alt', 'Ctrl+Alt', 'Ctrl+Shift', 'Meta+Shift']
+          presets: ['Alt+Shift', 'Alt', 'Ctrl+Alt', 'Ctrl+Shift', 'Meta+Shift'],
+          isSingleCombo: false
         },
         {
           key: 'terminal',
-          title: 'Phiên Terminal theo số thứ tự',
+          title: 'Chuyển nhanh Phiên Terminal',
           icon: 'ri-terminal-box-line',
           color: '#c084fc',
-          presets: ['Ctrl+Alt', 'Alt', 'Alt+Shift', 'Ctrl+Shift', 'Meta+Alt']
+          presets: ['Ctrl+Alt', 'Alt', 'Alt+Shift', 'Ctrl+Shift', 'Meta+Alt'],
+          isSingleCombo: false
         },
         {
           key: 'server',
-          title: 'Server theo số thứ tự',
+          title: 'Chuyển nhanh Server',
           icon: 'ri-server-line',
           color: '#34d399',
-          presets: ['Ctrl+Shift', 'Alt+Shift', 'Ctrl+Alt', 'Meta+Shift']
+          presets: ['Ctrl+Shift', 'Alt+Shift', 'Ctrl+Alt', 'Meta+Shift'],
+          isSingleCombo: false
+        },
+        {
+          key: 'toggleLabels',
+          title: 'Hiện / ẩn nhãn phím tắt trên Sidebar',
+          icon: 'ri-price-tag-3-line',
+          color: '#a3a3a3',
+          presets: ['Alt+K', 'Alt+L', 'Ctrl+Shift+K', 'Alt+/'],
+          isSingleCombo: true
         }
       ];
 
@@ -12861,10 +12796,11 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         if (/^Digit[1-9]$/.test(code)) return code.slice(5);
         if (/^Numpad[1-9]$/.test(code)) return code.slice(6);
         if (/^Key[A-Z]$/.test(code)) return code.slice(3).toUpperCase();
+        if (code === 'Slash') return '/';
         if (/^F([1-9]|1[0-2])$/.test(event.key || '')) return event.key.toUpperCase();
         const k = String(event.key || '').trim();
         if (/^[1-9]$/.test(k)) return k;
-        if (/^[a-zA-Z]$/.test(k)) return k.toUpperCase();
+        if (/^[a-zA-Z/]$/.test(k)) return k.toUpperCase();
         return '';
       }
 
@@ -12879,97 +12815,15 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         return `${prefix}+${keyToken}`;
       }
 
-      function moveIndexedEntry(category, indexZero, direction) {
-        const cur = getCurrentServer();
-        ensureServerProjects(cur);
-        ensureProjectSessionBuckets(cur);
-        if (category === 'server') {
-          const targetIdx = indexZero + direction;
-          if (targetIdx < 0 || targetIdx >= serverList.length) return;
-          const tmp = serverList[indexZero];
-          serverList[indexZero] = serverList[targetIdx];
-          serverList[targetIdx] = tmp;
-          renderServerCards();
-        } else if (category === 'project') {
-          const arr = cur.projects;
-          const targetIdx = indexZero + direction;
-          if (targetIdx < 0 || targetIdx >= arr.length) return;
-          const tmp = arr[indexZero];
-          arr[indexZero] = arr[targetIdx];
-          arr[targetIdx] = tmp;
-          renderProjectModalCards();
-        } else if (category === 'terminal') {
-          const entries = getIndexedTerminalSessions(cur);
-          const curEntry = entries[indexZero];
-          const swapEntry = entries[indexZero + direction];
-          if (!curEntry || !swapEntry) return;
-          if (curEntry.proj.id === swapEntry.proj.id) {
-            const bucket = cur.termByProject[curEntry.proj.id] || [];
-            const iA = bucket.findIndex(s => s.id === curEntry.id);
-            const iB = bucket.findIndex(s => s.id === swapEntry.id);
-            if (iA !== -1 && iB !== -1) {
-              const tmp = bucket[iA];
-              bucket[iA] = bucket[iB];
-              bucket[iB] = tmp;
-            }
-          } else {
-            const pArr = cur.projects;
-            const pA = pArr.findIndex(p => p.id === curEntry.proj.id);
-            const pB = pArr.findIndex(p => p.id === swapEntry.proj.id);
-            if (pA !== -1 && pB !== -1) {
-              const tmp = pArr[pA];
-              pArr[pA] = pArr[pB];
-              pArr[pB] = tmp;
-            }
-          }
-          renderSessionHubCards();
-        } else if (category === 'claude') {
-          const entries = getIndexedClaudeSessions(cur);
-          const curEntry = entries[indexZero];
-          const swapEntry = entries[indexZero + direction];
-          if (!curEntry || !swapEntry) return;
-          if (curEntry.proj.id === swapEntry.proj.id) {
-            const bucket = cur.claudeByProject[curEntry.proj.id] || [];
-            const iA = bucket.findIndex(s => s.id === curEntry.id);
-            const iB = bucket.findIndex(s => s.id === swapEntry.id);
-            if (iA !== -1 && iB !== -1) {
-              const tmp = bucket[iA];
-              bucket[iA] = bucket[iB];
-              bucket[iB] = tmp;
-            }
-          } else {
-            const pArr = cur.projects;
-            const pA = pArr.findIndex(p => p.id === curEntry.proj.id);
-            const pB = pArr.findIndex(p => p.id === swapEntry.proj.id);
-            if (pA !== -1 && pB !== -1) {
-              const tmp = pArr[pA];
-              pArr[pA] = pArr[pB];
-              pArr[pB] = tmp;
-            }
-          }
-          renderClaudeSessionCards();
-        }
-        renderDesktopWorkspaceSidebar();
-        renderSettingsScreen();
-      }
-
       function executeShortcutAction(entry, comboUsed) {
         if (!entry) return false;
-        const comboLabel = comboUsed || getEffectiveItemShortcut(entry.category, entry.id, entry.index) || `#${entry.index}`;
+        const comboLabel = comboUsed || getEffectiveItemShortcut(entry.category, entry.id, entry.index) || `${entry.index}`;
         if (entry.category === 'server') {
           connectToServer(entry.id);
-          lastTriggeredShortcutInfo = {
-            combo: comboLabel,
-            label: `Đã chuyển sang Server #${entry.index}: ${entry.name}`
-          };
-          showToast(`⚡ [${comboLabel}] Server #${entry.index}: ${entry.name}`, 'info');
+          showToast(`⚡ [${comboLabel}] Server ${entry.index}: ${entry.name}`, 'info');
         } else if (entry.category === 'project') {
           switchProject(entry.id);
-          lastTriggeredShortcutInfo = {
-            combo: comboLabel,
-            label: `Đã chuyển sang Project #${entry.index}: ${entry.name}`
-          };
-          showToast(`⚡ [${comboLabel}] Project #${entry.index}: ${entry.name}`, 'info');
+          showToast(`⚡ [${comboLabel}] Project ${entry.index}: ${entry.name}`, 'info');
         } else if (entry.category === 'terminal') {
           const cur = getCurrentServer();
           if (entry.proj && cur.activeProjectId !== entry.proj.id) {
@@ -12981,11 +12835,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           } else {
             renderTerminalScreen();
           }
-          lastTriggeredShortcutInfo = {
-            combo: comboLabel,
-            label: `Đã chuyển sang Terminal #${entry.index}: ${entry.name}`
-          };
-          showToast(`⚡ [${comboLabel}] Terminal #${entry.index}: ${entry.name}`, 'info');
+          showToast(`⚡ [${comboLabel}] Terminal ${entry.index}: ${entry.name}`, 'info');
         } else if (entry.category === 'claude') {
           const cur = getCurrentServer();
           if (entry.proj && cur.activeProjectId !== entry.proj.id) {
@@ -12993,11 +12843,7 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           }
           switchTab('view-claude');
           switchClaudeSession(entry.id);
-          lastTriggeredShortcutInfo = {
-            combo: comboLabel,
-            label: `Đã chuyển sang Claude #${entry.index}: ${entry.name}`
-          };
-          showToast(`⚡ [${comboLabel}] Claude #${entry.index}: ${entry.name}`, 'info');
+          showToast(`⚡ [${comboLabel}] Claude ${entry.index}: ${entry.name}`, 'info');
         }
         syncDesktopProjectAndSessionUI();
         renderSettingsScreen();
@@ -13013,14 +12859,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           ...getIndexedTerminalSessions(cur),
           ...getIndexedServers()
         ];
-        // 1. Check custom bindings first
-        for (const entry of allCollections) {
-          const custom = shortcutConfig.customBindings[`${entry.category}:${entry.id}`];
-          if (custom && custom.toLowerCase() === combo.toLowerCase()) {
-            return entry;
-          }
-        }
-        // 2. Check group prefix + 1..9
         for (const entry of allCollections) {
           const effective = getEffectiveItemShortcut(entry.category, entry.id, entry.index);
           if (effective && effective.toLowerCase() === combo.toLowerCase()) {
@@ -13031,52 +12869,38 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       function renderSettingsScreen() {
+        syncShortcutLabelsClass();
         const enabledBtn = document.getElementById('shortcut-enabled-toggle');
         const enabledLabel = document.getElementById('shortcut-enabled-label');
         if (enabledBtn && enabledLabel) {
           enabledBtn.classList.toggle('active', Boolean(shortcutConfig.enabled));
           enabledBtn.setAttribute('aria-pressed', shortcutConfig.enabled ? 'true' : 'false');
-          enabledLabel.textContent = shortcutConfig.enabled ? 'Phím tắt: Đang bật' : 'Phím tắt: Đang tắt';
+          enabledLabel.textContent = shortcutConfig.enabled ? 'Đang bật' : 'Đang tắt';
         }
 
-        const scopeServerBtn = document.getElementById('shortcut-session-scope-server');
-        const scopeProjectBtn = document.getElementById('shortcut-session-scope-project');
-        if (scopeServerBtn && scopeProjectBtn) {
-          scopeServerBtn.classList.toggle('active', shortcutConfig.sessionScope === 'server');
-          scopeProjectBtn.classList.toggle('active', shortcutConfig.sessionScope === 'project');
+        const labelsToggleBtn = document.getElementById('shortcut-labels-toggle-btn');
+        const labelsToggleText = document.getElementById('shortcut-labels-toggle-text');
+        if (labelsToggleBtn && labelsToggleText) {
+          labelsToggleBtn.classList.toggle('active', Boolean(shortcutConfig.showLabels));
+          labelsToggleBtn.setAttribute('aria-pressed', shortcutConfig.showLabels ? 'true' : 'false');
+          labelsToggleText.textContent = shortcutConfig.showLabels
+            ? `Nhãn phím tắt: Đang hiện · ${shortcutConfig.toggleLabelsCombo}`
+            : `Nhãn phím tắt: Đang ẩn · ${shortcutConfig.toggleLabelsCombo}`;
         }
 
-        document.querySelectorAll('[data-settings-filter]').forEach(btn => {
-          btn.classList.toggle('active', btn.getAttribute('data-settings-filter') === shortcutConfig.filter);
-        });
-
-        document.querySelectorAll('[data-settings-section]').forEach(sec => {
-          const secName = sec.getAttribute('data-settings-section');
-          const visible = shortcutConfig.filter === 'all' || shortcutConfig.filter === secName;
-          sec.style.display = visible ? 'flex' : 'none';
-        });
-
-        const lastTextEl = document.getElementById('shortcut-last-triggered-text');
-        const lastComboEl = document.getElementById('shortcut-last-combo-badge');
-        if (lastTextEl && lastComboEl) {
-          if (shortcutRecordingState) {
-            lastTextEl.textContent = `Đang chờ nhấn phím cho ${shortcutRecordingState.title} · Nhấn Esc để hủy`;
-            lastComboEl.textContent = 'Nhấn phím...';
-          } else {
-            lastTextEl.textContent = lastTriggeredShortcutInfo.label;
-            lastComboEl.textContent = lastTriggeredShortcutInfo.combo;
-          }
-        }
-
-        // Render 4 group rule cards
         const groupListEl = document.getElementById('settings-shortcut-group-list');
         if (groupListEl) {
           groupListEl.innerHTML = '';
           SHORTCUT_GROUP_META.forEach(meta => {
-            const currentPrefix = shortcutConfig.groupPrefixes[meta.key] || 'Alt';
+            const currentVal = meta.isSingleCombo
+              ? (shortcutConfig.toggleLabelsCombo || 'Alt+K')
+              : (shortcutConfig.groupPrefixes[meta.key] || 'Alt');
             const isRecordingGroup = shortcutRecordingState &&
-              shortcutRecordingState.mode === 'group' &&
               shortcutRecordingState.group === meta.key;
+
+            const previewLabel = meta.isSingleCombo
+              ? currentVal
+              : `${currentVal} + 1..9`;
 
             const card = document.createElement('div');
             card.className = 'shortcut-rule-card';
@@ -13087,11 +12911,11 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
                   <i class="${meta.icon}" style="color:${meta.color};"></i>
                   <span>${escapeHtml(meta.title)}</span>
                 </span>
-                <kbd class="shortcut-rule-preview">${escapeHtml(currentPrefix)} + 1..9</kbd>
+                <kbd class="shortcut-rule-preview">${escapeHtml(previewLabel)}</kbd>
               </div>
               <div class="shortcut-preset-row">
                 ${meta.presets.map(preset => `
-                  <button type="button" class="shortcut-preset-btn ${preset === currentPrefix ? 'active' : ''}" data-preset="${escapeHtml(preset)}">
+                  <button type="button" class="shortcut-preset-btn ${preset === currentVal ? 'active' : ''}" data-preset="${escapeHtml(preset)}">
                     ${escapeHtml(preset)}
                   </button>
                 `).join('')}
@@ -13105,12 +12929,21 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             card.querySelectorAll('.shortcut-preset-btn').forEach(btn => {
               btn.addEventListener('click', () => {
                 const chosen = btn.getAttribute('data-preset');
-                shortcutConfig.groupPrefixes[meta.key] = chosen;
+                if (meta.isSingleCombo) {
+                  shortcutConfig.toggleLabelsCombo = chosen;
+                } else {
+                  shortcutConfig.groupPrefixes[meta.key] = chosen;
+                }
                 shortcutRecordingState = null;
                 saveShortcutConfig();
                 renderDesktopWorkspaceSidebar();
                 renderSettingsScreen();
-                showToast(`Đã đặt bộ phím ${meta.title}: ${chosen} + 1..9`, 'success');
+                showToast(
+                  meta.isSingleCombo
+                    ? `Đã đặt phím bật/tắt nhãn: ${chosen}`
+                    : `Đã đặt bộ phím ${meta.title}: ${chosen} + 1..9`,
+                  'success'
+                );
               });
             });
 
@@ -13121,8 +12954,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
                   shortcutRecordingState = null;
                 } else {
                   shortcutRecordingState = {
-                    mode: 'group',
                     group: meta.key,
+                    isSingleCombo: meta.isSingleCombo,
                     title: meta.title
                   };
                 }
@@ -13133,142 +12966,13 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             groupListEl.appendChild(card);
           });
         }
-
-        // Render 4 numbered item lists
-        const cur = getCurrentServer();
-        const sections = [
-          {
-            category: 'project',
-            containerId: 'settings-shortcut-projects',
-            countId: 'settings-projects-count',
-            icon: 'ri-folder-2-line',
-            color: '#38bdf8',
-            items: getIndexedProjects(cur)
-          },
-          {
-            category: 'claude',
-            containerId: 'settings-shortcut-claudes',
-            countId: 'settings-claudes-count',
-            icon: 'ri-sparkling-fill',
-            color: '#f59e0b',
-            items: getIndexedClaudeSessions(cur)
-          },
-          {
-            category: 'terminal',
-            containerId: 'settings-shortcut-terminals',
-            countId: 'settings-terminals-count',
-            icon: 'ri-terminal-box-line',
-            color: '#c084fc',
-            items: getIndexedTerminalSessions(cur)
-          },
-          {
-            category: 'server',
-            containerId: 'settings-shortcut-servers',
-            countId: 'settings-servers-count',
-            icon: 'ri-server-line',
-            color: '#34d399',
-            items: getIndexedServers()
-          }
-        ];
-
-        sections.forEach(sec => {
-          const countEl = document.getElementById(sec.countId);
-          if (countEl) countEl.textContent = String(sec.items.length);
-          const listEl = document.getElementById(sec.containerId);
-          if (!listEl) return;
-          listEl.innerHTML = '';
-
-          sec.items.forEach((entry, idxZero) => {
-            const bindKey = `${entry.category}:${entry.id}`;
-            const hasCustom = Boolean(shortcutConfig.customBindings[bindKey]);
-            const effectiveCombo = getEffectiveItemShortcut(entry.category, entry.id, entry.index);
-            const isRecordingItem = shortcutRecordingState &&
-              shortcutRecordingState.mode === 'item' &&
-              shortcutRecordingState.bindKey === bindKey;
-
-            const row = document.createElement('div');
-            row.className = 'shortcut-item-row' + (entry.isActive ? ' active' : '');
-            row.setAttribute('data-shortcut-item', bindKey);
-            row.innerHTML = `
-              <div class="shortcut-item-left">
-                <span class="idx-badge" data-shortcut-index="${entry.index}">#${entry.index}</span>
-                <div class="shortcut-item-info">
-                  <div class="shortcut-item-title">
-                    <i class="${sec.icon}" style="color:${sec.color};"></i>
-                    <span>${escapeHtml(entry.name)}</span>
-                    ${entry.isActive ? '<span class="dw-active-dot" title="Đang mở"></span>' : ''}
-                  </div>
-                  <div class="shortcut-item-sub">${escapeHtml(entry.sub)}</div>
-                </div>
-              </div>
-              <div class="shortcut-item-right">
-                <button type="button" class="shortcut-order-btn btn-move-up" title="Tăng thứ tự ưu tiên" ${idxZero === 0 ? 'disabled' : ''}>↑</button>
-                <button type="button" class="shortcut-order-btn btn-move-down" title="Giảm thứ tự ưu tiên" ${idxZero === sec.items.length - 1 ? 'disabled' : ''}>↓</button>
-                <kbd class="shortcut-kbd-badge" data-shortcut-kbd="${bindKey}">${escapeHtml(effectiveCombo || 'Chưa gán')}</kbd>
-                <button type="button" class="shortcut-record-btn btn-record-item ${isRecordingItem ? 'recording' : ''}" title="Gán phím tắt riêng cho mục này">
-                  <i class="ri-keyboard-line"></i>
-                  <span>${isRecordingItem ? 'Nhấn phím...' : 'Đặt phím'}</span>
-                </button>
-                ${hasCustom ? '<button type="button" class="shortcut-order-btn btn-clear-custom" title="Bỏ phím riêng, dùng lại quy tắc số thứ tự"><i class="ri-close-line"></i></button>' : ''}
-                <button type="button" class="shortcut-jump-btn btn-jump-target" title="Chuyển ngay tới mục này">Chuyển tới</button>
-              </div>
-            `;
-
-            const upBtn = row.querySelector('.btn-move-up');
-            if (upBtn) {
-              upBtn.addEventListener('click', () => moveIndexedEntry(entry.category, idxZero, -1));
-            }
-            const downBtn = row.querySelector('.btn-move-down');
-            if (downBtn) {
-              downBtn.addEventListener('click', () => moveIndexedEntry(entry.category, idxZero, 1));
-            }
-            const recBtn = row.querySelector('.btn-record-item');
-            if (recBtn) {
-              recBtn.addEventListener('click', () => {
-                if (isRecordingItem) {
-                  shortcutRecordingState = null;
-                } else {
-                  shortcutRecordingState = {
-                    mode: 'item',
-                    bindKey,
-                    category: entry.category,
-                    id: entry.id,
-                    title: `${entry.name} #${entry.index}`
-                  };
-                }
-                renderSettingsScreen();
-              });
-            }
-            const clearBtn = row.querySelector('.btn-clear-custom');
-            if (clearBtn) {
-              clearBtn.addEventListener('click', () => {
-                delete shortcutConfig.customBindings[bindKey];
-                saveShortcutConfig();
-                renderDesktopWorkspaceSidebar();
-                renderSettingsScreen();
-                showToast(`Đã khôi phục phím tắt theo số thứ tự cho "${entry.name}"`, 'info');
-              });
-            }
-            const jumpBtn = row.querySelector('.btn-jump-target');
-            if (jumpBtn) {
-              jumpBtn.addEventListener('click', () => {
-                executeShortcutAction(entry, effectiveCombo);
-              });
-            }
-
-            listEl.appendChild(row);
-          });
-        });
       }
 
       function resetAllShortcutsToDefault() {
         shortcutConfig = JSON.parse(JSON.stringify(DEFAULT_SHORTCUT_CONFIG));
         shortcutRecordingState = null;
+        syncShortcutLabelsClass();
         saveShortcutConfig();
-        lastTriggeredShortcutInfo = {
-          combo: 'Mặc định',
-          label: 'Đã khôi phục toàn bộ bộ phím tắt về cấu hình mặc định.'
-        };
         renderDesktopWorkspaceSidebar();
         renderServerCards();
         renderProjectModalCards();
@@ -13287,53 +12991,48 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
             renderSettingsScreen();
             return;
           }
-          if (shortcutRecordingState.mode === 'group') {
-            const prefix = normalizeModifierPrefix(event);
-            const token = normalizeKeyToken(event);
-            if (prefix && (token || ['Control', 'Alt', 'Shift', 'Meta'].includes(event.key))) {
-              if (token || prefix.includes('+')) {
-                event.preventDefault();
-                event.stopPropagation();
-                shortcutConfig.groupPrefixes[shortcutRecordingState.group] = prefix;
-                const groupTitle = shortcutRecordingState.title;
-                shortcutRecordingState = null;
-                saveShortcutConfig();
-                renderDesktopWorkspaceSidebar();
-                renderSettingsScreen();
-                showToast(`Đã lưu bộ phím ${groupTitle}: ${prefix} + 1..9`, 'success');
-              }
-            }
-            return;
-          }
-          if (shortcutRecordingState.mode === 'item') {
+          if (shortcutRecordingState.isSingleCombo) {
             if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) return;
             const combo = normalizeKeyComboFromEvent(event);
             if (!combo) return;
             event.preventDefault();
             event.stopPropagation();
-            for (const k of Object.keys(shortcutConfig.customBindings)) {
-              if (shortcutConfig.customBindings[k] && shortcutConfig.customBindings[k].toLowerCase() === combo.toLowerCase()) {
-                delete shortcutConfig.customBindings[k];
-              }
-            }
-            shortcutConfig.customBindings[shortcutRecordingState.bindKey] = combo;
-            const itemTitle = shortcutRecordingState.title;
+            shortcutConfig.toggleLabelsCombo = combo;
             shortcutRecordingState = null;
             saveShortcutConfig();
-            lastTriggeredShortcutInfo = {
-              combo,
-              label: `Đã gán phím tắt ${combo} cho ${itemTitle}`
-            };
-            renderDesktopWorkspaceSidebar();
             renderSettingsScreen();
-            showToast(`Đã gán phím tắt [${combo}] cho ${itemTitle}`, 'success');
+            showToast(`Đã đặt phím bật/tắt nhãn: ${combo}`, 'success');
             return;
           }
+          const prefix = normalizeModifierPrefix(event);
+          const token = normalizeKeyToken(event);
+          if (prefix && (token || ['Control', 'Alt', 'Shift', 'Meta'].includes(event.key))) {
+            if (token || prefix.includes('+')) {
+              event.preventDefault();
+              event.stopPropagation();
+              shortcutConfig.groupPrefixes[shortcutRecordingState.group] = prefix;
+              const groupTitle = shortcutRecordingState.title;
+              shortcutRecordingState = null;
+              saveShortcutConfig();
+              renderDesktopWorkspaceSidebar();
+              renderSettingsScreen();
+              showToast(`Đã lưu bộ phím ${groupTitle}: ${prefix} + 1..9`, 'success');
+            }
+          }
+          return;
         }
 
         if (!shortcutConfig.enabled) return;
         const combo = normalizeKeyComboFromEvent(event);
         if (!combo) return;
+
+        if (shortcutConfig.toggleLabelsCombo && combo.toLowerCase() === shortcutConfig.toggleLabelsCombo.toLowerCase()) {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleShortcutLabelsVisibility();
+          return;
+        }
+
         const target = findShortcutTargetByCombo(combo);
         if (!target) return;
         event.preventDefault();
@@ -13353,6 +13052,13 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         });
       }
 
+      const shortcutLabelsToggleBtn = document.getElementById('shortcut-labels-toggle-btn');
+      if (shortcutLabelsToggleBtn) {
+        shortcutLabelsToggleBtn.addEventListener('click', () => {
+          toggleShortcutLabelsVisibility();
+        });
+      }
+
       const btnResetShortcutsDefault = document.getElementById('btn-reset-shortcuts-default');
       if (btnResetShortcutsDefault) {
         btnResetShortcutsDefault.addEventListener('click', resetAllShortcutsToDefault);
@@ -13362,40 +13068,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         btnHeaderResetShortcuts.addEventListener('click', resetAllShortcutsToDefault);
       }
 
-      const scopeServerBtnEl = document.getElementById('shortcut-session-scope-server');
-      const scopeProjectBtnEl = document.getElementById('shortcut-session-scope-project');
-      if (scopeServerBtnEl) {
-        scopeServerBtnEl.addEventListener('click', () => {
-          shortcutConfig.sessionScope = 'server';
-          saveShortcutConfig();
-          renderDesktopWorkspaceSidebar();
-          renderSessionHubCards();
-          renderClaudeSessionCards();
-          renderSettingsScreen();
-          showToast('Đánh số Session xuyên suốt toàn Server', 'info');
-        });
-      }
-      if (scopeProjectBtnEl) {
-        scopeProjectBtnEl.addEventListener('click', () => {
-          shortcutConfig.sessionScope = 'project';
-          saveShortcutConfig();
-          renderDesktopWorkspaceSidebar();
-          renderSessionHubCards();
-          renderClaudeSessionCards();
-          renderSettingsScreen();
-          showToast('Đánh số Session theo Project đang mở', 'info');
-        });
-      }
-
-      document.querySelectorAll('[data-settings-filter]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          shortcutConfig.filter = btn.getAttribute('data-settings-filter') || 'all';
-          saveShortcutConfig();
-          renderSettingsScreen();
-        });
-      });
-
       // --- STARTUP ---
+      syncShortcutLabelsClass();
       activateProjectScope(getCurrentServer(), getActiveProject());
       setWorkspaceSidebarOpen(true);
       renderFileExplorer();

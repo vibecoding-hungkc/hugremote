@@ -1,0 +1,11 @@
+import { createRequire } from 'node:module';
+const requireDesktop = createRequire(new URL('./package.json', import.meta.url));
+
+export function makePackagerOptions({ shellDir, output, payload, nodeDir, arch }) {
+  return {
+    dir: shellDir, out: output, overwrite: true, platform: 'darwin', arch,
+    electronVersion: requireDesktop('electron/package.json').version,
+    appBundleId: 'com.hugtech.hugremote', name: 'HugRemote', asar: false,
+    extraResource: [payload, nodeDir],
+  };
+}

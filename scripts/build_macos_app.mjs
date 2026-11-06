@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { stageWorkspaceManifests } from '../desktop/stage-workspaces.mjs';
+import { makePackagerOptions } from '../desktop/packager-options.mjs';
 const requireDesktop = createRequire(new URL('../desktop/package.json', import.meta.url));
 const { packager } = requireDesktop('@electron/packager');
 
@@ -42,11 +43,7 @@ fs.writeFileSync(path.join(shellDir, 'package.json'), JSON.stringify({
   productName: 'HugRemote', main: 'main.cjs', private: true,
 }, null, 2));
 fs.mkdirSync(output, { recursive: true });
-const results = await packager({
-  dir: shellDir, out: output, overwrite: true, platform: 'darwin', arch: process.arch,
-  appBundleId: 'com.hugtech.hugremote', name: 'HugRemote', asar: false,
-  extraResource: [payload, nodeDir],
-});
+const results = await packager(makePackagerOptions({ shellDir, output, payload, nodeDir, arch: process.arch }));
 const appPath = results[0];
 const resources = path.join(appPath, 'Contents/Resources');
 for (const file of [

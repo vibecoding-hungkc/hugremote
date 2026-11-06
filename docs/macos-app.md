@@ -14,9 +14,21 @@ node scripts/smoke_macos_app.mjs
 node scripts/smoke_macos_gui.mjs
 ```
 
-File tạo ở `dist/macos-app/HugRemote-darwin-<arch>/HugRemote.app`, với `<arch>` là `arm64` hoặc `x64` theo máy build. `npm run build:macos` không thay đổi lệnh `npm run build` mặc định. Build riêng trên mỗi kiến trúc; không chép `node_modules` từ Linux/Windows vào `.app`.
+File tạo ở `dist/macos-app/HugRemote-darwin-<arch>/HugRemote.app` và bộ cài đặt `dist/macos-app/HugRemote-macOS-<arch>.dmg`, với `<arch>` là `arm64` hoặc `x64` theo máy build. Quá trình build tự động ký ad-hoc (`codesign --sign -`) toàn bộ binary Mach-O lồng bên trong (`node`, `node-pty`, `spawn-helper`), kiểm tra chữ ký nghiêm ngặt bằng `codesign --verify --deep --strict` và đóng gói file `.dmg` có sẵn lối tắt `/Applications` để kéo-thả cài đặt. `npm run build:macos` không thay đổi lệnh `npm run build` mặc định. Build riêng trên mỗi kiến trúc; không chép `node_modules` từ Linux/Windows vào `.app`.
 
-Có thể chạy workflow **Optional macOS app** bằng GitHub Actions trên `macos-15` và `macos-15-intel`, nhận hai artifact ZIP (Apple Silicon và Intel). Artifact hiện **chưa ký và chưa notarize**. Gatekeeper có thể từ chối chạy khi tải từ Internet; đây là bản thử nghiệm cho người sở hữu, không phải bản phát hành sẵn sàng phân phối rộng rãi. Muốn phát hành cho người dùng cần Developer ID Application, signing các binary lồng trong app, hardened runtime, Apple notarization và kiểm tra Gatekeeper trên máy sạch.
+Có thể chạy workflow **Optional macOS app** bằng GitHub Actions trên `macos-15` và `macos-15-intel`, nhận hai bộ cài `.dmg` (`HugRemote-macOS-arm64-dmg` cho Apple Silicon và `HugRemote-macOS-x64-dmg` cho Intel).
+
+## Cài đặt từ file `.dmg` và xử lý cảnh báo Gatekeeper
+
+1. Mở file `HugRemote-macOS-arm64.dmg` hoặc `HugRemote-macOS-x64.dmg`.
+2. Kéo `HugRemote.app` thả vào thư mục `Applications`.
+3. Do gói `.dmg` trên CI mới được ký ad-hoc (`codesign --sign -`), chưa ký bằng chứng chỉ trả phí **Apple Developer ID Application** và chưa **notarize** với Apple, khi tải qua trình duyệt macOS sẽ gắn thuộc tính cách ly `com.apple.quarantine` và có thể báo `“HugRemote” is damaged and can’t be opened. You should move it to the Trash.` hoặc chặn mở lần đầu. Sau khi kéo vào `Applications`, chạy lệnh sau trong Terminal để gỡ cờ quarantine:
+
+```bash
+xattr -cr /Applications/HugRemote.app
+```
+
+Sau đó mở `HugRemote` từ `/Applications` hoặc Launchpad bình thường. Muốn phân phối công khai mà không cần gỡ quarantine cần chứng chỉ Developer ID Application, hardened runtime và Apple notarization (`xcrun notarytool` + `xcrun stapler staple`).
 
 ## Bảo mật và dữ liệu
 

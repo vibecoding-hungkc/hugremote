@@ -47,20 +47,28 @@ jobs:
         run: node scripts/smoke_macos_app.mjs
       - name: Launch Electron app and verify Vue renders
         run: node scripts/smoke_macos_gui.mjs
-      - name: Inspect app bundle archive
+      - name: Verify DMG installer mounts and passes strict codesign
         shell: bash
         run: |
           set -euo pipefail
-          app="dist/macos-app/HugRemote-darwin-${{ matrix.arch }}/HugRemote.app"
-          test -x "$app/Contents/Resources/node/bin/node"
-          test -f "$app/Contents/Resources/hugremote/apps/api/dist/main.js"
-          test -f "$app/Contents/Resources/hugremote/apps/api/public/index.html"
-          runtime="$PWD/$app/Contents/Resources/node/bin/node"
-          payload="$PWD/$app/Contents/Resources/hugremote"
-          (cd "$payload" && "$runtime" -e "require('node-pty'); console.log('Bundled node-pty loads')")
-          ditto -c -k --sequesterRsrc --keepParent "$app" "dist/HugRemote-macOS-${{ matrix.arch }}.zip"
+          dmg="dist/macos-app/HugRemote-macOS-${{ matrix.arch }}.dmg"
+          test -f "$dmg"
+          codesign --verify --verbose=2 "$dmg"
+          mount_dir=$(mktemp -d /tmp/hugremote-dmg.XXXXXX)
+          rmdir "$mount_dir"
+          hdiutil attach "$dmg" -mountpoint "$mount_dir" -nobrowse -readonly
+          trap 'hdiutil detach "$mount_dir" -force || true' EXIT
+          test -d "$mount_dir/HugRemote.app"
+          test -L "$mount_dir/Applications"
+          test "$(readlink "$mount_dir/Applications")" = "/Applications"
+          codesign --verify --deep --strict --verbose=2 "$mount_dir/HugRemote.app"
+          runtime="$mount_dir/HugRemote.app/Contents/Resources/node/bin/node"
+          payload="$mount_dir/HugRemote.app/Contents/Resources/hugremote"
+          (cd "$payload" && "$runtime" -e "require('node-pty'); console.log('Mounted DMG node-pty loads')")
+          hdiutil detach "$mount_dir"
+          trap - EXIT
       - uses: actions/upload-artifact@v4
         with:
-          name: HugRemote-macOS-${{ matrix.arch }}-unsigned
-          path: dist/HugRemote-macOS-${{ matrix.arch }}.zip
+          name: HugRemote-macOS-${{ matrix.arch }}-dmg
+          path: dist/macos-app/HugRemote-macOS-${{ matrix.arch }}.dmg
           if-no-files-found: error

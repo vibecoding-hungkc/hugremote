@@ -62,7 +62,7 @@ Xem [các bản phát hành](https://github.com/vibecoding-hungkc/hugremote/rele
 
 ## Ứng dụng macOS tùy chọn
 
-HugRemote vẫn dùng qua trình duyệt và `npm start` như trước. Nếu muốn cửa sổ desktop riêng trên Mac, có thể build `.app` tùy chọn từ mã nguồn; Electron và công cụ đóng gói **không** được cài trong luồng web mặc định. Xem [hướng dẫn build, kiểm thử và giới hạn bản unsigned](docs/macos-app.md).
+HugRemote vẫn dùng qua trình duyệt và `npm start` như trước. Nếu muốn cửa sổ desktop riêng trên Mac, có thể cài qua gói `.dmg` tùy chọn (`HugRemote-macOS-arm64.dmg` hoặc `HugRemote-macOS-x64.dmg`) bằng cách mở `.dmg` và kéo `HugRemote.app` vào `Applications`; nếu macOS chặn do file tải từ trình duyệt chưa notarize bằng Apple Developer ID, chạy `xattr -cr /Applications/HugRemote.app` rồi mở lại. Electron và công cụ đóng gói **không** được cài trong luồng web mặc định. Xem [hướng dẫn cài đặt `.dmg`, build và kiểm thử](docs/macos-app.md).
 
 ## Sử dụng
 

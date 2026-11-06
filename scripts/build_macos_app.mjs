@@ -4,6 +4,7 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { stageWorkspaceManifests } from '../desktop/stage-workspaces.mjs';
 const requireDesktop = createRequire(new URL('../desktop/package.json', import.meta.url));
 const { packager } = requireDesktop('@electron/packager');
 
@@ -21,9 +22,7 @@ fs.mkdirSync(shellDir, { recursive: true });
 for (const part of ['package.json', 'package-lock.json']) fs.copyFileSync(path.join(repo, part), path.join(payload, part));
 fs.cpSync(path.join(repo, 'apps/api/dist'), path.join(payload, 'apps/api/dist'), { recursive: true });
 fs.cpSync(path.join(repo, 'apps/api/public'), path.join(payload, 'apps/api/public'), { recursive: true });
-for (const pkg of ['api', 'web']) fs.copyFileSync(path.join(repo, `apps/${pkg}/package.json`), path.join(payload, `apps/${pkg}/package.json`));
-fs.mkdirSync(path.join(payload, 'packages/shared'), { recursive: true });
-fs.copyFileSync(path.join(repo, 'packages/shared/package.json'), path.join(payload, 'packages/shared/package.json'));
+stageWorkspaceManifests(repo, payload);
 fs.cpSync(path.join(repo, 'packages/shared/dist'), path.join(payload, 'packages/shared/dist'), { recursive: true });
 // Native node-pty must be installed on the target Mac with the bundled Node ABI.
 execFileSync('npm', ['ci', '--omit=dev', '--foreground-scripts'], { cwd: payload, stdio: 'inherit' });

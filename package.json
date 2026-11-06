@@ -26,7 +26,7 @@
   "scripts": {
     "build": "npm run build:shared && npm run build:web && npm run build:api",
     "build:macos": "npm run build && node scripts/build_macos_app.mjs",
-    "test:desktop": "tsx scripts/test_desktop_backend_guard.ts && tsx scripts/test_desktop_shutdown.ts && node scripts/test_desktop_process_group.mjs && node scripts/test_desktop_launcher.mjs && node scripts/test_desktop_gui_smoke_source.mjs",
+    "test:desktop": "tsx scripts/test_desktop_backend_guard.ts && tsx scripts/test_desktop_shutdown.ts && node scripts/test_desktop_process_group.mjs && node scripts/test_desktop_launcher.mjs && node scripts/test_desktop_gui_smoke_source.mjs && node scripts/test_desktop_workspace_stage.mjs",
     "postbuild": "node scripts/reconcile_updater_lockfile.js && node scripts/recover_interrupted_update.js",
     "build:shared": "npm run build --prefix packages/shared",
     "build:web": "npm run typecheck:web && npm run build --prefix apps/web",

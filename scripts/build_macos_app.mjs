@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { stageWorkspaceManifests } from '../desktop/stage-workspaces.mjs';
-import { makePackagerOptions } from '../desktop/packager-options.mjs';
+import { makePackagerOptions, resolveMacAppPath } from '../desktop/packager-options.mjs';
 const requireDesktop = createRequire(new URL('../desktop/package.json', import.meta.url));
 const { packager } = requireDesktop('@electron/packager');
 
@@ -44,7 +44,7 @@ fs.writeFileSync(path.join(shellDir, 'package.json'), JSON.stringify({
 }, null, 2));
 fs.mkdirSync(output, { recursive: true });
 const results = await packager(makePackagerOptions({ shellDir, output, payload, nodeDir, arch: process.arch }));
-const appPath = results[0];
+const appPath = resolveMacAppPath(results, 'HugRemote');
 const resources = path.join(appPath, 'Contents/Resources');
 for (const file of [
   'node/bin/node', 'hugremote/apps/api/dist/main.js', 'hugremote/apps/api/public/index.html',

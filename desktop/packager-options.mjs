@@ -1,4 +1,10 @@
 import { createRequire } from 'node:module';
+import path from 'node:path';
+
+export function resolveMacAppPath(results, name) {
+  if (results.length !== 1) throw new Error(`Expected one packaged macOS app, got ${results.length}`);
+  return path.join(results[0], `${name}.app`);
+}
 const requireDesktop = createRequire(new URL('./package.json', import.meta.url));
 
 export function makePackagerOptions({ shellDir, output, payload, nodeDir, arch }) {

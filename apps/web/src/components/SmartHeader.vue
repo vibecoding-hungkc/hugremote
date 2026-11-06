@@ -23,7 +23,19 @@
     <!-- Tầng 2: Phiên Làm Việc & Tác Vụ (Session Pill/Breadcrumb chiếm rộng + Lang + Action) -->
     <div class="context-row">
       <div class="smart-header-center">
-        <div v-if="activeTab === 'files'" class="ctx-header-item">
+        <div v-if="activeTab === 'files'" class="ctx-header-item ctx-header-session">
+          <button
+            id="btn-toggle-workspace-left-files"
+            type="button"
+            class="btn-workspace-sidebar-toggle"
+            data-workspace-sidebar-toggle
+            :aria-expanded="workspaceSidebarOpen ? 'true' : 'false'"
+            title="Đóng / mở cột Workspace bên trái"
+            aria-label="Đóng / mở cột Workspace bên trái"
+            @click="$emit('toggle-workspace-sidebar')"
+          >
+            <i class="ri-side-bar-line"></i>
+          </button>
           <div class="breadcrumb-bar">
             <button class="crumb-home-btn" @click="fileStore.fetchFiles('')" :title="t('header.rootFolder')">
               <i class="ri-folder-open-line"></i>
@@ -38,7 +50,19 @@
             </template>
           </div>
         </div>
-        <div v-else-if="activeTab === 'editor'" class="ctx-header-item editor-title">
+        <div v-else-if="activeTab === 'editor'" class="ctx-header-item ctx-header-session editor-title">
+          <button
+            id="btn-toggle-workspace-left-editor"
+            type="button"
+            class="btn-workspace-sidebar-toggle"
+            data-workspace-sidebar-toggle
+            :aria-expanded="workspaceSidebarOpen ? 'true' : 'false'"
+            title="Đóng / mở cột Workspace bên trái"
+            aria-label="Đóng / mở cột Workspace bên trái"
+            @click="$emit('toggle-workspace-sidebar')"
+          >
+            <i class="ri-side-bar-line"></i>
+          </button>
           <i class="ri-file-text-line"></i> {{ fileStore.activeFile?.name || t('nav.editor') }}
           <span v-if="fileStore.activeFile?.isDirty" class="editor-dirty" title="Nội dung chưa lưu" aria-label="Nội dung chưa lưu">●</span>
         </div>
@@ -76,14 +100,52 @@
             <i class="ri-sparkling-fill"></i><span>{{ displayClaudeSessionName }}</span><span class="badge-count claude-badge">{{ claudeStore.currentServerSessions.length }}</span><i class="ri-arrow-down-s-line"></i>
           </button>
         </div>
-        <div v-else-if="activeTab === 'git'" class="ctx-header-item git-title">
+        <div v-else-if="activeTab === 'git'" class="ctx-header-item ctx-header-session git-title">
+          <button
+            id="btn-toggle-workspace-left-git"
+            type="button"
+            class="btn-workspace-sidebar-toggle"
+            data-workspace-sidebar-toggle
+            :aria-expanded="workspaceSidebarOpen ? 'true' : 'false'"
+            title="Đóng / mở cột Workspace bên trái"
+            aria-label="Đóng / mở cột Workspace bên trái"
+            @click="$emit('toggle-workspace-sidebar')"
+          >
+            <i class="ri-side-bar-line"></i>
+          </button>
           <i class="ri-git-branch-line"></i> Git changes {{ gitStore.files.length }}
+        </div>
+        <div v-else-if="activeTab === 'settings'" class="ctx-header-item ctx-header-session git-title">
+          <button
+            id="btn-toggle-workspace-left-settings"
+            type="button"
+            class="btn-workspace-sidebar-toggle"
+            data-workspace-sidebar-toggle
+            :aria-expanded="workspaceSidebarOpen ? 'true' : 'false'"
+            title="Đóng / mở cột Workspace bên trái"
+            aria-label="Đóng / mở cột Workspace bên trái"
+            @click="$emit('toggle-workspace-sidebar')"
+          >
+            <i class="ri-side-bar-line"></i>
+          </button>
+          <i class="ri-keyboard-box-line"></i> Cài đặt phím tắt
         </div>
       </div>
 
       <div class="smart-header-right">
         <LanguageSwitcher />
         <template v-if="activeTab === 'files'">
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="files"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'files' ? 'true' : 'false'"
+            :title="t('quickPanel.filesTitle')"
+            :aria-label="t('quickPanel.filesTitle')"
+            @click="$emit('toggle-quick-panel', 'files')"
+          ><i class="ri-folder-2-line"></i></button>
           <button class="btn-icon-action" @click="$emit('prompt-create-item')" :title="t('common.create')"><i class="ri-add-line"></i></button>
 
           <div class="header-action-dropdown-wrapper">
@@ -104,6 +166,17 @@
           <button class="btn-icon-action" @click="fileStore.fetchFiles(fileStore.currentRel)" :title="t('common.refresh')"><i class="ri-refresh-line"></i></button>
         </template>
         <template v-else-if="activeTab === 'editor'">
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="files"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'files' ? 'true' : 'false'"
+            :title="t('quickPanel.filesTitle')"
+            :aria-label="t('quickPanel.filesTitle')"
+            @click="$emit('toggle-quick-panel', 'files')"
+          ><i class="ri-folder-2-line"></i></button>
           <button
             v-if="fileStore.activeFile"
             id="btn-editor-preview-toggle"
@@ -167,7 +240,33 @@
           <button class="btn-icon-action" @click="$emit('open-claude-hub')" :title="t('claudeHub.tabCliSessions') || 'Danh sách phiên Project'"><i class="ri-history-line"></i></button>
           <button class="btn-icon-action" @click="$emit('open-new-claude-modal')" :title="t('common.create')"><i class="ri-add-line"></i></button>
         </template>
-        <template v-else-if="activeTab === 'git'"><button class="btn-icon-action" @click="gitStore.fetchStatus"><i class="ri-refresh-line"></i></button></template>
+        <template v-else-if="activeTab === 'git'">
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="files"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'files' ? 'true' : 'false'"
+            :title="t('quickPanel.filesTitle')"
+            :aria-label="t('quickPanel.filesTitle')"
+            @click="$emit('toggle-quick-panel', 'files')"
+          ><i class="ri-folder-2-line"></i></button>
+          <button class="btn-icon-action" @click="gitStore.fetchStatus"><i class="ri-refresh-line"></i></button>
+        </template>
+        <template v-else-if="activeTab === 'settings'">
+          <button
+            type="button"
+            class="btn-icon-action quick-tree-trigger"
+            data-quick-tree-trigger
+            data-quick-panel="files"
+            aria-controls="quick-tree-panel"
+            :aria-expanded="quickPanelOpen && quickPanelMode === 'files' ? 'true' : 'false'"
+            :title="t('quickPanel.filesTitle')"
+            :aria-label="t('quickPanel.filesTitle')"
+            @click="$emit('toggle-quick-panel', 'files')"
+          ><i class="ri-folder-2-line"></i></button>
+        </template>
       </div>
     </div>
 
@@ -189,13 +288,13 @@ import { useI18n } from '../composables/useI18n.js';
 import LanguageSwitcher from './LanguageSwitcher.vue';
 
 defineProps<{
-  activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git';
+  activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git' | 'settings';
   quickPanelOpen?: boolean;
   quickPanelMode?: 'files' | 'git';
   workspaceSidebarOpen?: boolean;
 }>();
 const emit = defineEmits<{
-  (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void; (e: 'toggle-quick-panel', mode: 'files' | 'git'): void; (e: 'toggle-workspace-sidebar'): void;
+  (e: 'open-server-drawer'): void; (e: 'open-project-modal'): void; (e: 'open-session-hub'): void; (e: 'open-new-terminal-modal'): void; (e: 'open-claude-hub'): void; (e: 'open-new-claude-modal'): void; (e: 'prompt-create-item'): void; (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git' | 'settings'): void; (e: 'toggle-quick-panel', mode: 'files' | 'git'): void; (e: 'toggle-workspace-sidebar'): void;
 }>();
 const serverStore = useServerStore(); const projectStore = useProjectStore(); const fileStore = useFileStore(); const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); const gitStore = useGitStore(); const { t } = useI18n();
 

@@ -1,8 +1,8 @@
 import { ref, readonly, watch, type Ref } from 'vue';
 
-export type AppTab = 'files' | 'editor' | 'terminal' | 'claude' | 'git';
+export type AppTab = 'files' | 'editor' | 'terminal' | 'claude' | 'git' | 'settings';
 
-export const VALID_TABS: readonly AppTab[] = ['files', 'editor', 'terminal', 'claude', 'git'] as const;
+export const VALID_TABS: readonly AppTab[] = ['files', 'editor', 'terminal', 'claude', 'git', 'settings'] as const;
 export const ROUTER_STORAGE_KEY = 'hugremote_last_tab';
 
 export interface RouteState {

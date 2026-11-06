@@ -100,6 +100,64 @@
 
     <!-- FILES PANE: Folder Tree + Inline File View/Edit Workbench -->
     <div v-if="mode === 'files'" id="quick-pane-files" class="quick-pane">
+      <div v-show="!activeInlineFile" id="quick-tree-file-toolbar" class="quick-tree-file-toolbar">
+        <button
+          id="quick-tree-upload-files"
+          type="button"
+          class="quick-tree-action-btn"
+          title="Tải tệp lên thư mục hiện tại"
+          aria-label="Tải tệp lên thư mục hiện tại"
+          @click="triggerQuickUploadFiles('')"
+        >
+          <i class="ri-file-upload-line"></i>
+          <span>Tải tệp</span>
+        </button>
+        <button
+          id="quick-tree-upload-folder"
+          type="button"
+          class="quick-tree-action-btn"
+          title="Tải cả thư mục lên"
+          aria-label="Tải cả thư mục lên"
+          @click="triggerQuickUploadFolder('')"
+        >
+          <i class="ri-folder-upload-line"></i>
+          <span>Tải thư mục</span>
+        </button>
+        <button
+          id="quick-tree-download-zip"
+          type="button"
+          class="quick-tree-action-btn"
+          title="Tải về ZIP thư mục hiện tại"
+          aria-label="Tải về ZIP thư mục hiện tại"
+          @click="downloadQuickPath('', projectStore.currentProject?.name || 'workspace')"
+        >
+          <i class="ri-download-2-line"></i>
+          <span>Tải về ZIP</span>
+        </button>
+        <input
+          ref="quickUploadFilesInputRef"
+          id="quick-input-upload-files"
+          type="file"
+          multiple
+          style="display: none"
+          @change="onQuickUploadFilesSelected"
+        />
+        <input
+          ref="quickUploadFolderInputRef"
+          id="quick-input-upload-folder"
+          type="file"
+          webkitdirectory
+          directory
+          multiple
+          style="display: none"
+          @change="onQuickUploadFolderSelected"
+        />
+      </div>
+
+      <div v-if="quickTreeNotice" id="quick-tree-notice" class="quick-tree-notice">
+        {{ quickTreeNotice }}
+      </div>
+
       <div
         v-show="!activeInlineFile"
         id="quick-tree-list"
@@ -140,6 +198,29 @@
           <span class="node-label">{{ item.entry.name }}</span>
           <span v-if="!item.entry.isDirectory && item.entry.size > 0" class="node-meta">
             {{ formatFileSize(item.entry.size) }}
+          </span>
+          <span class="quick-tree-row-actions" @click.stop>
+            <span
+              v-if="item.entry.isDirectory"
+              role="button"
+              tabindex="0"
+              class="quick-tree-row-btn quick-tree-row-upload"
+              :title="`Tải tệp lên ${item.entry.name}`"
+              :aria-label="`Tải tệp lên ${item.entry.name}`"
+              @click.stop="triggerQuickUploadFiles(item.entry.relPath)"
+            >
+              <i class="ri-upload-2-line"></i>
+            </span>
+            <span
+              role="button"
+              tabindex="0"
+              class="quick-tree-row-btn quick-tree-row-download"
+              :title="item.entry.isDirectory ? `Tải về ZIP ${item.entry.name}` : `Tải xuống ${item.entry.name}`"
+              :aria-label="item.entry.isDirectory ? `Tải về ZIP ${item.entry.name}` : `Tải xuống ${item.entry.name}`"
+              @click.stop="downloadQuickPath(item.entry.relPath, item.entry.name)"
+            >
+              <i class="ri-download-2-line"></i>
+            </span>
           </span>
         </button>
       </div>
@@ -188,6 +269,17 @@
               @click="toggleInlineEditMode"
             >
               <i :class="mdMode === 'preview' ? 'ri-edit-line' : 'ri-eye-line'"></i>
+            </button>
+
+            <button
+              id="quick-file-download"
+              type="button"
+              class="quick-preview-btn"
+              title="Tải tệp hiện tại về máy"
+              aria-label="Tải tệp hiện tại về máy"
+              @click="downloadQuickPath(activeInlineFile.path, activeInlineFile.name)"
+            >
+              <i class="ri-download-2-line"></i>
             </button>
 
             <button
@@ -529,6 +621,100 @@ const inlineStatusText = ref('');
 
 const gutterRef = ref<HTMLElement | null>(null);
 const codeInputRef = ref<HTMLTextAreaElement | null>(null);
+const quickUploadFilesInputRef = ref<HTMLInputElement | null>(null);
+const quickUploadFolderInputRef = ref<HTMLInputElement | null>(null);
+const quickUploadTargetDir = ref<string>('');
+const quickTreeNotice = ref<string>('');
+let quickTreeNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showQuickTreeNotice(msg: string) {
+  quickTreeNotice.value = msg;
+  if (quickTreeNoticeTimer) clearTimeout(quickTreeNoticeTimer);
+  quickTreeNoticeTimer = setTimeout(() => {
+    quickTreeNotice.value = '';
+  }, 2600);
+}
+
+function triggerQuickUploadFiles(targetRel = '') {
+  quickUploadTargetDir.value = targetRel;
+  quickUploadFilesInputRef.value?.click();
+}
+
+function triggerQuickUploadFolder(targetRel = '') {
+  quickUploadTargetDir.value = targetRel;
+  quickUploadFolderInputRef.value?.click();
+}
+
+async function uploadFilesToQuickTree(files: FileList | File[], targetRel = quickUploadTargetDir.value) {
+  if (!files || files.length === 0) return;
+  try {
+    const serverId = serverStore.currentServerId;
+    const projectId = projectStore.currentProject?.id || '';
+    const formData = new FormData();
+    const fileArr = Array.from(files);
+    fileArr.forEach((file) => {
+      const relPath = (file as any).webkitRelativePath || file.name;
+      formData.append('files', file, encodeURIComponent(relPath));
+    });
+    const query = new URLSearchParams({
+      serverId,
+      projectId,
+      targetDir: targetRel || '',
+    });
+    const res = await fetch(apiUrl(`/api/fs/upload?${query.toString()}`), {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Tải lên thất bại');
+    if (targetRel) {
+      expandedPaths.value = { ...expandedPaths.value, [targetRel]: true };
+      const children = await fetchDirectoryEntries(targetRel);
+      childrenByPath.value = { ...childrenByPath.value, [targetRel]: children };
+    }
+    await loadRootTree();
+    await fileStore.fetchFiles(fileStore.currentRel);
+    showQuickTreeNotice(`Đã tải lên ${data.count || fileArr.length} tệp`);
+  } catch (err: any) {
+    showQuickTreeNotice(err?.message || 'Lỗi tải lên tệp');
+  }
+}
+
+async function onQuickUploadFilesSelected(e: Event) {
+  const input = e.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    await uploadFilesToQuickTree(input.files, quickUploadTargetDir.value);
+    input.value = '';
+  }
+}
+
+async function onQuickUploadFolderSelected(e: Event) {
+  const input = e.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    await uploadFilesToQuickTree(input.files, quickUploadTargetDir.value);
+    input.value = '';
+  }
+}
+
+function downloadQuickPath(relPath: string, downloadName?: string) {
+  const serverId = serverStore.currentServerId;
+  const projectId = projectStore.currentProject?.id || '';
+  const query = new URLSearchParams({
+    serverId,
+    projectId,
+    path: relPath || '',
+  });
+  const url = apiUrl(`/api/fs/download?${query.toString()}`);
+  if (typeof document !== 'undefined') {
+    const a = document.createElement('a');
+    a.href = url;
+    if (downloadName) a.download = downloadName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+  showQuickTreeNotice(`Đang tải xuống ${downloadName || relPath || 'workspace'}`);
+}
 
 const selectedGitFile = ref<string>('');
 const commitMessage = ref('');
@@ -1252,6 +1438,78 @@ onBeforeUnmount(() => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+}
+
+.quick-tree-file-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #2a2a2a;
+  background: #1a1a1a;
+  flex-wrap: wrap;
+}
+
+.quick-tree-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  border: 1px solid #353535;
+  background: #232323;
+  color: #cfcfcf;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quick-tree-action-btn:hover {
+  background: #2e2e2e;
+  color: #ffffff;
+  border-color: #4a4a4a;
+}
+
+.quick-tree-notice {
+  padding: 5px 10px;
+  font-size: 11px;
+  color: #d4d4d4;
+  background: #1f1f1f;
+  border-bottom: 1px solid #2e2e2e;
+}
+
+.quick-tree-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  opacity: 0.72;
+  flex-shrink: 0;
+}
+
+.quick-tree-node:hover .quick-tree-row-actions {
+  opacity: 1;
+}
+
+.quick-tree-row-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #a3a3a3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.quick-tree-row-btn:hover {
+  background: #2d2d2d;
+  color: #ffffff;
+  border-color: #424242;
 }
 
 .quick-tree-list {

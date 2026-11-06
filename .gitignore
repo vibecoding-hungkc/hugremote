@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+desktop/node_modules/
 apps/*/node_modules/
 packages/*/node_modules/
 client/node_modules/
@@ -7,6 +8,8 @@ server/node_modules/
 
 # Build outputs
 apps/web/dist/
+dist/macos-build/
+dist/macos-app/
 client/dist/
 server/dist/
 server/public/assets/

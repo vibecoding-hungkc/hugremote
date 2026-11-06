@@ -137,6 +137,14 @@ class SessionManager {
             this.sessions.delete(sessionId);
         }
     }
+    closeAll() {
+        for (const id of Array.from(this.sessions.keys()))
+            this.close(id);
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+            this.cleanupInterval = null;
+        }
+    }
     list(serverId) {
         const list = [];
         for (const s of this.sessions.values()) {

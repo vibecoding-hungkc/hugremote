@@ -36,7 +36,7 @@ try {
       { relPath: '.', name: 'mobile', depth: 0, branch: 'main', changedCount: 0, clean: true },
       { relPath: 'apps/client', name: 'client', depth: 2, branch: 'feature', changedCount: 1, clean: false },
     ] }) };
-    if (String(url).includes('/api/git/branches')) return { ok: true, json: async () => ({ branches: [] }) };
+    if (String(url).includes('/api/git/branches')) return { ok: true, json: async () => ({ branches: [{ name: 'feature', current: true }] }) };
     if (String(url).includes('/api/git/diff')) return { ok: true, json: async () => ({ lines: [{ type: 'added', newLine: 1, content: 'new line' }] }) };
     return { ok: true, json: async () => ({ branch: 'feature', files: [{ path: 'src/file.ts', status: 'M', staged: false, additions: 4, deletions: 2 }] }) };
   };
@@ -50,21 +50,31 @@ try {
   try {
     await new Promise(resolve => setImmediate(resolve));
     await nextTick();
-    await test('repository list uses compact copy without depth labels', async () => {
+    await test('new 2-column Git UI renders scanner banner, left repo card column, and split files + diff panes', async () => {
       const initial = await html();
       assert.doesNotMatch(initial, /Tối đa\s*\d+\s*cấp|Quét lại\s*\d+\s*cấp|Cấp\s*\d+/);
+      assert.match(initial, /Repositories trong dự án/);
       assert.match(initial, /Danh sách repo/);
+      assert.match(initial, /class="[^"]*\bgit-scanner-banner\b/);
+      assert.match(initial, /class="[^"]*\bgit-main-grid\b/);
+      assert.match(initial, /class="[^"]*\bgit-repos-column\b/);
+      assert.match(initial, /class="[^"]*\bgit-Active-detail-column\b/);
+      assert.match(initial, /class="[^"]*\bgit-detail-split\b/);
+      assert.match(initial, /class="[^"]*\bgit-files-box\b/);
+      assert.match(initial, /class="[^"]*\bgit-diff-box\b/);
+      assert.match(initial, /Tệp thay đổi trong repo đang chọn/);
+      assert.match(initial, /Xem nhanh Diff/);
     });
-    await test('mobile starts on repository list while desktop retains both panels', async () => {
+    await test('mobile starts on repository list while desktop retains both columns and side-by-side split', async () => {
       const initial = await html();
       assert.match(initial, /class="git-view[^\"]*"/);
-      assert.match(initial, /class="git-multi-repo-bar/);
-      assert.match(initial, /class="git-repo-detail/);
+      assert.match(initial, /class="[^"]*\bgit-multi-repo-bar\b/);
+      assert.match(initial, /class="[^"]*\bgit-repo-detail\b/);
       assert.doesNotMatch(initial, /mobile-detail-open/);
       assert.match(source, /@media\s*\(max-width:\s*860px\)[\s\S]*?\.git-view:not\(\.mobile-detail-open\)\s+\.git-repo-detail\s*\{\s*display:\s*none/);
       assert.match(source, /@media\s*\(max-width:\s*860px\)[\s\S]*?\.git-view\.mobile-detail-open\s+\.git-multi-repo-bar\s*\{\s*display:\s*none/);
     });
-    await test('selecting nested repo opens detail and back restores list without changing selection', async () => {
+    await test('selecting nested repo opens detail, auto-loads first file diff side-by-side, and back restores list', async () => {
       await state.openRepo('apps/client');
       await nextTick();
       assert.equal(git.selectedRepoPath, 'apps/client');
@@ -78,7 +88,8 @@ try {
       assert.match(detail, /-2/);
       await git.fetchDiff('src/file.ts');
       detail = await html();
-      assert.match(detail, /new line/);
+      assert.match(detail, /src\/file\.ts/, 'file list remains visible alongside diff');
+      assert.match(detail, /new line/, 'diff content renders in side-by-side diff box');
       state.backToRepos();
       assert.doesNotMatch(await html(), /mobile-detail-open/);
       assert.equal(git.selectedRepoPath, 'apps/client');

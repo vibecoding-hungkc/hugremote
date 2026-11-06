@@ -7,6 +7,7 @@
       'quick-tree-open': isQuickPanelActive,
       'workspace-sidebar-open': isWorkspaceSidebarOpen,
       'is-desktop-device': isDesktopDevice,
+      'shortcut-labels-visible': shortcutStore.showLabels,
     }"
     :data-device-type="isDesktopDevice ? 'desktop' : 'mobile'"
     :style="{ '--quick-panel-width': `${quickPanelWidth}px`, '--workspace-sidebar-width': `${workspaceSidebarWidth}px` }"
@@ -75,6 +76,10 @@
 
       <GitView
         v-show="activeTab === 'git'"
+      />
+
+      <SettingsView
+        v-show="activeTab === 'settings'"
       />
     </main>
 
@@ -185,6 +190,7 @@ import CodeEditor from './components/CodeEditor.vue';
 import TerminalView from './components/TerminalView.vue';
 import ClaudeView from './components/ClaudeView.vue';
 import GitView from './components/GitView.vue';
+import SettingsView from './components/SettingsView.vue';
 import BottomDock from './components/BottomDock.vue';
 import ServerModal from './components/ServerModal.vue';
 import ServerDrawer from './components/ServerDrawer.vue';
@@ -204,6 +210,7 @@ import { useTerminalStore } from './stores/terminalStore.js';
 import { useClaudeStore } from './stores/claudeStore.js';
 import { useProjectStore } from './stores/projectStore.js';
 import { useGitStore } from './stores/gitStore.js';
+import { normalizeKeyComboFromEvent, useShortcutStore } from './stores/shortcutStore.js';
 import { useAppBootstrap } from './composables/useAppBootstrap.js';
 import { useI18n } from './composables/useI18n.js';
 import { useAppRouter } from './app/router.js';
@@ -217,6 +224,7 @@ const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
 const projectStore = useProjectStore();
 const gitStore = useGitStore();
+const shortcutStore = useShortcutStore();
 const { t } = useI18n();
 
 const { activeTab, navigateTo } = useAppRouter();
@@ -238,9 +246,7 @@ function handleWorkspaceSidebarWidthChange(width: number) {
 const isQuickPanelOpen = ref(false);
 const quickPanelMode = ref<'files' | 'git'>('files');
 const quickPanelWidth = ref(320);
-const isQuickPanelActive = computed(
-  () => isQuickPanelOpen.value && (activeTab.value === 'terminal' || activeTab.value === 'claude')
-);
+const isQuickPanelActive = computed(() => isQuickPanelOpen.value);
 
 function setWorkspaceSidebarOpen(open: boolean) {
   isWorkspaceSidebarOpen.value = Boolean(open);
@@ -293,8 +299,110 @@ function warnUnsaved(event: BeforeUnloadEvent) {
   event.preventDefault();
   event.returnValue = '';
 }
-onMounted(() => window.addEventListener('beforeunload', warnUnsaved));
-onBeforeUnmount(() => window.removeEventListener('beforeunload', warnUnsaved));
+
+async function handleGlobalShortcutKeyDown(event: KeyboardEvent) {
+  const combo = normalizeKeyComboFromEvent(event);
+  if (!combo) return;
+
+  if (
+    shortcutStore.toggleLabelsCombo &&
+    combo.toLowerCase() === shortcutStore.toggleLabelsCombo.toLowerCase()
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    shortcutStore.toggleLabelsVisibility();
+    return;
+  }
+
+  if (!shortcutStore.enabled) return;
+
+  // Match <prefix>+<1..9>
+  for (let idx = 1; idx <= 9; idx++) {
+    const projCombo = shortcutStore.getItemShortcut('project', idx);
+    if (projCombo && projCombo.toLowerCase() === combo.toLowerCase()) {
+      const targetProj = projectStore.currentServerProjects[idx - 1];
+      if (!targetProj) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (targetProj.id !== projectStore.currentProject?.id) {
+        if (!(await fileStore.confirmUnsavedChanges())) return;
+        await projectStore.selectProject(targetProj.id);
+        await handleScopeChanged();
+      }
+      return;
+    }
+
+    const termCombo = shortcutStore.getItemShortcut('terminal', idx);
+    if (termCombo && termCombo.toLowerCase() === combo.toLowerCase()) {
+      const allTerms: Array<{ session: any; projectId: string }> = [];
+      for (const proj of projectStore.currentServerProjects) {
+        const list = terminalStore.sessions.filter(
+          s => s.serverId === serverStore.currentServerId && s.projectId === proj.id
+        );
+        for (const s of list) allTerms.push({ session: s, projectId: proj.id });
+      }
+      const target = allTerms[idx - 1];
+      if (!target) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (target.projectId && target.projectId !== projectStore.currentProject?.id) {
+        if (!(await fileStore.confirmUnsavedChanges())) return;
+        await projectStore.selectProject(target.projectId);
+        await handleScopeChanged();
+      }
+      terminalStore.switchSession(target.session.id);
+      activeTab.value = 'terminal';
+      return;
+    }
+
+    const claudeCombo = shortcutStore.getItemShortcut('claude', idx);
+    if (claudeCombo && claudeCombo.toLowerCase() === combo.toLowerCase()) {
+      const allClaudes: Array<{ session: any; projectId: string }> = [];
+      for (const proj of projectStore.currentServerProjects) {
+        const list = claudeStore.sessions.filter(
+          s =>
+            s.serverId === serverStore.currentServerId &&
+            (s.projectId ? s.projectId === proj.id : s.cwd?.replace(/\/+$/, '') === proj.rootPath.replace(/\/+$/, ''))
+        );
+        for (const s of list) allClaudes.push({ session: s, projectId: proj.id });
+      }
+      const target = allClaudes[idx - 1];
+      if (!target) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (target.projectId && target.projectId !== projectStore.currentProject?.id) {
+        if (!(await fileStore.confirmUnsavedChanges())) return;
+        await projectStore.selectProject(target.projectId);
+        await handleScopeChanged();
+      }
+      claudeStore.switchSession(target.session.id);
+      activeTab.value = 'claude';
+      return;
+    }
+
+    const serverCombo = shortcutStore.getItemShortcut('server', idx);
+    if (serverCombo && serverCombo.toLowerCase() === combo.toLowerCase()) {
+      const targetServer = serverStore.servers[idx - 1];
+      if (!targetServer || targetServer.id === serverStore.currentServerId) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!(await fileStore.confirmUnsavedChanges())) return;
+      await projectStore.fetchProjects(targetServer.id);
+      serverStore.selectServer(targetServer.id);
+      await handleScopeChanged();
+      return;
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', warnUnsaved);
+  window.addEventListener('keydown', handleGlobalShortcutKeyDown, true);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', warnUnsaved);
+  window.removeEventListener('keydown', handleGlobalShortcutKeyDown, true);
+});
 
 async function handleOpenFile(relPath: string) {
   if (await fileStore.openFile(relPath)) activeTab.value = 'editor';
@@ -333,6 +441,9 @@ async function handleScopeChanged() {
 // Scope selectors emit only after projects are loaded; avoid duplicate watcher refreshes.
 
 watch(activeTab, async (tab) => {
+  if (isQuickPanelOpen.value && quickPanelMode.value === 'git' && tab !== 'terminal' && tab !== 'claude') {
+    quickPanelMode.value = 'files';
+  }
   if (tab === 'git') {
     await gitStore.fetchStatus();
     await gitStore.fetchBranches();

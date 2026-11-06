@@ -9,7 +9,7 @@
   <aside
     id="desktop-workspace-sidebar"
     class="desktop-workspace-sidebar"
-    :class="{ open: isOpen, resizing: isResizing }"
+    :class="{ open: isOpen, resizing: isResizing, 'shortcut-labels-visible': shortcutStore.showLabels }"
     :style="{ width: `${panelWidth}px` }"
     aria-label="Điều hướng nhanh Project và Session"
   >
@@ -62,7 +62,7 @@
         </button>
       </div>
       <div id="dw-project-list" class="dw-list">
-        <div v-for="proj in projectStore.currentServerProjects" :key="proj.id"
+        <div v-for="(proj, projIdx) in projectStore.currentServerProjects" :key="proj.id"
           class="dw-project-group" :data-dw-project-group="proj.id">
           <div class="dw-item proj-item" :class="{ active: proj.id === projectStore.currentProject?.id }"
             :data-dw-project="proj.id" @click="handleSelectProject(proj.id)">
@@ -71,9 +71,11 @@
               <i :class="collapsedProjectIds.has(proj.id) ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'"></i>
             </button>
             <div class="dw-item-main"><div class="dw-item-title">
+              <span class="dw-idx-badge" :data-proj-index="projIdx + 1">{{ projIdx + 1 }}</span>
               <i :class="isHomeProject(proj) ? 'ri-home-4-line' : 'ri-folder-2-line'" style="color: #38bdf8"></i>
               <span>{{ proj.name }}</span>
             </div></div>
+            <kbd v-if="shortcutStore.getItemShortcut('project', projIdx + 1)" class="dw-kbd-tag">{{ shortcutStore.getItemShortcut('project', projIdx + 1) }}</kbd>
             <span v-if="proj.id === projectStore.currentProject?.id" class="dw-active-dot" aria-label="Project đang chọn"></span>
             <div class="dw-item-actions" @click.stop>
               <button v-if="!isHomeProject(proj)" type="button" class="danger btn-dw-proj-del"
@@ -90,7 +92,8 @@
                 <div v-for="s in sessionsForProject(proj.id, proj.rootPath, 'terminal')" :key="s.id"
                   class="dw-item term-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === terminalStore.activeSession?.id }"
                   :data-dw-term="s.id" :data-dw-term-project="proj.id" @click="handleSelectTerminal(s)">
-                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-terminal-box-line" style="color: #c084fc"></i><span>{{ s.name }}</span></div></div>
+                  <div class="dw-item-main"><div class="dw-item-title"><span class="dw-idx-badge" :data-term-index="getTermIndex(s.id)">{{ getTermIndex(s.id) }}</span><i class="ri-terminal-box-line" style="color: #c084fc"></i><span>{{ s.name }}</span></div></div>
+                  <kbd v-if="shortcutStore.getItemShortcut('terminal', getTermIndex(s.id))" class="dw-kbd-tag">{{ shortcutStore.getItemShortcut('terminal', getTermIndex(s.id)) }}</kbd>
                   <span v-if="proj.id === projectStore.currentProject?.id && s.id === terminalStore.activeSession?.id" class="dw-active-dot" aria-label="Terminal đang chọn"></span>
                   <div class="dw-item-actions" @click.stop>
                     <button type="button" class="btn-dw-term-edit" title="Chỉnh sửa phiên" @click="handleEditTerminal(s)"><i class="ri-edit-line"></i></button>
@@ -109,8 +112,9 @@
                 <div v-for="s in sessionsForProject(proj.id, proj.rootPath, 'claude')" :key="s.id"
                   class="dw-item claude-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id, running: isClaudeSessionRunning(s) }"
                   :data-dw-claude="s.id" :data-dw-claude-project="proj.id" @click="handleSelectClaude(s)">
-                  <div class="dw-item-main"><div class="dw-item-title"><i class="ri-sparkling-fill" style="color: #f59e0b"></i><span>{{ displayClaudeName(s) }}</span></div></div>
+                  <div class="dw-item-main"><div class="dw-item-title"><span class="dw-idx-badge" :data-claude-index="getClaudeIndex(s.id)">{{ getClaudeIndex(s.id) }}</span><i class="ri-sparkling-fill" style="color: #f59e0b"></i><span>{{ displayClaudeName(s) }}</span></div></div>
                   <span v-if="isClaudeSessionRunning(s)" class="dw-claude-running status-indicator" aria-label="Claude đang làm việc"></span>
+                  <kbd v-if="shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id))" class="dw-kbd-tag">{{ shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id)) }}</kbd>
                   <span v-if="proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id" class="dw-active-dot" aria-label="Claude đang chọn"></span>
                   <div class="dw-item-actions" @click.stop>
                     <button type="button" class="btn-dw-claude-edit" title="Chỉnh sửa phiên Claude" @click="handleEditClaude(s)"><i class="ri-edit-line"></i></button>
@@ -159,6 +163,7 @@ import { useProjectStore, type ProjectItem } from '../stores/projectStore.js';
 import { useTerminalStore, type TerminalSessionItem } from '../stores/terminalStore.js';
 import { useClaudeStore, type ClaudeSession } from '../stores/claudeStore.js';
 import { useFileStore } from '../stores/fileStore.js';
+import { useShortcutStore } from '../stores/shortcutStore.js';
 import ConfirmModal from './ConfirmModal.vue';
 
 const props = withDefaults(defineProps<{
@@ -185,6 +190,7 @@ const projectStore = useProjectStore();
 const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
 const fileStore = useFileStore();
+const shortcutStore = useShortcutStore();
 
 const sidebarError = ref('');
 const deletingProjectTarget = ref<ProjectItem | null>(null);
@@ -307,6 +313,38 @@ function sessionsForProject(id: string, rootPath: string, kind: 'terminal' | 'cl
     }
   }
   return [...byId.values()];
+}
+
+const termIndexMap = computed(() => {
+  const map = new Map<string, number>();
+  let idx = 0;
+  for (const proj of projectStore.currentServerProjects) {
+    for (const s of sessionsForProject(proj.id, proj.rootPath, 'terminal')) {
+      idx++;
+      map.set(s.id, idx);
+    }
+  }
+  return map;
+});
+
+const claudeIndexMap = computed(() => {
+  const map = new Map<string, number>();
+  let idx = 0;
+  for (const proj of projectStore.currentServerProjects) {
+    for (const s of sessionsForProject(proj.id, proj.rootPath, 'claude')) {
+      idx++;
+      map.set(s.id, idx);
+    }
+  }
+  return map;
+});
+
+function getTermIndex(sessionId: string): number {
+  return termIndexMap.value.get(sessionId) || 1;
+}
+
+function getClaudeIndex(sessionId: string): number {
+  return claudeIndexMap.value.get(sessionId) || 1;
 }
 
 function clampWidth(width: number) {
@@ -508,6 +546,11 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-item-title { display: flex; align-items: center; gap: 6px; min-width: 0; font-family: monospace; font-size: 11.5px; font-weight: 650; }
 .dw-item-title > i { color: #a8a8a8; flex-shrink: 0; }
 .dw-item-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dw-idx-badge { display: inline-block; font-family: monospace; font-size: 10px; font-weight: 400; line-height: 1; color: #787878; min-width: 11px; text-align: right; flex-shrink: 0; opacity: .78; user-select: none; }
+.dw-item.active .dw-idx-badge { color: #d4d4d4; opacity: 1; font-weight: 600; }
+.dw-kbd-tag { display: none; align-items: center; justify-content: center; font-family: monospace; font-size: 9.5px; color: #9a9a9a; background: #1d1d1d; border: 1px solid #2f2f2f; border-radius: 4px; padding: 1px 4px; flex-shrink: 0; line-height: 1.2; }
+.desktop-workspace-sidebar.shortcut-labels-visible .dw-kbd-tag,
+:global(.app-root.shortcut-labels-visible) .dw-kbd-tag { display: inline-flex; }
 .dw-active-dot { width: 6px; height: 6px; border-radius: 50%; background: #e7e7e7; flex-shrink: 0; }
 .dw-claude-running.status-indicator {
   width: 11px; height: 11px; border-radius: 50%;

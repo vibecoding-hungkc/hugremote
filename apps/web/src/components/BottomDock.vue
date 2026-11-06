@@ -12,6 +12,9 @@
     <button class="dock-item" :class="{ active: activeTab === 'git' }" @click="$emit('change-tab', 'git')">
       <i class="ri-git-branch-line dock-icon"></i><span class="dock-label">Git</span><span v-if="gitStore.files.length" class="dock-badge git-badge">{{ gitStore.files.length }}</span>
     </button>
+    <button id="dock-item-settings" class="dock-item" :class="{ active: activeTab === 'settings' }" @click="$emit('change-tab', 'settings')">
+      <i class="ri-settings-3-line dock-icon"></i><span class="dock-label">Cài đặt</span>
+    </button>
   </nav>
 </template>
 
@@ -21,8 +24,8 @@ import { useClaudeStore } from '../stores/claudeStore.js';
 import { useGitStore } from '../stores/gitStore.js';
 import { useI18n } from '../composables/useI18n.js';
 
-defineProps<{ activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'; }>();
-defineEmits<{ (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git'): void; }>();
+defineProps<{ activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git' | 'settings'; }>();
+defineEmits<{ (e: 'change-tab', tab: 'files' | 'editor' | 'terminal' | 'claude' | 'git' | 'settings'): void; }>();
 const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); const gitStore = useGitStore(); const { t } = useI18n();
 </script>
 

@@ -30,6 +30,22 @@
 - Quyền truy cập repository GitHub này để clone. Repository riêng tư cần xác thực GitHub; liên kết `raw.githubusercontent.com` công khai sẽ không tải được nếu bạn không có quyền truy cập.
 - Để dùng Claude Code, cài và đăng nhập Claude CLI trên **chính máy chạy HugRemote** hoặc máy đích tương ứng. Để dùng SSH, cấu hình kết nối trong `~/.ssh/config` của tài khoản chạy dịch vụ.
 
+### Cài nhanh bản web
+
+**Stable — bản phát hành chính thức gần nhất:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/install.sh | bash
+```
+
+**Beta — theo nhánh `main`:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vibecoding-hungkc/hugremote/main/beta.sh | bash
+```
+
+Các lệnh này **cài bản web/CLI**, không cài `.app` macOS. Hãy [đọc `install.sh`](install.sh) hoặc [đọc `beta.sh`](beta.sh) trước khi chạy, đặc biệt nếu máy đã cài HugRemote. Cần Git, Node.js, npm và công cụ biên dịch native; installer sẽ kiểm tra hoặc hướng dẫn khi thiếu. Bản Stable lấy GitHub Release mới nhất, nên thay đổi mới trên `main` chỉ có ở Beta cho tới khi phát hành bản tiếp theo. Sau khi cài, mở địa chỉ và cổng được installer thông báo.
+
 ### Chạy từ mã nguồn
 
 ```bash
@@ -42,7 +58,7 @@ npm start
 
 Mở `http://localhost:8099/` trên máy chạy dịch vụ. `npm start` chạy ở foreground; dừng bằng `Ctrl+C`. Mặc định dịch vụ lắng nghe trên `::` và **không xác thực** — trước khi truy cập từ máy khác, hãy cấu hình `HOST`, `AUTH_MODE` và lớp HTTPS bảo vệ phù hợp.
 
-Nếu có quyền truy cập script cài đặt của repository, `install.sh` chọn bản Stable đã phát hành; `beta.sh` theo nhánh `main`. Đọc script trước khi chạy, đặc biệt khi đã có bản cài đặt hoặc working tree có thay đổi. Xem [các bản phát hành](https://github.com/vibecoding-hungkc/hugremote/releases) và [changelog](CHANGELOG.md).
+Xem [các bản phát hành](https://github.com/vibecoding-hungkc/hugremote/releases) và [changelog](CHANGELOG.md). Nếu muốn quản lý toàn bộ mã nguồn, dùng cách clone và build ở trên thay vì installer.
 
 ## Ứng dụng macOS tùy chọn
 

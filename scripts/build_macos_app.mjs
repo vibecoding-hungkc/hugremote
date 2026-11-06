@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { stageWorkspaceManifests } from '../desktop/stage-workspaces.mjs';
 import { makePackagerOptions, resolveMacAppPath } from '../desktop/packager-options.mjs';
+import {
+  preparePayloadForBundle,
+  signAndVerifyMacApp,
+  buildMacDmg,
+} from '../desktop/macos-installer.mjs';
 const requireDesktop = createRequire(new URL('../desktop/package.json', import.meta.url));
 const { packager } = requireDesktop('@electron/packager');
 
@@ -27,6 +32,7 @@ stageWorkspaceManifests(repo, payload);
 fs.cpSync(path.join(repo, 'packages/shared/dist'), path.join(payload, 'packages/shared/dist'), { recursive: true });
 // Native node-pty must be installed on the target Mac with the bundled Node ABI.
 execFileSync('npm', ['ci', '--omit=dev', '--foreground-scripts'], { cwd: payload, stdio: 'inherit' });
+preparePayloadForBundle(payload, process.arch);
 fs.copyFileSync(process.execPath, path.join(nodeDir, 'bin/node'));
 fs.chmodSync(path.join(nodeDir, 'bin/node'), 0o755);
 if (!fs.existsSync(path.join(payload, 'node_modules/node-pty'))) throw new Error('Native node-pty missing from payload');
@@ -49,4 +55,11 @@ const resources = path.join(appPath, 'Contents/Resources');
 for (const file of [
   'node/bin/node', 'hugremote/apps/api/dist/main.js', 'hugremote/apps/api/public/index.html',
 ]) if (!fs.existsSync(path.join(resources, file))) throw new Error(`Incomplete bundle: ${file}`);
+signAndVerifyMacApp(appPath);
+const dmgPath = buildMacDmg({
+  appPath,
+  dmgStageDir: path.join(buildRoot, 'dmg-root'),
+  dmgPath: path.join(output, `HugRemote-macOS-${process.arch}.dmg`),
+});
 console.log(`Built optional macOS app: ${appPath}`);
+console.log(`Built optional macOS DMG installer: ${dmgPath}`);

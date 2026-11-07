@@ -353,7 +353,7 @@ function executeManualPaste(text: string) {
   }
 }
 
-function disconnectSocket() {
+function disconnectSocket(markDisconnected = false) {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
@@ -368,7 +368,9 @@ function disconnectSocket() {
     } catch (_) {}
     socket = null;
   }
-  isDisconnected.value = true;
+  if (markDisconnected) {
+    isDisconnected.value = true;
+  }
 }
 
 function cleanupCurrentTerminal() {
@@ -550,6 +552,9 @@ function initTerminal() {
 
 function connectWebSocket() {
   const curServer = serverStore.currentServer;
+  if (!terminalStore.activeSession) {
+    terminalStore.ensureServerSession();
+  }
   const curSession = terminalStore.activeSession;
   if (!curSession || !term) return;
   if (terminalStore.isSessionSuspended(curSession.id)) return;
@@ -669,7 +674,7 @@ watch(
   },
   (suspended) => {
     if (suspended) {
-      disconnectSocket();
+      disconnectSocket(true);
     }
   },
   { flush: 'sync' }

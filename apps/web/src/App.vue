@@ -429,8 +429,8 @@ function openServerManager() {
 async function handleScopeChanged() {
   if (!(await fileStore.closeActiveFile())) return;
   if (activeTab.value === 'editor') activeTab.value = 'files';
-  await fileStore.fetchFiles();
   terminalStore.ensureServerSession();
+  await fileStore.fetchFiles();
   await Promise.all([
     claudeStore.fetchModels(serverStore.currentServerId),
     claudeStore.ensureProjectSession(),

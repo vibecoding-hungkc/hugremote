@@ -19,9 +19,13 @@ assert.doesNotMatch(
   'Bottom dock settings item in prototype.html must be icon-only without a text label',
 );
 
-// 2. Settings view (#view-settings) renders language selector (#settings-language-card) and shared shortcut configuration block
+// 2. Settings view (#view-settings) renders language selector (#settings-language-card), version updater (#settings-version-card), and shared shortcut configuration block
 assert.match(proto, /<section id="view-settings" class="view">/, '#view-settings view section must exist');
 assert.match(proto, /id="settings-language-card"/, 'Language configuration card #settings-language-card must exist in Settings view');
+assert.match(proto, /id="settings-version-card"/, 'Version update card #settings-version-card must exist in Settings view');
+assert.match(proto, /id="version-status-badge"/, 'Version status badge #version-status-badge must exist in Settings view');
+assert.match(proto, /id="btn-check-update"/, 'Check update button #btn-check-update must exist in Settings view');
+assert.match(proto, /id="btn-quick-update"/, 'Quick update button #btn-quick-update must exist in Settings view');
 assert.match(proto, /id="settings-shortcut-card"/, 'Shared shortcut configuration card #settings-shortcut-card must exist');
 assert.match(proto, /id="shortcut-enabled-toggle"/, 'Shortcut master toggle must exist');
 assert.match(proto, /id="shortcut-labels-toggle-btn"/, 'Shortcut labels toggle button must exist');

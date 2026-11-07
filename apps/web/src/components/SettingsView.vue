@@ -30,6 +30,67 @@
       </div>
     </div>
 
+    <div id="settings-version-card" class="settings-card settings-version-card">
+      <div class="settings-card-header">
+        <div class="settings-card-title-group">
+          <div class="settings-card-title">
+            <i class="ri-rocket-line" style="color: #a3a3a3"></i>
+            <span>Phiên bản & Cập nhật</span>
+            <span id="current-version-text" class="version-code-pill">
+              v{{ versionState.currentVersion }}{{ versionState.currentCommit ? ` · ${versionState.currentCommit}` : '' }}
+            </span>
+            <span
+              id="version-status-badge"
+              class="version-status-badge"
+              :class="versionState.hasUpdate ? 'warning status-indicator' : 'ok'"
+            >
+              {{
+                versionState.hasUpdate
+                  ? `Có bản mới · v${versionState.latestVersion}`
+                  : 'Bản mới nhất'
+              }}
+            </span>
+          </div>
+          <div id="version-summary-text" class="settings-card-desc">
+            {{ versionState.summary }}
+          </div>
+        </div>
+
+        <div class="settings-toolbar-row">
+          <button
+            id="btn-check-update"
+            type="button"
+            class="settings-reset-btn"
+            :disabled="checkingVersion || updatingVersion"
+            @click="fetchVersionStatus"
+          >
+            <i class="ri-refresh-line" :class="{ 'spin-anim': checkingVersion }"></i>
+            <span>{{ checkingVersion ? 'Đang kiểm tra...' : 'Kiểm tra' }}</span>
+          </button>
+
+          <button
+            id="btn-quick-update"
+            type="button"
+            class="settings-toggle-pill"
+            :class="{ active: versionState.hasUpdate }"
+            :disabled="updatingVersion"
+            @click="handleQuickUpdate"
+          >
+            <i :class="updatingVersion ? 'ri-loader-4-line spin-anim' : 'ri-download-cloud-2-line'"></i>
+            <span>
+              {{
+                updatingVersion
+                  ? 'Đang cập nhật...'
+                  : versionState.hasUpdate
+                  ? 'Cập nhật ngay'
+                  : 'Cập nhật nhanh'
+              }}
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="settings-shortcut-card" class="settings-card">
       <div class="settings-card-header">
         <div class="settings-card-title-group">
@@ -138,6 +199,7 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { apiUrl } from '../utils/api.js';
 import { useI18n } from '../composables/useI18n.js';
 import type { Locale } from '../i18n/messages.js';
 import {
@@ -162,6 +224,78 @@ const shortcutStore = useShortcutStore();
 const recordingGroupKey = ref<ShortcutCategory | 'toggleLabels' | null>(null);
 const statusNotice = ref('');
 let noticeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const checkingVersion = ref(false);
+const updatingVersion = ref(false);
+const versionState = ref({
+  currentVersion: '1.6.7',
+  currentCommit: '',
+  latestVersion: '1.6.7',
+  latestCommit: '',
+  channel: 'beta' as 'stable' | 'beta',
+  hasUpdate: false,
+  summary: 'Kiểm tra phiên bản mới từ GitHub để cập nhật nhanh.',
+});
+
+async function fetchVersionStatus() {
+  checkingVersion.value = true;
+  try {
+    const res = await fetch(apiUrl('/api/system/version'));
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && typeof data.currentVersion === 'string') {
+      versionState.value = {
+        currentVersion: data.currentVersion,
+        currentCommit: data.currentCommit || '',
+        latestVersion: data.latestVersion || data.currentVersion,
+        latestCommit: data.latestCommit || '',
+        channel: data.channel === 'stable' ? 'stable' : 'beta',
+        hasUpdate: Boolean(data.hasUpdate),
+        summary: data.summary || `Đang ở phiên bản v${data.currentVersion}`,
+      };
+    }
+  } catch {
+    // Ignore transient network errors during version check
+  } finally {
+    checkingVersion.value = false;
+  }
+}
+
+async function handleQuickUpdate() {
+  if (updatingVersion.value) return;
+  updatingVersion.value = true;
+  versionState.value.summary = 'Đang tải mã nguồn mới và biên dịch bản cập nhật...';
+  try {
+    const res = await fetch(apiUrl('/api/system/update'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channel: versionState.value.channel }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Cập nhật thất bại');
+    }
+    const nextVer = data.updatedVersion || versionState.value.latestVersion;
+    const nextCommit = data.updatedCommit || versionState.value.latestCommit;
+    versionState.value.currentVersion = nextVer;
+    versionState.value.currentCommit = nextCommit;
+    versionState.value.hasUpdate = false;
+    versionState.value.summary = data.message || `Đã cập nhật lên v${nextVer}`;
+    flashNotice(versionState.value.summary);
+
+    if (data.restarting && typeof window !== 'undefined') {
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    }
+  } catch (err: any) {
+    const msg = err?.message || 'Không thể cập nhật phiên bản';
+    versionState.value.summary = msg;
+    flashNotice(msg);
+  } finally {
+    updatingVersion.value = false;
+  }
+}
 
 function onSelectLocale(loc: Locale) {
   i18n.setLocale(loc);
@@ -299,6 +433,7 @@ onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', onRecordKeyDown, true);
   }
+  void fetchVersionStatus();
 });
 
 onBeforeUnmount(() => {
@@ -511,6 +646,50 @@ onBeforeUnmount(() => {
   border: 1px solid #333333;
   border-radius: 6px;
   padding: 7px 10px;
+}
+
+.version-code-pill {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #d4d4d4;
+  background: #181818;
+  border: 1px solid #333333;
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+
+.version-status-badge {
+  font-family: monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #353535;
+  background: #242424;
+  color: #d4d4d4;
+}
+
+.version-status-badge.ok {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.32);
+}
+
+.version-status-badge.warning {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.38);
+}
+
+.spin-anim {
+  animation: settings-spin 0.9s linear infinite;
+}
+
+@keyframes settings-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 720px) {

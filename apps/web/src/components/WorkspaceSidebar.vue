@@ -550,7 +550,7 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-item.active .dw-idx-badge { color: #d4d4d4; opacity: 1; font-weight: 600; }
 .dw-kbd-tag { display: none; align-items: center; justify-content: center; font-family: monospace; font-size: 9.5px; color: #9a9a9a; background: #1d1d1d; border: 1px solid #2f2f2f; border-radius: 4px; padding: 1px 4px; flex-shrink: 0; line-height: 1.2; }
 .desktop-workspace-sidebar.shortcut-labels-visible .dw-kbd-tag,
-:global(.app-root.shortcut-labels-visible) .dw-kbd-tag { display: inline-flex; }
+:global(.app-root.shortcut-labels-visible .dw-kbd-tag) { display: inline-flex; }
 .dw-active-dot { width: 6px; height: 6px; border-radius: 50%; background: #e7e7e7; flex-shrink: 0; }
 .dw-claude-running.status-indicator {
   width: 11px; height: 11px; border-radius: 50%;

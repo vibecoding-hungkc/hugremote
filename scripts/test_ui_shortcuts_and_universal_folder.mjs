@@ -96,6 +96,11 @@ try {
     assert.match(html, /Tiếng Việt/);
     assert.match(html, /English/);
 
+    assert.match(html, /id="settings-version-card"/);
+    assert.match(html, /id="version-status-badge"/);
+    assert.match(html, /id="btn-check-update"/);
+    assert.match(html, /id="btn-quick-update"/);
+
     assert.match(html, /id="settings-shortcut-card"/);
     assert.match(html, /id="shortcut-labels-toggle-btn"/);
     assert.match(html, /id="shortcut-enabled-toggle"/);
@@ -157,7 +162,7 @@ try {
 
     const wsCss = fs.readFileSync(fileURLToPath(new URL('../apps/web/src/components/WorkspaceSidebar.vue', import.meta.url)), 'utf8');
     assert.match(wsCss, /\.dw-kbd-tag\s*\{[\s\S]*?display:\s*none/);
-    assert.match(wsCss, /\.app-root\.shortcut-labels-visible[\s\S]*?\.dw-kbd-tag\s*\{[\s\S]*?display:\s*inline-flex/);
+    assert.match(wsCss, /\.shortcut-labels-visible[\s\S]*?\.dw-kbd-tag[\s\S]*?\{[\s\S]*?display:\s*inline-flex/);
   });
 
   await test('AC-4a: SmartHeader renders Folder Sidebar trigger and Workspace Sidebar toggle on ALL 6 tabs', async () => {

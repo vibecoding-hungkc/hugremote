@@ -41,7 +41,7 @@ function readLocalPackageVersion(rootDir = APP_ROOT) {
         }
         catch { }
     }
-    return '1.6.7';
+    return '1.6.8';
 }
 function readLocalCommit(rootDir = APP_ROOT) {
     for (const dir of [rootDir, process.cwd()]) {

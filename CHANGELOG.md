@@ -1,5 +1,40 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.8] - 2026-11-07
+
+Bản phát hành bổ sung màn hình **Cài đặt** ở thanh điều hướng dưới (chỉ hiển thị icon), tính năng **Kiểm tra & Cập nhật phiên bản nhanh** ngay trong Cài đặt, hệ thống **Phím tắt chuyển nhanh dùng chung** kèm **Thin Index**, **Folder Sidebar toàn cục** ở mọi màn hình (có Upload tệp/thư mục, Download tệp/ZIP và chế độ **Toàn màn hình**), **Giao diện Git 2 cột mới**, gói cài đặt **macOS `.dmg` tùy chọn** và khắc phục triệt để kết nối WebSocket với **SSH Server trên macOS**.
+
+### Màn hình Cài đặt, Ngôn ngữ & Cập nhật Phiên bản nhanh
+- Bổ sung tab **Cài đặt** (`#dock-item-settings`) chỉ hiển thị icon bánh răng (`ri-settings-3-line`) trên thanh điều hướng dưới (`BottomDock.vue`).
+- Đưa bộ chọn **Ngôn ngữ giao diện** (`#settings-language-card`: `Tiếng Việt` / `English`) từ thanh Top Menu vào trong màn hình Cài đặt.
+- Bổ sung khối **Phiên bản & Cập nhật** (`#settings-version-card`) kèm API `GET /api/system/version` và `POST /api/system/update`:
+  - Kiểm tra phiên bản trực tiếp từ GitHub theo kênh **Stable** hoặc **Beta**, hiển thị trạng thái có bản cập nhật mới (`#version-status-badge`) và thông tin commit/tag.
+  - Nút **Cập nhật ngay** (`#btn-quick-update`) kích hoạt `installIsolatedRelease` an toàn (hoặc cập nhật từ nhánh Git) và tự động khởi động lại dịch vụ nền sau khi hoàn tất.
+
+### Phím tắt chuyển nhanh dùng chung & Thin Index (`Alt+K`)
+- Bổ sung khối **Cài đặt phím tắt dùng chung** (`#settings-shortcut-card`, `shortcutStore.ts`): thiết lập tổ hợp phím chung kết hợp với số thứ tự `1..9` cho **Chuyển Project** (`Alt + 1..9`), **Chuyển Phiên Claude** (`Alt+Shift + 1..9`), **Chuyển Phiên Terminal** (`Ctrl+Alt + 1..9`), **Chuyển Server** (`Ctrl+Shift + 1..9`) và phím **Ẩn/Hiện nhãn phím tắt** (`Alt+K`), hỗ trợ chọn preset hoặc thu phím trực tiếp.
+- Hiển thị **thin index** mảnh (`1, 2, 3...`, `.dw-idx-badge`) cạnh từng Project, Terminal session và Claude session trong `WorkspaceSidebar.vue`; mặc định ẩn nhãn phím tắt (`.dw-kbd-tag`) để giao diện thoáng và bật/tắt tức thì bằng `Alt+K`.
+
+### Folder Sidebar toàn cục, Upload/Download & Chế độ Toàn màn hình
+- Đưa nút đóng/mở **Folder Sidebar** và **Workspace Sidebar** lên thanh Header (`SmartHeader.vue`) ở tất cả 6 màn hình (`Files`, `Editor`, `Terminal`, `Claude`, `Git`, `Cài đặt`).
+- Bổ sung thanh công cụ **Tải tệp** (`#quick-tree-upload-files`), **Tải thư mục** (`#quick-tree-upload-folder`), **Tải về ZIP** (`#quick-tree-download-zip`), các nút tải lên/tải xuống trên từng dòng cây thư mục và nút tải tệp đang mở (`#quick-file-download`) ngay trong `QuickWorkspacePanel.vue`.
+- Bổ sung chế độ **Toàn màn hình** (`#quick-tree-fullscreen` và `#quick-file-fullscreen`) cho phép mở rộng bảng Xem nhanh thư mục và khung xem/sửa tệp inline phủ `100%` chiều ngang màn hình.
+
+### Giao diện Git 2 cột mới (`GitView.vue`)
+- Nâng cấp màn hình Git sang bố cục lưới 2 cột (`.git-main-grid`): banner tổng quan đầu trang (`.git-scanner-banner`), cột trái danh sách thẻ repository (`.git-repos-column`), cột phải chi tiết repository (`.git-Active-detail-column`) chia đôi song song giữa **Tệp thay đổi + Thanh Commit** (`.git-files-box`) và **Xem nhanh Diff** (`.git-diff-box`, tự động nạp Diff của tệp đầu tiên).
+- Giữ luồng điều hướng danh sách ↔ chi tiết mượt trên Mobile & Tablet (`<=860px`) kèm nút quay lại `Danh sách repo`.
+
+### Bộ cài macOS `.dmg` tùy chọn & Kết nối WebSocket với SSH Server trên macOS
+- Đóng gói ứng dụng desktop macOS tùy chọn (`desktop/`, `scripts/build_macos_app.mjs`, `.github/workflows/macos-app.yml`) thành bộ cài `HugRemote-macOS-arm64.dmg` và `HugRemote-macOS-x64.dmg` kèm ký ad-hoc đệ quy toàn bộ Mach-O binaries (`codesign --verify --deep --strict`).
+- Khắc phục triệt để lỗi kết nối WebSocket khi làm việc với SSH Server trên macOS:
+  - Khởi tạo `terminalStore.ensureServerSession()` ngay đầu `handleScopeChanged()` (`App.vue`) trước mọi lời gọi mạng SFTP/HTTP và tách biệt việc đóng socket khi chuyển phiên khỏi trạng thái mất mạng thật (`TerminalView.vue`).
+  - Trong `sshPool.ts` và `ws.ts`: deduplicate các kết nối SSH đồng thời, tự động dò `SSH_AUTH_SOCK` (kể cả qua `launchctl getenv SSH_AUTH_SOCK` trên macOS GUI app), đọc default SSH keys an toàn (bỏ qua key mã hóa passphrase không có passphrase), đệm hàng đợi bản tin WebSocket trong lúc bắt tay SSH, và tự động fallback sang tiến trình `/usr/bin/ssh` hệ thống (`node-pty` / `child_process.spawn`) khi `ssh2` không kết nối trực tiếp được.
+
+### Kiểm chứng
+- PASS toàn bộ bộ kiểm thử: `scripts/test_ssh_ws_and_system_update.ts`, `scripts/test_ui_shortcuts_and_universal_folder.mjs`, `scripts/test_ui_git_mobile_list_details.mjs`, `scripts/test_ui_prototype_shortcuts.mjs`, `scripts/test_desktop_macos_installer.mjs`, `npm run test:ui` và cổng kiểm tra bảo mật release.
+
+---
+
 ## [v1.6.7] - 2026-11-05
 
 Bản phát hành bổ sung hỗ trợ đệ quy chỉ thị `Include` trong `~/.ssh/config`, tách biệt tab Files theo phạm vi Server Workspace độc lập với Project đang mở, nâng cấp luồng Git responsive trên Mobile/Tablet (`<=860px`), bổ sung cây thư mục Workspace có thanh kéo đổi kích thước, nhập liệu giọng nói tiếng Việt và đồng bộ tên phiên Claude CLI.

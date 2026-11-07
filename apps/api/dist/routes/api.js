@@ -8,6 +8,7 @@ import { claudeService, ContextUsageValidationError, ContextUsageNotFoundError, 
 import { projectService } from '../services/projectService.js';
 import { createGitService, MAX_GIT_SCAN_DEPTH, resolveProjectSubpath } from '../services/gitService.js';
 import { tempZipService } from '../services/tempZipService.js';
+import { systemUpdateService } from '../services/systemUpdateService.js';
 import { sessionStore, authConfig } from '../auth.js';
 function canAccessSession(request, reply, session) {
     if (authConfig.mode === 'google' && session?.ownerEmail) {
@@ -20,6 +21,27 @@ function canAccessSession(request, reply, session) {
     return true;
 }
 export const apiRoutes = async (fastify) => {
+    // --- SYSTEM VERSION & QUICK UPDATE ROUTES ---
+    fastify.get('/api/system/version', async (request, reply) => {
+        try {
+            const channel = request.query?.channel === 'stable' ? 'stable' : request.query?.channel === 'beta' ? 'beta' : undefined;
+            const status = await systemUpdateService.checkVersion(channel);
+            return status;
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message || 'Không thể kiểm tra phiên bản' });
+        }
+    });
+    fastify.post('/api/system/update', async (request, reply) => {
+        try {
+            const channel = request.body?.channel === 'stable' ? 'stable' : request.body?.channel === 'beta' ? 'beta' : undefined;
+            const res = await systemUpdateService.runQuickUpdate({ channel });
+            return res;
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message || 'Cập nhật phiên bản thất bại' });
+        }
+    });
     // --- SERVER ROUTES ---
     fastify.get('/api/servers', async () => {
         const servers = parseSshConfig();

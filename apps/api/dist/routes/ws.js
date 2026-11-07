@@ -50,53 +50,76 @@ export const wsRoutes = async (fastify) => {
         const cwd = query.cwd;
         const servers = parseSshConfig();
         const serverConfig = servers.find((s) => s.id === serverId) || servers[0];
+        let sessionReady = false;
+        let socketClosed = false;
+        const pendingMessages = [];
+        const handleIncomingMessage = (raw) => {
+            if (raw.startsWith('{') && raw.endsWith('}')) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.type === 'resize' && parsed.cols && parsed.rows) {
+                        sessionManager.resize(sessionId, parsed.cols, parsed.rows);
+                        return;
+                    }
+                    if (parsed.type === 'ping') {
+                        socket.send(JSON.stringify({ type: 'pong' }));
+                        return;
+                    }
+                }
+                catch (_) {
+                    // Not valid JSON, treat as raw keystroke data
+                }
+            }
+            sessionManager.write(sessionId, raw);
+        };
+        // Heartbeat Keep-Alive (Ping every 25s to keep mobile carrier / Cloudflare tunnel alive)
+        const pingInterval = setInterval(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+                try {
+                    socket.ping();
+                }
+                catch (_) { }
+            }
+            else {
+                clearInterval(pingInterval);
+            }
+        }, 25000);
+        socket.on('message', (message) => {
+            const raw = message.toString();
+            if (!sessionReady) {
+                pendingMessages.push(raw);
+                return;
+            }
+            handleIncomingMessage(raw);
+        });
+        socket.on('close', () => {
+            socketClosed = true;
+            clearInterval(pingInterval);
+            sessionManager.detach(sessionId, socket);
+        });
+        socket.on('error', (err) => {
+            socketClosed = true;
+            clearInterval(pingInterval);
+            console.warn(`WebSocket error on session ${sessionId}:`, err);
+            sessionManager.detach(sessionId, socket);
+        });
         try {
             const session = await sessionManager.getOrCreateSession(serverId, sessionId, sessionName, serverConfig, cols, rows, cwd);
+            if (socketClosed || socket.readyState !== WebSocket.OPEN) {
+                clearInterval(pingInterval);
+                return;
+            }
             sessionManager.attach(sessionId, socket, session);
-            // Heartbeat Keep-Alive (Ping every 25s to keep mobile carrier / Cloudflare tunnel alive)
-            const pingInterval = setInterval(() => {
-                if (socket.readyState === WebSocket.OPEN) {
-                    try {
-                        socket.ping();
-                    }
-                    catch (_) { }
+            sessionReady = true;
+            while (pendingMessages.length > 0) {
+                const queued = pendingMessages.shift();
+                if (queued !== undefined) {
+                    handleIncomingMessage(queued);
                 }
-                else {
-                    clearInterval(pingInterval);
-                }
-            }, 25000);
-            socket.on('message', (message) => {
-                const raw = message.toString();
-                // Check if message is control JSON (e.g. resize or ping)
-                if (raw.startsWith('{') && raw.endsWith('}')) {
-                    try {
-                        const parsed = JSON.parse(raw);
-                        if (parsed.type === 'resize' && parsed.cols && parsed.rows) {
-                            sessionManager.resize(sessionId, parsed.cols, parsed.rows);
-                            return;
-                        }
-                        if (parsed.type === 'ping') {
-                            socket.send(JSON.stringify({ type: 'pong' }));
-                            return;
-                        }
-                    }
-                    catch (_) {
-                        // Not valid JSON, treat as raw keystroke data
-                    }
-                }
-                sessionManager.write(sessionId, raw);
-            });
-            socket.on('close', () => {
-                clearInterval(pingInterval);
-                sessionManager.detach(sessionId, socket);
-            });
-            socket.on('error', (err) => {
-                clearInterval(pingInterval);
-                console.warn(`WebSocket error on session ${sessionId}:`, err);
-                sessionManager.detach(sessionId, socket);
-            });
+            }
         }
         catch (err) {
+            clearInterval(pingInterval);
             console.error('Failed to attach terminal session:', err);
             try {
                 socket.send(`\r\n\x1b[31m[Connection Error: ${err.message}]\x1b[0m\r\n`);

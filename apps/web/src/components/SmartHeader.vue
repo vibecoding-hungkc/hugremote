@@ -133,7 +133,6 @@
       </div>
 
       <div class="smart-header-right">
-        <LanguageSwitcher />
         <template v-if="activeTab === 'files'">
           <button
             type="button"
@@ -285,7 +284,6 @@ import { useTerminalStore } from '../stores/terminalStore.js';
 import { useClaudeStore } from '../stores/claudeStore.js';
 import { useGitStore } from '../stores/gitStore.js';
 import { useI18n } from '../composables/useI18n.js';
-import LanguageSwitcher from './LanguageSwitcher.vue';
 
 defineProps<{
   activeTab: 'files' | 'editor' | 'terminal' | 'claude' | 'git' | 'settings';

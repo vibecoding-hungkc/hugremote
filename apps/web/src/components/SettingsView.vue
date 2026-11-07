@@ -1,5 +1,35 @@
 <template>
   <section id="view-settings" class="settings-view">
+    <div id="settings-language-card" class="settings-card settings-language-card">
+      <div class="settings-card-header">
+        <div class="settings-card-title-group">
+          <div class="settings-card-title">
+            <i class="ri-translate-2" style="color: #a3a3a3"></i>
+            <span>Ngôn ngữ giao diện</span>
+          </div>
+          <div class="settings-card-desc">
+            Chọn ngôn ngữ hiển thị cho toàn bộ giao diện ứng dụng.
+          </div>
+        </div>
+
+        <div id="settings-language-selector" class="settings-toolbar-row">
+          <button
+            v-for="loc in i18n.availableLocales"
+            :key="loc"
+            type="button"
+            class="settings-toggle-pill settings-lang-btn"
+            :class="{ active: i18n.locale === loc }"
+            :data-locale="loc"
+            :aria-pressed="i18n.locale === loc ? 'true' : 'false'"
+            @click="onSelectLocale(loc)"
+          >
+            <span class="settings-lang-flag">{{ i18n.localeLabels[loc].flag }}</span>
+            <span>{{ i18n.localeLabels[loc].nativeName }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="settings-shortcut-card" class="settings-card">
       <div class="settings-card-header">
         <div class="settings-card-title-group">
@@ -108,6 +138,8 @@
 
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useI18n } from '../composables/useI18n.js';
+import type { Locale } from '../i18n/messages.js';
 import {
   normalizeKeyComboFromEvent,
   normalizeKeyToken,
@@ -125,10 +157,16 @@ interface GroupMetaItem {
   isSingleCombo: boolean;
 }
 
+const { i18n } = useI18n();
 const shortcutStore = useShortcutStore();
 const recordingGroupKey = ref<ShortcutCategory | 'toggleLabels' | null>(null);
 const statusNotice = ref('');
 let noticeTimer: ReturnType<typeof setTimeout> | null = null;
+
+function onSelectLocale(loc: Locale) {
+  i18n.setLocale(loc);
+  flashNotice(`Đã chuyển ngôn ngữ sang ${i18n.localeLabels[loc].nativeName}`);
+}
 
 const groupMetaList: GroupMetaItem[] = [
   {

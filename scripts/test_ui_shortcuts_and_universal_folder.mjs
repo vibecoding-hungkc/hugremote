@@ -67,7 +67,7 @@ try {
   const { useTerminalStore } = await vite.ssrLoadModule('/src/stores/terminalStore.ts');
   const { useClaudeStore } = await vite.ssrLoadModule('/src/stores/claudeStore.ts');
 
-  await test('AC-2a: Router & BottomDock support 5th tab "settings" (#dock-item-settings)', async () => {
+  await test('AC-2a: Router & BottomDock support 5th tab "settings" (#dock-item-settings) as icon-only without text label', async () => {
     assert.ok(VALID_TABS.includes('settings'), 'VALID_TABS must include settings');
     assert.equal(parseHash('#/settings').tab, 'settings');
 
@@ -77,15 +77,24 @@ try {
     app.use(pinia);
     const html = await renderToString(app);
     assert.match(html, /id="dock-item-settings"[^>]*class="[^"]*\bactive\b/);
-    assert.match(html, /Cài đặt/);
+    assert.match(html, /id="dock-item-settings"[\s\S]*?ri-settings-3-line/);
+    const settingsBtnMatch = html.match(/<button[^>]*id="dock-item-settings"[^>]*>([\s\S]*?)<\/button>/);
+    assert.ok(settingsBtnMatch, '#dock-item-settings button must exist');
+    assert.doesNotMatch(settingsBtnMatch[1], /dock-label|Cài đặt/, '#dock-item-settings must be icon-only without a text label');
   });
 
-  await test('AC-2b: SettingsView renders ONLY the shared shortcut block (#settings-shortcut-card) with 5 group rules', async () => {
+  await test('AC-2b: SettingsView renders language selector (#settings-language-card) and shared shortcut block (#settings-shortcut-card) with 5 group rules', async () => {
     const pinia = createPinia();
     setActivePinia(pinia);
     const app = createSSRApp(SettingsView);
     app.use(pinia);
     const html = await renderToString(app);
+
+    assert.match(html, /id="settings-language-card"/);
+    assert.match(html, /data-locale="vi"/);
+    assert.match(html, /data-locale="en"/);
+    assert.match(html, /Tiếng Việt/);
+    assert.match(html, /English/);
 
     assert.match(html, /id="settings-shortcut-card"/);
     assert.match(html, /id="shortcut-labels-toggle-btn"/);
@@ -165,6 +174,7 @@ try {
       const html = await renderToString(app);
       assert.match(html, /data-quick-panel="files"/, `SmartHeader must render Folder Sidebar trigger on tab="${tab}"`);
       assert.match(html, /data-workspace-sidebar-toggle/, `SmartHeader must render Workspace Sidebar toggle on tab="${tab}"`);
+      assert.doesNotMatch(html, /language-flag-btn/, `SmartHeader must not render LanguageSwitcher on top menu (tab="${tab}")`);
     }
   });
 

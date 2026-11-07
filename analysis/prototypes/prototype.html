@@ -5564,6 +5564,25 @@
       <!-- VIEW 6: SETTINGS & SHORTCUT MANAGER -->
       <section id="view-settings" class="view">
         <div class="settings-view-container">
+          <div class="settings-shortcut-card" id="settings-language-card">
+            <div class="settings-card-header" style="border-bottom:none; padding-bottom:0;">
+              <div class="settings-banner-title">
+                <i class="ri-translate-2" style="color:#a3a3a3; font-size:17px;"></i>
+                <span>Ngôn ngữ giao diện</span>
+              </div>
+              <div class="settings-banner-controls" id="settings-language-selector">
+                <button type="button" class="settings-pill-btn active" data-locale="vi" aria-pressed="true">
+                  <span>🇻🇳</span>
+                  <span>Tiếng Việt</span>
+                </button>
+                <button type="button" class="settings-pill-btn" data-locale="en" aria-pressed="false">
+                  <span>🇺🇸</span>
+                  <span>English</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="settings-shortcut-card" id="settings-shortcut-card">
             <div class="settings-card-header">
               <div class="settings-banner-title">
@@ -5613,9 +5632,8 @@
           <span class="dock-label">Git</span>
           <span id="dock-git-count" class="dock-badge-num">8</span>
         </button>
-        <button class="dock-item" data-target="view-settings" id="dock-item-settings">
+        <button class="dock-item dock-item-icon-only" data-target="view-settings" id="dock-item-settings" title="Cài đặt" aria-label="Cài đặt">
           <span class="dock-icon"><i class="ri-settings-3-line"></i></span>
-          <span class="dock-label">Cài đặt</span>
         </button>
       </div>
     </nav>
@@ -13067,6 +13085,18 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       if (btnHeaderResetShortcuts) {
         btnHeaderResetShortcuts.addEventListener('click', resetAllShortcutsToDefault);
       }
+
+      document.querySelectorAll('#settings-language-selector [data-locale]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const loc = btn.getAttribute('data-locale') || 'vi';
+          document.querySelectorAll('#settings-language-selector [data-locale]').forEach(b => {
+            const active = b.getAttribute('data-locale') === loc;
+            b.classList.toggle('active', active);
+            b.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
+          showToast(loc === 'en' ? 'Switched language to English' : 'Đã chuyển ngôn ngữ sang Tiếng Việt', 'info');
+        });
+      });
 
       // --- STARTUP ---
       syncShortcutLabelsClass();

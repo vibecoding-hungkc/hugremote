@@ -9,7 +9,7 @@
   <aside
     id="quick-tree-panel"
     class="quick-tree-panel"
-    :class="{ open: isOpen, resizing: isResizing }"
+    :class="{ open: isOpen, resizing: isResizing, fullscreen: isFullscreen }"
     :data-panel-mode="mode"
     :aria-label="mode === 'git' ? t('quickPanel.gitTitle') : t('quickPanel.filesTitle')"
     :style="{ width: `${panelWidth}px` }"
@@ -62,6 +62,18 @@
       </div>
 
       <div class="quick-tree-actions">
+        <button
+          id="quick-tree-fullscreen"
+          type="button"
+          class="quick-tree-btn"
+          :class="{ active: isFullscreen }"
+          :aria-pressed="isFullscreen ? 'true' : 'false'"
+          :title="isFullscreen ? 'Thu nhỏ về sidebar' : 'Mở toàn màn hình'"
+          :aria-label="isFullscreen ? 'Thu nhỏ về sidebar' : 'Mở toàn màn hình'"
+          @click="toggleFullscreen"
+        >
+          <i :class="isFullscreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'"></i>
+        </button>
         <button
           id="quick-panel-refresh"
           type="button"
@@ -280,6 +292,19 @@
               @click="downloadQuickPath(activeInlineFile.path, activeInlineFile.name)"
             >
               <i class="ri-download-2-line"></i>
+            </button>
+
+            <button
+              id="quick-file-fullscreen"
+              type="button"
+              class="quick-preview-btn"
+              :class="{ active: isFullscreen }"
+              :aria-pressed="isFullscreen ? 'true' : 'false'"
+              :title="isFullscreen ? 'Thu nhỏ về sidebar' : 'Mở toàn màn hình'"
+              :aria-label="isFullscreen ? 'Thu nhỏ về sidebar' : 'Mở toàn màn hình'"
+              @click="toggleFullscreen"
+            >
+              <i :class="isFullscreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'"></i>
             </button>
 
             <button
@@ -723,6 +748,14 @@ let gitToastTimer: ReturnType<typeof setTimeout> | null = null;
 
 const isResizing = ref(false);
 const userHasResized = ref(false);
+const isFullscreen = ref(false);
+
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value;
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+  }
+}
 
 const currentRootPath = computed(() => {
   return projectStore.currentProject?.rootPath || '';
@@ -968,6 +1001,7 @@ async function openInlineFile(filePath: string, fileName?: string) {
 
 function requestClosePanel() {
   // Closing only hides the panel; preserve drafts for reopening.
+  isFullscreen.value = false;
   emit('close');
 }
 
@@ -1301,6 +1335,17 @@ onBeforeUnmount(() => {
 .quick-tree-panel.resizing {
   transition: none !important;
   user-select: none;
+}
+.quick-tree-panel.fullscreen {
+  left: 0;
+  right: 0;
+  width: 100% !important;
+  max-width: 100vw !important;
+  border-left: none;
+  z-index: 90;
+}
+.quick-tree-panel.fullscreen .quick-tree-resize {
+  display: none;
 }
 
 .quick-tree-resize {

@@ -5,20 +5,23 @@ import path from 'node:path';
 const protoPath = path.resolve('analysis/prototypes/prototype.html');
 const proto = fs.readFileSync(protoPath, 'utf8');
 
-// 1. Bottom dock has 5th item: Cài đặt (view-settings)
+// 1. Bottom dock has 5th item: Cài đặt (view-settings) as icon-only without text label
 assert.match(
   proto,
   /id="dock-item-settings"[^>]*data-target="view-settings"|data-target="view-settings"[^>]*id="dock-item-settings"/,
   'Bottom dock must include #dock-item-settings targeting view-settings',
 );
-assert.match(
-  proto,
-  /<span class="dock-label">Cài đặt<\/span>/,
-  'Bottom dock settings item must be labeled Cài đặt',
+const protoSettingsBtn = proto.match(/<button[^>]*id="dock-item-settings"[^>]*>([\s\S]*?)<\/button>/);
+assert.ok(protoSettingsBtn, '#dock-item-settings button must exist in prototype.html');
+assert.doesNotMatch(
+  protoSettingsBtn[1],
+  /dock-label|Cài đặt/,
+  'Bottom dock settings item in prototype.html must be icon-only without a text label',
 );
 
-// 2. Settings view (#view-settings) only renders the shared shortcut configuration block (no per-item lists or reorder buttons)
+// 2. Settings view (#view-settings) renders language selector (#settings-language-card) and shared shortcut configuration block
 assert.match(proto, /<section id="view-settings" class="view">/, '#view-settings view section must exist');
+assert.match(proto, /id="settings-language-card"/, 'Language configuration card #settings-language-card must exist in Settings view');
 assert.match(proto, /id="settings-shortcut-card"/, 'Shared shortcut configuration card #settings-shortcut-card must exist');
 assert.match(proto, /id="shortcut-enabled-toggle"/, 'Shortcut master toggle must exist');
 assert.match(proto, /id="shortcut-labels-toggle-btn"/, 'Shortcut labels toggle button must exist');

@@ -65,11 +65,14 @@ for (const actionGroupId of [
   );
 }
 
-// 5. Folder Sidebar (#quick-tree-panel) supports Upload & Download for files and folders
+// 5. Folder Sidebar (#quick-tree-panel) supports Upload, Download, and Fullscreen mode
 assert.match(proto, /id="quick-tree-upload-files"/, 'Folder Sidebar must include #quick-tree-upload-files button');
 assert.match(proto, /id="quick-tree-upload-folder"/, 'Folder Sidebar must include #quick-tree-upload-folder button');
 assert.match(proto, /id="quick-tree-download-zip"/, 'Folder Sidebar must include #quick-tree-download-zip button');
 assert.match(proto, /id="quick-file-download"/, 'Folder Sidebar inline workbench must include #quick-file-download button');
+assert.match(proto, /id="quick-tree-fullscreen"/, 'Folder Sidebar must include #quick-tree-fullscreen button');
+assert.match(proto, /id="quick-file-fullscreen"/, 'Folder Sidebar inline workbench must include #quick-file-fullscreen button');
+assert.match(proto, /\.quick-tree-panel\.fullscreen\s*\{[\s\S]*?width:\s*100%\s*!important/, 'Folder Sidebar must support .fullscreen full-width CSS');
 assert.match(proto, /quick-tree-row-download/, 'Folder Sidebar tree rows must include .quick-tree-row-download action');
 assert.match(proto, /quick-tree-row-upload/, 'Folder Sidebar folder rows must include .quick-tree-row-upload action');
 

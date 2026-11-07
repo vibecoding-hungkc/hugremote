@@ -211,6 +211,11 @@ try {
     assert.match(html, /class="[^"]*\bquick-tree-row-upload\b/);
     assert.match(html, /class="[^"]*\bquick-tree-row-download\b/);
     assert.match(html, /id="quick-file-download"/);
+    assert.match(html, /id="quick-tree-fullscreen"/);
+    assert.match(html, /id="quick-file-fullscreen"/);
+
+    const qpSource = fs.readFileSync(fileURLToPath(new URL('../apps/web/src/components/QuickWorkspacePanel.vue', import.meta.url)), 'utf8');
+    assert.match(qpSource, /\.quick-tree-panel\.fullscreen\s*\{[\s\S]*?width:\s*100%\s*!important/);
   });
 } finally {
   await vite.close();

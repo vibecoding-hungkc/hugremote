@@ -101,6 +101,10 @@ try {
     assert.match(html, /id="btn-check-update"/);
     assert.match(html, /id="btn-quick-update"/);
 
+    assert.match(html, /id="settings-2fa-card"/);
+    assert.match(html, /id="two-factor-status-badge"/);
+    assert.match(html, /id="btn-toggle-2fa-setup"/);
+
     assert.match(html, /id="settings-shortcut-card"/);
     assert.match(html, /id="shortcut-labels-toggle-btn"/);
     assert.match(html, /id="shortcut-enabled-toggle"/);

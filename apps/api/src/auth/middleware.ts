@@ -1,16 +1,17 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { authConfig, stripBasePath, withBasePath } from './config.js';
 import { sessionStore } from './sessionStore.js';
+import { twoFactorStore } from './twoFactorStore.js';
 
 export function isAuthenticated(req: FastifyRequest): boolean {
   return sessionStore.isAuthenticated(req);
 }
 
 export function requireAuthForWs(req: FastifyRequest): boolean {
-  if (authConfig.mode === 'none') return true;
   const user = sessionStore.getUser(req);
   if (!user) return false;
   if (user.mustChangePassword) return false;
+  if (twoFactorStore.isEnabled() && !user.twoFactorVerified) return false;
   return true;
 }
 
@@ -21,7 +22,8 @@ function isPublicPath(pathname: string): boolean {
       p === '/api/auth/me' ||
       p === '/api/auth/password' ||
       p === '/api/auth/logout' ||
-      p === '/api/auth/change-password'
+      p === '/api/auth/change-password' ||
+      p === '/api/auth/2fa/verify'
     );
   }
   return (
@@ -43,7 +45,7 @@ function wantsHtml(req: FastifyRequest): boolean {
 }
 
 export async function authGuard(req: FastifyRequest, reply: FastifyReply) {
-  if (authConfig.mode === 'none') return;
+  if (authConfig.mode === 'none' && !twoFactorStore.isEnabled()) return;
   const pathname = new URL(req.url, 'http://local').pathname;
   if (isPublicPath(pathname)) return;
 
@@ -52,7 +54,11 @@ export async function authGuard(req: FastifyRequest, reply: FastifyReply) {
     if (wantsHtml(req) && !pathname.includes('/api/') && !pathname.includes('/ws/')) {
       return reply.redirect(withBasePath('/login'));
     }
-    return reply.status(401).send({ error: 'unauthorized', mode: authConfig.mode });
+    return reply.status(401).send({
+      error: 'unauthorized',
+      mode: authConfig.mode,
+      requiresTwoFactor: authConfig.mode === 'none' && twoFactorStore.isEnabled(),
+    });
   }
 
   // If user is required to change password, deny access to regular APIs & sockets
@@ -65,5 +71,17 @@ export async function authGuard(req: FastifyRequest, reply: FastifyReply) {
       return; // Allow frontend shell to mount and display change-password form
     }
     return reply.status(403).send({ error: 'password_change_required' });
+  }
+
+  // If 2FA is enabled on Web and the session has not completed 2FA verification yet
+  if (twoFactorStore.isEnabled() && !user.twoFactorVerified) {
+    const clean = stripBasePath(pathname);
+    if (clean === '/api/auth/2fa/verify' || clean === '/api/auth/me' || clean === '/api/auth/logout') {
+      return;
+    }
+    if (wantsHtml(req) && !pathname.includes('/api/') && !pathname.includes('/ws/')) {
+      return; // Allow frontend shell to mount and display 2FA verification form
+    }
+    return reply.status(403).send({ error: 'two_factor_required' });
   }
 }

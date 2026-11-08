@@ -1,5 +1,22 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.10] - 2026-11-08
+
+Bản phát hành khắc phục triệt để các lỗi còn tồn đọng khi làm việc với **Remote SSH Server qua Jump Server (`ProxyJump` / `ProxyCommand`) trên bản cài macOS (`HugRemote.app` / `.dmg`)**, đồng thời tích hợp tùy chọn **Bảo mật 2 lớp · 2FA chuẩn TOTP 6 số** cho bản Web.
+
+### Khắc phục lỗi & Cải tiến
+- **Xử lý đa khóa (`Multi-Key`) và `Host Key Verification` cho Jump Server trên macOS (`sshPool.ts`):**
+  - Tự động phát hiện và truyền tất cả các private key không mã hóa trong `~/.ssh/` (bao gồm cả các key tùy chỉnh như `~/.ssh/vps_tunnel`) cùng `-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes` vào lệnh `ProxyCommand` của `ProxyJump`, ngăn lỗi `Host key verification failed` hoặc `Permission denied (publickey)` ở chặng Jump Server khi chạy trong tiến trình GUI `detached` không có `/dev/tty` trên macOS.
+  - Nâng cấp `ssh2` (`getClient`) sử dụng `resolveUsablePrivateKeys()` và mảng `authHandler` để thử lần lượt toàn bộ các private key hợp lệ trong `~/.ssh/` thay vì chỉ thử 1 key đầu tiên, đồng thời hỗ trợ `IdentityAgent` (1Password, OrbStack) và tự động nạp key từ Apple Keychain (`ssh-add --apple-load-keychain`).
+  - Bật OpenSSH Connection Multiplexing (`ControlMaster=auto`, `ControlPath=/tmp/hugremote-ssh-%C`, `ControlPersist=10m`) và đặt cờ tùy chọn trước tên host trong `buildNativeSshArgs()`.
+  - Đảm bảo `spawnNativeSshExec` phát hết dữ liệu `stdout`/`stderr` trước khi phát sự kiện `exit`/`close`.
+- **Chống rò rỉ đường dẫn `/Users/<mac_user>` sang Remote Linux Server (`config.ts`, `fsService.ts`, `gitService.ts`, `claudeService.ts`, `ServerModal.vue`):**
+  - Bổ sung `sanitizeRemoteWorkspacePath()` tự động chuyển các đường dẫn `/Users/...` của máy Mac local về thư mục home trên máy chủ Linux từ xa, bảo toàn `ProxyJump`/`ProxyCommand` khi lưu cấu hình Server, và hỗ trợ nhập trực tiếp `ProxyJump` trong `ServerModal.vue`.
+- **Tích hợp Bảo mật 2 lớp · 2FA tùy chọn Bật/Tắt cho bản Web (`twoFactorStore.ts`, `qrSvg.ts`, `SettingsView.vue`, `AuthGate.vue`):**
+  - Hỗ trợ xác thực 2FA chuẩn TOTP 6 số (RFC 6238) kèm Mã QR SVG và 8 mã khôi phục dự phòng dùng một lần.
+
+---
+
 ## [v1.6.9] - 2026-11-07
 
 Bản phát hành đồng bộ **Icon ứng dụng macOS (`HugRemote.app` / `.dmg`) giống hệt Favicon của bản Web** (`favicon.svg`) và khắc phục triệt để lỗi **`connect ECONNREFUSED` (`Connection refused`) khi làm việc với Remote SSH Server** (đặc biệt các server kết nối qua `ProxyJump`, `ProxyCommand`, SSH Reverse Tunnel `127.0.0.1:<port>`, hoặc khai báo trong file `Include`).

@@ -119,14 +119,24 @@
           </div>
         </div>
 
-        <!-- Default Starting Folder -->
-        <div class="field-item">
-          <label class="field-label">{{ t('serverModal.workspace') }}</label>
-          <input
-            v-model="newHost.workspace"
-            placeholder="vd: /home/devops/workspace hoặc ~"
-            class="input-text"
-          />
+        <!-- Default Starting Folder & Optional Jump Server -->
+        <div class="form-grid-2">
+          <div class="field-item">
+            <label class="field-label">{{ t('serverModal.workspace') }}</label>
+            <input
+              v-model="newHost.workspace"
+              placeholder="vd: /home/devops/workspace hoặc ~"
+              class="input-text"
+            />
+          </div>
+          <div class="field-item">
+            <label class="field-label">Jump Server · ProxyJump</label>
+            <input
+              v-model="newHost.proxyJump"
+              placeholder="vd: jump@158.178.227.183"
+              class="input-text"
+            />
+          </div>
         </div>
 
         <div class="form-submit-row">
@@ -163,8 +173,11 @@
                 <span class="server-name-text">{{ server.name }}</span>
                 <span v-if="server.authType === 'password'" class="auth-tag">Pass</span>
                 <span v-else-if="server.type === 'ssh'" class="auth-tag">Key</span>
+                <span v-if="server.proxyJump" class="auth-tag">Jump</span>
               </div>
-              <div class="card-conn-sub">{{ server.user }}@{{ server.host }}:{{ server.port }}</div>
+              <div class="card-conn-sub">
+                {{ server.user }}@{{ server.host }}:{{ server.port }}<template v-if="server.proxyJump"> · via {{ server.proxyJump }}</template>
+              </div>
             </div>
 
             <div class="card-right-status-actions" @click.stop>
@@ -286,6 +299,7 @@ const newHost = reactive<{
   authType: 'key' | 'password';
   key: string;
   password: string;
+  proxyJump: string;
   workspace: string;
 }>({
   name: '',
@@ -295,6 +309,7 @@ const newHost = reactive<{
   authType: 'key',
   key: '~/.ssh/test_ssh_key',
   password: '',
+  proxyJump: '',
   workspace: '~',
 });
 
@@ -342,12 +357,14 @@ async function handleAddServer() {
       authType: newHost.authType,
       key: newHost.authType === 'key' ? newHost.key : undefined,
       password: newHost.authType === 'password' ? newHost.password : undefined,
+      proxyJump: newHost.proxyJump.trim() || undefined,
       workspace: newHost.workspace || '~',
     });
     showAddForm.value = false;
     newHost.name = '';
     newHost.host = '';
     newHost.password = '';
+    newHost.proxyJump = '';
   } catch (err: any) {
     serverModalError.value = `Lỗi thêm server: ${err.message}`;
   }

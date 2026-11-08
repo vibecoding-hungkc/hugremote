@@ -7,6 +7,7 @@ import {
   updateSshConfigHostWorkspace,
   getAvailableSshKeys,
   normalizeWorkspacePath,
+  sanitizeRemoteWorkspacePath,
   ServerConfig,
 } from '../config.js';
 import { fsService } from '../services/fsService.js';
@@ -79,19 +80,23 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       return reply.status(400).send({ error: 'Tên server và Host/IP là bắt buộc' });
     }
     const cleanName = body.name.trim().replace(/\s+/g, '-');
+    const existing = parseSshConfig().find((s) => s.name === cleanName);
+    const effectiveUser = body.user?.trim() || existing?.user || 'root';
     const newServer: ServerConfig = {
       id: `server-ssh-${cleanName}`,
       name: cleanName,
       type: 'ssh',
       label: body.label || `SSH (${cleanName})`,
       host: body.host.trim(),
-      user: body.user?.trim() || 'root',
-      port: body.port || 22,
+      user: effectiveUser,
+      port: body.port || existing?.port || 22,
       authType: body.authType || (body.password ? 'password' : 'key'),
-      key: body.key?.trim(),
+      key: body.key?.trim() || existing?.key,
       password: body.password?.trim(),
-      desc: body.desc || `SSH Host • ${body.user || 'root'}@${body.host}`,
-      workspace: normalizeWorkspacePath(body.workspace?.trim() || ((body.user && body.user !== 'root') ? `/home/${body.user}` : '/root')),
+      proxyJump: body.proxyJump !== undefined ? body.proxyJump.trim() || undefined : existing?.proxyJump,
+      proxyCommand: body.proxyCommand !== undefined ? body.proxyCommand.trim() || undefined : existing?.proxyCommand,
+      desc: body.desc || `SSH Host • ${effectiveUser}@${body.host.trim()}`,
+      workspace: sanitizeRemoteWorkspacePath(body.workspace?.trim(), effectiveUser),
       isConnected: false,
     };
 

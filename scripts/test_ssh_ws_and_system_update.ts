@@ -5,9 +5,16 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../apps/api/src/app.js';
-import { parseSshConfig } from '../apps/api/src/config.js';
+import { parseSshConfig, saveOrUpdateSshConfigHost } from '../apps/api/src/config.js';
 import { fsService } from '../apps/api/src/services/fsService.js';
-import { sshPool, isEncryptedPrivateKeyBuffer, buildNativeSshArgs, buildProxyCommandFromJump } from '../apps/api/src/services/sshPool.js';
+import {
+  sshPool,
+  isEncryptedPrivateKeyBuffer,
+  buildNativeSshArgs,
+  buildProxyCommandFromJump,
+  resolveUsablePrivateKeys,
+  resolveEffectiveSshTarget,
+} from '../apps/api/src/services/sshPool.js';
 import { projectService } from '../apps/api/src/services/projectService.js';
 import { systemUpdateService } from '../apps/api/src/services/systemUpdateService.js';
 
@@ -347,6 +354,82 @@ await runTest('AC-4: GET /api/system/version and POST /api/system/update report 
     systemUpdateService.setMockCheckProviderForTest(null);
     systemUpdateService.setMockUpdateRunnerForTest(null);
     await app.close();
+  }
+});
+
+await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyCommand host-key bypass, ControlMaster multiplexing, and macOS /Users workspace sanitization', () => {
+  const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-mac-jump-fix-'));
+  const sshDir = path.join(tmpHome, '.ssh');
+  fs.mkdirSync(sshDir, { recursive: true });
+
+  const vpsKeyPath = path.join(sshDir, 'vps_tunnel');
+  const edKeyPath = path.join(sshDir, 'id_ed25519');
+  fs.writeFileSync(vpsKeyPath, '-----BEGIN OPENSSH PRIVATE KEY-----\ndnBzX3R1bm5lbF9kdW1teQ==\n-----END OPENSSH PRIVATE KEY-----\n', { mode: 0o600 });
+  fs.writeFileSync(edKeyPath, '-----BEGIN OPENSSH PRIVATE KEY-----\naWRfZWQyNTUxOV9kdW1teQ==\n-----END OPENSSH PRIVATE KEY-----\n', { mode: 0o600 });
+
+  fs.writeFileSync(
+    path.join(sshDir, 'config'),
+    [
+      'Host hermes-admin',
+      '    HostName 127.0.0.1',
+      '    Port 2225',
+      '    User hungnd',
+      '    ProxyJump jump@158.178.227.183',
+      `    # Workspace /Users/${path.basename(os.homedir())}`,
+    ].join('\n'),
+    'utf8'
+  );
+
+  const prevHome = process.env.HOME;
+  try {
+    process.env.HOME = tmpHome;
+    const servers = parseSshConfig(tmpHome);
+    const hermes = servers.find((s) => s.name === 'hermes-admin')!;
+    assert.ok(hermes, 'hermes-admin must exist');
+    assert.ok(
+      !hermes.workspace?.startsWith('/Users/'),
+      `parseSshConfig must sanitize leaked macOS /Users/... workspace on remote SSH server, got: ${hermes.workspace}`
+    );
+
+    const target = resolveEffectiveSshTarget(hermes, tmpHome);
+    const keys = resolveUsablePrivateKeys(target);
+    assert.ok(
+      keys.length >= 2,
+      `resolveUsablePrivateKeys must return ALL unencrypted keys (both vps_tunnel and id_ed25519), got ${keys.length}`
+    );
+
+    assert.ok(
+      target.proxyCommand && target.proxyCommand.includes('UserKnownHostsFile=/dev/null'),
+      `target.proxyCommand must include UserKnownHostsFile=/dev/null for non-interactive GUI app, got: ${target.proxyCommand}`
+    );
+    assert.ok(
+      target.proxyCommand && target.proxyCommand.includes(vpsKeyPath),
+      `target.proxyCommand must pass custom ~/.ssh/vps_tunnel key with -i so Jump Server auth succeeds, got: ${target.proxyCommand}`
+    );
+
+    const execArgs = buildNativeSshArgs(hermes, ['-o', 'BatchMode=yes', 'echo READY'], tmpHome);
+    const hostIdx = execArgs.indexOf('hermes-admin');
+    const batchIdx = execArgs.indexOf('BatchMode=yes');
+    assert.ok(hostIdx !== -1 && batchIdx !== -1 && batchIdx < hostIdx, `SSH option flags (-o BatchMode=yes) must precede hostname in buildNativeSshArgs: ${execArgs.join(' ')}`);
+    assert.ok(
+      execArgs.some((a) => a.includes('ControlMaster=auto')),
+      `buildNativeSshArgs must enable ControlMaster=auto multiplexing: ${execArgs.join(' ')}`
+    );
+    assert.ok(
+      execArgs.some((a) => a.startsWith('ProxyCommand=') && a.includes('UserKnownHostsFile=/dev/null')),
+      `buildNativeSshArgs must pass hardened ProxyCommand for ProxyJump host: ${execArgs.join(' ')}`
+    );
+
+    saveOrUpdateSshConfigHost({
+      ...hermes,
+      workspace: '~',
+    });
+    const savedCfg = fs.readFileSync(path.join(sshDir, 'config'), 'utf8');
+    assert.ok(savedCfg.includes('ProxyJump jump@158.178.227.183'), 'saveOrUpdateSshConfigHost must preserve ProxyJump');
+    assert.ok(!savedCfg.includes('/Users/'), 'saveOrUpdateSshConfigHost must not expand ~ to /Users/... for remote SSH server');
+  } finally {
+    if (prevHome !== undefined) process.env.HOME = prevHome;
+    fs.rmSync(tmpHome, { recursive: true, force: true });
   }
 });
 

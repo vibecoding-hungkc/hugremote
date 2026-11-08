@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import type { ClientChannel } from 'ssh2';
-import type { ServerConfig } from '../config.js';
+import { sanitizeRemoteWorkspacePath, type ServerConfig } from '../config.js';
 import { sshPool } from './sshPool.js';
 
 export type GitExecutor = (cwd: string, args: string[]) => Promise<string>;
@@ -80,8 +80,9 @@ export function createRemoteGitExecutor(
 ): GitExecutor {
   if (server.type !== 'ssh') throw new Error('Remote Git requires an SSH server');
   return (cwd, args) => {
-    const directory = cwd === '~' ? '"$HOME"' : cwd.startsWith('~/')
-      ? `"$HOME"/${shellQuote(cwd.slice(2))}` : shellQuote(cwd);
+    const cleanCwd = cwd.startsWith('/Users/') ? sanitizeRemoteWorkspacePath(cwd, server.user) : cwd;
+    const directory = cleanCwd === '~' ? '"$HOME"' : cleanCwd.startsWith('~/')
+      ? `"$HOME"/${shellQuote(cleanCwd.slice(2))}` : shellQuote(cleanCwd);
     const command = `GIT_TERMINAL_PROMPT=0 git -C ${directory} ${args.map(shellQuote).join(' ')}`;
     return new Promise((resolve, reject) => {
       let channel: ClientChannel | undefined;
@@ -141,8 +142,9 @@ export function createRemoteRepoScanner(
 ): RemoteRepoScanner {
   if (server.type !== 'ssh') throw new Error('Remote Git scanner requires an SSH server');
   return (rootPath, maxDepth) => {
-    const directory = rootPath === '~' ? '"$HOME"' : rootPath.startsWith('~/')
-      ? `"$HOME"/${shellQuote(rootPath.slice(2))}` : shellQuote(rootPath);
+    const cleanRoot = rootPath.startsWith('/Users/') ? sanitizeRemoteWorkspacePath(rootPath, server.user) : rootPath;
+    const directory = cleanRoot === '~' ? '"$HOME"' : cleanRoot.startsWith('~/')
+      ? `"$HOME"/${shellQuote(cleanRoot.slice(2))}` : shellQuote(cleanRoot);
     const findDepth = Math.max(1, Math.min(maxDepth, MAX_GIT_SCAN_DEPTH)) + 1;
     const pruneExpr = Array.from(IGNORED_SCAN_DIRS)
       .filter(d => d !== '.git')

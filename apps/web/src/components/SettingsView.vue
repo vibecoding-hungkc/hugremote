@@ -228,9 +228,9 @@ let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 const checkingVersion = ref(false);
 const updatingVersion = ref(false);
 const versionState = ref({
-  currentVersion: '1.6.8',
+  currentVersion: '1.6.9',
   currentCommit: '',
-  latestVersion: '1.6.8',
+  latestVersion: '1.6.9',
   latestCommit: '',
   channel: 'beta' as 'stable' | 'beta',
   hasUpdate: false,

@@ -28,18 +28,35 @@ async function start() {
   const secret = crypto.randomBytes(32).toString('hex');
   const origin = `http://127.0.0.1:${port}`;
   await session.defaultSession.cookies.set({ url: origin, name: 'hugremote_desktop_session', value: secret, httpOnly: true, sameSite: 'strict', session: true });
+  const homeDir = process.env.HOME || app.getPath('home');
   const inheritedPath = process.env.PATH || '/usr/bin:/bin:/usr/sbin:/sbin';
+  const extraPaths = [
+    path.join(homeDir, '.local', 'bin'),
+    path.join(homeDir, '.orbstack', 'bin'),
+    path.join(homeDir, '.rd', 'bin'),
+    '/opt/homebrew/bin',
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',
+    '/usr/local/sbin',
+    '/opt/local/bin',
+  ].join(':');
   backend = launchBackend({ runtime, backendEntry, cwd: root, port, secret, env: {
     ...process.env,
-    PATH: `${path.join(process.env.HOME || app.getPath('home'), '.local', 'bin')}:/opt/homebrew/bin:/usr/local/bin:${inheritedPath}`,
+    PATH: `${extraPaths}:${inheritedPath}`,
   } });
   let diagnostic = '';
   for (const stream of [backend.stdout, backend.stderr]) stream.on('data', (chunk) => { diagnostic = (diagnostic + chunk.toString()).slice(-4000); });
   backend.on('exit', () => { if (!quitting) { dialog.showErrorBox('HugRemote', `Backend stopped unexpectedly.\n${diagnostic.slice(-800)}`); app.quit(); } });
   await waitForServer({ port, secret, child: backend, timeoutMs: 20000 });
 
+  const iconPath = path.join(__dirname, 'icon.png');
+  if (process.platform === 'darwin' && app.dock && fs.existsSync(iconPath)) {
+    try { app.dock.setIcon(iconPath); } catch {}
+  }
+
   const window = new BrowserWindow({
     width: 1200, height: 820, minWidth: 390, minHeight: 500,
+    icon: fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
   });
   mainWindow = window;

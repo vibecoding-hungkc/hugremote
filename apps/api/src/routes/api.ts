@@ -397,23 +397,23 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
 
       try {
         const remotePath = fsService.resolveRemotePath(target, itemPath, projectRoot);
-        const sftp = await sshPool.getSftp(target);
+        const stat = await fsService.statRemote(target, remotePath);
 
-        const stat: any = await new Promise((resolve, reject) => {
-          sftp.stat(remotePath, (err: any, st: any) => {
-            if (err) reject(err);
-            else resolve(st);
-          });
-        });
-
-        if (stat.isFile()) {
+        if (stat.isFile) {
           const fileName = path.posix.basename(remotePath);
           reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
           reply.header('Content-Type', 'application/octet-stream');
           reply.header('Content-Length', stat.size);
-          const stream = sftp.createReadStream(remotePath);
-          return reply.send(stream);
-        } else if (stat.isDirectory()) {
+          try {
+            const sftp = await sshPool.getSftp(target);
+            const stream = sftp.createReadStream(remotePath);
+            return reply.send(stream);
+          } catch {
+            const buf = await fsService.readRemoteBuffer(target, remotePath);
+            reply.header('Content-Length', buf.length);
+            return reply.send(buf);
+          }
+        } else if (stat.isDirectory) {
           const folderName = path.posix.basename(remotePath) || 'workspace';
           const zipRes = await tempZipService.createRemoteZip(target, remotePath, folderName);
           reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(zipRes.fileName)}"`);
@@ -462,9 +462,13 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         const target = all.find((s) => s.id === serverId);
         if (!target) return reply.status(404).send({ error: 'Server not found' });
         remoteTargetServer = target;
-        remoteSftp = await sshPool.getSftp(target);
         const remoteBaseDir = fsService.resolveRemotePath(target, targetRelDir, projectRoot);
-        await fsService.sftpMkdirRecursive(remoteSftp, remoteBaseDir);
+        try {
+          remoteSftp = await sshPool.getSftp(target);
+          await fsService.sftpMkdirRecursive(remoteSftp, remoteBaseDir);
+        } catch {
+          remoteSftp = null;
+        }
       }
 
       const parts = request.files();
@@ -518,6 +522,12 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
             });
             writeStream.on('error', reject);
           });
+        } else if (remoteTargetServer) {
+          const remoteBaseDir = fsService.resolveRemotePath(remoteTargetServer, targetRelDir, projectRoot);
+          const destPath = path.posix.join(remoteBaseDir, safeRel);
+          const written = await fsService.writeRemoteStream(remoteTargetServer, destPath, part.file);
+          uploadedCount++;
+          totalBytes += written;
         }
       }
 

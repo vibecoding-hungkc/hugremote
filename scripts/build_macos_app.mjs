@@ -43,7 +43,7 @@ for (const helper of [
   path.join(pty, `prebuilds/darwin-${process.arch}/spawn-helper`),
 ]) if (fs.existsSync(helper)) fs.chmodSync(helper, 0o755);
 execFileSync(path.join(nodeDir, 'bin/node'), ['-e', "require('node-pty'); console.log('PTY_OK')"], { cwd: payload, stdio: 'inherit' });
-for (const file of ['main.cjs', 'launcher.mjs']) fs.copyFileSync(path.join(repo, 'desktop', file), path.join(shellDir, file));
+for (const file of ['main.cjs', 'launcher.mjs', 'icon.png', 'icon.icns']) fs.copyFileSync(path.join(repo, 'desktop', file), path.join(shellDir, file));
 fs.writeFileSync(path.join(shellDir, 'package.json'), JSON.stringify({
   name: 'hugremote-desktop', version: JSON.parse(fs.readFileSync(path.join(repo, 'package.json'))).version,
   productName: 'HugRemote', main: 'main.cjs', private: true,
@@ -52,8 +52,11 @@ fs.mkdirSync(output, { recursive: true });
 const results = await packager(makePackagerOptions({ shellDir, output, payload, nodeDir, arch: process.arch }));
 const appPath = resolveMacAppPath(results, 'HugRemote');
 const resources = path.join(appPath, 'Contents/Resources');
+for (const iconTarget of ['HugRemote.icns', 'electron.icns']) {
+  fs.copyFileSync(path.join(repo, 'desktop', 'icon.icns'), path.join(resources, iconTarget));
+}
 for (const file of [
-  'node/bin/node', 'hugremote/apps/api/dist/main.js', 'hugremote/apps/api/public/index.html',
+  'node/bin/node', 'hugremote/apps/api/dist/main.js', 'hugremote/apps/api/public/index.html', 'HugRemote.icns',
 ]) if (!fs.existsSync(path.join(resources, file))) throw new Error(`Incomplete bundle: ${file}`);
 signAndVerifyMacApp(appPath);
 const dmgPath = buildMacDmg({

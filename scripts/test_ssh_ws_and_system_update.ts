@@ -5,7 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from '../apps/api/src/app.js';
-import { sshPool, isEncryptedPrivateKeyBuffer } from '../apps/api/src/services/sshPool.js';
+import { parseSshConfig } from '../apps/api/src/config.js';
+import { fsService } from '../apps/api/src/services/fsService.js';
+import { sshPool, isEncryptedPrivateKeyBuffer, buildNativeSshArgs, buildProxyCommandFromJump } from '../apps/api/src/services/sshPool.js';
+import { projectService } from '../apps/api/src/services/projectService.js';
 import { systemUpdateService } from '../apps/api/src/services/systemUpdateService.js';
 
 let failures = 0;
@@ -131,6 +134,165 @@ await runTest('AC-2b: sshPool.createShell and sshPool.executeCommand fall back t
   } finally {
     (sshPool as any).getClient = origGetClient;
     (sshPool as any).setNativeSshSpawnersForTest(null);
+  }
+});
+
+await runTest('AC-2c: parseSshConfig parses ProxyJump/ProxyCommand, Included aliases, Host * inheritance, and stops at Match blocks; buildNativeSshArgs preserves Included alias', () => {
+  const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-ssh-proxyjump-'));
+  const sshDir = path.join(tmpHome, '.ssh');
+  const confD = path.join(sshDir, 'config.d');
+  fs.mkdirSync(confD, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(confD, 'hermes.conf'),
+    [
+      'Host hermes-admin hermes-prod',
+      '    HostName 127.0.0.1',
+      '    Port 2225',
+      '    User hungnd',
+      '    ProxyJump jump@158.178.227.183',
+      '',
+      'Match host localhost',
+      '    HostName 127.0.0.1',
+      '    Port 22',
+    ].join('\n'),
+    'utf8'
+  );
+
+  fs.writeFileSync(
+    path.join(sshDir, 'config'),
+    [
+      'Include config.d/*.conf',
+      '',
+      'Host cf-box',
+      '    HostName ssh.example.com',
+      '    ProxyCommand cloudflared access ssh --hostname %h',
+      '',
+      'Host *',
+      '    User defaultuser',
+      '    Port 2222',
+    ].join('\n'),
+    'utf8'
+  );
+
+  const prevHome = process.env.HOME;
+  try {
+    process.env.HOME = tmpHome;
+    const servers = parseSshConfig(tmpHome);
+    const hermes = servers.find((s) => s.name === 'hermes-admin');
+    assert.ok(hermes, 'hermes-admin must be parsed from Included config');
+    assert.equal(hermes!.host, '127.0.0.1');
+    assert.equal(hermes!.port, 2225, 'Match block must not overwrite Port 2225 of hermes-admin');
+    assert.equal(hermes!.user, 'hungnd');
+    assert.equal((hermes as any).proxyJump, 'jump@158.178.227.183');
+
+    const hermesProd = servers.find((s) => s.name === 'hermes-prod');
+    assert.ok(hermesProd, 'second alias on same Host line must also be parsed');
+    assert.equal(hermesProd!.port, 2225);
+    assert.equal((hermesProd as any).proxyJump, 'jump@158.178.227.183');
+
+    const cfBox = servers.find((s) => s.name === 'cf-box');
+    assert.ok(cfBox, 'cf-box must be parsed');
+    assert.equal(cfBox!.user, 'defaultuser', 'cf-box must inherit User from Host *');
+    assert.equal(cfBox!.port, 2222, 'cf-box must inherit Port from Host *');
+    assert.equal((cfBox as any).proxyCommand, 'cloudflared access ssh --hostname %h');
+
+    const nativeArgs = buildNativeSshArgs(hermes!, ['-tt'], tmpHome);
+    assert.ok(
+      nativeArgs.includes('hermes-admin'),
+      `buildNativeSshArgs must pass alias "hermes-admin" for Included host so OpenSSH applies ProxyJump, got: ${nativeArgs.join(' ')}`
+    );
+    assert.ok(
+      !nativeArgs.includes('hungnd@127.0.0.1'),
+      'buildNativeSshArgs must NOT rewrite Included alias to hungnd@127.0.0.1 (which bypasses ProxyJump and causes Connection refused)'
+    );
+
+    const proxyCmdBracketed = buildProxyCommandFromJump('jump@[158.178.227.183]', '/usr/bin/ssh');
+    assert.ok(
+      proxyCmdBracketed.endsWith(" -W '[%h]:%p' jump@158.178.227.183"),
+      `buildProxyCommandFromJump must strip ssh -G bracketed host so ssh destination resolves properly, got: ${proxyCmdBracketed}`
+    );
+
+    const proxyCmdPort = buildProxyCommandFromJump('jump@[158.178.227.183]:2222', '/usr/bin/ssh');
+    assert.ok(
+      proxyCmdPort.includes('-p 2222') && proxyCmdPort.endsWith('jump@158.178.227.183'),
+      `buildProxyCommandFromJump must extract port into -p flag, got: ${proxyCmdPort}`
+    );
+
+    const homeProj = projectService.openHomeProject('server-ssh-hermes-admin');
+    assert.equal(homeProj.rootPath, '~', 'Remote SSH home project must preserve "~" instead of expanding to local client os.homedir()');
+  } finally {
+    if (prevHome !== undefined) process.env.HOME = prevHome;
+    fs.rmSync(tmpHome, { recursive: true, force: true });
+  }
+});
+
+await runTest('AC-3: fsService remote operations (listRemote, readRemoteFile, writeRemoteFile, createRemote, renameRemote, deleteRemote) fall back to sshPool.executeCommand when direct SFTP fails with ECONNREFUSED', async () => {
+  const origGetSftp = sshPool.getSftp.bind(sshPool);
+  const origExec = sshPool.executeCommand.bind(sshPool);
+  const remoteTmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-remote-fs-fallback-'));
+  fs.mkdirSync(path.join(remoteTmpRoot, 'sub'), { recursive: true });
+  fs.writeFileSync(path.join(remoteTmpRoot, 'hello.txt'), 'Xin chao tu remote fallback\n', 'utf8');
+
+  (sshPool as any).getSftp = async () => {
+    const err: any = new Error('connect ECONNREFUSED 127.0.0.1:2225');
+    err.code = 'ECONNREFUSED';
+    throw err;
+  };
+
+  const { spawn } = await import('node:child_process');
+  (sshPool as any).executeCommand = async (_server: any, command: string) => {
+    const child = spawn('/bin/sh', ['-c', command], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const channel: any = new EventEmitter();
+    channel.stderr = new EventEmitter();
+    channel.write = (d: any) => child.stdin.write(d);
+    channel.end = (d?: any) => child.stdin.end(d);
+    channel.close = () => child.kill('SIGTERM');
+    channel.signal = () => child.kill('SIGTERM');
+    child.stdout.on('data', (c) => channel.emit('data', c));
+    child.stderr.on('data', (c) => channel.stderr.emit('data', c));
+    child.on('exit', (code, sig) => channel.emit('exit', code, sig));
+    child.on('close', (code, sig) => channel.emit('close', code, sig));
+    return channel;
+  };
+
+  const fakeServer: any = {
+    id: 'server-ssh-hermes-admin',
+    name: 'hermes-admin',
+    type: 'ssh',
+    label: 'Remote SSH (hermes-admin)',
+    host: '127.0.0.1',
+    user: 'hungnd',
+    port: 2225,
+    proxyJump: 'jump@158.178.227.183',
+    workspace: remoteTmpRoot,
+  };
+
+  try {
+    const listed = await fsService.listRemote(fakeServer, '');
+    assert.ok(listed.entries.some((e) => e.name === 'hello.txt' && !e.isDirectory));
+    assert.ok(listed.entries.some((e) => e.name === 'sub' && e.isDirectory));
+
+    const readRes = await fsService.readRemoteFile(fakeServer, 'hello.txt');
+    assert.equal(readRes.name, 'hello.txt');
+    assert.equal(readRes.content, 'Xin chao tu remote fallback\n');
+
+    const writeRes = await fsService.writeRemoteFile(fakeServer, 'sub/new.txt', 'Noi dung moi 123');
+    assert.equal(writeRes.size, Buffer.byteLength('Noi dung moi 123'));
+    assert.equal(fs.readFileSync(path.join(remoteTmpRoot, 'sub/new.txt'), 'utf8'), 'Noi dung moi 123');
+
+    await fsService.createRemote(fakeServer, 'created-dir', 'dir');
+    assert.ok(fs.statSync(path.join(remoteTmpRoot, 'created-dir')).isDirectory());
+
+    await fsService.renameRemote(fakeServer, 'sub/new.txt', 'sub/renamed.txt');
+    assert.equal(fs.readFileSync(path.join(remoteTmpRoot, 'sub/renamed.txt'), 'utf8'), 'Noi dung moi 123');
+
+    await fsService.deleteRemote(fakeServer, 'sub/renamed.txt');
+    assert.equal(fs.existsSync(path.join(remoteTmpRoot, 'sub/renamed.txt')), false);
+  } finally {
+    (sshPool as any).getSftp = origGetSftp;
+    (sshPool as any).executeCommand = origExec;
+    fs.rmSync(remoteTmpRoot, { recursive: true, force: true });
   }
 });
 

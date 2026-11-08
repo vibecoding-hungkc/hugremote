@@ -9,6 +9,8 @@ export interface ServerItem {
   authType?: 'key' | 'password';
   key?: string;
   password?: string;
+  proxyJump?: string;
+  proxyCommand?: string;
   desc?: string;
   workspace?: string;
   isConnected?: boolean;

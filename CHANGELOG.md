@@ -1,5 +1,25 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.9] - 2026-11-07
+
+Bản phát hành đồng bộ **Icon ứng dụng macOS (`HugRemote.app` / `.dmg`) giống hệt Favicon của bản Web** (`favicon.svg`) và khắc phục triệt để lỗi **`connect ECONNREFUSED` (`Connection refused`) khi làm việc với Remote SSH Server** (đặc biệt các server kết nối qua `ProxyJump`, `ProxyCommand`, SSH Reverse Tunnel `127.0.0.1:<port>`, hoặc khai báo trong file `Include`).
+
+### Đồng bộ Icon macOS giống Favicon Web (`desktop/icon.icns`, `desktop/icon.png`)
+- Chuyển đổi trực tiếp `apps/api/public/favicon.svg` thành bộ icon chuẩn Apple ICNS đa độ phân giải (`32×32` đến `1024×1024`, đầy đủ các chunk `ic07`..`ic14`) tại `desktop/icon.icns` và `desktop/icon.png` (`512×512`).
+- Cấu hình `makePackagerOptions` trong `desktop/packager-options.mjs`, `scripts/build_macos_app.mjs` và `desktop/main.cjs` (`BrowserWindow` icon + `app.dock.setIcon`) để ứng dụng macOS trên Finder, Launchpad, Applications và thanh Dock hiển thị đúng biểu tượng của HugRemote.
+
+### Khắc phục triệt để lỗi `Connect Refused` khi làm việc với Remote SSH Server trên macOS
+- **Hỗ trợ `ProxyJump` & `ProxyCommand` xuyên suốt (`config.ts`, `sshPool.ts`):**
+  - `parseSshConfig()` đọc đầy đủ `ProxyJump` và `ProxyCommand`, hỗ trợ nhiều alias trên cùng một dòng `Host`, đóng block khi gặp `Match` (tránh ghi đè nhầm `Port`/`HostName`), kế thừa `Host *` theo chuẩn first-match wins của OpenSSH và kiểm tra alias trên toàn bộ cây file `Include` (`hasSshHostAlias`).
+  - Khi kết nối tới server có `ProxyJump` (như `HostName 127.0.0.1` + `Port 2225` qua jump host) hoặc `ProxyCommand`, `sshPool.getClient()` tự động tạo luồng `sock: Duplex` qua tiến trình `ssh -W '[%h]:%p'` / `ProxyCommand` thay vì kết nối TCP trực tiếp vào `127.0.0.1` của máy Mac.
+  - Chuẩn hóa `buildProxyCommandFromJump()` để bóc tách định dạng `user@[host]:port` do `ssh -G` sinh ra và nạp đầy đủ `PATH` của macOS (`/opt/homebrew/bin`, `/opt/homebrew/sbin`, `/usr/local/bin`, `~/.local/bin`, `~/.orbstack/bin`, login shell `PATH`).
+- **Fallback tự động qua `/usr/bin/ssh` cho toàn bộ thao tác File Remote (`fsService.ts`, `api.ts`, `tempZipService.ts`):**
+  - Khi kết nối SFTP trực tiếp qua `ssh2` không khả dụng, toàn bộ thao tác trên màn hình **Files**, **Folder Sidebar**, **Code Editor**, **FolderTreePicker** và **Upload/Download** (`listRemote`, `readRemoteFile`, `writeRemoteFile`, `createRemote`, `deleteRemote`, `renameRemote`, `statRemote`, `readRemoteBuffer`, `writeRemoteStream`, `createRemoteZip`) tự động thực thi qua `sshPool.runRemoteCommand()` (`/usr/bin/ssh <alias>`).
+- **Bảo toàn đường dẫn `~` trên Remote Server (`projectService.ts`, `config.ts`):**
+  - Không mở rộng `~` của Remote Linux Server thành `os.homedir()` (`/Users/<user>`) của máy Mac khi mở Home Project hoặc lưu Workspace.
+
+---
+
 ## [v1.6.8] - 2026-11-07
 
 Bản phát hành bổ sung màn hình **Cài đặt** ở thanh điều hướng dưới (chỉ hiển thị icon), tính năng **Kiểm tra & Cập nhật phiên bản nhanh** ngay trong Cài đặt, hệ thống **Phím tắt chuyển nhanh dùng chung** kèm **Thin Index**, **Folder Sidebar toàn cục** ở mọi màn hình (có Upload tệp/thư mục, Download tệp/ZIP và chế độ **Toàn màn hình**), **Giao diện Git 2 cột mới**, gói cài đặt **macOS `.dmg` tùy chọn** và khắc phục triệt để kết nối WebSocket với **SSH Server trên macOS**.

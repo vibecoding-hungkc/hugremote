@@ -26,7 +26,7 @@ fs.mkdirSync(path.join(payload, 'apps/api'), { recursive: true });
 fs.mkdirSync(path.join(nodeDir, 'bin'), { recursive: true });
 fs.mkdirSync(shellDir, { recursive: true });
 for (const part of ['package.json', 'package-lock.json']) fs.copyFileSync(path.join(repo, part), path.join(payload, part));
-fs.cpSync(path.join(repo, 'bin'), path.join(payload, 'bin'), { recursive: true });
+fs.cpSync(path.join(repo, 'bin'), path.join(payload, 'bin'), { recursive: true, dereference: true });
 fs.cpSync(path.join(repo, 'apps/api/dist'), path.join(payload, 'apps/api/dist'), { recursive: true });
 fs.cpSync(path.join(repo, 'apps/api/public'), path.join(payload, 'apps/api/public'), { recursive: true });
 stageWorkspaceManifests(repo, payload);

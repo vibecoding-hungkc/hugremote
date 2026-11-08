@@ -30,6 +30,10 @@ export function isMachOBinary(filePath) {
 
 export function preparePayloadForBundle(payloadDir, arch = process.arch) {
   fs.rmSync(path.join(payloadDir, 'node_modules', '.bin'), { recursive: true, force: true });
+  const binSymlink = path.join(payloadDir, 'bin', 'hugcode.js');
+  if (fs.existsSync(binSymlink)) {
+    fs.rmSync(binSymlink, { force: true });
+  }
   for (const ws of ['api', 'web']) {
     fs.rmSync(path.join(payloadDir, 'node_modules', '@hugremote', ws), { recursive: true, force: true });
   }

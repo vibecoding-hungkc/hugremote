@@ -6,6 +6,7 @@ export interface AuthUser {
   name?: string;
   avatar?: string;
   mustChangePassword?: boolean;
+  twoFactorVerified?: boolean;
 }
 
 export interface SessionRecord {

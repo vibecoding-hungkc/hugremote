@@ -30,6 +30,178 @@
       </div>
     </div>
 
+    <div id="settings-2fa-card" class="settings-card settings-2fa-card">
+      <div class="settings-card-header">
+        <div class="settings-card-title-group">
+          <div class="settings-card-title">
+            <i class="ri-shield-keyhole-line" style="color: #a3a3a3"></i>
+            <span>Bảo mật 2 lớp · 2FA</span>
+            <span
+              id="two-factor-status-badge"
+              class="version-status-badge"
+              :class="twoFactorState.enabled ? 'ok status-indicator' : ''"
+            >
+              {{ twoFactorState.enabled ? 'Đang bật' : 'Đang tắt' }}
+            </span>
+            <span v-if="twoFactorState.enabled" class="version-code-pill">
+              {{ twoFactorState.remainingRecoveryCodes }} mã khôi phục
+            </span>
+          </div>
+          <div id="two-factor-summary-text" class="settings-card-desc">
+            {{
+              twoFactorState.enabled
+                ? 'Yêu cầu mã 6 số từ ứng dụng Authenticator hoặc mã khôi phục dự phòng khi mở khóa giao diện Web.'
+                : 'Tùy chọn bật xác thực 2 lớp bằng ứng dụng Authenticator 6 số kèm 8 mã khôi phục dự phòng cho bản Web.'
+            }}
+          </div>
+        </div>
+
+        <div class="settings-toolbar-row">
+          <button
+            id="btn-toggle-2fa-setup"
+            type="button"
+            class="settings-toggle-pill"
+            :class="{ active: twoFactorState.enabled || showTwoFactorPanel }"
+            :disabled="twoFactorBusy"
+            @click="onToggleTwoFactorPanel"
+          >
+            <i :class="twoFactorState.enabled ? 'ri-shield-check-line' : 'ri-qr-code-line'"></i>
+            <span>
+              {{
+                showTwoFactorPanel
+                  ? 'Đóng thiết lập'
+                  : twoFactorState.enabled
+                  ? 'Tắt 2FA'
+                  : 'Thiết lập 2FA'
+              }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Setup Flow when 2FA is currently disabled -->
+      <div
+        v-if="showTwoFactorPanel && !twoFactorState.enabled && pendingSetup"
+        id="two-factor-setup-panel"
+        class="two-factor-panel"
+      >
+        <div class="two-factor-setup-grid">
+          <div id="two-factor-qr-box" class="two-factor-qr-box" v-html="pendingSetup.qrSvg"></div>
+
+          <div class="two-factor-setup-details">
+            <div class="two-factor-step-title">
+              1. Quét mã QR bằng Google Authenticator, Authy hoặc 1Password
+            </div>
+            <div class="settings-card-desc">
+              Hoặc nhập khóa thiết lập thủ công dưới đây vào ứng dụng Authenticator:
+            </div>
+            <div class="two-factor-secret-row">
+              <code id="two-factor-secret-text" class="two-factor-secret-code">{{ pendingSetup.secret }}</code>
+              <button type="button" class="settings-reset-btn" @click="copyText(pendingSetup.secret, 'Đã sao chép khóa 2FA')">
+                <i class="ri-file-copy-line"></i>
+                <span>Sao chép</span>
+              </button>
+            </div>
+
+            <div class="two-factor-step-title" style="margin-top: 4px">
+              2. Lưu 8 mã khôi phục dự phòng dùng một lần khi mất thiết bị
+            </div>
+            <div id="two-factor-recovery-list" class="two-factor-recovery-grid">
+              <code
+                v-for="code in pendingSetup.recoveryCodes"
+                :key="code"
+                class="two-factor-recovery-item"
+              >
+                {{ code }}
+              </code>
+            </div>
+
+            <div class="two-factor-verify-row">
+              <input
+                id="two-factor-verify-input"
+                v-model="twoFactorCodeInput"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Nhập mã 6 số từ ứng dụng..."
+                class="two-factor-code-input"
+                @keyup.enter="handleConfirmEnable2fa"
+              />
+              <button
+                id="btn-confirm-enable-2fa"
+                type="button"
+                class="settings-toggle-pill active"
+                :disabled="twoFactorBusy || twoFactorCodeInput.trim().length < 6"
+                @click="handleConfirmEnable2fa"
+              >
+                <i class="ri-check-line"></i>
+                <span>Kích hoạt 2FA</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disable / Manage Flow when 2FA is currently enabled -->
+      <div
+        v-if="showTwoFactorPanel && twoFactorState.enabled"
+        id="two-factor-disable-panel"
+        class="two-factor-panel"
+      >
+        <div class="two-factor-step-title">
+          Nhập mã 6 số từ ứng dụng Authenticator hoặc mã khôi phục để tắt 2FA hoặc tạo lại mã dự phòng
+        </div>
+        <div class="two-factor-verify-row">
+          <input
+            id="two-factor-disable-input"
+            v-model="twoFactorCodeInput"
+            type="text"
+            placeholder="Mã 6 số hoặc XXXX-XXXX"
+            class="two-factor-code-input"
+            @keyup.enter="handleConfirmDisable2fa"
+          />
+          <button
+            id="btn-regenerate-recovery-codes"
+            type="button"
+            class="settings-reset-btn"
+            :disabled="twoFactorBusy || !twoFactorCodeInput.trim()"
+            @click="handleRegenerateRecoveryCodes"
+          >
+            <i class="ri-key-2-line"></i>
+            <span>Tạo mới mã dự phòng</span>
+          </button>
+          <button
+            id="btn-confirm-disable-2fa"
+            type="button"
+            class="settings-reset-btn"
+            :disabled="twoFactorBusy || !twoFactorCodeInput.trim()"
+            @click="handleConfirmDisable2fa"
+          >
+            <i class="ri-lock-unlock-line"></i>
+            <span>Xác nhận tắt 2FA</span>
+          </button>
+        </div>
+
+        <div
+          v-if="regeneratedRecoveryCodes.length > 0"
+          id="two-factor-regenerated-list"
+          class="two-factor-recovery-grid"
+        >
+          <code
+            v-for="code in regeneratedRecoveryCodes"
+            :key="code"
+            class="two-factor-recovery-item"
+          >
+            {{ code }}
+          </code>
+        </div>
+      </div>
+
+      <div v-if="twoFactorError" id="two-factor-error-text" class="settings-shortcut-notice">
+        {{ twoFactorError }}
+      </div>
+    </div>
+
     <div id="settings-version-card" class="settings-card settings-version-card">
       <div class="settings-card-header">
         <div class="settings-card-title-group">
@@ -201,6 +373,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { apiUrl } from '../utils/api.js';
 import { useI18n } from '../composables/useI18n.js';
+import { useAuthStore } from '../stores/authStore.js';
 import type { Locale } from '../i18n/messages.js';
 import {
   normalizeKeyComboFromEvent,
@@ -220,11 +393,186 @@ interface GroupMetaItem {
 }
 
 const { i18n } = useI18n();
+const authStore = useAuthStore();
 const shortcutStore = useShortcutStore();
 const recordingGroupKey = ref<ShortcutCategory | 'toggleLabels' | null>(null);
 const statusNotice = ref('');
 let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
+// --- 2FA STATE & HANDLERS ---
+const twoFactorState = ref({
+  enabled: false,
+  remainingRecoveryCodes: 0,
+});
+const showTwoFactorPanel = ref(false);
+const twoFactorBusy = ref(false);
+const twoFactorError = ref('');
+const twoFactorCodeInput = ref('');
+const pendingSetup = ref<{
+  secret: string;
+  otpauthUrl: string;
+  qrSvg: string;
+  recoveryCodes: string[];
+} | null>(null);
+const regeneratedRecoveryCodes = ref<string[]>([]);
+
+async function fetchTwoFactorStatus() {
+  try {
+    const res = await fetch(apiUrl('/api/auth/2fa/status'), { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && typeof data.enabled === 'boolean') {
+      twoFactorState.value = {
+        enabled: data.enabled,
+        remainingRecoveryCodes: Number(data.remainingRecoveryCodes || 0),
+      };
+    }
+  } catch {
+    // Ignore status fetch error in SSR / offline
+  }
+}
+
+async function onToggleTwoFactorPanel() {
+  twoFactorError.value = '';
+  twoFactorCodeInput.value = '';
+  regeneratedRecoveryCodes.value = [];
+
+  if (showTwoFactorPanel.value) {
+    showTwoFactorPanel.value = false;
+    pendingSetup.value = null;
+    return;
+  }
+
+  if (twoFactorState.value.enabled) {
+    showTwoFactorPanel.value = true;
+    return;
+  }
+
+  twoFactorBusy.value = true;
+  try {
+    const res = await fetch(apiUrl('/api/auth/2fa/setup'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.secret) {
+      throw new Error(data.error || 'Không thể khởi tạo thiết lập 2FA');
+    }
+    pendingSetup.value = {
+      secret: data.secret,
+      otpauthUrl: data.otpauthUrl || '',
+      qrSvg: data.qrSvg || '',
+      recoveryCodes: Array.isArray(data.recoveryCodes) ? data.recoveryCodes : [],
+    };
+    showTwoFactorPanel.value = true;
+  } catch (err: any) {
+    twoFactorError.value = err?.message || 'Không thể khởi tạo thiết lập 2FA';
+  } finally {
+    twoFactorBusy.value = false;
+  }
+}
+
+async function handleConfirmEnable2fa() {
+  const code = twoFactorCodeInput.value.trim();
+  if (!code || twoFactorBusy.value) return;
+  twoFactorBusy.value = true;
+  twoFactorError.value = '';
+  try {
+    const res = await fetch(apiUrl('/api/auth/2fa/enable'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Mã xác thực 6 số không chính xác');
+    }
+    twoFactorState.value.enabled = true;
+    twoFactorState.value.remainingRecoveryCodes = Number(data.remainingRecoveryCodes || 8);
+    showTwoFactorPanel.value = false;
+    pendingSetup.value = null;
+    twoFactorCodeInput.value = '';
+    await authStore.fetchMe();
+    flashNotice('Đã kích hoạt bảo mật 2 lớp 2FA thành công');
+  } catch (err: any) {
+    twoFactorError.value = err?.message || 'Không thể kích hoạt 2FA';
+  } finally {
+    twoFactorBusy.value = false;
+  }
+}
+
+async function handleConfirmDisable2fa() {
+  const code = twoFactorCodeInput.value.trim();
+  if (!code || twoFactorBusy.value) return;
+  twoFactorBusy.value = true;
+  twoFactorError.value = '';
+  try {
+    const res = await fetch(apiUrl('/api/auth/2fa/disable'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Mã xác thực 2FA hoặc mã khôi phục không hợp lệ');
+    }
+    twoFactorState.value.enabled = false;
+    twoFactorState.value.remainingRecoveryCodes = 0;
+    showTwoFactorPanel.value = false;
+    twoFactorCodeInput.value = '';
+    regeneratedRecoveryCodes.value = [];
+    await authStore.fetchMe();
+    flashNotice('Đã tắt bảo mật 2 lớp 2FA');
+  } catch (err: any) {
+    twoFactorError.value = err?.message || 'Không thể tắt 2FA';
+  } finally {
+    twoFactorBusy.value = false;
+  }
+}
+
+async function handleRegenerateRecoveryCodes() {
+  const code = twoFactorCodeInput.value.trim();
+  if (!code || twoFactorBusy.value) return;
+  twoFactorBusy.value = true;
+  twoFactorError.value = '';
+  try {
+    const res = await fetch(apiUrl('/api/auth/2fa/recovery-codes'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Mã xác thực 2FA không hợp lệ');
+    }
+    regeneratedRecoveryCodes.value = Array.isArray(data.recoveryCodes) ? data.recoveryCodes : [];
+    twoFactorState.value.remainingRecoveryCodes = Number(data.remainingRecoveryCodes || 8);
+    twoFactorCodeInput.value = '';
+    flashNotice('Đã tạo mới 8 mã khôi phục dự phòng');
+  } catch (err: any) {
+    twoFactorError.value = err?.message || 'Không thể tạo mới mã dự phòng';
+  } finally {
+    twoFactorBusy.value = false;
+  }
+}
+
+async function copyText(text: string, message: string) {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    }
+    flashNotice(message);
+  } catch {
+    flashNotice(message);
+  }
+}
+
+// --- VERSION UPDATER STATE & HANDLERS ---
 const checkingVersion = ref(false);
 const updatingVersion = ref(false);
 const versionState = ref({
@@ -433,6 +781,7 @@ onMounted(() => {
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', onRecordKeyDown, true);
   }
+  void fetchTwoFactorStatus();
   void fetchVersionStatus();
 });
 
@@ -489,6 +838,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 7px;
+  flex-wrap: wrap;
 }
 
 .settings-card-desc {
@@ -553,6 +903,118 @@ onBeforeUnmount(() => {
 .settings-reset-btn:hover {
   background: #282828;
   color: #ffffff;
+}
+
+.two-factor-panel {
+  background: #191919;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.two-factor-setup-grid {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.two-factor-qr-box {
+  width: 148px;
+  height: 148px;
+  background: #ffffff;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.two-factor-qr-box :deep(svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.two-factor-setup-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.two-factor-step-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e5e5e5;
+}
+
+.two-factor-secret-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.two-factor-secret-code {
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #f4f4f4;
+  background: #242424;
+  border: 1px solid #383838;
+  border-radius: 6px;
+  padding: 5px 9px;
+  letter-spacing: 0.06em;
+  word-break: break-all;
+}
+
+.two-factor-recovery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.two-factor-recovery-item {
+  font-family: monospace;
+  font-size: 11px;
+  color: #d4d4d4;
+  background: #222222;
+  border: 1px solid #343434;
+  border-radius: 5px;
+  padding: 4px 6px;
+  text-align: center;
+}
+
+.two-factor-verify-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.two-factor-code-input {
+  height: 32px;
+  min-width: 180px;
+  flex: 1;
+  background: #141414;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  color: #f4f4f4;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0 10px;
+  outline: none;
+}
+
+.two-factor-code-input:focus {
+  border-color: #666666;
 }
 
 .shortcut-group-grid {
@@ -695,6 +1157,14 @@ onBeforeUnmount(() => {
 @media (max-width: 720px) {
   .shortcut-group-grid {
     grid-template-columns: 1fr;
+  }
+
+  .two-factor-setup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .two-factor-recovery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

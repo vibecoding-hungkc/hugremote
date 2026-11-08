@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { authConfig, withBasePath } from './config.js';
 import { clearCookie, decodeSigned, encodeSigned, makeCookie, parseCookies } from './cookies.js';
 import { sessionStore } from './sessionStore.js';
+import { twoFactorStore } from './twoFactorStore.js';
 
 interface GoogleCallbackQuery {
   code?: string;
@@ -64,7 +65,13 @@ export async function handleGoogleCallback(
     return reply.redirect(`${withBasePath('/login')}?error=email_not_allowed`);
   }
 
-  sessionStore.create(reply, { provider: 'google', email, name: profile.name, avatar: profile.picture });
+  sessionStore.create(reply, {
+    provider: 'google',
+    email,
+    name: profile.name,
+    avatar: profile.picture,
+    twoFactorVerified: !twoFactorStore.isEnabled(),
+  });
   reply.header('Set-Cookie', clearCookie(authConfig.oauthStateCookie));
   return reply.redirect(withBasePath('/'));
 }

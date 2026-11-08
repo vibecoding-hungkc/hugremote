@@ -2,7 +2,15 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import crypto from 'crypto';
 import { authConfig } from './config.js';
 import { clearCookie, decodeSigned, encodeSigned, makeCookie, parseCookies } from './cookies.js';
+import { twoFactorStore } from './twoFactorStore.js';
 import type { AuthUser, SessionRecord } from './types.js';
+
+function isDesktopInternalRequest(req: FastifyRequest): boolean {
+  const secret = process.env.HUGREMOTE_DESKTOP_SECRET;
+  if (!secret) return false;
+  const cookies = parseCookies(req);
+  return cookies.hugremote_desktop_session === secret;
+}
 
 class SessionStore {
   private sessions = new Map<string, SessionRecord>();
@@ -17,17 +25,31 @@ class SessionStore {
   }
 
   getUser(req: FastifyRequest): AuthUser | null {
-    if (authConfig.mode === 'none') return { provider: 'none' };
-    const rawId = decodeSigned(parseCookies(req)[authConfig.sessionCookie]);
-    if (!rawId) return null;
-    const session = this.sessions.get(rawId);
-    if (!session) return null;
-    if (session.expiresAt < Date.now()) {
-      this.sessions.delete(rawId);
-      return null;
+    if (isDesktopInternalRequest(req)) {
+      return { provider: 'none', twoFactorVerified: true };
     }
-    session.expiresAt = Date.now() + authConfig.sessionTtlMs;
-    return session.user;
+
+    const rawId = decodeSigned(parseCookies(req)[authConfig.sessionCookie]);
+    if (rawId) {
+      const session = this.sessions.get(rawId);
+      if (session) {
+        if (session.expiresAt < Date.now()) {
+          this.sessions.delete(rawId);
+        } else {
+          session.expiresAt = Date.now() + authConfig.sessionTtlMs;
+          return session.user;
+        }
+      }
+    }
+
+    if (authConfig.mode === 'none') {
+      if (twoFactorStore.isEnabled()) {
+        return null;
+      }
+      return { provider: 'none', twoFactorVerified: true };
+    }
+
+    return null;
   }
 
   destroy(req: FastifyRequest, reply: FastifyReply) {
@@ -37,7 +59,11 @@ class SessionStore {
   }
 
   isAuthenticated(req: FastifyRequest): boolean {
-    return Boolean(this.getUser(req));
+    const user = this.getUser(req);
+    if (!user) return false;
+    if (user.mustChangePassword) return false;
+    if (twoFactorStore.isEnabled() && !user.twoFactorVerified) return false;
+    return true;
   }
 }
 

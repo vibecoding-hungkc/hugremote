@@ -50,6 +50,38 @@
         </button>
       </div>
 
+      <!-- Step 2: Two-Factor Authentication (TOTP 6-digit or Recovery Code) -->
+      <div v-else-if="auth.requiresTwoFactor" class="auth-form" @keyup.enter="submitTwoFactor">
+        <div class="must-change-badge">
+          <i class="ri-shield-check-line"></i>
+          <span>{{ t('auth.twoFactorTitle') }}</span>
+        </div>
+        <p class="must-change-desc">{{ t('auth.twoFactorDesc') }}</p>
+
+        <label class="auth-label" for="auth-2fa-code">{{ t('auth.twoFactorCodeLabel') }}</label>
+        <input
+          id="auth-2fa-code"
+          ref="twoFactorInput"
+          v-model="twoFactorCode"
+          class="auth-input auth-2fa-input"
+          type="text"
+          inputmode="text"
+          autocomplete="one-time-code"
+          :placeholder="t('auth.twoFactorPlaceholder')"
+          :disabled="submitting"
+        />
+
+        <button
+          id="btn-verify-2fa"
+          class="auth-button"
+          :disabled="submitting || !twoFactorCode.trim()"
+          @click="submitTwoFactor"
+        >
+          <span v-if="submitting" class="auth-spinner"></span>
+          <span>{{ submitting ? t('auth.unlocking') : t('auth.verifyTwoFactorBtn') }}</span>
+        </button>
+      </div>
+
       <div v-else-if="auth.mode === 'password'" class="auth-form" @keyup.enter="submitPassword">
         <label class="auth-label" for="auth-password">{{ t('auth.passwordLabel') }}</label>
         <input
@@ -86,7 +118,13 @@
 
       <p v-if="displayError" class="auth-error">{{ displayError }}</p>
       <p v-else class="auth-hint">
-        {{ auth.mode === 'google' ? t('auth.googleHint') : t('auth.passwordHint') }}
+        {{
+          auth.requiresTwoFactor
+            ? t('auth.twoFactorHint')
+            : auth.mode === 'google'
+            ? t('auth.googleHint')
+            : t('auth.passwordHint')
+        }}
       </p>
     </div>
   </div>
@@ -102,10 +140,12 @@ const { t } = useI18n();
 const password = ref('');
 const newPassword = ref('');
 const confirmPassword = ref('');
+const twoFactorCode = ref('');
 const validationError = ref('');
 const submitting = ref(false);
 const passwordInput = ref<HTMLInputElement | null>(null);
 const newPasswordInput = ref<HTMLInputElement | null>(null);
+const twoFactorInput = ref<HTMLInputElement | null>(null);
 let lockTimer: ReturnType<typeof setInterval> | null = null;
 
 const displayError = computed(() => validationError.value || auth.error);
@@ -118,9 +158,24 @@ async function submitPassword() {
   submitting.value = false;
   password.value = '';
   if (!ok) {
-    focusPassword();
+    focusActiveField();
   } else if (auth.mustChangePassword) {
     nextTick(() => newPasswordInput.value?.focus());
+  } else if (auth.requiresTwoFactor) {
+    nextTick(() => twoFactorInput.value?.focus());
+  }
+}
+
+async function submitTwoFactor() {
+  validationError.value = '';
+  const code = twoFactorCode.value.trim();
+  if (!code || submitting.value) return;
+  submitting.value = true;
+  const ok = await auth.verifyTwoFactor(code);
+  submitting.value = false;
+  if (!ok) {
+    twoFactorCode.value = '';
+    nextTick(() => twoFactorInput.value?.focus());
   }
 }
 
@@ -146,18 +201,29 @@ async function submitNewPassword() {
     newPassword.value = '';
     confirmPassword.value = '';
     nextTick(() => newPasswordInput.value?.focus());
+  } else if (auth.requiresTwoFactor) {
+    nextTick(() => twoFactorInput.value?.focus());
   }
 }
 
-function focusPassword() {
+function focusActiveField() {
   nextTick(() => {
     if (auth.mustChangePassword) {
       newPasswordInput.value?.focus();
+    } else if (auth.requiresTwoFactor) {
+      twoFactorInput.value?.focus();
     } else {
       passwordInput.value?.focus();
     }
   });
 }
+
+watch(
+  () => [auth.mustChangePassword, auth.requiresTwoFactor],
+  () => {
+    focusActiveField();
+  }
+);
 
 watch(() => auth.retryAfterSeconds, (seconds) => {
   if (lockTimer) {
@@ -185,7 +251,7 @@ onMounted(() => {
       : t('auth.loginFailed', { error: err });
     window.history.replaceState({}, '', window.location.pathname);
   }
-  focusPassword();
+  focusActiveField();
 });
 
 onUnmounted(() => {
@@ -270,6 +336,13 @@ onUnmounted(() => {
   padding: 0 14px;
   font-size: 16px;
   outline: none;
+}
+
+.auth-2fa-input {
+  font-family: monospace;
+  letter-spacing: 0.14em;
+  text-align: center;
+  font-weight: 700;
 }
 
 .auth-input:focus {

@@ -11,6 +11,7 @@ interface AuthUser {
   name?: string;
   avatar?: string;
   mustChangePassword?: boolean;
+  twoFactorVerified?: boolean;
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -19,13 +20,17 @@ export const useAuthStore = defineStore('auth', () => {
   const authenticated = ref(false);
   const user = ref<AuthUser | null>(null);
   const mustChangePassword = ref(false);
+  const twoFactorEnabled = ref(false);
+  const requiresTwoFactor = ref(false);
   const loading = ref(true);
   const error = ref('');
   const attemptsLeft = ref<number | null>(null);
   const retryAfterSeconds = ref(0);
 
   const needsLogin = computed(() => {
-    if (loading.value || mode.value === 'none') return false;
+    if (loading.value) return false;
+    if (requiresTwoFactor.value) return true;
+    if (mode.value === 'none' && !twoFactorEnabled.value) return false;
     if (!authenticated.value) return true;
     if (mustChangePassword.value) return true;
     return false;
@@ -41,6 +46,8 @@ export const useAuthStore = defineStore('auth', () => {
       authenticated.value = Boolean(data.authenticated);
       user.value = data.user || null;
       mustChangePassword.value = Boolean(data.mustChangePassword || data.user?.mustChangePassword);
+      twoFactorEnabled.value = Boolean(data.twoFactorEnabled);
+      requiresTwoFactor.value = Boolean(data.requiresTwoFactor);
     } catch (_) {
       error.value = i18n.t('auth.cannotReach');
       authenticated.value = false;
@@ -64,6 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (res.ok && data.success) {
       mustChangePassword.value = Boolean(data.mustChangePassword);
+      requiresTwoFactor.value = Boolean(data.requiresTwoFactor);
       await fetchMe();
       return true;
     }
@@ -78,6 +86,29 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = data.error || 'Login failed.';
     }
     return false;
+  }
+
+  async function verifyTwoFactor(code: string): Promise<boolean> {
+    error.value = '';
+    try {
+      const res = await fetch(apiUrl('/api/auth/2fa/verify'), {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        requiresTwoFactor.value = false;
+        await fetchMe();
+        return true;
+      }
+      error.value = data.message || i18n.t('auth.invalidTwoFactorCode');
+      return false;
+    } catch (_) {
+      error.value = i18n.t('auth.cannotReach');
+      return false;
+    }
   }
 
   async function changePassword(newPassword: string, currentPassword?: string): Promise<boolean> {
@@ -126,7 +157,10 @@ export const useAuthStore = defineStore('auth', () => {
     authenticated,
     user,
     mustChangePassword,
+    twoFactorEnabled,
+    requiresTwoFactor,
     changePassword,
+    verifyTwoFactor,
     loading,
     error,
     attemptsLeft,

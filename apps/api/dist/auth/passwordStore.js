@@ -119,6 +119,7 @@ class PasswordStore {
         fs.writeFileSync(this.filePath, JSON.stringify(this.currentRecord, null, 2), { mode: 0o600 });
     }
     reload() {
+        this.filePath = this.resolvePath();
         this.currentRecord = this.loadOrCreate();
     }
 }

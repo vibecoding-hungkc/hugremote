@@ -144,6 +144,7 @@ class PasswordStore {
   }
 
   public reload(): void {
+    this.filePath = this.resolvePath();
     this.currentRecord = this.loadOrCreate();
   }
 }

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
-import { LOCAL_WORKSPACE, ALLOWED_ROOT, ServerConfig } from '../config.js';
+import { LOCAL_WORKSPACE, ALLOWED_ROOT, ServerConfig, sanitizeRemoteWorkspacePath } from '../config.js';
 import { sshPool } from './sshPool.js';
 
 export interface FileEntry {
@@ -188,16 +188,14 @@ export class FsService {
   // --- REMOTE SFTP & NATIVE SSH FALLBACK FS ---
   public resolveRemotePath(server: ServerConfig, requestedPath = '', workspaceOverride?: string): string {
     const home = server.user && server.user !== 'root' ? `/home/${server.user}` : '/root';
-    const rawBase = workspaceOverride || server.workspace || home;
-    let base = rawBase;
-    if (base === '~') {
-      base = home;
-    } else if (base.startsWith('~/')) {
-      base = path.posix.join(home, base.slice(2));
-    }
+    const base = sanitizeRemoteWorkspacePath(workspaceOverride || server.workspace || home, server.user);
 
     if (!requestedPath || requestedPath === '.') return base;
+    if (requestedPath.startsWith('/Users/')) {
+      return sanitizeRemoteWorkspacePath(requestedPath, server.user);
+    }
     if (path.posix.isAbsolute(requestedPath)) return path.posix.normalize(requestedPath);
+    if (requestedPath === '~') return home;
     if (requestedPath.startsWith('~/')) {
       return path.posix.normalize(path.posix.join(home, requestedPath.slice(2)));
     }
@@ -303,8 +301,14 @@ export class FsService {
       const pyScript = [
         'import os, sys, json',
         'from datetime import datetime, timezone',
-        'd = sys.argv[1]',
-        'if not os.path.isdir(d): sys.exit(44)',
+        'd = os.path.expanduser(sys.argv[1])',
+        'allow_home_fallback = sys.argv[2] == "1"',
+        'if not os.path.isdir(d):',
+        '    home_d = os.path.expanduser("~")',
+        '    if allow_home_fallback and os.path.isdir(home_d):',
+        '        d = home_d',
+        '    else:',
+        '        sys.exit(44)',
         'out = []',
         'for name in os.listdir(d):',
         '    if name.startswith(".git") or name == "node_modules": continue',
@@ -319,7 +323,8 @@ export class FsService {
         'print(json.dumps(out))',
       ].join('\n');
 
-      const cmd = `python3 -c ${shellQuotePosix(pyScript)} ${shellQuotePosix(targetDir)}`;
+      const allowHomeFallback = !dirPath && !workspaceOverride ? '1' : '0';
+      const cmd = `python3 -c ${shellQuotePosix(pyScript)} ${shellQuotePosix(targetDir)} ${allowHomeFallback}`;
       const res = await sshPool.runRemoteCommand(server, cmd);
       if (res.exitCode === 44) {
         throw new Error('Directory does not exist');

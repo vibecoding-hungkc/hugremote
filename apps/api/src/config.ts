@@ -42,6 +42,32 @@ export function normalizeWorkspacePath(p: string, homeDirOverride?: string): str
   return trimmed;
 }
 
+export function sanitizeRemoteWorkspacePath(
+  rawPath: string | undefined,
+  remoteUser = 'root',
+  localHome = os.homedir()
+): string {
+  const effectiveUser = (remoteUser || 'root').trim() || 'root';
+  const defaultWs = effectiveUser !== 'root' ? `/home/${effectiveUser}` : '/root';
+  const trimmed = (rawPath || '').trim();
+  if (!trimmed || trimmed === '~') return defaultWs;
+  if (trimmed.startsWith('~/')) return path.posix.join(defaultWs, trimmed.slice(2));
+
+  // Repair macOS local home paths (/Users/<macUser>...) accidentally persisted onto remote Linux SSH hosts
+  if (trimmed.startsWith('/Users/')) {
+    const parts = trimmed.split('/').filter(Boolean); // ['Users', '<macUser>', ...rest]
+    if (parts.length >= 2) {
+      const rest = parts.slice(2).join('/');
+      return rest ? path.posix.join(defaultWs, rest) : defaultWs;
+    }
+  }
+  if (localHome && localHome !== defaultWs && (trimmed === localHome || trimmed.startsWith(localHome + '/'))) {
+    const rel = trimmed.slice(localHome.length).replace(/^\/+/, '');
+    return rel ? path.posix.join(defaultWs, rel) : defaultWs;
+  }
+  return trimmed;
+}
+
 function getCredentialsFilePath(homeDir = os.homedir()): string {
   return path.join(homeDir, '.ssh', 'hugcode_credentials.json');
 }
@@ -344,7 +370,7 @@ export function parseSshConfig(homeDirOverride?: string): ServerConfig[] {
 
       const pass = creds[hName];
       const effectiveUser = merged.user || defaultLocalUser || 'root';
-      const defaultWs = effectiveUser !== 'root' ? `/home/${effectiveUser}` : '/root';
+      const sanitizedWs = sanitizeRemoteWorkspacePath(merged.workspace, effectiveUser, homeDir);
       servers.push({
         id: `server-ssh-${hName}`,
         name: hName,
@@ -359,7 +385,7 @@ export function parseSshConfig(homeDirOverride?: string): ServerConfig[] {
         proxyJump: merged.proxyJump,
         proxyCommand: merged.proxyCommand,
         desc: `SSH Host • ${effectiveUser}@${merged.host || hName}`,
-        workspace: merged.workspace || defaultWs,
+        workspace: sanitizedWs,
         isConnected: false,
       });
     }
@@ -370,41 +396,53 @@ export function parseSshConfig(homeDirOverride?: string): ServerConfig[] {
   return servers;
 }
 
-export function saveOrUpdateSshConfigHost(server: ServerConfig): void {
-  const sshDir = path.join(os.homedir(), '.ssh');
+export function saveOrUpdateSshConfigHost(server: ServerConfig, homeDirOverride?: string): void {
+  const homeDir = homeDirOverride || process.env.HOME || os.homedir();
+  const sshDir = path.join(homeDir, '.ssh');
   if (!fs.existsSync(sshDir)) {
     fs.mkdirSync(sshDir, { mode: 0o700, recursive: true });
   }
 
+  const existing = parseSshConfig(homeDir).find((s) => s.name === server.name);
+  const effectiveUser = server.user || existing?.user || 'root';
+  const effectiveProxyJump = server.proxyJump !== undefined ? server.proxyJump : existing?.proxyJump;
+  const effectiveProxyCommand = server.proxyCommand !== undefined ? server.proxyCommand : existing?.proxyCommand;
+  const effectiveKey = server.key !== undefined ? server.key : existing?.key;
+
   const sshConfigPath = path.join(sshDir, 'config');
   const escaped = server.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const hostRegex = new RegExp(`(^|\\n)Host\\s+${escaped}(?:\\s[^\\n]*)?([\\s\\S]*?)(?=\\nHost\\s+|$)`, 'i');
+  const hostRegex = new RegExp(`(^|\\n)Host\\s+${escaped}(?:\\s[^\\n]*)?([\\s\\S]*?)(?=\\n\\s*(?:Host|Match)\\s+|$)`, 'i');
 
   let newBlock = `Host ${server.name}\n`;
   newBlock += `    HostName ${server.host}\n`;
   newBlock += `    Port ${server.port || 22}\n`;
-  newBlock += `    User ${server.user || 'root'}\n`;
-  if (server.authType === 'key' && server.key) {
-    newBlock += `    IdentityFile ${server.key}\n`;
+  newBlock += `    User ${effectiveUser}\n`;
+  if (server.authType === 'key' && effectiveKey) {
+    newBlock += `    IdentityFile ${effectiveKey}\n`;
   }
-  if (server.proxyJump) {
-    newBlock += `    ProxyJump ${server.proxyJump}\n`;
+  if (effectiveProxyJump) {
+    newBlock += `    ProxyJump ${effectiveProxyJump}\n`;
   }
-  if (server.proxyCommand) {
-    newBlock += `    ProxyCommand ${server.proxyCommand}\n`;
+  if (effectiveProxyCommand) {
+    newBlock += `    ProxyCommand ${effectiveProxyCommand}\n`;
   }
   if (server.authType === 'password') {
     newBlock += `    # AuthType password\n`;
   }
   if (server.workspace) {
-    newBlock += `    # Workspace ${normalizeWorkspacePath(server.workspace)}\n`;
+    const rawWs = server.workspace.trim();
+    const persistedWs =
+      rawWs === '~' || rawWs.startsWith('~/')
+        ? rawWs
+        : sanitizeRemoteWorkspacePath(rawWs, effectiveUser, homeDir);
+    newBlock += `    # Workspace ${persistedWs}\n`;
   }
   newBlock += `    StrictHostKeyChecking no\n`;
   newBlock += `    UserKnownHostsFile /dev/null\n`;
 
   let updatedInPlace = false;
   if (fs.existsSync(sshConfigPath)) {
-    for (const configFile of listSshConfigFiles(sshConfigPath)) {
+    for (const configFile of listSshConfigFiles(sshConfigPath, homeDir)) {
       const fileContent = fs.readFileSync(configFile, 'utf8');
       if (!hostRegex.test(fileContent)) continue;
       const nextContent = fileContent.replace(hostRegex, (_match, prefix) => (prefix ? '\n' : '') + newBlock.trim());
@@ -422,29 +460,34 @@ export function saveOrUpdateSshConfigHost(server: ServerConfig): void {
   }
 
   if (server.password) {
-    const creds = loadCredentials();
+    const creds = loadCredentials(homeDir);
     creds[server.name] = server.password;
-    saveCredentials(creds);
+    saveCredentials(creds, homeDir);
   }
 }
 
-export function updateSshConfigHostWorkspace(serverName: string, newWorkspace: string): void {
+export function updateSshConfigHostWorkspace(serverName: string, newWorkspace: string, homeDirOverride?: string): void {
+  const homeDir = homeDirOverride || process.env.HOME || os.homedir();
   if (serverName === os.hostname() || serverName === 'localhost' || serverName === 'hungpc') {
-    const normalized = normalizeWorkspacePath(newWorkspace);
-    const localWsFile = path.join(os.homedir(), '.ssh', 'hugcode_local_workspace.txt');
+    const normalized = normalizeWorkspacePath(newWorkspace, homeDir);
+    const localWsFile = path.join(homeDir, '.ssh', 'hugcode_local_workspace.txt');
     try {
       fs.writeFileSync(localWsFile, normalized, { mode: 0o600 });
     } catch (_) {}
     return;
   }
 
-  const normalized = (newWorkspace || '~').trim() || '~';
+  const rawTrimmed = (newWorkspace || '~').trim() || '~';
+  const normalized =
+    rawTrimmed === '~' || rawTrimmed.startsWith('~/')
+      ? rawTrimmed
+      : sanitizeRemoteWorkspacePath(rawTrimmed, 'root', homeDir);
 
-  const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
+  const sshConfigPath = path.join(homeDir, '.ssh', 'config');
   if (!fs.existsSync(sshConfigPath)) return;
   const escaped = serverName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const hostRegex = new RegExp(`(^|\\n)(Host\\s+${escaped}(?:\\s[^\\n]*)?[\\s\\S]*?)(?=\\nHost\\s+|$)`, 'i');
-  for (const configFile of listSshConfigFiles(sshConfigPath)) {
+  const hostRegex = new RegExp(`(^|\\n)(Host\\s+${escaped}(?:\\s[^\\n]*)?[\\s\\S]*?)(?=\\n\\s*(?:Host|Match)\\s+|$)`, 'i');
+  for (const configFile of listSshConfigFiles(sshConfigPath, homeDir)) {
     let content = fs.readFileSync(configFile, 'utf8');
     const match = content.match(hostRegex);
     if (!match) continue;

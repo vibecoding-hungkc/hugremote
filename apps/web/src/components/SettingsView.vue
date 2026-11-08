@@ -576,9 +576,9 @@ async function copyText(text: string, message: string) {
 const checkingVersion = ref(false);
 const updatingVersion = ref(false);
 const versionState = ref({
-  currentVersion: '1.6.9',
+  currentVersion: '1.6.10',
   currentCommit: '',
-  latestVersion: '1.6.9',
+  latestVersion: '1.6.10',
   latestCommit: '',
   channel: 'beta' as 'stable' | 'beta',
   hasUpdate: false,

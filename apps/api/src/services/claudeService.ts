@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import { spawn, ChildProcess } from 'child_process';
 import { StringDecoder } from 'string_decoder';
-import { ALLOWED_ROOT, normalizeWorkspacePath, parseSshConfig, ServerConfig } from '../config.js';
+import { ALLOWED_ROOT, normalizeWorkspacePath, sanitizeRemoteWorkspacePath, parseSshConfig, ServerConfig } from '../config.js';
 import { sshPool } from './sshPool.js';
 import { ClaudeEventNormalizer } from './claude/eventNormalizer.js';
 import { ClaudeRunAssembler } from './claude/runAssembler.js';
@@ -572,8 +572,9 @@ export class ClaudeService {
     const id = `claude-${serverId}-${Date.now()}`;
     const server = this.serverConfigResolver(serverId);
     const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
+    const rawCwd = (cwd || '').trim() || server?.workspace || '~';
     const normalizedCwd = isRemote
-      ? ((cwd || '').trim() || server?.workspace || '~')
+      ? (rawCwd === '~' || rawCwd.startsWith('~/') ? rawCwd : sanitizeRemoteWorkspacePath(rawCwd, server?.user))
       : normalizeWorkspacePath(cwd);
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -628,8 +629,9 @@ export class ClaudeService {
     if (updates.cwd !== undefined) {
       const server = this.serverConfigResolver(session.serverId);
       const isRemote = Boolean(server && server.type === 'ssh' && server.id !== 'server-local');
+      const rawCwd = (updates.cwd || '').trim() || server?.workspace || '~';
       session.cwd = isRemote
-        ? ((updates.cwd || '').trim() || server?.workspace || '~')
+        ? (rawCwd === '~' || rawCwd.startsWith('~/') ? rawCwd : sanitizeRemoteWorkspacePath(rawCwd, server?.user))
         : normalizeWorkspacePath(updates.cwd);
     }
     if (updates.model !== undefined) session.model = updates.model;
@@ -1362,7 +1364,7 @@ export class ClaudeService {
       await new Promise((resolve) => {
         stream.on('data', (d: any) => { data += d.toString('utf8'); });
         stream.on('close', resolve);
-        stream.on('exit', resolve);
+        stream.on('error', () => resolve(undefined));
       });
       const ok = data.trim() === 'ok';
       if (ok) {
@@ -1404,7 +1406,7 @@ export class ClaudeService {
       await new Promise((resolve) => {
         stream.on('data', (d: any) => { data += d.toString('utf8'); });
         stream.on('close', resolve);
-        stream.on('exit', resolve);
+        stream.on('error', () => resolve(undefined));
       });
       return data.trim() === 'ok';
     } catch (_) {
@@ -1417,7 +1419,11 @@ export class ClaudeService {
     cwd: string
   ): Promise<ClaudeProjectSessionSummary[]> {
     try {
-      const targetCwd = cwd || server.workspace || '~';
+      const rawCwd = cwd || server.workspace || '~';
+      const targetCwd =
+        rawCwd === '~' || rawCwd.startsWith('~/')
+          ? rawCwd
+          : sanitizeRemoteWorkspacePath(rawCwd, server.user);
       const pyScript = [
         'import os, sys, glob, json',
         'cwd = os.path.expanduser(sys.argv[1])',
@@ -1459,7 +1465,7 @@ export class ClaudeService {
           data += d.toString('utf8');
         });
         stream.on('close', resolve);
-        stream.on('exit', resolve);
+        stream.on('error', () => resolve(undefined));
       });
       return JSON.parse(data.trim() || '[]');
     } catch (_) {
@@ -1518,7 +1524,7 @@ export class ClaudeService {
           data += d.toString('utf8');
         });
         stream.on('close', resolve);
-        stream.on('exit', resolve);
+        stream.on('error', () => resolve(undefined));
       });
       const parsed = JSON.parse(data.trim() || 'null');
       return parsed;
@@ -1789,9 +1795,13 @@ export class ClaudeService {
       kill(signal: string): unknown;
     };
     if (remote && server) {
-      const remoteCwd = targetCwd === '~' ? '"$HOME"'
-        : targetCwd.startsWith('~/') ? `"$HOME"/${shellEscape(targetCwd.slice(2))}` : shellEscape(targetCwd);
-      const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; cd -- ${remoteCwd} && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
+      const cleanCwd =
+        targetCwd === '~' || targetCwd.startsWith('~/')
+          ? targetCwd
+          : sanitizeRemoteWorkspacePath(targetCwd, server.user);
+      const remoteCwd = cleanCwd === '~' ? '"$HOME"'
+        : cleanCwd.startsWith('~/') ? `"$HOME"/${shellEscape(cleanCwd.slice(2))}` : shellEscape(cleanCwd);
+      const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; (cd -- ${remoteCwd} 2>/dev/null || cd -- "$HOME") && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
       const channel = await new Promise<Awaited<ReturnType<typeof sshPool.executeCommand>>>((resolve, reject) => {
         let expired = false;
         const timer = setTimeout(() => {
@@ -1967,9 +1977,13 @@ export class ClaudeService {
       kill(signal: string): unknown;
     };
     if (server?.type === 'ssh') {
-      const remoteCwd = targetCwd === '~' ? '"$HOME"'
-        : targetCwd.startsWith('~/') ? `"$HOME"/${shellEscape(targetCwd.slice(2))}` : shellEscape(targetCwd);
-      const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; cd -- ${remoteCwd} && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
+      const cleanCwd =
+        targetCwd === '~' || targetCwd.startsWith('~/')
+          ? targetCwd
+          : sanitizeRemoteWorkspacePath(targetCwd, server.user);
+      const remoteCwd = cleanCwd === '~' ? '"$HOME"'
+        : cleanCwd.startsWith('~/') ? `"$HOME"/${shellEscape(cleanCwd.slice(2))}` : shellEscape(cleanCwd);
+      const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; (cd -- ${remoteCwd} 2>/dev/null || cd -- "$HOME") && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
       const channel = await new Promise<Awaited<ReturnType<typeof sshPool.executeCommand>>>((resolve, reject) => {
         let expired = false;
         const timer = setTimeout(() => {
@@ -2293,15 +2307,19 @@ export class ClaudeService {
     args: string[]
   ): Promise<ClaudeProcessHandle> {
     const escapedArgs = args.map(shellEscape).join(' ');
-    const targetCwd = (session.cwd || server.workspace || '').trim();
+    const rawCwd = (session.cwd || server.workspace || '').trim();
+    const targetCwd =
+      rawCwd === '~' || rawCwd.startsWith('~/')
+        ? rawCwd
+        : sanitizeRemoteWorkspacePath(rawCwd, server.user);
     let cdCmd = '';
     if (targetCwd === '~' || targetCwd === '') {
       cdCmd = 'cd -- "$HOME" && ';
     } else if (targetCwd.startsWith('~/')) {
       const sub = targetCwd.slice(2);
-      cdCmd = `cd -- "$HOME"/${shellEscape(sub)} && `;
+      cdCmd = `(cd -- "$HOME"/${shellEscape(sub)} 2>/dev/null || cd -- "$HOME") && `;
     } else {
-      cdCmd = `cd -- ${shellEscape(targetCwd)} && `;
+      cdCmd = `(cd -- ${shellEscape(targetCwd)} 2>/dev/null || cd -- "$HOME") && `;
     }
     const remoteCmd = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; ${cdCmd}claude ${escapedArgs}`;
 

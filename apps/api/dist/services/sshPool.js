@@ -6,7 +6,7 @@ import pty from 'node-pty';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { hasSshHostAlias } from '../config.js';
+import { hasSshHostAlias, getAvailableSshKeys, sanitizeRemoteWorkspacePath, } from '../config.js';
 const MAX_BUFFER_LENGTH = 100 * 1024;
 const NATIVE_FALLBACK_TTL_MS = 2 * 60 * 1000;
 export function isEncryptedPrivateKeyBuffer(buf) {
@@ -37,8 +37,34 @@ export function isEncryptedPrivateKeyBuffer(buf) {
     }
     return false;
 }
-function resolveSshAuthSock() {
+let macKeychainLoaded = false;
+function ensureMacKeychainKeysLoaded(authSock) {
+    if (process.platform !== 'darwin' || macKeychainLoaded)
+        return;
+    macKeychainLoaded = true;
+    try {
+        execFileSync('/usr/bin/ssh-add', ['--apple-load-keychain'], {
+            timeout: 1500,
+            env: {
+                ...process.env,
+                ...(authSock ? { SSH_AUTH_SOCK: authSock } : {}),
+            },
+            stdio: ['ignore', 'ignore', 'ignore'],
+        });
+    }
+    catch {
+        // Ignore if no keys are stored in Apple Keychain
+    }
+}
+function resolveSshAuthSock(customAgentPath, homeDir = os.homedir()) {
+    if (customAgentPath && customAgentPath.toLowerCase() !== 'none') {
+        const resolvedCustom = resolveKeyFilePath(customAgentPath, homeDir);
+        if (fs.existsSync(resolvedCustom)) {
+            return resolvedCustom;
+        }
+    }
     if (process.env.SSH_AUTH_SOCK && fs.existsSync(process.env.SSH_AUTH_SOCK)) {
+        ensureMacKeychainKeysLoaded(process.env.SSH_AUTH_SOCK);
         return process.env.SSH_AUTH_SOCK;
     }
     if (process.platform === 'darwin') {
@@ -50,11 +76,21 @@ function resolveSshAuthSock() {
             }).trim();
             if (out && fs.existsSync(out)) {
                 process.env.SSH_AUTH_SOCK = out;
+                ensureMacKeychainKeysLoaded(out);
                 return out;
             }
         }
         catch {
             // Ignore if launchctl has no SSH_AUTH_SOCK
+        }
+        const commonMacSockets = [
+            path.join(homeDir, 'Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock'),
+            path.join(homeDir, '.1password/agent.sock'),
+            path.join(homeDir, '.orbstack/run/ssh-agent.sock'),
+        ];
+        for (const sock of commonMacSockets) {
+            if (fs.existsSync(sock))
+                return sock;
         }
     }
     return process.env.SSH_AUTH_SOCK || undefined;
@@ -80,7 +116,7 @@ function resolveEnhancedPath() {
         cachedLoginShellPath = '';
         try {
             const userShell = process.env.SHELL || '/bin/zsh';
-            const out = execFileSync(userShell, ['-lic', 'printf "__HUG_PATH_START__%s__HUG_PATH_END__" "$PATH"'], {
+            const out = execFileSync(userShell, ['-lc', 'printf "__HUG_PATH_START__%s__HUG_PATH_END__" "$PATH"'], {
                 encoding: 'utf8',
                 timeout: 1500,
                 stdio: ['ignore', 'pipe', 'ignore'],
@@ -123,6 +159,19 @@ function resolveKeyFilePath(rawKeyPath, homeDir = os.homedir()) {
     }
     return path.join(homeDir, '.ssh', trimmed);
 }
+function isUsableKeyFileOnDisk(filePath) {
+    try {
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile())
+            return false;
+        const buf = fs.readFileSync(filePath);
+        if (isEncryptedPrivateKeyBuffer(buf))
+            return false;
+        return buf.length > 0;
+    }
+    catch {
+        return false;
+    }
+}
 function parseJumpHop(rawHop) {
     let rest = rawHop.trim();
     let user;
@@ -141,7 +190,7 @@ function parseJumpHop(rawHop) {
     }
     return { user, host: rest };
 }
-export function buildProxyCommandFromJump(proxyJump, sshExec = '/usr/bin/ssh') {
+export function buildProxyCommandFromJump(proxyJump, sshExec = '/usr/bin/ssh', identityFiles = [], sshConfigPath) {
     const hops = proxyJump
         .split(',')
         .map((h) => h.trim())
@@ -162,8 +211,20 @@ export function buildProxyCommandFromJump(proxyJump, sshExec = '/usr/bin/ssh') {
         '-o',
         'StrictHostKeyChecking=no',
         '-o',
+        'UserKnownHostsFile=/dev/null',
+        '-o',
         'ServerAliveInterval=15',
+        '-o',
+        'BatchMode=yes',
     ];
+    if (sshConfigPath && fs.existsSync(sshConfigPath)) {
+        parts.push('-F', sshConfigPath);
+    }
+    for (const keyFile of identityFiles) {
+        if (isUsableKeyFileOnDisk(keyFile)) {
+            parts.push('-i', keyFile);
+        }
+    }
     if (priorHops) {
         parts.push('-J', priorHops);
     }
@@ -174,7 +235,35 @@ export function buildProxyCommandFromJump(proxyJump, sshExec = '/usr/bin/ssh') {
     parts.push(lastHop.user ? `${lastHop.user}@${lastHop.host}` : lastHop.host);
     return parts.join(' ');
 }
-function resolveEffectiveSshTarget(server, homeDir = os.homedir()) {
+function hardenProxyCommandForGui(proxyCmd, identityFiles) {
+    const trimmed = proxyCmd.trim();
+    if (!trimmed)
+        return trimmed;
+    if (!/^(?:\/usr\/bin\/)?ssh\s+/i.test(trimmed)) {
+        return trimmed;
+    }
+    const extraFlags = [];
+    if (!/StrictHostKeyChecking=/i.test(trimmed)) {
+        extraFlags.push('-o StrictHostKeyChecking=no');
+    }
+    if (!/UserKnownHostsFile=/i.test(trimmed)) {
+        extraFlags.push('-o UserKnownHostsFile=/dev/null');
+    }
+    if (!/BatchMode=/i.test(trimmed)) {
+        extraFlags.push('-o BatchMode=yes');
+    }
+    if (!/\s-i\s/.test(trimmed)) {
+        for (const keyFile of identityFiles) {
+            if (isUsableKeyFileOnDisk(keyFile)) {
+                extraFlags.push(`-i ${keyFile}`);
+            }
+        }
+    }
+    if (extraFlags.length === 0)
+        return trimmed;
+    return trimmed.replace(/^((?:\/usr\/bin\/)?ssh)\s+/i, `$1 ${extraFlags.join(' ')} `);
+}
+export function resolveEffectiveSshTarget(server, homeDir = process.env.HOME || os.homedir()) {
     const alias = server.name || server.host;
     const identityFiles = [];
     if (server.key) {
@@ -185,17 +274,20 @@ function resolveEffectiveSshTarget(server, homeDir = os.homedir()) {
     let resolvedUser = server.user || os.userInfo().username || 'root';
     let resolvedProxyCommand = server.proxyCommand;
     let resolvedProxyJump = server.proxyJump;
+    let resolvedIdentityAgent;
     const sshBin = fs.existsSync('/usr/bin/ssh') ? '/usr/bin/ssh' : 'ssh';
-    if (alias && hasSshHostAlias(alias, homeDir)) {
+    const sshConfigPath = path.join(homeDir, '.ssh', 'config');
+    const useCustomConfigFlag = homeDir !== os.homedir() && fs.existsSync(sshConfigPath);
+    if (alias) {
         try {
-            const sshConfigPath = path.join(homeDir, '.ssh', 'config');
-            const args = fs.existsSync(sshConfigPath) ? ['-F', sshConfigPath, '-G', alias] : ['-G', alias];
+            const args = useCustomConfigFlag ? ['-F', sshConfigPath, '-G', alias] : ['-G', alias];
             const out = execFileSync(sshBin, args, {
                 encoding: 'utf8',
                 timeout: 1500,
                 env: getEnhancedSshEnv({ HOME: homeDir }),
                 stdio: ['ignore', 'pipe', 'ignore'],
             });
+            const hasAlias = hasSshHostAlias(alias, homeDir);
             for (const rawLine of out.split('\n')) {
                 const line = rawLine.trim();
                 if (!line)
@@ -207,21 +299,24 @@ function resolveEffectiveSshTarget(server, homeDir = os.homedir()) {
                 const v = line.slice(spaceIdx + 1).trim();
                 if (!v)
                     continue;
-                if (k === 'hostname') {
+                if (k === 'hostname' && (hasAlias || !server.host || v !== alias)) {
                     resolvedHost = v;
                 }
-                else if (k === 'port') {
+                else if (k === 'port' && hasAlias) {
                     const p = parseInt(v, 10);
                     if (!isNaN(p) && p > 0)
                         resolvedPort = p;
                 }
-                else if (k === 'user') {
+                else if (k === 'user' && hasAlias) {
                     resolvedUser = v;
                 }
                 else if (k === 'identityfile') {
                     const fullKey = resolveKeyFilePath(v, homeDir);
                     if (!identityFiles.includes(fullKey))
                         identityFiles.push(fullKey);
+                }
+                else if (k === 'identityagent' && v.toLowerCase() !== 'none') {
+                    resolvedIdentityAgent = v;
                 }
                 else if (k === 'proxycommand' && v.toLowerCase() !== 'none') {
                     resolvedProxyCommand = v;
@@ -241,9 +336,17 @@ function resolveEffectiveSshTarget(server, homeDir = os.homedir()) {
         if (!identityFiles.includes(full))
             identityFiles.push(full);
     }
+    for (const discoveredKey of getAvailableSshKeys(homeDir)) {
+        if (!identityFiles.includes(discoveredKey)) {
+            identityFiles.push(discoveredKey);
+        }
+    }
     if (!resolvedProxyCommand && resolvedProxyJump) {
         const sshExec = fs.existsSync('/usr/bin/ssh') ? '/usr/bin/ssh' : 'ssh';
-        resolvedProxyCommand = buildProxyCommandFromJump(server.proxyJump || resolvedProxyJump, sshExec);
+        resolvedProxyCommand = buildProxyCommandFromJump(server.proxyJump || resolvedProxyJump, sshExec, identityFiles, useCustomConfigFlag ? sshConfigPath : undefined);
+    }
+    else if (resolvedProxyCommand) {
+        resolvedProxyCommand = hardenProxyCommandForGui(resolvedProxyCommand, identityFiles);
     }
     return {
         alias,
@@ -251,26 +354,33 @@ function resolveEffectiveSshTarget(server, homeDir = os.homedir()) {
         port: resolvedPort,
         user: resolvedUser,
         identityFiles,
+        identityAgent: resolvedIdentityAgent,
         proxyCommand: resolvedProxyCommand,
         proxyJump: resolvedProxyJump,
     };
 }
-function resolveUsablePrivateKey(target) {
+export function resolveUsablePrivateKeys(target) {
+    const buffers = [];
+    const seenContent = new Set();
     for (const filePath of target.identityFiles) {
         try {
             if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile())
                 continue;
             const buf = fs.readFileSync(filePath);
-            if (isEncryptedPrivateKeyBuffer(buf)) {
+            if (buf.length === 0 || isEncryptedPrivateKeyBuffer(buf)) {
                 continue;
             }
-            return buf;
+            const keyStr = buf.toString('utf8').trim();
+            if (seenContent.has(keyStr))
+                continue;
+            seenContent.add(keyStr);
+            buffers.push(buf);
         }
         catch {
             // Ignore unreadable key file
         }
     }
-    return undefined;
+    return buffers;
 }
 function expandOpenSshTokens(template, target) {
     return template.replace(/%([%hprn])/g, (_m, tok) => {
@@ -293,6 +403,7 @@ function createProxyCommandDuplex(proxyCmdTemplate, target) {
         env: getEnhancedSshEnv(),
         stdio: ['pipe', 'pipe', 'pipe'],
     });
+    let stderrText = '';
     let cleaned = false;
     const cleanup = () => {
         if (cleaned)
@@ -327,6 +438,9 @@ function createProxyCommandDuplex(proxyCmdTemplate, target) {
     child.stdout?.on('data', (chunk) => {
         sock.push(chunk);
     });
+    child.stderr?.on('data', (chunk) => {
+        stderrText = (stderrText + chunk.toString('utf8')).slice(-1000);
+    });
     child.stdout?.on('end', () => {
         sock.push(null);
     });
@@ -335,13 +449,15 @@ function createProxyCommandDuplex(proxyCmdTemplate, target) {
     });
     child.on('close', (code) => {
         if (code && code !== 0 && !sock.destroyed) {
-            sock.destroy(new Error(`ProxyCommand exited with code ${code}`));
+            const detail = stderrText.trim();
+            sock.destroy(new Error(detail ? `ProxyCommand failed (${code}): ${detail}` : `ProxyCommand exited with code ${code}`));
         }
     });
     return { sock, cleanup };
 }
 export function buildNativeSshArgs(server, extraArgs = [], homeDirOverride) {
     const homeDir = homeDirOverride || process.env.HOME || os.homedir();
+    const target = resolveEffectiveSshTarget(server, homeDir);
     const args = [
         '-o',
         'ServerAliveInterval=15',
@@ -349,7 +465,39 @@ export function buildNativeSshArgs(server, extraArgs = [], homeDirOverride) {
         'ServerAliveCountMax=3',
         '-o',
         'StrictHostKeyChecking=no',
+        '-o',
+        'UserKnownHostsFile=/dev/null',
+        '-o',
+        'ControlMaster=auto',
+        '-o',
+        'ControlPath=/tmp/hugremote-ssh-%C',
+        '-o',
+        'ControlPersist=10m',
     ];
+    // Separate leading SSH option flags (e.g. -tt, -o BatchMode=yes) from the remote command
+    const optionFlags = [];
+    const commandArgs = [];
+    for (let i = 0; i < extraArgs.length; i++) {
+        const token = extraArgs[i];
+        if (commandArgs.length === 0 && token.startsWith('-')) {
+            optionFlags.push(token);
+            if ((token === '-o' || token === '-p' || token === '-i' || token === '-F' || token === '-J') && i + 1 < extraArgs.length) {
+                optionFlags.push(extraArgs[++i]);
+            }
+        }
+        else {
+            commandArgs.push(token);
+        }
+    }
+    for (const keyFile of target.identityFiles) {
+        if (isUsableKeyFileOnDisk(keyFile)) {
+            args.push('-i', keyFile);
+        }
+    }
+    if (target.proxyCommand) {
+        args.push('-o', `ProxyCommand=${target.proxyCommand}`);
+    }
+    args.push(...optionFlags);
     const hasAliasInConfig = Boolean(server.name) && hasSshHostAlias(server.name, homeDir);
     if (hasAliasInConfig) {
         const sshConfigPath = path.join(homeDir, '.ssh', 'config');
@@ -359,25 +507,13 @@ export function buildNativeSshArgs(server, extraArgs = [], homeDirOverride) {
         args.push(server.name);
     }
     else {
-        if (server.key) {
-            const resolvedKey = resolveKeyFilePath(server.key, homeDir);
-            if (fs.existsSync(resolvedKey)) {
-                args.push('-i', resolvedKey);
-            }
+        if (target.port && target.port !== 22) {
+            args.push('-p', String(target.port));
         }
-        if (server.proxyJump) {
-            args.push('-J', server.proxyJump);
-        }
-        else if (server.proxyCommand) {
-            args.push('-o', `ProxyCommand=${server.proxyCommand}`);
-        }
-        if (server.port && server.port !== 22) {
-            args.push('-p', String(server.port));
-        }
-        const target = server.user ? `${server.user}@${server.host}` : server.host;
-        args.push(target);
+        const dest = target.user ? `${target.user}@${target.host}` : target.host;
+        args.push(dest);
     }
-    args.push(...extraArgs);
+    args.push(...commandArgs);
     return args;
 }
 class SshConnectionPool {
@@ -421,8 +557,8 @@ class SshConnectionPool {
             let settled = false;
             let proxyCleanup = null;
             const target = resolveEffectiveSshTarget(server);
-            const privateKey = resolveUsablePrivateKey(target);
-            const agent = resolveSshAuthSock();
+            const usableKeys = resolveUsablePrivateKeys(target);
+            const agent = resolveSshAuthSock(target.identityAgent);
             conn.on('keyboard-interactive', (_name, _instructions, _lang, prompts, finish) => {
                 if (server.password && prompts.length > 0) {
                     finish(prompts.map(() => server.password));
@@ -462,18 +598,46 @@ class SshConnectionPool {
                 }
             });
             try {
+                const authHandlerList = ['none'];
+                for (const keyBuf of usableKeys) {
+                    authHandlerList.push({
+                        type: 'publickey',
+                        username: target.user,
+                        key: keyBuf,
+                    });
+                }
+                if (agent) {
+                    authHandlerList.push('agent');
+                }
+                if (server.password) {
+                    authHandlerList.push('password', 'keyboard-interactive');
+                }
                 const baseConfig = {
                     username: target.user,
-                    privateKey,
+                    privateKey: usableKeys[0],
                     password: server.password,
                     agent,
                     tryKeyboard: Boolean(server.password),
-                    readyTimeout: 12000,
+                    authHandler: authHandlerList,
+                    readyTimeout: 10000,
                     keepaliveInterval: 10000,
                 };
                 if (target.proxyCommand) {
                     const proxy = createProxyCommandDuplex(target.proxyCommand, target);
                     proxyCleanup = proxy.cleanup;
+                    proxy.sock.on('error', (proxyErr) => {
+                        if (!settled) {
+                            settled = true;
+                            this.connecting.delete(server.id);
+                            this.markNativeFallback(server.id);
+                            proxyCleanup?.();
+                            try {
+                                conn.end();
+                            }
+                            catch { }
+                            reject(proxyErr);
+                        }
+                    });
                     baseConfig.sock = proxy.sock;
                 }
                 else {
@@ -544,8 +708,11 @@ class SshConnectionPool {
         child.stdout?.on('data', (chunk) => channelEmitter.emit('data', chunk));
         child.stderr?.on('data', (chunk) => channelEmitter.stderr.emit('data', chunk));
         child.on('error', (err) => channelEmitter.emit('error', err));
-        child.on('exit', (code, signal) => channelEmitter.emit('exit', code, signal || undefined));
-        child.on('close', (code, signal) => channelEmitter.emit('close', code ?? undefined, signal || undefined));
+        // Emit 'exit' and 'close' on 'close' so all stdout/stderr chunks are guaranteed to be flushed first.
+        child.on('close', (code, signal) => {
+            channelEmitter.emit('exit', code, signal || undefined);
+            channelEmitter.emit('close', code ?? undefined, signal || undefined);
+        });
         return channelEmitter;
     }
     spawnNativeSshPty(sessionInfo, server) {
@@ -567,7 +734,10 @@ class SshConnectionPool {
                 COLORTERM: 'truecolor',
             }),
         });
-        let sentInitialCwd = !sessionInfo.cwd;
+        const sanitizedCwd = sessionInfo.cwd
+            ? sanitizeRemoteWorkspacePath(sessionInfo.cwd, server.user)
+            : undefined;
+        let sentInitialCwd = !sanitizedCwd;
         let buffer = '';
         const dataCallbacks = [];
         const exitCallbacks = [];
@@ -576,11 +746,11 @@ class SshConnectionPool {
             if (buffer.length > MAX_BUFFER_LENGTH) {
                 buffer = buffer.substring(buffer.length - MAX_BUFFER_LENGTH);
             }
-            if (!sentInitialCwd && sessionInfo.cwd) {
+            if (!sentInitialCwd && sanitizedCwd) {
                 sentInitialCwd = true;
                 setTimeout(() => {
                     try {
-                        ptyProcess.write(`cd "${sessionInfo.cwd}" && clear\r`);
+                        ptyProcess.write(`cd "${sanitizedCwd}" 2>/dev/null && clear\r`);
                     }
                     catch { }
                 }, 120);
@@ -708,6 +878,9 @@ class SshConnectionPool {
         }
         try {
             const client = await this.getClient(server);
+            const sanitizedCwd = sessionInfo.cwd
+                ? sanitizeRemoteWorkspacePath(sessionInfo.cwd, server.user)
+                : undefined;
             return await new Promise((resolve, reject) => {
                 client.shell({
                     term: 'xterm-256color',
@@ -716,10 +889,10 @@ class SshConnectionPool {
                 }, (err, stream) => {
                     if (err)
                         return reject(err);
-                    if (sessionInfo.cwd) {
+                    if (sanitizedCwd) {
                         setTimeout(() => {
                             try {
-                                stream.write(`cd "${sessionInfo.cwd}" && clear\r`);
+                                stream.write(`cd "${sanitizedCwd}" 2>/dev/null && clear\r`);
                             }
                             catch (_) { }
                         }, 100);

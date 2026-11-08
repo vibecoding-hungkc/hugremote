@@ -22,26 +22,29 @@ export function normalizeWorkspacePath(p, homeDirOverride) {
         return path.posix.join(home, trimmed.slice(2));
     return trimmed;
 }
-const CREDENTIALS_FILE = path.join(os.homedir(), '.ssh', 'hugcode_credentials.json');
-export function loadCredentials() {
-    if (fs.existsSync(CREDENTIALS_FILE)) {
+function getCredentialsFilePath(homeDir = os.homedir()) {
+    return path.join(homeDir, '.ssh', 'hugcode_credentials.json');
+}
+export function loadCredentials(homeDir = os.homedir()) {
+    const file = getCredentialsFilePath(homeDir);
+    if (fs.existsSync(file)) {
         try {
-            return JSON.parse(fs.readFileSync(CREDENTIALS_FILE, 'utf8'));
+            return JSON.parse(fs.readFileSync(file, 'utf8'));
         }
         catch (_) { }
     }
     return {};
 }
-export function saveCredentials(creds) {
+export function saveCredentials(creds, homeDir = os.homedir()) {
     try {
-        fs.writeFileSync(CREDENTIALS_FILE, JSON.stringify(creds, null, 2), { mode: 0o600 });
+        fs.writeFileSync(getCredentialsFilePath(homeDir), JSON.stringify(creds, null, 2), { mode: 0o600 });
     }
     catch (err) {
         console.warn('Failed to save hugcode_credentials.json:', err);
     }
 }
-export function getAvailableSshKeys() {
-    const sshDir = path.join(os.homedir(), '.ssh');
+export function getAvailableSshKeys(homeDir = os.homedir()) {
+    const sshDir = path.join(homeDir, '.ssh');
     if (!fs.existsSync(sshDir))
         return [];
     try {
@@ -60,9 +63,9 @@ export function getAvailableSshKeys() {
     }
 }
 // OpenSSH Include patterns are relative to ~/.ssh, including nested files.
-function expandSshInclude(sshDir, pattern) {
-    const expanded = pattern === '~' ? os.homedir()
-        : pattern.startsWith('~/') ? path.join(os.homedir(), pattern.slice(2))
+function expandSshInclude(sshDir, pattern, homeDir = os.homedir()) {
+    const expanded = pattern === '~' ? homeDir
+        : pattern.startsWith('~/') ? path.join(homeDir, pattern.slice(2))
             : path.isAbsolute(pattern) ? pattern : path.join(sshDir, pattern);
     const absolute = path.resolve(expanded);
     const segments = absolute.split(path.sep).filter(Boolean);
@@ -99,7 +102,7 @@ function expandSshInclude(sshDir, pattern) {
         }
     }).sort();
 }
-function listSshConfigFiles(sshConfigPath) {
+export function listSshConfigFiles(sshConfigPath, homeDir = path.dirname(path.dirname(sshConfigPath))) {
     const sshDir = path.dirname(sshConfigPath);
     const files = [];
     const active = new Set();
@@ -128,7 +131,7 @@ function listSshConfigFiles(sshConfigPath) {
                     continue;
                 const patterns = valParts.join(' ').match(/"[^"]+"|'[^']+'|\S+/g)?.map((part) => part.replace(/^['"]|['"]$/g, '')) || [];
                 for (const pattern of patterns)
-                    for (const included of expandSshInclude(sshDir, pattern))
+                    for (const included of expandSshInclude(sshDir, pattern, homeDir))
                         visit(included, depth + 1);
             }
         }
@@ -139,19 +142,52 @@ function listSshConfigFiles(sshConfigPath) {
     visit(sshConfigPath);
     return files;
 }
-export function parseSshConfig() {
-    const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
-    const creds = loadCredentials();
-    let localWs = LOCAL_WORKSPACE;
-    const localWsFile = path.join(os.homedir(), '.ssh', 'hugcode_local_workspace.txt');
+export function hasSshHostAlias(alias, homeDir = os.homedir()) {
+    const cleanAlias = (alias || '').trim();
+    if (!cleanAlias)
+        return false;
+    const sshConfigPath = path.join(homeDir, '.ssh', 'config');
+    if (!fs.existsSync(sshConfigPath))
+        return false;
+    const escaped = cleanAlias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const hostLineRegex = new RegExp(`(^|\\n)\\s*Host\\s+[^\\n#]*\\b${escaped}\\b`, 'i');
+    for (const file of listSshConfigFiles(sshConfigPath, homeDir)) {
+        try {
+            const content = fs.readFileSync(file, 'utf8');
+            if (hostLineRegex.test(content))
+                return true;
+        }
+        catch { }
+    }
+    return false;
+}
+function wildcardToRegExp(pattern) {
+    try {
+        const escaped = pattern
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+            .replace(/\*/g, '.*')
+            .replace(/\?/g, '.');
+        return new RegExp(`^${escaped}$`, 'i');
+    }
+    catch {
+        return null;
+    }
+}
+export function parseSshConfig(homeDirOverride) {
+    const homeDir = homeDirOverride || process.env.HOME || os.homedir();
+    const sshConfigPath = path.join(homeDir, '.ssh', 'config');
+    const creds = loadCredentials(homeDir);
+    let localWs = homeDirOverride ? homeDir : LOCAL_WORKSPACE;
+    const localWsFile = path.join(homeDir, '.ssh', 'hugcode_local_workspace.txt');
     if (fs.existsSync(localWsFile)) {
         try {
             const saved = fs.readFileSync(localWsFile, 'utf8').trim();
             if (saved)
-                localWs = normalizeWorkspacePath(saved);
+                localWs = normalizeWorkspacePath(saved, homeDir);
         }
         catch (_) { }
     }
+    const defaultLocalUser = os.userInfo().username || 'root';
     const servers = [
         {
             id: 'server-local',
@@ -159,7 +195,7 @@ export function parseSshConfig() {
             type: 'local',
             label: `Máy hiện tại (${os.hostname() || 'Local'})`,
             host: '127.0.0.1',
-            user: os.userInfo().username || 'root',
+            user: defaultLocalUser,
             port: 22,
             desc: 'Local Machine • Direct Host Workspace',
             workspace: localWs,
@@ -170,13 +206,32 @@ export function parseSshConfig() {
         return servers;
     }
     try {
-        let currentHost = null;
+        let currentStanza = null;
+        const concreteEntries = [];
+        const wildcardStanzas = [];
         const seenHosts = new Set();
         const activeFiles = new Set();
         let expandedFiles = 0;
         const sshDir = path.dirname(sshConfigPath);
         function expandInclude(pattern) {
-            return expandSshInclude(sshDir, pattern);
+            return expandSshInclude(sshDir, pattern, homeDir);
+        }
+        function flushCurrentStanza() {
+            if (!currentStanza)
+                return;
+            for (const alias of currentStanza.concreteAliases) {
+                if (!seenHosts.has(alias)) {
+                    seenHosts.add(alias); // OpenSSH applies the first matching Host stanza
+                    concreteEntries.push({ alias, props: { ...currentStanza.props } });
+                }
+            }
+            if (currentStanza.wildcardMatchers.length > 0) {
+                wildcardStanzas.push({
+                    matchers: currentStanza.wildcardMatchers,
+                    props: { ...currentStanza.props },
+                });
+            }
+            currentStanza = null;
         }
         function parseConfig(file, depth = 0) {
             if (depth > 16 || expandedFiles >= 256)
@@ -196,8 +251,7 @@ export function parseSshConfig() {
                 for (const rawLine of fs.readFileSync(canonical, 'utf8').split('\n')) {
                     parseLine(rawLine, depth);
                 }
-                pushCurrentHost();
-                currentHost = null;
+                flushCurrentStanza();
             }
             finally {
                 activeFiles.delete(canonical);
@@ -209,14 +263,16 @@ export function parseSshConfig() {
                 return;
             if (line.toLowerCase().startsWith('# workspace')) {
                 const wsVal = line.replace(/^#\s*workspace\s*/i, '').trim();
-                if (wsVal && currentHost)
-                    currentHost.workspace = wsVal;
+                if (wsVal && currentStanza && !currentStanza.props.workspace) {
+                    currentStanza.props.workspace = wsVal;
+                }
                 return;
             }
             if (line.toLowerCase().startsWith('# authtype')) {
                 const atVal = line.replace(/^#\s*authtype\s*/i, '').trim().toLowerCase();
-                if ((atVal === 'password' || atVal === 'key') && currentHost)
-                    currentHost.authType = atVal;
+                if ((atVal === 'password' || atVal === 'key') && currentStanza && !currentStanza.props.authType) {
+                    currentStanza.props.authType = atVal;
+                }
                 return;
             }
             if (line.startsWith('#'))
@@ -224,59 +280,111 @@ export function parseSshConfig() {
             const normalizedLine = line.replace(/^([A-Za-z][A-Za-z0-9]*)\s*=\s*/, '$1 ');
             const [key, ...valParts] = normalizedLine.split(/\s+/);
             const val = valParts.join(' ').replace(/^['"]|['"]$/g, '');
-            if (key.toLowerCase() === 'include') {
-                const savedHost = currentHost;
-                currentHost = null;
+            const lowerKey = key.toLowerCase();
+            if (lowerKey === 'include') {
+                const savedStanza = currentStanza;
+                currentStanza = null;
                 const patterns = valParts.join(' ').match(/"[^"]+"|'[^']+'|\S+/g)?.map((part) => part.replace(/^['"]|['"]$/g, '')) || [];
                 for (const pattern of patterns)
                     for (const included of expandInclude(pattern))
                         parseConfig(included, depth + 1);
-                currentHost = savedHost;
+                currentStanza = savedStanza;
             }
-            else if (key.toLowerCase() === 'host') {
-                pushCurrentHost();
-                const alias = valParts.find((part) => !part.startsWith('!') && !/[?*]/.test(part));
-                currentHost = alias ? { name: alias } : null;
+            else if (lowerKey === 'match') {
+                // Close any active Host block so directives inside a Match block never overwrite the preceding Host stanza.
+                flushCurrentStanza();
             }
-            else if (currentHost) {
-                const lowerKey = key.toLowerCase();
-                if (lowerKey === 'hostname')
-                    currentHost.host = val;
-                else if (lowerKey === 'user')
-                    currentHost.user = val;
-                else if (lowerKey === 'port')
-                    currentHost.port = parseInt(val, 10);
-                else if (lowerKey === 'identityfile')
-                    currentHost.key = val;
+            else if (lowerKey === 'host') {
+                flushCurrentStanza();
+                const rawTokens = valParts
+                    .join(' ')
+                    .match(/"[^"]+"|'[^']+'|\S+/g)
+                    ?.map((part) => part.replace(/^['"]|['"]$/g, '')) || [];
+                const concreteAliases = rawTokens.filter((part) => !part.startsWith('!') && !/[?*]/.test(part));
+                const wildcardMatchers = rawTokens
+                    .filter((part) => !part.startsWith('!') && /[?*]/.test(part))
+                    .map((part) => wildcardToRegExp(part))
+                    .filter((re) => re !== null);
+                if (concreteAliases.length > 0 || wildcardMatchers.length > 0) {
+                    currentStanza = {
+                        concreteAliases,
+                        wildcardMatchers,
+                        props: {},
+                    };
+                }
             }
-        }
-        function pushCurrentHost() {
-            if (currentHost && currentHost.name && currentHost.name !== '*' && !/[?*]/.test(currentHost.name)) {
-                const hName = currentHost.name;
-                if (seenHosts.has(hName))
-                    return;
-                seenHosts.add(hName); // OpenSSH applies the first matching Host stanza.
-                const pass = creds[hName];
-                const defaultWs = (currentHost.user && currentHost.user !== 'root') ? `/home/${currentHost.user}` : '/root';
-                servers.push({
-                    id: `server-ssh-${hName}`,
-                    name: hName,
-                    type: 'ssh',
-                    label: `Remote SSH (${hName})`,
-                    host: currentHost.host || hName,
-                    user: currentHost.user || 'root',
-                    port: currentHost.port || 22,
-                    authType: pass ? 'password' : (currentHost.authType || (currentHost.key ? 'key' : 'key')),
-                    key: currentHost.key,
-                    password: pass,
-                    desc: `SSH Host • ${currentHost.user || 'root'}@${currentHost.host || hName}`,
-                    workspace: currentHost.workspace || defaultWs,
-                    isConnected: false,
-                });
+            else if (currentStanza) {
+                // OpenSSH applies the first value seen for each directive.
+                if (lowerKey === 'hostname' && !currentStanza.props.host) {
+                    currentStanza.props.host = val;
+                }
+                else if (lowerKey === 'user' && !currentStanza.props.user) {
+                    currentStanza.props.user = val;
+                }
+                else if (lowerKey === 'port' && !currentStanza.props.port) {
+                    const p = parseInt(val, 10);
+                    if (!isNaN(p) && p > 0)
+                        currentStanza.props.port = p;
+                }
+                else if (lowerKey === 'identityfile' && !currentStanza.props.key) {
+                    currentStanza.props.key = val;
+                }
+                else if (lowerKey === 'proxyjump' && !currentStanza.props.proxyJump) {
+                    if (val.toLowerCase() !== 'none')
+                        currentStanza.props.proxyJump = val;
+                }
+                else if (lowerKey === 'proxycommand' && !currentStanza.props.proxyCommand) {
+                    if (val.toLowerCase() !== 'none')
+                        currentStanza.props.proxyCommand = val;
+                }
             }
         }
         parseConfig(sshConfigPath);
-        pushCurrentHost();
+        flushCurrentStanza();
+        for (const entry of concreteEntries) {
+            const hName = entry.alias;
+            const merged = { ...entry.props };
+            for (const wc of wildcardStanzas) {
+                if (wc.matchers.some((re) => re.test(hName))) {
+                    if (!merged.host && wc.props.host)
+                        merged.host = wc.props.host;
+                    if (!merged.user && wc.props.user)
+                        merged.user = wc.props.user;
+                    if (!merged.port && wc.props.port)
+                        merged.port = wc.props.port;
+                    if (!merged.key && wc.props.key)
+                        merged.key = wc.props.key;
+                    if (!merged.proxyJump && wc.props.proxyJump)
+                        merged.proxyJump = wc.props.proxyJump;
+                    if (!merged.proxyCommand && wc.props.proxyCommand)
+                        merged.proxyCommand = wc.props.proxyCommand;
+                    if (!merged.workspace && wc.props.workspace)
+                        merged.workspace = wc.props.workspace;
+                    if (!merged.authType && wc.props.authType)
+                        merged.authType = wc.props.authType;
+                }
+            }
+            const pass = creds[hName];
+            const effectiveUser = merged.user || defaultLocalUser || 'root';
+            const defaultWs = effectiveUser !== 'root' ? `/home/${effectiveUser}` : '/root';
+            servers.push({
+                id: `server-ssh-${hName}`,
+                name: hName,
+                type: 'ssh',
+                label: `Remote SSH (${hName})`,
+                host: merged.host || hName,
+                user: effectiveUser,
+                port: merged.port || 22,
+                authType: pass ? 'password' : (merged.authType || 'key'),
+                key: merged.key,
+                password: pass,
+                proxyJump: merged.proxyJump,
+                proxyCommand: merged.proxyCommand,
+                desc: `SSH Host • ${effectiveUser}@${merged.host || hName}`,
+                workspace: merged.workspace || defaultWs,
+                isConnected: false,
+            });
+        }
     }
     catch (err) {
         console.warn('Failed to parse ~/.ssh/config:', err);
@@ -297,6 +405,12 @@ export function saveOrUpdateSshConfigHost(server) {
     newBlock += `    User ${server.user || 'root'}\n`;
     if (server.authType === 'key' && server.key) {
         newBlock += `    IdentityFile ${server.key}\n`;
+    }
+    if (server.proxyJump) {
+        newBlock += `    ProxyJump ${server.proxyJump}\n`;
+    }
+    if (server.proxyCommand) {
+        newBlock += `    ProxyCommand ${server.proxyCommand}\n`;
     }
     if (server.authType === 'password') {
         newBlock += `    # AuthType password\n`;
@@ -331,8 +445,8 @@ export function saveOrUpdateSshConfigHost(server) {
     }
 }
 export function updateSshConfigHostWorkspace(serverName, newWorkspace) {
-    const normalized = normalizeWorkspacePath(newWorkspace);
     if (serverName === os.hostname() || serverName === 'localhost' || serverName === 'hungpc') {
+        const normalized = normalizeWorkspacePath(newWorkspace);
         const localWsFile = path.join(os.homedir(), '.ssh', 'hugcode_local_workspace.txt');
         try {
             fs.writeFileSync(localWsFile, normalized, { mode: 0o600 });
@@ -340,6 +454,7 @@ export function updateSshConfigHostWorkspace(serverName, newWorkspace) {
         catch (_) { }
         return;
     }
+    const normalized = (newWorkspace || '~').trim() || '~';
     const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
     if (!fs.existsSync(sshConfigPath))
         return;

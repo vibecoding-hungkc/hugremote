@@ -35,6 +35,21 @@ function basenameForProject(rootPath: string): string {
   return path.posix.basename(clean) || path.basename(clean) || '~';
 }
 
+function resolveProjectWorkspacePath(serverId: string, rootPath: string): string {
+  const trimmed = (rootPath || '~').trim() || '~';
+  if (!serverId || serverId === 'server-local') {
+    return normalizeWorkspacePath(trimmed);
+  }
+  // On macOS, os.homedir() is /Users/<user>, which does not exist on remote Linux SSH servers.
+  // Keep '~' or '~/...' intact for remote servers so remote SFTP/Git/Claude/Terminal resolve it on the remote host.
+  const localHome = os.homedir();
+  if (localHome.startsWith('/Users/') && (trimmed === localHome || trimmed.startsWith(localHome + '/'))) {
+    const rel = trimmed.slice(localHome.length).replace(/^\/+/, '');
+    return rel ? `~/${rel}` : '~';
+  }
+  return trimmed;
+}
+
 function isHomeProject(project: ProjectItem): boolean {
   return project.name === '~' || path.resolve(project.rootPath) === path.resolve(os.homedir());
 }
@@ -68,6 +83,13 @@ export class ProjectService {
       const seen = new Set<string>();
       let repaired = false;
       for (const project of this.state.projects) {
+        if (project.serverId && project.serverId !== 'server-local') {
+          const fixedRoot = resolveProjectWorkspacePath(project.serverId, project.rootPath);
+          if (fixedRoot !== project.rootPath) {
+            project.rootPath = fixedRoot;
+            repaired = true;
+          }
+        }
         if (seen.has(project.id)) {
           project.id = this.uniqueProjectId(project.serverId, project.name, project.rootPath, seen);
           repaired = true;
@@ -125,7 +147,7 @@ export class ProjectService {
   }
 
   openProject(serverId: string, rootPath: string, name?: string): ProjectItem {
-    const normalizedRoot = normalizeWorkspacePath(rootPath || '~');
+    const normalizedRoot = resolveProjectWorkspacePath(serverId, rootPath || '~');
     const projectName = (name || basenameForProject(rootPath || normalizedRoot)).trim() || '~';
     const existing = this.state.projects.find((p) => p.serverId === serverId && p.rootPath === normalizedRoot);
     if (existing) {
@@ -163,7 +185,7 @@ export class ProjectService {
     const project = this.getProject(projectId);
     if (!project) return undefined;
     if (updates.name !== undefined) project.name = updates.name.trim() || project.name;
-    if (updates.rootPath !== undefined) project.rootPath = normalizeWorkspacePath(updates.rootPath);
+    if (updates.rootPath !== undefined) project.rootPath = resolveProjectWorkspacePath(project.serverId, updates.rootPath);
     if (updates.lastPath !== undefined) project.lastPath = updates.lastPath;
     project.updatedAt = Date.now();
     this.save();

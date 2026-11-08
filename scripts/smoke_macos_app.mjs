@@ -12,7 +12,12 @@ const resources = path.join(repo, 'dist', 'macos-app', `HugRemote-darwin-${proce
 const runtime = path.join(resources, 'node', 'bin', 'node');
 const cwd = path.join(resources, 'hugremote');
 const backendEntry = path.join(cwd, 'apps', 'api', 'dist', 'main.js');
-for (const file of [runtime, backendEntry, path.join(cwd, 'apps/api/public/index.html')]) assert.ok(fs.existsSync(file), `missing ${file}`);
+for (const file of [runtime, backendEntry, path.join(cwd, 'apps/api/public/index.html'), path.join(resources, 'HugRemote.icns')]) assert.ok(fs.existsSync(file), `missing ${file}`);
+assert.equal(
+  fs.readFileSync(path.join(resources, 'HugRemote.icns')).equals(fs.readFileSync(path.join(repo, 'desktop', 'icon.icns'))),
+  true,
+  'Bundled HugRemote.icns must match desktop/icon.icns'
+);
 const secret = crypto.randomBytes(32).toString('hex');
 const port = await findFreePort();
 const home = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-macos-smoke-'));

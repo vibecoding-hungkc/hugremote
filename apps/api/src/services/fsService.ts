@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 import { LOCAL_WORKSPACE, ALLOWED_ROOT, ServerConfig } from '../config.js';
 import { sshPool } from './sshPool.js';
 
@@ -10,6 +11,10 @@ export interface FileEntry {
   mtime: string | null;
   ext: string;
   relPath: string;
+}
+
+function shellQuotePosix(val: string): string {
+  return `'${String(val).replace(/'/g, "'\\''")}'`;
 }
 
 export class FsService {
@@ -180,7 +185,7 @@ export class FsService {
     fs.renameSync(oldTarget, newTarget);
   }
 
-  // --- REMOTE SFTP FS ---
+  // --- REMOTE SFTP & NATIVE SSH FALLBACK FS ---
   public resolveRemotePath(server: ServerConfig, requestedPath = '', workspaceOverride?: string): string {
     const home = server.user && server.user !== 'root' ? `/home/${server.user}` : '/root';
     const rawBase = workspaceOverride || server.workspace || home;
@@ -258,103 +263,198 @@ export class FsService {
   }
 
   async listRemote(server: ServerConfig, dirPath = '', workspaceOverride?: string): Promise<{ currentRel: string; parentRel: string | null; entries: FileEntry[] }> {
-    const sftp = await sshPool.getSftp(server);
     const base = this.resolveRemotePath(server, '', workspaceOverride);
     const targetDir = this.resolveRemotePath(server, dirPath, workspaceOverride);
+    const parentRel = targetDir === '/' || targetDir === base ? null : path.posix.relative(base, path.posix.dirname(targetDir));
+    const currentRel = path.posix.relative(base, targetDir);
 
-    return new Promise((resolve, reject) => {
-      sftp.readdir(targetDir, (err, list) => {
-        if (err) return reject(err);
+    try {
+      const sftp = await sshPool.getSftp(server);
+      return await new Promise((resolve, reject) => {
+        sftp.readdir(targetDir, (err, list) => {
+          if (err) return reject(err);
 
-        const entries: FileEntry[] = (list || [])
-          .filter((e) => !e.filename.startsWith('.git') && e.filename !== 'node_modules')
-          .map((e) => {
-            const isDir = (e.attrs.mode & 0o170000) === 0o040000;
-            return {
-              name: e.filename,
-              isDirectory: isDir,
-              size: e.attrs.size || 0,
-              mtime: e.attrs.mtime ? new Date(e.attrs.mtime * 1000).toISOString() : null,
-              ext: isDir ? '' : path.extname(e.filename).toLowerCase(),
-              relPath: path.posix.relative(base, path.posix.join(targetDir, e.filename)),
-            };
-          })
-          .sort((a, b) => {
-            if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
-            return a.name.localeCompare(b.name);
+          const entries: FileEntry[] = (list || [])
+            .filter((e) => !e.filename.startsWith('.git') && e.filename !== 'node_modules')
+            .map((e) => {
+              const isDir = (e.attrs.mode & 0o170000) === 0o040000;
+              return {
+                name: e.filename,
+                isDirectory: isDir,
+                size: e.attrs.size || 0,
+                mtime: e.attrs.mtime ? new Date(e.attrs.mtime * 1000).toISOString() : null,
+                ext: isDir ? '' : path.extname(e.filename).toLowerCase(),
+                relPath: path.posix.relative(base, path.posix.join(targetDir, e.filename)),
+              };
+            })
+            .sort((a, b) => {
+              if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+              return a.name.localeCompare(b.name);
+            });
+
+          resolve({
+            currentRel,
+            parentRel,
+            entries,
           });
-
-        const parentRel = targetDir === '/' || targetDir === base ? null : path.posix.relative(base, path.posix.dirname(targetDir));
-
-        resolve({
-          currentRel: path.posix.relative(base, targetDir),
-          parentRel,
-          entries,
         });
       });
-    });
+    } catch {
+      const pyScript = [
+        'import os, sys, json',
+        'from datetime import datetime, timezone',
+        'd = sys.argv[1]',
+        'if not os.path.isdir(d): sys.exit(44)',
+        'out = []',
+        'for name in os.listdir(d):',
+        '    if name.startswith(".git") or name == "node_modules": continue',
+        '    full = os.path.join(d, name)',
+        '    try:',
+        '        st = os.stat(full)',
+        '        is_dir = os.path.isdir(full)',
+        '        mtime = datetime.fromtimestamp(st.st_mtime, tz=timezone.utc).isoformat().replace("+00:00", "Z")',
+        '        out.append({"name": name, "isDirectory": is_dir, "size": 0 if is_dir else st.st_size, "mtime": mtime})',
+        '    except Exception:',
+        '        out.append({"name": name, "isDirectory": os.path.isdir(full), "size": 0, "mtime": None})',
+        'print(json.dumps(out))',
+      ].join('\n');
+
+      const cmd = `python3 -c ${shellQuotePosix(pyScript)} ${shellQuotePosix(targetDir)}`;
+      const res = await sshPool.runRemoteCommand(server, cmd);
+      if (res.exitCode === 44) {
+        throw new Error('Directory does not exist');
+      }
+      if (res.exitCode !== 0) {
+        throw new Error(res.stderr.trim() || `Failed to list remote directory (exit code ${res.exitCode})`);
+      }
+
+      const rawItems = JSON.parse(res.stdout.toString('utf8').trim() || '[]') as Array<{
+        name: string;
+        isDirectory: boolean;
+        size: number;
+        mtime: string | null;
+      }>;
+
+      const entries: FileEntry[] = rawItems
+        .map((item) => ({
+          name: item.name,
+          isDirectory: Boolean(item.isDirectory),
+          size: Number(item.size || 0),
+          mtime: item.mtime || null,
+          ext: item.isDirectory ? '' : path.extname(item.name).toLowerCase(),
+          relPath: path.posix.relative(base, path.posix.join(targetDir, item.name)),
+        }))
+        .sort((a, b) => {
+          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+
+      return {
+        currentRel,
+        parentRel,
+        entries,
+      };
+    }
   }
 
   async readRemoteFile(server: ServerConfig, filePath: string, workspaceOverride?: string): Promise<{ name: string; size: number; content: string }> {
-    const sftp = await sshPool.getSftp(server);
     const targetPath = this.resolveRemotePath(server, filePath, workspaceOverride);
-    return new Promise((resolve, reject) => {
-      sftp.readFile(targetPath, (err, data) => {
-        if (err) return reject(err);
-        const content = data.toString('utf8');
-        resolve({
-          name: path.posix.basename(targetPath),
-          size: Buffer.byteLength(content, 'utf8'),
-          content,
+    try {
+      const sftp = await sshPool.getSftp(server);
+      return await new Promise((resolve, reject) => {
+        sftp.readFile(targetPath, (err, data) => {
+          if (err) return reject(err);
+          const content = data.toString('utf8');
+          resolve({
+            name: path.posix.basename(targetPath),
+            size: Buffer.byteLength(content, 'utf8'),
+            content,
+          });
         });
       });
-    });
+    } catch {
+      const qTarget = shellQuotePosix(targetPath);
+      const cmd = `if [ ! -e ${qTarget} ]; then exit 44; fi; if [ -d ${qTarget} ]; then exit 45; fi; cat -- ${qTarget}`;
+      const res = await sshPool.runRemoteCommand(server, cmd);
+      if (res.exitCode === 44) throw new Error('File not found');
+      if (res.exitCode === 45) throw new Error('Path is a directory, not a file');
+      if (res.exitCode !== 0) throw new Error(res.stderr.trim() || `Failed to read remote file (exit code ${res.exitCode})`);
+      const content = res.stdout.toString('utf8');
+      return {
+        name: path.posix.basename(targetPath),
+        size: Buffer.byteLength(content, 'utf8'),
+        content,
+      };
+    }
   }
 
   async writeRemoteFile(server: ServerConfig, filePath: string, content: string, workspaceOverride?: string): Promise<{ size: number }> {
-    const sftp = await sshPool.getSftp(server);
     const targetPath = this.resolveRemotePath(server, filePath, workspaceOverride);
     const parentDir = path.posix.dirname(targetPath);
-    await this.sftpMkdirRecursive(sftp, parentDir);
+    try {
+      const sftp = await sshPool.getSftp(server);
+      await this.sftpMkdirRecursive(sftp, parentDir);
 
-    return new Promise((resolve, reject) => {
-      sftp.writeFile(targetPath, content || '', 'utf8', (err) => {
-        if (err) return reject(err);
-        resolve({ size: Buffer.byteLength(content || '', 'utf8') });
+      return await new Promise((resolve, reject) => {
+        sftp.writeFile(targetPath, content || '', 'utf8', (err) => {
+          if (err) return reject(err);
+          resolve({ size: Buffer.byteLength(content || '', 'utf8') });
+        });
       });
-    });
+    } catch {
+      const buf = Buffer.from(content || '', 'utf8');
+      const cmd = `mkdir -p -- ${shellQuotePosix(parentDir)} && cat > ${shellQuotePosix(targetPath)}`;
+      const res = await sshPool.runRemoteCommand(server, cmd, buf);
+      if (res.exitCode !== 0) {
+        throw new Error(res.stderr.trim() || `Failed to write remote file (exit code ${res.exitCode})`);
+      }
+      return { size: buf.length };
+    }
   }
 
   async createRemote(server: ServerConfig, relPath: string, type: 'file' | 'dir', workspaceOverride?: string): Promise<void> {
-    const sftp = await sshPool.getSftp(server);
     const target = this.resolveRemotePath(server, relPath, workspaceOverride);
+    try {
+      const sftp = await sshPool.getSftp(server);
 
-    // Check if target already exists
-    const exists = await new Promise<boolean>((resolve) => {
-      sftp.stat(target, (err: any) => {
-        resolve(!err);
-      });
-    });
-    if (exists) {
-      throw new Error('Item already exists');
-    }
-
-    if (type === 'dir') {
-      await this.sftpMkdirRecursive(sftp, target);
-    } else {
-      const parentDir = path.posix.dirname(target);
-      await this.sftpMkdirRecursive(sftp, parentDir);
-      await new Promise<void>((resolve, reject) => {
-        sftp.writeFile(target, '', 'utf8', (err: any) => {
-          if (err) return reject(err);
-          resolve();
+      const exists = await new Promise<boolean>((resolve) => {
+        sftp.stat(target, (err: any) => {
+          resolve(!err);
         });
       });
+      if (exists) {
+        throw new Error('Item already exists');
+      }
+
+      if (type === 'dir') {
+        await this.sftpMkdirRecursive(sftp, target);
+      } else {
+        const parentDir = path.posix.dirname(target);
+        await this.sftpMkdirRecursive(sftp, parentDir);
+        await new Promise<void>((resolve, reject) => {
+          sftp.writeFile(target, '', 'utf8', (err: any) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+      }
+    } catch (err: any) {
+      if (err?.message === 'Item already exists') throw err;
+      const qTarget = shellQuotePosix(target);
+      const qParent = shellQuotePosix(path.posix.dirname(target));
+      const cmd =
+        type === 'dir'
+          ? `if [ -e ${qTarget} ]; then exit 46; fi; mkdir -p -- ${qTarget}`
+          : `if [ -e ${qTarget} ]; then exit 46; fi; mkdir -p -- ${qParent} && : > ${qTarget}`;
+      const res = await sshPool.runRemoteCommand(server, cmd);
+      if (res.exitCode === 46) throw new Error('Item already exists');
+      if (res.exitCode !== 0) {
+        throw new Error(res.stderr.trim() || `Failed to create remote item (exit code ${res.exitCode})`);
+      }
     }
   }
 
   async deleteRemote(server: ServerConfig, relPath: string, workspaceOverride?: string): Promise<void> {
-    const sftp = await sshPool.getSftp(server);
     const base = this.resolveRemotePath(server, '', workspaceOverride);
     const target = this.resolveRemotePath(server, relPath, workspaceOverride);
 
@@ -362,50 +462,152 @@ export class FsService {
       throw new Error('Cannot delete root workspace');
     }
 
-    const exists = await new Promise<boolean>((resolve) => {
-      sftp.stat(target, (err: any) => {
-        resolve(!err);
-      });
-    });
-    if (!exists) {
-      throw new Error('Target not found');
-    }
+    try {
+      const sftp = await sshPool.getSftp(server);
 
-    await this.sftpRmRecursive(sftp, target);
+      const exists = await new Promise<boolean>((resolve) => {
+        sftp.stat(target, (err: any) => {
+          resolve(!err);
+        });
+      });
+      if (!exists) {
+        throw new Error('Target not found');
+      }
+
+      await this.sftpRmRecursive(sftp, target);
+    } catch (err: any) {
+      if (err?.message === 'Target not found') throw err;
+      const qTarget = shellQuotePosix(target);
+      const cmd = `if [ ! -e ${qTarget} ]; then exit 44; fi; rm -rf -- ${qTarget}`;
+      const res = await sshPool.runRemoteCommand(server, cmd);
+      if (res.exitCode === 44) throw new Error('Target not found');
+      if (res.exitCode !== 0) {
+        throw new Error(res.stderr.trim() || `Failed to delete remote item (exit code ${res.exitCode})`);
+      }
+    }
   }
 
   async renameRemote(server: ServerConfig, oldRel: string, newRel: string, workspaceOverride?: string): Promise<void> {
-    const sftp = await sshPool.getSftp(server);
     const oldTarget = this.resolveRemotePath(server, oldRel, workspaceOverride);
     const newTarget = this.resolveRemotePath(server, newRel, workspaceOverride);
 
-    const oldExists = await new Promise<boolean>((resolve) => {
-      sftp.stat(oldTarget, (err: any) => {
-        resolve(!err);
+    try {
+      const sftp = await sshPool.getSftp(server);
+
+      const oldExists = await new Promise<boolean>((resolve) => {
+        sftp.stat(oldTarget, (err: any) => {
+          resolve(!err);
+        });
       });
-    });
-    if (!oldExists) {
-      throw new Error('Source not found');
+      if (!oldExists) {
+        throw new Error('Source not found');
+      }
+
+      const newExists = await new Promise<boolean>((resolve) => {
+        sftp.stat(newTarget, (err: any) => {
+          resolve(!err);
+        });
+      });
+      if (newExists) {
+        throw new Error('Destination already exists');
+      }
+
+      const newParent = path.posix.dirname(newTarget);
+      await this.sftpMkdirRecursive(sftp, newParent);
+
+      await new Promise<void>((resolve, reject) => {
+        sftp.rename(oldTarget, newTarget, (err: any) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+    } catch (err: any) {
+      if (err?.message === 'Source not found' || err?.message === 'Destination already exists') throw err;
+      const qOld = shellQuotePosix(oldTarget);
+      const qNew = shellQuotePosix(newTarget);
+      const qNewParent = shellQuotePosix(path.posix.dirname(newTarget));
+      const cmd = `if [ ! -e ${qOld} ]; then exit 44; fi; if [ -e ${qNew} ]; then exit 46; fi; mkdir -p -- ${qNewParent} && mv -- ${qOld} ${qNew}`;
+      const res = await sshPool.runRemoteCommand(server, cmd);
+      if (res.exitCode === 44) throw new Error('Source not found');
+      if (res.exitCode === 46) throw new Error('Destination already exists');
+      if (res.exitCode !== 0) {
+        throw new Error(res.stderr.trim() || `Failed to rename remote item (exit code ${res.exitCode})`);
+      }
     }
+  }
 
-    const newExists = await new Promise<boolean>((resolve) => {
-      sftp.stat(newTarget, (err: any) => {
-        resolve(!err);
+  async statRemote(server: ServerConfig, remotePath: string): Promise<{ isFile: boolean; isDirectory: boolean; size: number }> {
+    try {
+      const sftp = await sshPool.getSftp(server);
+      const stat: any = await new Promise((resolve, reject) => {
+        sftp.stat(remotePath, (err: any, st: any) => {
+          if (err) reject(err);
+          else resolve(st);
+        });
       });
-    });
-    if (newExists) {
-      throw new Error('Destination already exists');
+      return {
+        isFile: Boolean(stat.isFile?.() ?? ((stat.mode & 0o170000) === 0o100000)),
+        isDirectory: Boolean(stat.isDirectory?.() ?? ((stat.mode & 0o170000) === 0o040000)),
+        size: Number(stat.size || 0),
+      };
+    } catch {
+      const qPath = shellQuotePosix(remotePath);
+      const cmd = `if [ ! -e ${qPath} ]; then exit 44; fi; if [ -d ${qPath} ]; then echo "dir:0"; else sz=$(wc -c < ${qPath} | tr -d ' '); echo "file:$sz"; fi`;
+      const res = await sshPool.runRemoteCommand(server, cmd);
+      if (res.exitCode === 44) throw new Error('File or directory not found');
+      if (res.exitCode !== 0) throw new Error(res.stderr.trim() || 'Failed to stat remote path');
+      const out = res.stdout.toString('utf8').trim();
+      if (out.startsWith('dir:')) {
+        return { isFile: false, isDirectory: true, size: 0 };
+      }
+      const size = parseInt(out.split(':')[1] || '0', 10) || 0;
+      return { isFile: true, isDirectory: false, size };
     }
+  }
 
-    const newParent = path.posix.dirname(newTarget);
-    await this.sftpMkdirRecursive(sftp, newParent);
-
-    return new Promise((resolve, reject) => {
-      sftp.rename(oldTarget, newTarget, (err: any) => {
-        if (err) return reject(err);
-        resolve();
+  async readRemoteBuffer(server: ServerConfig, remotePath: string): Promise<Buffer> {
+    try {
+      const sftp = await sshPool.getSftp(server);
+      return await new Promise((resolve, reject) => {
+        sftp.readFile(remotePath, (err, data) => {
+          if (err) reject(err);
+          else resolve(data);
+        });
       });
-    });
+    } catch {
+      const res = await sshPool.runRemoteCommand(server, `cat -- ${shellQuotePosix(remotePath)}`);
+      if (res.exitCode !== 0) {
+        throw new Error(res.stderr.trim() || 'Failed to read remote binary file');
+      }
+      return res.stdout;
+    }
+  }
+
+  async writeRemoteStream(server: ServerConfig, destPath: string, inputStream: Readable): Promise<number> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of inputStream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const buf = Buffer.concat(chunks);
+    const parentDir = path.posix.dirname(destPath);
+    try {
+      const sftp = await sshPool.getSftp(server);
+      await this.sftpMkdirRecursive(sftp, parentDir);
+      await new Promise<void>((resolve, reject) => {
+        sftp.writeFile(destPath, buf, (err: any) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      return buf.length;
+    } catch {
+      const cmd = `mkdir -p -- ${shellQuotePosix(parentDir)} && cat > ${shellQuotePosix(destPath)}`;
+      const res = await sshPool.runRemoteCommand(server, cmd, buf);
+      if (res.exitCode !== 0) {
+        throw new Error(res.stderr.trim() || 'Failed to upload file to remote server');
+      }
+      return buf.length;
+    }
   }
 }
 

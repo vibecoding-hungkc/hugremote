@@ -96,16 +96,25 @@ export class TempZipService {
             stream.on('close', resolve);
             stream.on('error', reject);
         });
-        // Stream download remoteTmpZip via SFTP to local zipPath
-        const sftp = await sshPool.getSftp(server);
-        await new Promise((resolve, reject) => {
-            sftp.fastGet(remoteTmpZip, zipPath, (err) => {
-                if (err)
-                    reject(err);
-                else
-                    resolve();
+        // Stream download remoteTmpZip via SFTP to local zipPath, or fall back to sshPool.runRemoteCommand
+        try {
+            const sftp = await sshPool.getSftp(server);
+            await new Promise((resolve, reject) => {
+                sftp.fastGet(remoteTmpZip, zipPath, (err) => {
+                    if (err)
+                        reject(err);
+                    else
+                        resolve();
+                });
             });
-        });
+        }
+        catch {
+            const dlRes = await sshPool.runRemoteCommand(server, `cat -- "${remoteTmpZip}"`);
+            if (dlRes.exitCode !== 0) {
+                throw new Error(dlRes.stderr.trim() || 'Failed to download remote zip archive');
+            }
+            fs.writeFileSync(zipPath, dlRes.stdout);
+        }
         // Clean up remote temporary file in background
         sshPool.executeCommand(server, `rm -f "${remoteTmpZip}"`).catch(() => { });
         const zipStat = fs.statSync(zipPath);

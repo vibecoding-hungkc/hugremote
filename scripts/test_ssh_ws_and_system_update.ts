@@ -374,6 +374,8 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
       '    HostName 127.0.0.1',
       '    Port 2225',
       '    User hungnd',
+      '    IdentityFile ~/.ssh/id_jump_tunnel',
+      '    IdentityFile ~/.ssh/id_ed25519',
       '    ProxyJump jump@203.0.113.10',
       `    # Workspace /Users/${path.basename(os.homedir())}`,
     ].join('\n'),
@@ -395,16 +397,12 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
     const keys = resolveUsablePrivateKeys(target);
     assert.ok(
       keys.length >= 2,
-      `resolveUsablePrivateKeys must return ALL unencrypted keys (both id_jump_tunnel and id_ed25519), got ${keys.length}`
+      `resolveUsablePrivateKeys must return configured unencrypted keys from ssh config, got ${keys.length}`
     );
 
     assert.ok(
       target.proxyCommand && target.proxyCommand.includes('UserKnownHostsFile=/dev/null'),
       `target.proxyCommand must include UserKnownHostsFile=/dev/null for non-interactive GUI app, got: ${target.proxyCommand}`
-    );
-    assert.ok(
-      target.proxyCommand && target.proxyCommand.includes(vpsKeyPath),
-      `target.proxyCommand must pass custom ~/.ssh/id_jump_tunnel key with -i so Jump Server auth succeeds, got: ${target.proxyCommand}`
     );
 
     const execArgs = buildNativeSshArgs(hermes, ['-o', 'BatchMode=yes', 'echo READY'], tmpHome);
@@ -416,8 +414,18 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
       `buildNativeSshArgs must enable ControlMaster=auto multiplexing: ${execArgs.join(' ')}`
     );
     assert.ok(
-      execArgs.some((a) => a.startsWith('ProxyCommand=') && a.includes('UserKnownHostsFile=/dev/null')),
-      `buildNativeSshArgs must pass hardened ProxyCommand for ProxyJump host: ${execArgs.join(' ')}`
+      !execArgs.some((a) => a.startsWith('ProxyCommand=')),
+      `buildNativeSshArgs must let OpenSSH natively handle ~/.ssh/config ProxyJump for alias hosts: ${execArgs.join(' ')}`
+    );
+
+    const desktopMainSource = fs.readFileSync(
+      fileURLToPath(new URL('../desktop/main.cjs', import.meta.url)),
+      'utf8'
+    );
+    assert.match(
+      desktopMainSource,
+      /-lic[\s\S]*SSH_AUTH_SOCK/,
+      'desktop/main.cjs must load PATH and SSH_AUTH_SOCK from interactive login shell (-lic) on macOS'
     );
 
     saveOrUpdateSshConfigHost({

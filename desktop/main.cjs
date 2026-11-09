@@ -1,7 +1,9 @@
 const { app, BrowserWindow, dialog, session, shell } = require('electron');
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
 const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 
 let backend;
@@ -11,6 +13,49 @@ let terminateBackend;
 
 function quitBackend() {
   if (backend && terminateBackend) terminateBackend(backend);
+}
+
+function resolveMacLoginShellEnv(homeDir) {
+  const result = {};
+  if (process.platform !== 'darwin') return result;
+  const userShell = process.env.SHELL || '/bin/zsh';
+  try {
+    const out = execFileSync(
+      userShell,
+      [
+        '-lic',
+        'printf "__HUG_ENV_START__%s__HUG_SEP__%s__HUG_ENV_END__" "$PATH" "$SSH_AUTH_SOCK"',
+      ],
+      {
+        encoding: 'utf8',
+        timeout: 2500,
+        env: { ...process.env, HOME: homeDir },
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
+    );
+    const match = out.match(/__HUG_ENV_START__([\s\S]*?)__HUG_SEP__([\s\S]*?)__HUG_ENV_END__/);
+    if (match) {
+      if (match[1] && match[1].trim()) result.PATH = match[1].trim();
+      if (match[2] && match[2].trim() && fs.existsSync(match[2].trim())) {
+        result.SSH_AUTH_SOCK = match[2].trim();
+      }
+    }
+  } catch {
+    // Fallback if interactive login shell probe times out
+  }
+  if (!result.SSH_AUTH_SOCK) {
+    try {
+      const sock = execFileSync('launchctl', ['getenv', 'SSH_AUTH_SOCK'], {
+        encoding: 'utf8',
+        timeout: 1500,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+      if (sock && fs.existsSync(sock)) {
+        result.SSH_AUTH_SOCK = sock;
+      }
+    } catch {}
+  }
+  return result;
 }
 
 async function start() {
@@ -28,8 +73,11 @@ async function start() {
   const secret = crypto.randomBytes(32).toString('hex');
   const origin = `http://127.0.0.1:${port}`;
   await session.defaultSession.cookies.set({ url: origin, name: 'hugremote_desktop_session', value: secret, httpOnly: true, sameSite: 'strict', session: true });
-  const homeDir = process.env.HOME || app.getPath('home');
-  const inheritedPath = process.env.PATH || '/usr/bin:/bin:/usr/sbin:/sbin';
+
+  const homeDir = process.env.HOME || app.getPath('home') || os.homedir();
+  const userInfo = os.userInfo();
+  const shellEnv = resolveMacLoginShellEnv(homeDir);
+  const inheritedPath = shellEnv.PATH || process.env.PATH || '/usr/bin:/bin:/usr/sbin:/sbin';
   const extraPaths = [
     path.join(homeDir, '.local', 'bin'),
     path.join(homeDir, '.orbstack', 'bin'),
@@ -39,11 +87,26 @@ async function start() {
     '/usr/local/bin',
     '/usr/local/sbin',
     '/opt/local/bin',
-  ].join(':');
-  backend = launchBackend({ runtime, backendEntry, cwd: root, port, secret, env: {
+  ];
+  const mergedPath = Array.from(new Set([...extraPaths, ...inheritedPath.split(':')].filter(Boolean))).join(':');
+
+  const backendEnv = {
     ...process.env,
-    PATH: `${extraPaths}:${inheritedPath}`,
-  } });
+    HOME: homeDir,
+    USER: process.env.USER || userInfo.username,
+    LOGNAME: process.env.LOGNAME || userInfo.username,
+    PATH: mergedPath,
+    ...(shellEnv.SSH_AUTH_SOCK ? { SSH_AUTH_SOCK: shellEnv.SSH_AUTH_SOCK } : {}),
+  };
+
+  backend = launchBackend({
+    runtime,
+    backendEntry,
+    cwd: root,
+    port,
+    secret,
+    env: backendEnv,
+  });
   let diagnostic = '';
   for (const stream of [backend.stdout, backend.stderr]) stream.on('data', (chunk) => { diagnostic = (diagnostic + chunk.toString()).slice(-4000); });
   backend.on('exit', () => { if (!quitting) { dialog.showErrorBox('HugRemote', `Backend stopped unexpectedly.\n${diagnostic.slice(-800)}`); app.quit(); } });

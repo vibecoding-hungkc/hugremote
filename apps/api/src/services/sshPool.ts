@@ -9,7 +9,6 @@ import os from 'os';
 import {
   ServerConfig,
   hasSshHostAlias,
-  getAvailableSshKeys,
   sanitizeRemoteWorkspacePath,
 } from '../config.js';
 
@@ -56,6 +55,41 @@ export function isEncryptedPrivateKeyBuffer(buf: Buffer): boolean {
   return false;
 }
 
+let cachedLoginShellEnv: { PATH?: string; SSH_AUTH_SOCK?: string } | null = null;
+function resolveLoginShellEnv(): { PATH?: string; SSH_AUTH_SOCK?: string } {
+  if (cachedLoginShellEnv !== null) return cachedLoginShellEnv;
+  cachedLoginShellEnv = {};
+  if (process.platform !== 'darwin') return cachedLoginShellEnv;
+
+  try {
+    const userShell = process.env.SHELL || '/bin/zsh';
+    const out = execFileSync(
+      userShell,
+      [
+        '-lic',
+        'printf "__HUG_ENV_START__%s__HUG_SEP__%s__HUG_ENV_END__" "$PATH" "$SSH_AUTH_SOCK"',
+      ],
+      {
+        encoding: 'utf8',
+        timeout: 2000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }
+    );
+    const match = out.match(/__HUG_ENV_START__([\s\S]*?)__HUG_SEP__([\s\S]*?)__HUG_ENV_END__/);
+    if (match) {
+      if (match[1] && match[1].trim()) {
+        cachedLoginShellEnv.PATH = match[1].trim();
+      }
+      if (match[2] && match[2].trim() && fs.existsSync(match[2].trim())) {
+        cachedLoginShellEnv.SSH_AUTH_SOCK = match[2].trim();
+      }
+    }
+  } catch {
+    // Ignore shell probe failure
+  }
+  return cachedLoginShellEnv;
+}
+
 let macKeychainLoaded = false;
 function ensureMacKeychainKeysLoaded(authSock?: string) {
   if (process.platform !== 'darwin' || macKeychainLoaded) return;
@@ -82,10 +116,20 @@ function resolveSshAuthSock(customAgentPath?: string, homeDir = os.homedir()): s
     }
   }
 
+  if (process.platform === 'darwin') {
+    const shellEnv = resolveLoginShellEnv();
+    if (shellEnv.SSH_AUTH_SOCK && fs.existsSync(shellEnv.SSH_AUTH_SOCK)) {
+      process.env.SSH_AUTH_SOCK = shellEnv.SSH_AUTH_SOCK;
+      ensureMacKeychainKeysLoaded(shellEnv.SSH_AUTH_SOCK);
+      return shellEnv.SSH_AUTH_SOCK;
+    }
+  }
+
   if (process.env.SSH_AUTH_SOCK && fs.existsSync(process.env.SSH_AUTH_SOCK)) {
     ensureMacKeychainKeysLoaded(process.env.SSH_AUTH_SOCK);
     return process.env.SSH_AUTH_SOCK;
   }
+
   if (process.platform === 'darwin') {
     try {
       const out = execFileSync('launchctl', ['getenv', 'SSH_AUTH_SOCK'], {
@@ -101,20 +145,10 @@ function resolveSshAuthSock(customAgentPath?: string, homeDir = os.homedir()): s
     } catch {
       // Ignore if launchctl has no SSH_AUTH_SOCK
     }
-
-    const commonMacSockets = [
-      path.join(homeDir, 'Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock'),
-      path.join(homeDir, '.1password/agent.sock'),
-      path.join(homeDir, '.orbstack/run/ssh-agent.sock'),
-    ];
-    for (const sock of commonMacSockets) {
-      if (fs.existsSync(sock)) return sock;
-    }
   }
   return process.env.SSH_AUTH_SOCK || undefined;
 }
 
-let cachedLoginShellPath: string | null = null;
 function resolveEnhancedPath(): string {
   const home = os.homedir();
   const standardDirs = [
@@ -132,31 +166,10 @@ function resolveEnhancedPath(): string {
     '/sbin',
   ];
 
-  if (process.platform === 'darwin' && cachedLoginShellPath === null) {
-    cachedLoginShellPath = '';
-    try {
-      const userShell = process.env.SHELL || '/bin/zsh';
-      const out = execFileSync(
-        userShell,
-        ['-lc', 'printf "__HUG_PATH_START__%s__HUG_PATH_END__" "$PATH"'],
-        {
-          encoding: 'utf8',
-          timeout: 1500,
-          stdio: ['ignore', 'pipe', 'ignore'],
-        }
-      );
-      const match = out.match(/__HUG_PATH_START__([\s\S]*?)__HUG_PATH_END__/);
-      if (match && match[1]) {
-        cachedLoginShellPath = match[1].trim();
-      }
-    } catch {
-      // Ignore shell probe failure
-    }
-  }
-
+  const shellEnv = resolveLoginShellEnv();
   const parts = [
+    ...(shellEnv.PATH ? shellEnv.PATH.split(':') : []),
     ...standardDirs,
-    ...(cachedLoginShellPath ? cachedLoginShellPath.split(':') : []),
     ...(process.env.PATH ? process.env.PATH.split(':') : []),
   ].filter(Boolean);
 
@@ -164,9 +177,14 @@ function resolveEnhancedPath(): string {
 }
 
 export function getEnhancedSshEnv(extraEnv?: Record<string, string>): NodeJS.ProcessEnv {
-  const authSock = resolveSshAuthSock();
+  const homeDir = process.env.HOME || os.homedir();
+  const userInfo = os.userInfo();
+  const authSock = resolveSshAuthSock(undefined, homeDir);
   return {
     ...process.env,
+    HOME: homeDir,
+    USER: process.env.USER || userInfo.username,
+    LOGNAME: process.env.LOGNAME || userInfo.username,
     ...(authSock ? { SSH_AUTH_SOCK: authSock } : {}),
     PATH: resolveEnhancedPath(),
     ...(extraEnv || {}),
@@ -185,17 +203,6 @@ function resolveKeyFilePath(rawKeyPath: string, homeDir = os.homedir()): string 
     return trimmed;
   }
   return path.join(homeDir, '.ssh', trimmed);
-}
-
-function isUsableKeyFileOnDisk(filePath: string): boolean {
-  try {
-    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return false;
-    const buf = fs.readFileSync(filePath);
-    if (isEncryptedPrivateKeyBuffer(buf)) return false;
-    return buf.length > 0;
-  } catch {
-    return false;
-  }
 }
 
 function parseJumpHop(rawHop: string): { user?: string; host: string; port?: string } {
@@ -220,7 +227,6 @@ function parseJumpHop(rawHop: string): { user?: string; host: string; port?: str
 export function buildProxyCommandFromJump(
   proxyJump: string,
   sshExec = '/usr/bin/ssh',
-  identityFiles: string[] = [],
   sshConfigPath?: string
 ): string {
   const hops = proxyJump
@@ -252,11 +258,6 @@ export function buildProxyCommandFromJump(
   if (sshConfigPath && fs.existsSync(sshConfigPath)) {
     parts.push('-F', sshConfigPath);
   }
-  for (const keyFile of identityFiles) {
-    if (isUsableKeyFileOnDisk(keyFile)) {
-      parts.push('-i', keyFile);
-    }
-  }
   if (priorHops) {
     parts.push('-J', priorHops);
   }
@@ -266,33 +267,6 @@ export function buildProxyCommandFromJump(
   parts.push('-W', "'[%h]:%p'");
   parts.push(lastHop.user ? `${lastHop.user}@${lastHop.host}` : lastHop.host);
   return parts.join(' ');
-}
-
-function hardenProxyCommandForGui(proxyCmd: string, identityFiles: string[]): string {
-  const trimmed = proxyCmd.trim();
-  if (!trimmed) return trimmed;
-  if (!/^(?:\/usr\/bin\/)?ssh\s+/i.test(trimmed)) {
-    return trimmed;
-  }
-  const extraFlags: string[] = [];
-  if (!/StrictHostKeyChecking=/i.test(trimmed)) {
-    extraFlags.push('-o StrictHostKeyChecking=no');
-  }
-  if (!/UserKnownHostsFile=/i.test(trimmed)) {
-    extraFlags.push('-o UserKnownHostsFile=/dev/null');
-  }
-  if (!/BatchMode=/i.test(trimmed)) {
-    extraFlags.push('-o BatchMode=yes');
-  }
-  if (!/\s-i\s/.test(trimmed)) {
-    for (const keyFile of identityFiles) {
-      if (isUsableKeyFileOnDisk(keyFile)) {
-        extraFlags.push(`-i ${keyFile}`);
-      }
-    }
-  }
-  if (extraFlags.length === 0) return trimmed;
-  return trimmed.replace(/^((?:\/usr\/bin\/)?ssh)\s+/i, `$1 ${extraFlags.join(' ')} `);
 }
 
 export interface EffectiveSshTarget {
@@ -368,27 +342,13 @@ export function resolveEffectiveSshTarget(
     }
   }
 
-  const sshDir = path.join(homeDir, '.ssh');
-  for (const defName of ['id_ed25519', 'id_ecdsa', 'id_rsa', 'id_dsa']) {
-    const full = path.join(sshDir, defName);
-    if (!identityFiles.includes(full)) identityFiles.push(full);
-  }
-  for (const discoveredKey of getAvailableSshKeys(homeDir)) {
-    if (!identityFiles.includes(discoveredKey)) {
-      identityFiles.push(discoveredKey);
-    }
-  }
-
   if (!resolvedProxyCommand && resolvedProxyJump) {
     const sshExec = fs.existsSync('/usr/bin/ssh') ? '/usr/bin/ssh' : 'ssh';
     resolvedProxyCommand = buildProxyCommandFromJump(
       server.proxyJump || resolvedProxyJump,
       sshExec,
-      identityFiles,
       useCustomConfigFlag ? sshConfigPath : undefined
     );
-  } else if (resolvedProxyCommand) {
-    resolvedProxyCommand = hardenProxyCommandForGui(resolvedProxyCommand, identityFiles);
   }
 
   return {
@@ -506,7 +466,6 @@ export function buildNativeSshArgs(
   homeDirOverride?: string
 ): string[] {
   const homeDir = homeDirOverride || process.env.HOME || os.homedir();
-  const target = resolveEffectiveSshTarget(server, homeDir);
   const args: string[] = [
     '-o',
     'ServerAliveInterval=15',
@@ -514,8 +473,6 @@ export function buildNativeSshArgs(
     'ServerAliveCountMax=3',
     '-o',
     'StrictHostKeyChecking=no',
-    '-o',
-    'UserKnownHostsFile=/dev/null',
     '-o',
     'ControlMaster=auto',
     '-o',
@@ -539,16 +496,6 @@ export function buildNativeSshArgs(
     }
   }
 
-  for (const keyFile of target.identityFiles) {
-    if (isUsableKeyFileOnDisk(keyFile)) {
-      args.push('-i', keyFile);
-    }
-  }
-
-  if (target.proxyCommand) {
-    args.push('-o', `ProxyCommand=${target.proxyCommand}`);
-  }
-
   args.push(...optionFlags);
 
   const hasAliasInConfig = Boolean(server.name) && hasSshHostAlias(server.name, homeDir);
@@ -560,10 +507,21 @@ export function buildNativeSshArgs(
     }
     args.push(server.name);
   } else {
-    if (target.port && target.port !== 22) {
-      args.push('-p', String(target.port));
+    if (server.key) {
+      const resolvedKey = resolveKeyFilePath(server.key, homeDir);
+      if (fs.existsSync(resolvedKey)) {
+        args.push('-i', resolvedKey);
+      }
     }
-    const dest = target.user ? `${target.user}@${target.host}` : target.host;
+    if (server.proxyJump) {
+      args.push('-J', server.proxyJump);
+    } else if (server.proxyCommand) {
+      args.push('-o', `ProxyCommand=${server.proxyCommand}`);
+    }
+    if (server.port && server.port !== 22) {
+      args.push('-p', String(server.port));
+    }
+    const dest = server.user ? `${server.user}@${server.host}` : server.host;
     args.push(dest);
   }
 

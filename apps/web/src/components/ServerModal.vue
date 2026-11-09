@@ -133,7 +133,7 @@
             <label class="field-label">Jump Server · ProxyJump</label>
             <input
               v-model="newHost.proxyJump"
-              placeholder="vd: jump@158.178.227.183"
+              placeholder="vd: jump@203.0.113.10"
               class="input-text"
             />
           </div>

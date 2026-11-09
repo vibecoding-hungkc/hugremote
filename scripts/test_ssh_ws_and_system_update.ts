@@ -157,7 +157,7 @@ await runTest('AC-2c: parseSshConfig parses ProxyJump/ProxyCommand, Included ali
       '    HostName 127.0.0.1',
       '    Port 2225',
       '    User hungnd',
-      '    ProxyJump jump@158.178.227.183',
+      '    ProxyJump jump@203.0.113.10',
       '',
       'Match host localhost',
       '    HostName 127.0.0.1',
@@ -191,12 +191,12 @@ await runTest('AC-2c: parseSshConfig parses ProxyJump/ProxyCommand, Included ali
     assert.equal(hermes!.host, '127.0.0.1');
     assert.equal(hermes!.port, 2225, 'Match block must not overwrite Port 2225 of hermes-admin');
     assert.equal(hermes!.user, 'hungnd');
-    assert.equal((hermes as any).proxyJump, 'jump@158.178.227.183');
+    assert.equal((hermes as any).proxyJump, 'jump@203.0.113.10');
 
     const hermesProd = servers.find((s) => s.name === 'hermes-prod');
     assert.ok(hermesProd, 'second alias on same Host line must also be parsed');
     assert.equal(hermesProd!.port, 2225);
-    assert.equal((hermesProd as any).proxyJump, 'jump@158.178.227.183');
+    assert.equal((hermesProd as any).proxyJump, 'jump@203.0.113.10');
 
     const cfBox = servers.find((s) => s.name === 'cf-box');
     assert.ok(cfBox, 'cf-box must be parsed');
@@ -214,15 +214,15 @@ await runTest('AC-2c: parseSshConfig parses ProxyJump/ProxyCommand, Included ali
       'buildNativeSshArgs must NOT rewrite Included alias to hungnd@127.0.0.1 (which bypasses ProxyJump and causes Connection refused)'
     );
 
-    const proxyCmdBracketed = buildProxyCommandFromJump('jump@[158.178.227.183]', '/usr/bin/ssh');
+    const proxyCmdBracketed = buildProxyCommandFromJump('jump@[203.0.113.10]', '/usr/bin/ssh');
     assert.ok(
-      proxyCmdBracketed.endsWith(" -W '[%h]:%p' jump@158.178.227.183"),
+      proxyCmdBracketed.endsWith(" -W '[%h]:%p' jump@203.0.113.10"),
       `buildProxyCommandFromJump must strip ssh -G bracketed host so ssh destination resolves properly, got: ${proxyCmdBracketed}`
     );
 
-    const proxyCmdPort = buildProxyCommandFromJump('jump@[158.178.227.183]:2222', '/usr/bin/ssh');
+    const proxyCmdPort = buildProxyCommandFromJump('jump@[203.0.113.10]:2222', '/usr/bin/ssh');
     assert.ok(
-      proxyCmdPort.includes('-p 2222') && proxyCmdPort.endsWith('jump@158.178.227.183'),
+      proxyCmdPort.includes('-p 2222') && proxyCmdPort.endsWith('jump@203.0.113.10'),
       `buildProxyCommandFromJump must extract port into -p flag, got: ${proxyCmdPort}`
     );
 
@@ -271,7 +271,7 @@ await runTest('AC-3: fsService remote operations (listRemote, readRemoteFile, wr
     host: '127.0.0.1',
     user: 'hungnd',
     port: 2225,
-    proxyJump: 'jump@158.178.227.183',
+    proxyJump: 'jump@203.0.113.10',
     workspace: remoteTmpRoot,
   };
 
@@ -362,7 +362,7 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
   const sshDir = path.join(tmpHome, '.ssh');
   fs.mkdirSync(sshDir, { recursive: true });
 
-  const vpsKeyPath = path.join(sshDir, 'vps_tunnel');
+  const vpsKeyPath = path.join(sshDir, 'id_jump_tunnel');
   const edKeyPath = path.join(sshDir, 'id_ed25519');
   fs.writeFileSync(vpsKeyPath, '-----BEGIN OPENSSH PRIVATE KEY-----\ndnBzX3R1bm5lbF9kdW1teQ==\n-----END OPENSSH PRIVATE KEY-----\n', { mode: 0o600 });
   fs.writeFileSync(edKeyPath, '-----BEGIN OPENSSH PRIVATE KEY-----\naWRfZWQyNTUxOV9kdW1teQ==\n-----END OPENSSH PRIVATE KEY-----\n', { mode: 0o600 });
@@ -374,7 +374,7 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
       '    HostName 127.0.0.1',
       '    Port 2225',
       '    User hungnd',
-      '    ProxyJump jump@158.178.227.183',
+      '    ProxyJump jump@203.0.113.10',
       `    # Workspace /Users/${path.basename(os.homedir())}`,
     ].join('\n'),
     'utf8'
@@ -395,7 +395,7 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
     const keys = resolveUsablePrivateKeys(target);
     assert.ok(
       keys.length >= 2,
-      `resolveUsablePrivateKeys must return ALL unencrypted keys (both vps_tunnel and id_ed25519), got ${keys.length}`
+      `resolveUsablePrivateKeys must return ALL unencrypted keys (both id_jump_tunnel and id_ed25519), got ${keys.length}`
     );
 
     assert.ok(
@@ -404,7 +404,7 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
     );
     assert.ok(
       target.proxyCommand && target.proxyCommand.includes(vpsKeyPath),
-      `target.proxyCommand must pass custom ~/.ssh/vps_tunnel key with -i so Jump Server auth succeeds, got: ${target.proxyCommand}`
+      `target.proxyCommand must pass custom ~/.ssh/id_jump_tunnel key with -i so Jump Server auth succeeds, got: ${target.proxyCommand}`
     );
 
     const execArgs = buildNativeSshArgs(hermes, ['-o', 'BatchMode=yes', 'echo READY'], tmpHome);
@@ -425,7 +425,7 @@ await runTest('AC-5: macOS Jump Server multi-key auth, non-interactive ProxyComm
       workspace: '~',
     });
     const savedCfg = fs.readFileSync(path.join(sshDir, 'config'), 'utf8');
-    assert.ok(savedCfg.includes('ProxyJump jump@158.178.227.183'), 'saveOrUpdateSshConfigHost must preserve ProxyJump');
+    assert.ok(savedCfg.includes('ProxyJump jump@203.0.113.10'), 'saveOrUpdateSshConfigHost must preserve ProxyJump');
     assert.ok(!savedCfg.includes('/Users/'), 'saveOrUpdateSshConfigHost must not expand ~ to /Users/... for remote SSH server');
   } finally {
     if (prevHome !== undefined) process.env.HOME = prevHome;

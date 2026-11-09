@@ -6,7 +6,7 @@ Bản phát hành khắc phục triệt để các lỗi còn tồn đọng khi 
 
 ### Khắc phục lỗi & Cải tiến
 - **Xử lý đa khóa (`Multi-Key`) và `Host Key Verification` cho Jump Server trên macOS (`sshPool.ts`):**
-  - Tự động phát hiện và truyền tất cả các private key không mã hóa trong `~/.ssh/` (bao gồm cả các key tùy chỉnh như `~/.ssh/vps_tunnel`) cùng `-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes` vào lệnh `ProxyCommand` của `ProxyJump`, ngăn lỗi `Host key verification failed` hoặc `Permission denied (publickey)` ở chặng Jump Server khi chạy trong tiến trình GUI `detached` không có `/dev/tty` trên macOS.
+  - Tự động phát hiện và truyền tất cả các private key không mã hóa trong `~/.ssh/` (bao gồm cả các key đặt tên tùy chỉnh ngoài `id_rsa`/`id_ed25519`) cùng `-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes` vào lệnh `ProxyCommand` của `ProxyJump`, ngăn lỗi `Host key verification failed` hoặc `Permission denied (publickey)` ở chặng Jump Server khi chạy trong tiến trình GUI `detached` không có `/dev/tty` trên macOS.
   - Nâng cấp `ssh2` (`getClient`) sử dụng `resolveUsablePrivateKeys()` và mảng `authHandler` để thử lần lượt toàn bộ các private key hợp lệ trong `~/.ssh/` thay vì chỉ thử 1 key đầu tiên, đồng thời hỗ trợ `IdentityAgent` (1Password, OrbStack) và tự động nạp key từ Apple Keychain (`ssh-add --apple-load-keychain`).
   - Bật OpenSSH Connection Multiplexing (`ControlMaster=auto`, `ControlPath=/tmp/hugremote-ssh-%C`, `ControlPersist=10m`) và đặt cờ tùy chọn trước tên host trong `buildNativeSshArgs()`.
   - Đảm bảo `spawnNativeSshExec` phát hết dữ liệu `stdout`/`stderr` trước khi phát sự kiện `exit`/`close`.

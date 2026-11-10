@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { BASE_PATH } from '../config.js';
 import { authConfig } from './config.js';
 import { redirectToGoogle, handleGoogleCallback } from './googleOAuth.js';
+import { redirectToOidc, handleOidcCallback } from './oidcAuth.js';
+import { oidcStore } from './oidcStore.js';
 import { passwordLimiter } from './passwordLimiter.js';
 import { passwordStore } from './passwordStore.js';
 import { sessionStore } from './sessionStore.js';
@@ -27,6 +29,9 @@ function authStatus(req: any) {
     twoFactorEnabled,
     requiresTwoFactor,
     isDefaultPassword: passwordStore.isDefault(),
+    oidcButtonLabel: authConfig.oidcButtonLabel,
+    oidcConfigured: oidcStore.getConfig().configured,
+    oidcCallbackUrl: oidcStore.getCallbackUrl(),
     appUrl: authConfig.appUrl,
     basePath: BASE_PATH,
   };
@@ -36,7 +41,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.get('/api/auth/me', async (req) => authStatus(req));
 
   fastify.post<{ Body: { password?: string } }>('/api/auth/password', async (req, reply) => {
-    if (authConfig.mode !== 'password') {
+    if (authConfig.mode !== 'password' && authConfig.mode !== 'both') {
       return reply.status(400).send({ success: false, error: 'password_auth_disabled' });
     }
 
@@ -77,7 +82,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: { newPassword?: string; currentPassword?: string } }>(
     '/api/auth/change-password',
     async (req, reply) => {
-      if (authConfig.mode !== 'password') {
+      if (authConfig.mode !== 'password' && authConfig.mode !== 'both') {
         return reply.status(400).send({ success: false, error: 'password_auth_disabled' });
       }
 
@@ -257,5 +262,71 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: { code?: string; state?: string; error?: string } }>('/auth/google/callback', async (req, reply) => {
     if (authConfig.mode !== 'google') return reply.status(400).send('Google auth is disabled');
     return handleGoogleCallback(req, reply);
+  });
+
+  // --- OIDC SSO (GENERIC OPENID CONNECT) ROUTES ---
+  fastify.get('/auth/oidc', async (_req, reply) => {
+    if (authConfig.mode !== 'oidc' && authConfig.mode !== 'both') {
+      return reply.status(400).send('OIDC auth is disabled');
+    }
+    return redirectToOidc(reply);
+  });
+
+  fastify.get('/api/auth/oidc', async (_req, reply) => {
+    if (authConfig.mode !== 'oidc' && authConfig.mode !== 'both') {
+      return reply.status(400).send('OIDC auth is disabled');
+    }
+    return redirectToOidc(reply);
+  });
+
+  fastify.get<{ Querystring: { code?: string; state?: string; error?: string } }>(
+    '/auth/oidc/callback',
+    async (req, reply) => {
+      if (authConfig.mode !== 'oidc' && authConfig.mode !== 'both') {
+        return reply.status(400).send('OIDC auth is disabled');
+      }
+      return handleOidcCallback(req, reply);
+    }
+  );
+
+  fastify.get<{ Querystring: { code?: string; state?: string; error?: string } }>(
+    '/api/auth/oidc/callback',
+    async (req, reply) => {
+      if (authConfig.mode !== 'oidc' && authConfig.mode !== 'both') {
+        return reply.status(400).send('OIDC auth is disabled');
+      }
+      return handleOidcCallback(req, reply);
+    }
+  );
+
+  fastify.get('/api/auth/oidc/config', async () => {
+    return oidcStore.getConfig();
+  });
+
+  fastify.post<{ Body: { issuerUrl?: string } }>('/api/auth/oidc/discover', async (req, reply) => {
+    const issuerUrl = req.body?.issuerUrl || '';
+    if (!issuerUrl) {
+      return reply.status(400).send({ valid: false, error: 'issuerUrl is required' });
+    }
+    const result = await oidcStore.discover(issuerUrl);
+    return result;
+  });
+
+  fastify.post<{
+    Body: {
+      mode?: string;
+      issuerUrl?: string;
+      clientId?: string;
+      clientSecret?: string;
+      allowedEmails?: string | string[];
+      buttonLabel?: string;
+    };
+  }>('/api/auth/oidc/config', async (req, reply) => {
+    try {
+      const res = oidcStore.saveConfig(req.body || {});
+      return res;
+    } catch (err: any) {
+      return reply.status(400).send({ success: false, error: err.message || 'Lưu cài đặt OIDC thất bại' });
+    }
   });
 }

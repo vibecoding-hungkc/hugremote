@@ -4422,7 +4422,10 @@
     .git-scanner-info .git-view-project { color:#9e9e9e; }
     .git-scanner-info .git-view-project b { color:#d8d8d8; font-weight:600; }
     .git-scanner-actions { display:flex; align-items:center; gap:6px; }
-    .git-main-grid { display:grid; grid-template-columns:300px 1fr; flex:1; min-height:0; overflow:hidden; }
+    .git-main-grid { display:grid; grid-template-columns:var(--git-repos-col-width, 280px) 8px minmax(0, 1fr); flex:1; min-height:0; overflow:hidden; }
+    .git-col-resizer { width:100%; height:100%; min-width:6px; padding:0; border:0; background:transparent; cursor:col-resize; position:relative; touch-action:none; display:flex; align-items:center; justify-content:center; flex-shrink:0; user-select:none; }
+    .git-col-resizer::before { content:""; width:2px; height:36px; border-radius:2px; background:#383838; transition:background .15s, height .15s; }
+    .git-col-resizer:hover::before, .git-col-resizer.is-dragging::before { background:#8a8a8a; height:54px; }
     @media (max-width:860px) {
       .git-view-container { min-height:0; }
       #view-git .git-main-grid { display:block; overflow-y:auto; }
@@ -4445,7 +4448,7 @@
       .git-file-stats .minus { color:#fb7185; }
     }
     .git-mobile-back { display:none; }
-    .git-file-stats { display:none; }
+    .git-sub-mobile-back { display:none; }
     .git-repos-column { border-right:1px solid #2b2b2b; background:#151515; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
     .git-repos-column-head { padding:10px 12px; border-bottom:1px solid #292929; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11.5px; font-weight:700; color:#cccccc; }
     .git-repos-scroll { flex:1; overflow-y:auto; padding:5px 7px; display:flex; flex-direction:column; gap:3px; }
@@ -4465,9 +4468,10 @@
     .git-active-repo-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:10px 12px; border-radius:8px; background:#1a1a1a; border:1px solid #333333; }
     .git-active-repo-meta { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-family:var(--font-mono); font-size:12px; color:#e5e5e5; }
     .git-branch-select { background:#242424; border:1px solid #484848; color:#f0f0f0; border-radius:6px; padding:4px 8px; font-family:var(--font-mono); font-size:11.5px; }
-    .git-detail-split { display:grid; grid-template-columns:1fr 1.15fr; gap:12px; min-height:240px; }
-    @media (max-width:720px) {
+    .git-detail-split { display:grid; grid-template-columns:var(--git-working-files-col-width, 360px) 8px minmax(0, 1fr); gap:0; min-height:240px; flex:1; }
+    @media (max-width:860px) {
       .git-detail-split { grid-template-columns:1fr; }
+      .git-col-resizer { display:none !important; }
     }
     .git-files-box, .git-diff-box { background:#181818; border:1px solid #2f2f2f; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; }
     .git-box-title { padding:8px 11px; border-bottom:1px solid #2b2b2b; font-size:11.5px; font-weight:700; color:#cccccc; display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -4484,6 +4488,72 @@
     .git-diff-line { padding:1px 6px; border-radius:3px; white-space:pre-wrap; word-break:break-all; color:#c8c8c8; }
     .git-diff-line.diff-add { background:rgba(34, 197, 94, 0.14); color:#bbf7d0; }
     .git-diff-line.diff-del { background:rgba(239, 68, 68, 0.14); color:#fecaca; }
+    .git-file-stats { display:inline-flex; gap:5px; flex:none; font-size:10px; font-weight:700; font-family:var(--font-mono); }
+    .git-file-stats .plus { color:#34d399; }
+    .git-file-stats .minus { color:#fb7185; }
+    .git-detail-mode-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:8px 11px; border-radius:8px; background:#171717; border:1px solid #2e2e2e; }
+    .git-detail-mode-tabs { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+    .git-detail-mode-hint { font-size:11px; color:#9e9e9e; font-family:var(--font-mono); }
+    .git-history-section { display:flex; flex-direction:column; gap:10px; background:#161616; border:1px solid #2e2e2e; border-radius:8px; padding:12px; flex:1; min-height:0; }
+    .git-history-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding-bottom:10px; border-bottom:1px solid #2a2a2a; }
+    .git-history-title-group { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:12.5px; font-weight:700; color:#ececec; }
+    .git-history-controls { display:flex; align-items:center; flex-wrap:wrap; gap:6px; flex:1; justify-content:flex-end; min-width:240px; }
+    .git-history-search { min-width:190px; max-width:280px; flex:1; padding:6px 10px; border-radius:6px; border:1px solid #424242; background:#121212; color:#ececec; font:11.5px var(--font-sans); }
+    .git-history-search:focus { outline:none; border-color:#787878; }
+    .git-history-tracked-pill { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; background:#262626; border:1px solid #525252; color:#e8e8e8; font:600 10.5px var(--font-mono); }
+    .git-history-tracked-pill button { border:0; background:transparent; color:#cccccc; cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
+    .git-history-tracked-pill button:hover { color:#ffffff; }
+    .git-history-split { display:grid; grid-template-columns:var(--git-history-commits-col-width, 340px) 8px minmax(0, 1fr); gap:0; min-height:360px; flex:1; }
+    .git-history-commits-box, .git-history-detail-box { background:#181818; border:1px solid #2f2f2f; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; min-height:0; }
+    .git-commit-inspector-split { display:grid; grid-template-columns:var(--git-history-files-col-width, 290px) 6px minmax(0, 1fr); flex:1; min-height:260px; overflow:hidden; }
+    .git-commit-files-pane { border-right:1px solid #2b2b2b; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .git-commit-diff-pane { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+    .git-history-commit-list { display:flex; flex-direction:column; flex:1; max-height:460px; overflow-y:auto; }
+    .git-commit-row { display:flex; align-items:stretch; gap:10px; width:100%; padding:10px 12px; border:0; border-bottom:1px solid #242424; background:transparent; color:#e2e2e2; text-align:left; cursor:pointer; transition:background .15s; }
+    .git-commit-row:hover { background:#212121; }
+    .git-commit-row.active { background:#282828; box-shadow:inset 2px 0 #b5b5b5; }
+    .git-commit-timeline { display:flex; flex-direction:column; align-items:center; width:14px; flex:none; padding-top:3px; }
+    .git-commit-dot { width:9px; height:9px; border-radius:50%; background:#787878; border:2px solid #2b2b2b; flex:none; }
+    .git-commit-row.active .git-commit-dot { background:#f0f0f0; border-color:#8a8a8a; }
+    .git-commit-line { flex:1; width:1px; background:#303030; margin-top:4px; }
+    .git-commit-row:last-child .git-commit-line { display:none; }
+    .git-commit-main { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1; }
+    .git-commit-top { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
+    .git-commit-sha { font:700 11px var(--font-mono); color:#e8e8e8; background:#242424; border:1px solid #3d3d3d; border-radius:5px; padding:1px 6px; }
+    .git-commit-ref { font:600 10px var(--font-mono); color:#d4d4d4; background:#2b2b2b; border:1px solid #484848; border-radius:999px; padding:1px 7px; }
+    .git-commit-date { margin-left:auto; font:10.5px var(--font-mono); color:#9e9e9e; }
+    .git-commit-subject { font:600 12px var(--font-sans); color:#f0f0f0; line-height:1.35; word-break:break-word; }
+    .git-commit-meta { display:flex; align-items:center; flex-wrap:wrap; gap:7px; font:11px var(--font-mono); color:#9e9e9e; }
+    .git-commit-detail-banner { padding:10px 12px; border-bottom:1px solid #2b2b2b; background:#1c1c1c; display:flex; flex-direction:column; gap:6px; }
+    .git-commit-detail-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+    .git-commit-detail-subject { font:700 13px var(--font-sans); color:#f0f0f0; line-height:1.35; }
+    .git-commit-detail-sub { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font:11px var(--font-mono); color:#a3a3a3; }
+    .git-commit-files-list { flex:1; max-height:380px; overflow-y:auto; }
+    .git-track-file-btn { padding:2px 7px !important; font-size:10px !important; flex:none; }
+    @media (max-width:860px) {
+      .git-sub-mobile-back { display:inline-flex; align-items:center; gap:6px; min-height:36px; width:100%; border:0; border-bottom:1px solid #2b2b2b; background:#1c1c1c; color:#ececec; font:700 12px var(--font-sans); cursor:pointer; padding:6px 11px; text-align:left; }
+      .git-sub-mobile-back:hover { background:#242424; }
+      /* Working tree mobile list -> detail navigation */
+      #git-working-tree-section[data-mobile-step="files"] .git-diff-box { display:none; }
+      #git-working-tree-section[data-mobile-step="diff"] .git-files-box { display:none; }
+      #git-working-tree-section[data-mobile-step="diff"] .git-diff-box { display:flex; min-height:340px; }
+      /* Commit history mobile 3-step drill-down: commits -> files -> diff */
+      .git-history-split { display:block; min-height:0; }
+      .git-history-controls { justify-content:stretch; min-width:100%; }
+      .git-history-search { max-width:none; width:100%; }
+      .git-history-commit-list { max-height:none; }
+      .git-commit-files-list { max-height:none; }
+      .git-commit-inspector-split { display:block; }
+      .git-commit-files-pane { border-right:0; }
+      #git-history-section[data-mobile-step="commits"] .git-history-detail-box { display:none; }
+      #git-history-section[data-mobile-step="files"] .git-history-head,
+      #git-history-section[data-mobile-step="files"] .git-history-commits-box,
+      #git-history-section[data-mobile-step="files"] .git-commit-diff-pane { display:none; }
+      #git-history-section[data-mobile-step="diff"] .git-history-head,
+      #git-history-section[data-mobile-step="diff"] .git-history-commits-box,
+      #git-history-section[data-mobile-step="diff"] .git-commit-detail-banner,
+      #git-history-section[data-mobile-step="diff"] .git-commit-files-pane { display:none; }
+    }
     .quick-tree-scrim { display:none; }
     @media (min-width:800px) {
       .quick-tree-panel { box-shadow:none; background:#161616; border-left:1px solid #323232; }
@@ -5525,6 +5595,15 @@
               <div id="git-repo-card-list" class="git-repos-scroll" role="listbox" aria-label="Danh sách các repo bên trong dự án"></div>
             </div>
 
+            <div
+              id="git-resizer-repos"
+              class="git-col-resizer"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Kéo để chỉnh độ rộng cột danh sách repo"
+              title="Kéo để chỉnh độ rộng cột danh sách repo"
+            ></div>
+
             <!-- Right column: Active repository status, branch switcher, changed files, and diff viewer -->
             <div class="git-Active-detail-column">
               <button type="button" id="git-mobile-back" class="git-mobile-back" aria-label="Quay lại danh sách repo"><i class="ri-arrow-left-line" aria-hidden="true"></i> Danh sách repo</button>
@@ -5543,7 +5622,19 @@
                 </div>
               </div>
 
-              <div class="git-detail-split">
+              <div class="git-detail-mode-bar">
+                <div class="git-detail-mode-tabs" role="tablist" aria-label="Chế độ xem Git">
+                  <button type="button" class="quick-git-filter-btn active" id="git-mode-working" data-git-mode="working">
+                    <i class="ri-file-edit-line"></i> Thay đổi hiện tại
+                  </button>
+                  <button type="button" class="quick-git-filter-btn" id="git-mode-history" data-git-mode="history">
+                    <i class="ri-history-line"></i> Lịch sử Commit
+                  </button>
+                </div>
+                <span class="git-detail-mode-hint" id="git-detail-mode-summary">3 tệp đang sửa · 4 commit trong lịch sử</span>
+              </div>
+
+              <div class="git-detail-split" id="git-working-tree-section" data-mobile-step="files">
                 <div class="git-files-box">
                   <div class="git-box-title">
                     <span>Tệp thay đổi trong repo đang chọn</span>
@@ -5559,12 +5650,128 @@
                   </div>
                 </div>
 
+                <div
+                  id="git-resizer-working-files"
+                  class="git-col-resizer"
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Kéo để chỉnh độ rộng cột tệp thay đổi"
+                  title="Kéo để chỉnh độ rộng cột tệp thay đổi"
+                ></div>
+
                 <div class="git-diff-box">
+                  <button type="button" id="git-working-mobile-back-files" class="git-sub-mobile-back" aria-label="Quay lại danh sách tệp thay đổi">
+                    <i class="ri-arrow-left-line" aria-hidden="true"></i> Danh sách tệp thay đổi
+                  </button>
                   <div class="git-box-title">
                     <span>Xem nhanh Diff</span>
                     <span id="git-detail-diff-filename" style="font-family:var(--font-mono); color:#a3a3a3;">src/server.js</span>
                   </div>
                   <div id="git-detail-diff-body" class="git-diff-pre"></div>
+                </div>
+              </div>
+
+              <!-- Git Commit History & Changed Files per Commit -->
+              <div class="git-history-section" id="git-history-section" data-mobile-step="commits" style="display:none;">
+                <div class="git-history-head">
+                  <div class="git-history-title-group">
+                    <i class="ri-git-commit-line" style="color:#d4d4d4; font-size:16px;"></i>
+                    <span>Lịch sử Commit &amp; Biến động tệp</span>
+                    <span class="quick-git-depth-tag" id="git-history-branch-badge">nhánh main</span>
+                    <span class="git-repo-count ok" id="git-history-count-badge">4 commit</span>
+                    <span class="git-history-tracked-pill" id="git-history-tracked-pill" hidden>
+                      <i class="ri-file-search-line"></i>
+                      <span id="git-history-tracked-file-name">src/server.js</span>
+                      <button type="button" id="git-history-clear-file-filter" title="Bỏ lọc theo tệp" aria-label="Bỏ lọc theo tệp">×</button>
+                    </span>
+                  </div>
+                  <div class="git-history-controls">
+                    <select id="git-history-file-select" class="git-branch-select" aria-label="Lọc lịch sử commit theo tệp">
+                      <option value="">Tất cả tệp trong lịch sử</option>
+                    </select>
+                    <input
+                      id="git-history-search-input"
+                      class="git-history-search"
+                      type="text"
+                      placeholder="Tìm mã SHA, nội dung commit, tác giả, tên tệp..."
+                      aria-label="Tìm kiếm trong lịch sử commit"
+                    />
+                  </div>
+                </div>
+
+                <div class="git-history-split">
+                  <!-- Left: Commit History Timeline -->
+                  <div class="git-history-commits-box">
+                    <div class="git-box-title">
+                      <span>Danh sách Commit theo thời gian</span>
+                      <span id="git-history-filtered-count" class="quick-git-depth-tag">4 commit</span>
+                    </div>
+                    <div id="git-history-commit-list" class="git-history-commit-list" role="listbox" aria-label="Danh sách commit của repo"></div>
+                  </div>
+
+                  <div
+                    id="git-resizer-history-commits"
+                    class="git-col-resizer"
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Kéo để chỉnh độ rộng cột danh sách commit"
+                    title="Kéo để chỉnh độ rộng cột danh sách commit"
+                  ></div>
+
+                  <!-- Right: Selected Commit Summary + Side-by-Side Files & Diff on Desktop, Step-by-Step Drill-down on Mobile -->
+                  <div class="git-history-detail-box">
+                    <div class="git-commit-detail-banner" id="git-commit-detail-banner">
+                      <button type="button" id="git-history-mobile-back-commits" class="git-sub-mobile-back" style="margin:-10px -12px 6px -12px; width:calc(100% + 24px);" aria-label="Quay lại danh sách commit">
+                        <i class="ri-arrow-left-line" aria-hidden="true"></i> Danh sách Commit
+                      </button>
+                      <div class="git-commit-detail-top">
+                        <span class="git-commit-detail-subject" id="git-commit-detail-subject">Chọn một commit để xem chi tiết</span>
+                        <button type="button" class="quick-git-filter-btn" id="git-copy-commit-sha-btn">
+                          <i class="ri-file-copy-line"></i> <span id="git-commit-detail-sha">40894fc</span>
+                        </button>
+                      </div>
+                      <div class="git-commit-detail-sub">
+                        <span id="git-commit-detail-author"><i class="ri-user-3-line"></i> Duy Hung</span>
+                        <span>·</span>
+                        <span id="git-commit-detail-time">10 phút trước</span>
+                        <span>·</span>
+                        <span id="git-commit-detail-stats">3 tệp thay đổi</span>
+                      </div>
+                    </div>
+
+                    <div class="git-commit-inspector-split">
+                      <div class="git-commit-files-pane" id="git-commit-files-pane">
+                        <div class="git-box-title">
+                          <span>Tệp thay đổi trong commit</span>
+                          <div style="display:flex; align-items:center; gap:6px;">
+                            <span id="git-commit-files-count" class="quick-git-depth-tag">3 tệp</span>
+                            <button type="button" class="quick-git-filter-btn" id="git-commit-view-all-diff-btn">Xem gộp mọi tệp</button>
+                          </div>
+                        </div>
+                        <div id="git-commit-file-list" class="git-commit-files-list"></div>
+                      </div>
+
+                      <div
+                        id="git-resizer-history-files"
+                        class="git-col-resizer"
+                        role="separator"
+                        aria-orientation="vertical"
+                        aria-label="Kéo để chỉnh độ rộng cột tệp trong commit"
+                        title="Kéo để chỉnh độ rộng cột tệp trong commit"
+                      ></div>
+
+                      <div class="git-commit-diff-pane" id="git-commit-diff-pane">
+                        <button type="button" id="git-history-mobile-back-files" class="git-sub-mobile-back" aria-label="Quay lại danh sách tệp trong commit">
+                          <i class="ri-arrow-left-line" aria-hidden="true"></i> Tệp thay đổi trong commit
+                        </button>
+                        <div class="git-box-title">
+                          <span>Diff trong commit</span>
+                          <span id="git-commit-diff-filename" style="font-family:var(--font-mono); color:#a3a3a3;">src/server.js @ 40894fc</span>
+                        </div>
+                        <div id="git-commit-diff-body" class="git-diff-pre"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -5610,6 +5817,104 @@
             </div>
             <div id="two-factor-summary-text" style="font-size:11.5px; color:#9e9e9e;">
               Tùy chọn bật xác thực 2 lớp bằng ứng dụng Authenticator 6 số kèm 8 mã khôi phục dự phòng cho bản Web.
+            </div>
+          </div>
+
+          <div class="settings-shortcut-card" id="settings-oidc-card">
+            <div class="settings-card-header" style="border-bottom:none; padding-bottom:0;">
+              <div class="settings-banner-title" style="flex-wrap:wrap; gap:8px;">
+                <i class="ri-shield-user-line" style="color:#38bdf8; font-size:17px;"></i>
+                <span>Đăng nhập Single Sign-On · OIDC</span>
+                <span id="oidc-status-badge" class="git-repo-count">Đang tắt</span>
+                <span id="oidc-mode-badge" class="quick-git-depth-tag">AUTH_MODE=none</span>
+              </div>
+              <div class="settings-banner-controls">
+                <button type="button" id="btn-toggle-oidc-setup" class="settings-pill-btn">
+                  <i class="ri-settings-4-line"></i>
+                  <span id="btn-toggle-oidc-label">Cài đặt OIDC</span>
+                </button>
+              </div>
+            </div>
+            <div id="oidc-summary-text" style="font-size:11.5px; color:#9e9e9e;">
+              Cấu hình nhà cung cấp xác thực OpenID Connect như Keycloak, Authentik, Okta, Microsoft Entra ID hoặc Generic OIDC cho HugRemote.
+            </div>
+
+            <div id="settings-oidc-panel" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid #2b2b2b; flex-direction:column; gap:10px;">
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <label style="font-size:11.5px; font-weight:600; color:#d4d4d4;">Chọn mẫu cấu hình nhanh IdP</label>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button type="button" class="quick-git-filter-btn active" id="btn-oidc-preset-generic">Generic OIDC</button>
+                  <button type="button" class="quick-git-filter-btn" id="btn-oidc-preset-keycloak">Keycloak</button>
+                  <button type="button" class="quick-git-filter-btn" id="btn-oidc-preset-authentik">Authentik</button>
+                  <button type="button" class="quick-git-filter-btn" id="btn-oidc-preset-okta">Okta</button>
+                  <button type="button" class="quick-git-filter-btn" id="btn-oidc-preset-azure">Microsoft Entra ID</button>
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <label for="oidc-setting-mode" style="font-size:11.5px; font-weight:600; color:#d4d4d4;">Chế độ xác thực · AUTH_MODE</label>
+                <select id="oidc-setting-mode" class="git-branch-select" style="width:100%; height:32px;">
+                  <option value="both" selected>both · Cho phép cả Mật khẩu và OIDC SSO</option>
+                  <option value="oidc">oidc · Bắt buộc đăng nhập qua OIDC SSO</option>
+                  <option value="password">password · Chỉ dùng mật khẩu nội bộ</option>
+                  <option value="none">none · Tắt xác thực</option>
+                </select>
+              </div>
+
+              <!-- OIDC Callback URL Box -->
+              <div style="display:flex; flex-direction:column; gap:6px; background:rgba(56, 189, 248, 0.06); border:1px solid rgba(56, 189, 248, 0.28); border-radius:6px; padding:10px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                  <span style="font-size:11.5px; font-weight:700; color:#7dd3fc; display:flex; align-items:center; gap:5px;">
+                    <i class="ri-link"></i> Redirect URI · Callback URL cần đăng ký trên IdP
+                  </span>
+                  <button type="button" id="btn-copy-oidc-callback" class="quick-git-filter-btn" style="height:24px; font-size:10.5px;">
+                    <i class="ri-file-copy-line"></i> Sao chép URL
+                  </button>
+                </div>
+                <input id="oidc-callback-url-display" type="text" readonly style="width:100%; height:30px; padding:0 8px; border-radius:5px; border:1px solid #334155; background:#0f172a; color:#38bdf8; font-family:var(--font-mono); font-size:11px;" value="https://hugremote.example.com/auth/oidc/callback" />
+                <span style="font-size:10.5px; color:#94a3b8; line-height:1.35;">
+                  Dán URL này vào mục <b>Valid Redirect URIs</b> (Keycloak, Authentik) hoặc <b>Sign-in redirect URIs</b> (Azure AD, Okta) khi tạo Client trên IdP.
+                </span>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                  <label for="oidc-setting-issuer" style="font-size:11.5px; font-weight:600; color:#d4d4d4;">OIDC Issuer URL</label>
+                  <button type="button" id="btn-oidc-discover-test" class="quick-git-filter-btn" style="height:24px; font-size:10.5px;">
+                    <i class="ri-radar-line"></i> Kiểm tra kết nối IdP
+                  </button>
+                </div>
+                <input id="oidc-setting-issuer" type="text" placeholder="https://auth.company.com hoặc Realm URL" style="height:32px; padding:0 9px; border-radius:6px; border:1px solid #444; background:#141414; color:#eee; font-family:var(--font-mono); font-size:11.5px;" />
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                  <label for="oidc-setting-client-id" style="font-size:11.5px; font-weight:600; color:#d4d4d4;">Client ID</label>
+                  <input id="oidc-setting-client-id" type="text" placeholder="hugremote-client" style="height:32px; padding:0 9px; border-radius:6px; border:1px solid #444; background:#141414; color:#eee; font-family:var(--font-mono); font-size:11.5px;" />
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px;">
+                  <label for="oidc-setting-client-secret" style="font-size:11.5px; font-weight:600; color:#d4d4d4;">Client Secret</label>
+                  <input id="oidc-setting-client-secret" type="password" placeholder="Client secret từ IdP" style="height:32px; padding:0 9px; border-radius:6px; border:1px solid #444; background:#141414; color:#eee; font-family:var(--font-mono); font-size:11.5px;" />
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <label for="oidc-setting-emails" style="font-size:11.5px; font-weight:600; color:#d4d4d4;">Danh sách email được phép · OIDC_ALLOWED_EMAILS</label>
+                <input id="oidc-setting-emails" type="text" placeholder="admin@company.com, dev@company.com · Bỏ trống nếu cho phép tất cả email" style="height:32px; padding:0 9px; border-radius:6px; border:1px solid #444; background:#141414; color:#eee; font-family:var(--font-mono); font-size:11.5px;" />
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <label for="oidc-setting-label" style="font-size:11.5px; font-weight:600; color:#d4d4d4;">Nhãn hiển thị trên nút đăng nhập</label>
+                <input id="oidc-setting-label" type="text" placeholder="Tiếp tục với Single Sign-On · OIDC" style="height:32px; padding:0 9px; border-radius:6px; border:1px solid #444; background:#141414; color:#eee; font-size:11.5px;" />
+              </div>
+
+              <div id="oidc-setting-feedback" style="display:none; padding:8px 10px; border-radius:6px; font-size:11.5px; line-height:1.4;"></div>
+
+              <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+                <button type="button" id="btn-save-oidc-settings" class="settings-pill-btn active" style="padding:6px 14px;">
+                  <i class="ri-save-line"></i> Lưu cài đặt OIDC
+                </button>
+              </div>
             </div>
           </div>
 
@@ -7921,6 +8226,372 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       let activeGitRepoIdByProject = { 'proj-hugcode': 'repo-root', 'proj-api-gateway': 'repo-gw-root' };
       let gitRepoFilterMode = 'all';
       let activeGitDiffFilePath = '';
+      let gitDetailViewMode = 'working'; // 'working' | 'history'
+      let gitWorkingMobileStep = 'files'; // 'files' | 'diff'
+      let gitHistoryMobileStep = 'commits'; // 'commits' | 'files' | 'diff'
+      let activeGitCommitHashByRepo = {};
+      let activeGitCommitFilePath = '';
+      let gitCommitViewAllFilesDiff = false;
+      let activeGitHistoryFileFilter = '';
+      let activeGitHistorySearchQuery = '';
+
+      const defaultCommitsByRepoId = {
+        'repo-root': [
+          {
+            hash: '40894fc',
+            ref: 'HEAD -> main, origin/main',
+            subject: 'fix: đồng bộ SSH_AUTH_SOCK và PATH từ login shell cho macOS',
+            author: 'Duy Hung',
+            date: '10 phút trước',
+            files: [
+              {
+                path: 'src/server.js',
+                status: 'M',
+                diff: [
+                  '@@ -18,6 +18,11 @@',
+                  ' import { createServer } from "./http.js";',
+                  '-const sshEnv = process.env;',
+                  '+const loginShellEnv = resolveMacLoginShellEnv();',
+                  '+const sshEnv = { ...process.env, ...loginShellEnv };',
+                  ' const app = createServer(sshEnv);'
+                ]
+              },
+              {
+                path: 'desktop/main.cjs',
+                status: 'M',
+                diff: [
+                  '@@ -52,4 +52,9 @@',
+                  ' function buildBackendEnv(port) {',
+                  '+  const loginEnv = resolveMacLoginShellEnv(os.homedir());',
+                  '+  if (loginEnv.SSH_AUTH_SOCK) process.env.SSH_AUTH_SOCK = loginEnv.SSH_AUTH_SOCK;',
+                  '   return { ...process.env, PORT: String(port) };'
+                ]
+              },
+              {
+                path: 'docs/README.md',
+                status: 'M',
+                diff: [
+                  '@@ -4,3 +4,6 @@',
+                  ' # HugCode Web & macOS IDE',
+                  '+- Tự động kế thừa SSH Agent từ phiên Terminal trên macOS.',
+                  '+- Hỗ trợ kết nối mượt qua Jump Server theo cấu hình chuẩn ~/.ssh/config.'
+                ]
+              }
+            ]
+          },
+          {
+            hash: '1b29096',
+            ref: 'tag: v1.6.10',
+            subject: 'feat: tích hợp xác thực bảo mật 2 lớp TOTP 6 số và 8 mã khôi phục',
+            author: 'Duy Hung',
+            date: '2 giờ trước',
+            files: [
+              {
+                path: 'src/auth/twoFactorStore.ts',
+                status: 'A',
+                diff: [
+                  '@@ -0,0 +1,9 @@',
+                  '+export class TwoFactorStore {',
+                  '+  verifyTotpCode(secret: string, code: string): boolean {',
+                  '+    return verifyRfc6238Token(secret, code, 1);',
+                  '+  }',
+                  '+}'
+                ]
+              },
+              {
+                path: 'src/server.js',
+                status: 'M',
+                diff: [
+                  '@@ -95,3 +95,6 @@',
+                  ' app.use("/api/auth", authRouter);',
+                  '+app.use("/api/auth/2fa", twoFactorRouter);',
+                  '+app.enableTotpProtection();'
+                ]
+              },
+              {
+                path: 'tests/session.test.js',
+                status: 'M',
+                diff: [
+                  '@@ -10,2 +10,5 @@',
+                  ' assert.equal(session.authenticated, true);',
+                  '+assert.equal(session.twoFactorVerified, true);'
+                ]
+              }
+            ]
+          },
+          {
+            hash: '98afcfd',
+            ref: '',
+            subject: 'feat: quét đa tầng các kho Git con bên trong dự án đang mở',
+            author: 'Duy Hung',
+            date: 'Hôm qua',
+            files: [
+              {
+                path: 'src/server.js',
+                status: 'M',
+                diff: [
+                  '@@ -35,5 +35,8 @@',
+                  '-const repos = [scanRootRepo(workspaceRoot)];',
+                  '+const repos = scanWorkspaceGitRepos(workspaceRoot, { maxDepth: 5 });',
+                  '+logger.info(`Found ${repos.length} git repositories`);'
+                ]
+              },
+              {
+                path: 'docs/README.md',
+                status: 'M',
+                diff: [
+                  '@@ -1,3 +1,5 @@',
+                  ' # HugCode Documentation',
+                  '+## Quản lý Git đa tầng',
+                  '+Hỗ trợ theo dõi đồng thời repo gốc và các sub-repo.'
+                ]
+              }
+            ]
+          },
+          {
+            hash: '7c4e210',
+            ref: '',
+            subject: 'refactor: chuẩn hóa giao diện monochrome tối giản cho thanh công cụ',
+            author: 'Duy Hung',
+            date: '3 ngày trước',
+            files: [
+              {
+                path: 'src/styles/theme.css',
+                status: 'M',
+                diff: [
+                  '@@ -12,4 +12,4 @@',
+                  '-  --surface-card: #1e293b;',
+                  '+  --surface-card: #181818;'
+                ]
+              },
+              {
+                path: 'src/components/BottomDock.vue',
+                status: 'M',
+                diff: [
+                  '@@ -24,3 +24,4 @@',
+                  ' .dock-item.active::after {',
+                  '+  height: 2px;',
+                  ' }'
+                ]
+              }
+            ]
+          }
+        ],
+        'repo-core-sdk': [
+          {
+            hash: 'e51a904',
+            ref: 'HEAD -> feat/stream-parser',
+            subject: 'feat: bổ sung bộ phân tích luồng dữ liệu thời gian thực',
+            author: 'Duy Hung',
+            date: '35 phút trước',
+            files: [
+              {
+                path: 'src/parser.ts',
+                status: 'M',
+                diff: [
+                  '@@ -40,4 +40,8 @@',
+                  '-export function decodeChunk(buf: Uint8Array) {',
+                  '+export function decodeChunk(buf: Uint8Array, encoding = "utf-8") {',
+                  '+  return new TextDecoder(encoding).decode(buf);'
+                ]
+              },
+              {
+                path: 'package.json',
+                status: 'M',
+                diff: [
+                  '@@ -2,4 +2,4 @@',
+                  '-  "version": "2.0.9",',
+                  '+  "version": "2.1.0",'
+                ]
+              }
+            ]
+          },
+          {
+            hash: 'b82d119',
+            ref: 'origin/main',
+            subject: 'fix: xử lý đóng kết nối an toàn khi kênh truyền bị ngắt',
+            author: 'Duy Hung',
+            date: '2 ngày trước',
+            files: [
+              {
+                path: 'src/parser.ts',
+                status: 'M',
+                diff: [
+                  '@@ -11,2 +11,5 @@',
+                  '+if (stream.destroyed) return null;'
+                ]
+              }
+            ]
+          }
+        ],
+        'repo-auth-worker': [
+          {
+            hash: '3f92c81',
+            ref: 'HEAD -> main, origin/main',
+            subject: 'security: xoay vòng khóa ký phiên tự động mỗi 24 giờ',
+            author: 'Duy Hung',
+            date: '4 giờ trước',
+            files: [
+              {
+                path: 'src/tokenSigner.ts',
+                status: 'M',
+                diff: [
+                  '@@ -14,3 +14,5 @@',
+                  '-const KEY_TTL_HOURS = 72;',
+                  '+const KEY_TTL_HOURS = 24;'
+                ]
+              },
+              {
+                path: 'src/keyStore.ts',
+                status: 'A',
+                diff: [
+                  '@@ -0,0 +1,4 @@',
+                  '+export function rotateSigningKey() {',
+                  '+  return crypto.randomBytes(32).toString("hex");',
+                  '+}'
+                ]
+              }
+            ]
+          }
+        ],
+        'repo-native-bridge': [
+          {
+            hash: 'a904d2e',
+            ref: 'HEAD -> fix/webview-bridge',
+            subject: 'fix: giải phóng bộ nhớ đệm âm thanh sau khi chuyển giọng nói thành văn bản',
+            author: 'Duy Hung',
+            date: '1 ngày trước',
+            files: [
+              {
+                path: 'ios/Bridge.swift',
+                status: 'M',
+                diff: [
+                  '@@ -8,3 +8,5 @@',
+                  ' func stopRecording() {',
+                  '+  audioSession.setActive(false)',
+                  ' }'
+                ]
+              },
+              {
+                path: 'android/BridgeModule.kt',
+                status: 'M',
+                diff: [
+                  '@@ -12,2 +12,4 @@',
+                  '+recorder.release()'
+                ]
+              }
+            ]
+          }
+        ],
+        'repo-ci-agent': [
+          {
+            hash: 'd1178a3',
+            ref: 'HEAD -> chore/docker-runner',
+            subject: 'chore: tối ưu thời gian khởi tạo container kiểm thử tự động',
+            author: 'Duy Hung',
+            date: '3 ngày trước',
+            files: [
+              {
+                path: 'entrypoint.sh',
+                status: 'M',
+                diff: [
+                  '@@ -1,3 +1,5 @@',
+                  ' #!/usr/bin/env bash',
+                  '+export DOCKER_BUILDKIT=1'
+                ]
+              }
+            ]
+          }
+        ]
+      };
+
+      function ensureRepoCommitHistory(repo) {
+        if (!repo) return [];
+        if (!Array.isArray(repo.commits) || repo.commits.length === 0) {
+          const preset = defaultCommitsByRepoId[repo.id];
+          if (preset) {
+            repo.commits = JSON.parse(JSON.stringify(preset));
+          } else {
+            const samplePath = repo.files?.[0]?.path || 'src/index.ts';
+            repo.commits = [
+              {
+                hash: '8c24f1a',
+                ref: `HEAD -> ${repo.branch || 'main'}`,
+                subject: `feat: cập nhật cấu hình và luồng xử lý cho ${repo.name}`,
+                author: 'Duy Hung',
+                date: '1 giờ trước',
+                files: [
+                  {
+                    path: samplePath,
+                    status: 'M',
+                    diff: [
+                      '@@ -1,4 +1,6 @@',
+                      ' // Module initialization',
+                      '-export const READY = false;',
+                      '+export const READY = true;',
+                      '+export const UPDATED_AT = "2026-11-09";'
+                    ]
+                  },
+                  {
+                    path: 'README.md',
+                    status: 'M',
+                    diff: [
+                      '@@ -5,2 +5,4 @@',
+                      '+Bổ sung tài liệu hướng dẫn vận hành và kiểm thử.'
+                    ]
+                  }
+                ]
+              },
+              {
+                hash: '5a19e0b',
+                ref: 'origin/main',
+                subject: `chore: khởi tạo cấu trúc kho mã nguồn ${repo.name}`,
+                author: 'Duy Hung',
+                date: '3 ngày trước',
+                files: [
+                  {
+                    path: samplePath,
+                    status: 'A',
+                    diff: [
+                      '@@ -0,0 +1,4 @@',
+                      '+// Initial module entry',
+                      '+export const READY = false;'
+                    ]
+                  }
+                ]
+              }
+            ];
+          }
+        }
+        return repo.commits;
+      }
+
+      function recordNewCommitInHistory(repo, message, committedFiles) {
+        const commits = ensureRepoCommitHistory(repo);
+        const newHash = Math.random().toString(16).slice(2, 9);
+        commits.forEach(c => {
+          if (c.ref && c.ref.includes('HEAD ->')) {
+            c.ref = c.ref.replace(/HEAD -> [^,]+,?\s*/, '').trim();
+          }
+        });
+        const recordedFiles = committedFiles.map(f => ({
+          path: f.path,
+          status: f.status === '??' ? 'A' : (f.status || 'M'),
+          diff: Array.isArray(f.diff) && f.diff.length > 0
+            ? [...f.diff]
+            : ['@@ -1,2 +1,3 @@', `+Cập nhật ${f.path} trong commit: ${message}`]
+        }));
+        commits.unshift({
+          hash: newHash,
+          ref: `HEAD -> ${repo.branch || 'main'}`,
+          subject: message,
+          author: 'Duy Hung',
+          date: 'Vừa xong',
+          files: recordedFiles
+        });
+        activeGitCommitHashByRepo[repo.id] = newHash;
+        activeGitCommitFilePath = recordedFiles[0]?.path || '';
+      }
 
       function getCurrentProjectGitRepos() {
         const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
@@ -8140,6 +8811,8 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             card.addEventListener('click', () => {
               activeGitRepoIdByProject[proj?.id || 'proj-hugcode'] = repo.id;
               activeGitDiffFilePath = repo.files[0]?.path || '';
+              gitWorkingMobileStep = 'files';
+              gitHistoryMobileStep = 'commits';
               renderGitScreen();
               renderQuickGit();
               if (window.matchMedia('(max-width: 860px)').matches) setMobileGitDetail(true);
@@ -8207,9 +8880,22 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
                 <span class="git-file-path" title="${escapeHtml(file.path)}">${escapeHtml(file.path)}</span>
                 <span class="quick-git-depth-tag git-file-stage">${file.staged ? 'Đã stage' : 'Chưa stage'}</span>
                 <span class="git-file-stats" aria-label="${additions} dòng thêm, ${deletions} dòng xóa"><span class="plus">+${additions}</span><span class="minus">-${deletions}</span></span>
+                <button type="button" class="quick-git-filter-btn git-track-file-btn" data-working-track-file="${escapeHtml(file.path)}" title="Xem lịch sử các commit đã thay đổi tệp này">Lịch sử tệp</button>
               `;
-              row.addEventListener('click', () => {
+              row.addEventListener('click', (ev) => {
+                const trackBtn = ev.target.closest('[data-working-track-file]');
+                if (trackBtn) {
+                  ev.stopPropagation();
+                  activeGitHistoryFileFilter = file.path;
+                  activeGitCommitFilePath = file.path;
+                  gitDetailViewMode = 'history';
+                  gitHistoryMobileStep = 'commits';
+                  renderGitScreen();
+                  showToast(`Đang lọc lịch sử commit của tệp ${file.path}`, 'info');
+                  return;
+                }
                 activeGitDiffFilePath = file.path;
+                gitWorkingMobileStep = 'diff';
                 renderGitScreen();
               });
               fileListEl.append(row);
@@ -8231,6 +8917,310 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
             diffBody.append(div);
           });
         }
+
+        // --- Render Mode Tabs (Working Tree / Commit History) ---
+        const workingSection = document.getElementById('git-working-tree-section');
+        const historySection = document.getElementById('git-history-section');
+        const modeSummaryEl = document.getElementById('git-detail-mode-summary');
+        const modeWorkingBtn = document.getElementById('git-mode-working');
+        const modeHistoryBtn = document.getElementById('git-mode-history');
+
+        if (modeWorkingBtn) modeWorkingBtn.classList.toggle('active', gitDetailViewMode === 'working');
+        if (modeHistoryBtn) modeHistoryBtn.classList.toggle('active', gitDetailViewMode === 'history');
+
+        if (workingSection) {
+          workingSection.style.display = gitDetailViewMode === 'history' ? 'none' : '';
+          workingSection.setAttribute('data-mobile-step', gitWorkingMobileStep);
+        }
+        if (historySection) {
+          historySection.style.display = gitDetailViewMode === 'working' ? 'none' : '';
+          historySection.setAttribute('data-mobile-step', gitHistoryMobileStep);
+        }
+
+        // --- Render Git Commit History & Changed Files per Commit ---
+        const allCommits = ensureRepoCommitHistory(activeRepo);
+        if (modeSummaryEl) {
+          modeSummaryEl.textContent = `${activeRepo.files.length} tệp đang sửa · ${allCommits.length} commit trong lịch sử`;
+        }
+
+        const historyBranchBadge = document.getElementById('git-history-branch-badge');
+        if (historyBranchBadge) historyBranchBadge.textContent = `nhánh ${activeRepo.branch}`;
+        const historyCountBadge = document.getElementById('git-history-count-badge');
+        if (historyCountBadge) historyCountBadge.textContent = `${allCommits.length} commit`;
+
+        // Collect all unique file paths across commits of active repo
+        const historyFilePaths = [];
+        allCommits.forEach(c => {
+          (c.files || []).forEach(f => {
+            if (f.path && !historyFilePaths.includes(f.path)) {
+              historyFilePaths.push(f.path);
+            }
+          });
+        });
+        if (activeGitHistoryFileFilter && !historyFilePaths.includes(activeGitHistoryFileFilter)) {
+          activeGitHistoryFileFilter = '';
+        }
+
+        const historyFileSelect = document.getElementById('git-history-file-select');
+        if (historyFileSelect) {
+          historyFileSelect.replaceChildren();
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.textContent = `Tất cả tệp trong lịch sử · ${historyFilePaths.length} tệp`;
+          historyFileSelect.append(defaultOpt);
+          historyFilePaths.forEach(fp => {
+            const opt = document.createElement('option');
+            const touchCount = allCommits.filter(c => (c.files || []).some(f => f.path === fp)).length;
+            opt.value = fp;
+            opt.textContent = `${fp} · ${touchCount} commit`;
+            opt.selected = fp === activeGitHistoryFileFilter;
+            historyFileSelect.append(opt);
+          });
+        }
+
+        const trackedPill = document.getElementById('git-history-tracked-pill');
+        const trackedFileName = document.getElementById('git-history-tracked-file-name');
+        if (trackedPill && trackedFileName) {
+          if (activeGitHistoryFileFilter) {
+            trackedPill.hidden = false;
+            trackedFileName.textContent = `Đang theo dõi: ${activeGitHistoryFileFilter}`;
+          } else {
+            trackedPill.hidden = true;
+          }
+        }
+
+        const q = activeGitHistorySearchQuery.trim().toLowerCase();
+        const filteredCommits = allCommits.filter(commit => {
+          if (activeGitHistoryFileFilter) {
+            const hasTrackedFile = (commit.files || []).some(f => f.path === activeGitHistoryFileFilter);
+            if (!hasTrackedFile) return false;
+          }
+          if (!q) return true;
+          const matchHash = (commit.hash || '').toLowerCase().includes(q);
+          const matchSubject = (commit.subject || '').toLowerCase().includes(q);
+          const matchAuthor = (commit.author || '').toLowerCase().includes(q);
+          const matchFile = (commit.files || []).some(f => (f.path || '').toLowerCase().includes(q));
+          return matchHash || matchSubject || matchAuthor || matchFile;
+        });
+
+        const filteredCountEl = document.getElementById('git-history-filtered-count');
+        if (filteredCountEl) {
+          filteredCountEl.textContent = `${filteredCommits.length}/${allCommits.length} commit`;
+        }
+
+        let selectedCommitHash = activeGitCommitHashByRepo[activeRepo.id];
+        let selectedCommit = filteredCommits.find(c => c.hash === selectedCommitHash) || filteredCommits[0] || null;
+        if (selectedCommit) {
+          activeGitCommitHashByRepo[activeRepo.id] = selectedCommit.hash;
+        }
+
+        const commitListEl = document.getElementById('git-history-commit-list');
+        if (commitListEl) {
+          commitListEl.replaceChildren();
+          if (filteredCommits.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.padding = '16px 12px';
+            empty.style.color = '#9e9e9e';
+            empty.style.fontSize = '12px';
+            empty.textContent = 'Không tìm thấy commit nào khớp bộ lọc.';
+            commitListEl.append(empty);
+          } else {
+            filteredCommits.forEach(commit => {
+              const isSelected = selectedCommit && commit.hash === selectedCommit.hash;
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'git-commit-row' + (isSelected ? ' active' : '');
+              btn.setAttribute('data-commit-hash', commit.hash);
+              btn.setAttribute('aria-selected', String(Boolean(isSelected)));
+
+              let totalAdd = 0;
+              let totalDel = 0;
+              (commit.files || []).forEach(f => {
+                totalAdd += (f.diff || []).filter(line => line.startsWith('+') && !line.startsWith('+++')).length;
+                totalDel += (f.diff || []).filter(line => line.startsWith('-') && !line.startsWith('---')).length;
+              });
+
+              const refHtml = commit.ref
+                ? `<span class="git-commit-ref">${escapeHtml(commit.ref)}</span>`
+                : '';
+
+              btn.innerHTML = `
+                <span class="git-commit-timeline" aria-hidden="true">
+                  <span class="git-commit-dot"></span>
+                  <span class="git-commit-line"></span>
+                </span>
+                <span class="git-commit-main">
+                  <span class="git-commit-top">
+                    <span class="git-commit-sha">${escapeHtml(commit.hash)}</span>
+                    ${refHtml}
+                    <span class="git-commit-date">${escapeHtml(commit.date || '')}</span>
+                  </span>
+                  <span class="git-commit-subject">${escapeHtml(commit.subject)}</span>
+                  <span class="git-commit-meta">
+                    <span><i class="ri-user-3-line"></i> ${escapeHtml(commit.author || 'Duy Hung')}</span>
+                    <span>·</span>
+                    <span>${(commit.files || []).length} tệp thay đổi</span>
+                    <span class="git-file-stats"><span class="plus">+${totalAdd}</span><span class="minus">-${totalDel}</span></span>
+                  </span>
+                </span>
+              `;
+              btn.addEventListener('click', () => {
+                activeGitCommitHashByRepo[activeRepo.id] = commit.hash;
+                if (activeGitHistoryFileFilter && (commit.files || []).some(f => f.path === activeGitHistoryFileFilter)) {
+                  activeGitCommitFilePath = activeGitHistoryFileFilter;
+                } else if (!(commit.files || []).some(f => f.path === activeGitCommitFilePath)) {
+                  activeGitCommitFilePath = commit.files?.[0]?.path || '';
+                }
+                gitHistoryMobileStep = 'files';
+                renderGitScreen();
+              });
+              commitListEl.append(btn);
+            });
+          }
+        }
+
+        const commitDetailSubject = document.getElementById('git-commit-detail-subject');
+        const commitDetailSha = document.getElementById('git-commit-detail-sha');
+        const commitDetailAuthor = document.getElementById('git-commit-detail-author');
+        const commitDetailTime = document.getElementById('git-commit-detail-time');
+        const commitDetailStats = document.getElementById('git-commit-detail-stats');
+        const commitFilesCount = document.getElementById('git-commit-files-count');
+        const commitFileListEl = document.getElementById('git-commit-file-list');
+        const commitDiffFilename = document.getElementById('git-commit-diff-filename');
+        const commitDiffBody = document.getElementById('git-commit-diff-body');
+        const viewAllDiffBtn = document.getElementById('git-commit-view-all-diff-btn');
+
+        if (viewAllDiffBtn) {
+          viewAllDiffBtn.classList.toggle('active', gitCommitViewAllFilesDiff);
+        }
+
+        if (!selectedCommit) {
+          if (commitDetailSubject) commitDetailSubject.textContent = 'Không có commit nào khớp bộ lọc';
+          if (commitDetailSha) commitDetailSha.textContent = '---';
+          if (commitDetailAuthor) commitDetailAuthor.textContent = '---';
+          if (commitDetailTime) commitDetailTime.textContent = '---';
+          if (commitDetailStats) commitDetailStats.textContent = '0 tệp';
+          if (commitFilesCount) commitFilesCount.textContent = '0 tệp';
+          if (commitFileListEl) commitFileListEl.replaceChildren();
+          if (commitDiffFilename) commitDiffFilename.textContent = 'Chưa chọn commit';
+          if (commitDiffBody) {
+            commitDiffBody.replaceChildren();
+            const div = document.createElement('div');
+            div.className = 'git-diff-line';
+            div.textContent = '// Chọn một commit để xem danh sách tệp thay đổi và chi tiết Diff';
+            commitDiffBody.append(div);
+          }
+        } else {
+          const cFiles = selectedCommit.files || [];
+          let sumAdd = 0;
+          let sumDel = 0;
+          cFiles.forEach(f => {
+            sumAdd += (f.diff || []).filter(line => line.startsWith('+') && !line.startsWith('+++')).length;
+            sumDel += (f.diff || []).filter(line => line.startsWith('-') && !line.startsWith('---')).length;
+          });
+
+          if (commitDetailSubject) commitDetailSubject.textContent = selectedCommit.subject;
+          if (commitDetailSha) commitDetailSha.textContent = selectedCommit.hash;
+          if (commitDetailAuthor) commitDetailAuthor.innerHTML = `<i class="ri-user-3-line"></i> ${escapeHtml(selectedCommit.author || 'Duy Hung')}`;
+          if (commitDetailTime) commitDetailTime.textContent = selectedCommit.date || '';
+          if (commitDetailStats) commitDetailStats.textContent = `${cFiles.length} tệp thay đổi · +${sumAdd} -${sumDel}`;
+          if (commitFilesCount) commitFilesCount.textContent = `${cFiles.length} tệp`;
+
+          if (activeGitHistoryFileFilter && cFiles.some(f => f.path === activeGitHistoryFileFilter)) {
+            if (!activeGitCommitFilePath || !cFiles.some(f => f.path === activeGitCommitFilePath)) {
+              activeGitCommitFilePath = activeGitHistoryFileFilter;
+            }
+          } else if (!activeGitCommitFilePath || !cFiles.some(f => f.path === activeGitCommitFilePath)) {
+            activeGitCommitFilePath = cFiles[0]?.path || '';
+          }
+
+          if (commitFileListEl) {
+            commitFileListEl.replaceChildren();
+            cFiles.forEach(cFile => {
+              const isFileActive = !gitCommitViewAllFilesDiff && cFile.path === activeGitCommitFilePath;
+              const isFileTracked = activeGitHistoryFileFilter === cFile.path;
+              const row = document.createElement('div');
+              row.className = 'git-file-row git-commit-file-row' + (isFileActive ? ' active' : '');
+              row.setAttribute('data-commit-file-path', cFile.path);
+              const stClass = cFile.status === 'A'
+                ? 'added'
+                : cFile.status === 'D'
+                ? 'deleted'
+                : 'modified';
+              const fAdd = (cFile.diff || []).filter(line => line.startsWith('+') && !line.startsWith('+++')).length;
+              const fDel = (cFile.diff || []).filter(line => line.startsWith('-') && !line.startsWith('---')).length;
+
+              row.innerHTML = `
+                <span class="status ${stClass}">${escapeHtml(cFile.status || 'M')}</span>
+                <span class="git-file-path" title="${escapeHtml(cFile.path)}">${escapeHtml(cFile.path)}</span>
+                <span class="git-file-stats"><span class="plus">+${fAdd}</span><span class="minus">-${fDel}</span></span>
+                <button type="button" class="quick-git-filter-btn git-track-file-btn${isFileTracked ? ' active' : ''}" data-commit-track-file="${escapeHtml(cFile.path)}">
+                  ${isFileTracked ? 'Đang theo dõi' : 'Theo dõi tệp'}
+                </button>
+              `;
+              row.addEventListener('click', (ev) => {
+                const trackBtn = ev.target.closest('[data-commit-track-file]');
+                if (trackBtn) {
+                  ev.stopPropagation();
+                  if (activeGitHistoryFileFilter === cFile.path) {
+                    activeGitHistoryFileFilter = '';
+                    showToast(`Đã bỏ lọc theo tệp ${cFile.path}`, 'info');
+                  } else {
+                    activeGitHistoryFileFilter = cFile.path;
+                    activeGitCommitFilePath = cFile.path;
+                    gitCommitViewAllFilesDiff = false;
+                    gitHistoryMobileStep = 'commits';
+                    showToast(`Đang lọc các commit thay đổi tệp ${cFile.path}`, 'info');
+                  }
+                  renderGitScreen();
+                  return;
+                }
+                gitCommitViewAllFilesDiff = false;
+                activeGitCommitFilePath = cFile.path;
+                gitHistoryMobileStep = 'diff';
+                renderGitScreen();
+              });
+              commitFileListEl.append(row);
+            });
+          }
+
+          if (commitDiffBody) {
+            commitDiffBody.replaceChildren();
+            if (gitCommitViewAllFilesDiff) {
+              if (commitDiffFilename) {
+                commitDiffFilename.textContent = `Tất cả ${cFiles.length} tệp @ ${selectedCommit.hash}`;
+              }
+              cFiles.forEach(cFile => {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'git-diff-line';
+                headerDiv.style.fontWeight = '700';
+                headerDiv.style.color = '#e8e8e8';
+                headerDiv.textContent = `=== [${cFile.status || 'M'}] ${cFile.path} ===`;
+                commitDiffBody.append(headerDiv);
+                (cFile.diff || []).forEach(line => {
+                  const div = document.createElement('div');
+                  div.className = 'git-diff-line' + (line.startsWith('+') ? ' diff-add' : line.startsWith('-') ? ' diff-del' : '');
+                  div.textContent = line;
+                  commitDiffBody.append(div);
+                });
+              });
+            } else {
+              const targetCommitFile = cFiles.find(f => f.path === activeGitCommitFilePath) || cFiles[0];
+              if (commitDiffFilename) {
+                commitDiffFilename.textContent = targetCommitFile
+                  ? `${targetCommitFile.path} @ ${selectedCommit.hash}`
+                  : `Commit ${selectedCommit.hash}`;
+              }
+              const diffLines = targetCommitFile?.diff || ['// Không có dữ liệu diff cho tệp này'];
+              diffLines.forEach(line => {
+                const div = document.createElement('div');
+                div.className = 'git-diff-line' + (line.startsWith('+') ? ' diff-add' : line.startsWith('-') ? ' diff-del' : '');
+                div.textContent = line;
+                commitDiffBody.append(div);
+              });
+            }
+          }
+        }
         updateGitHeaderAndDockBadges();
       }
 
@@ -8250,7 +9240,9 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
       document.getElementById('quick-git-commit').addEventListener('click', () => {
         const repo = getActiveGitRepo();
         const message = quickGitMessage.value.trim();
-        if (!repo || !message || !repo.files.some(file => file.staged)) return;
+        const stagedFiles = repo ? repo.files.filter(file => file.staged) : [];
+        if (!repo || !message || !stagedFiles.length) return;
+        recordNewCommitInHistory(repo, message, stagedFiles);
         repo.files = repo.files.filter(file => !file.staged);
         quickGitMessage.value = '';
         renderQuickGit(); renderGitScreen(); showQuickGitFeedback(`Đã commit vào ${repo.name}: ${message}`);
@@ -8317,11 +9309,84 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           if (!repo.files.some(f => f.staged)) {
             repo.files.forEach(f => { f.staged = true; });
           }
+          const stagedFiles = repo.files.filter(f => f.staged);
+          recordNewCommitInHistory(repo, msg, stagedFiles);
           repo.files = repo.files.filter(f => !f.staged);
           if (input) input.value = '';
           renderGitScreen();
           renderQuickGit();
           showToast(`Đã commit vào repo ${repo.name}: ${msg}`, 'success');
+        });
+      }
+      ['git-mode-working', 'git-mode-history'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('click', () => {
+            gitDetailViewMode = el.getAttribute('data-git-mode') || 'working';
+            gitWorkingMobileStep = 'files';
+            gitHistoryMobileStep = 'commits';
+            renderGitScreen();
+          });
+        }
+      });
+      document.getElementById('git-working-mobile-back-files')?.addEventListener('click', () => {
+        gitWorkingMobileStep = 'files';
+        renderGitScreen();
+      });
+      document.getElementById('git-history-mobile-back-commits')?.addEventListener('click', () => {
+        gitHistoryMobileStep = 'commits';
+        renderGitScreen();
+      });
+      document.getElementById('git-history-mobile-back-files')?.addEventListener('click', () => {
+        gitHistoryMobileStep = 'files';
+        renderGitScreen();
+      });
+      const gitHistoryFileSelect = document.getElementById('git-history-file-select');
+      if (gitHistoryFileSelect) {
+        gitHistoryFileSelect.addEventListener('change', () => {
+          activeGitHistoryFileFilter = gitHistoryFileSelect.value || '';
+          if (activeGitHistoryFileFilter) {
+            activeGitCommitFilePath = activeGitHistoryFileFilter;
+            gitCommitViewAllFilesDiff = false;
+          }
+          gitHistoryMobileStep = 'commits';
+          renderGitScreen();
+        });
+      }
+      const gitHistoryClearFileBtn = document.getElementById('git-history-clear-file-filter');
+      if (gitHistoryClearFileBtn) {
+        gitHistoryClearFileBtn.addEventListener('click', () => {
+          activeGitHistoryFileFilter = '';
+          gitHistoryMobileStep = 'commits';
+          renderGitScreen();
+        });
+      }
+      const gitHistorySearchInput = document.getElementById('git-history-search-input');
+      if (gitHistorySearchInput) {
+        gitHistorySearchInput.addEventListener('input', () => {
+          activeGitHistorySearchQuery = gitHistorySearchInput.value || '';
+          gitHistoryMobileStep = 'commits';
+          renderGitScreen();
+        });
+      }
+      const gitCommitViewAllDiffBtn = document.getElementById('git-commit-view-all-diff-btn');
+      if (gitCommitViewAllDiffBtn) {
+        gitCommitViewAllDiffBtn.addEventListener('click', () => {
+          gitCommitViewAllFilesDiff = !gitCommitViewAllFilesDiff;
+          if (gitCommitViewAllFilesDiff) {
+            gitHistoryMobileStep = 'diff';
+          }
+          renderGitScreen();
+        });
+      }
+      const gitCopyCommitShaBtn = document.getElementById('git-copy-commit-sha-btn');
+      if (gitCopyCommitShaBtn) {
+        gitCopyCommitShaBtn.addEventListener('click', () => {
+          const sha = document.getElementById('git-commit-detail-sha')?.textContent?.trim();
+          if (sha && sha !== '---') {
+            navigator.clipboard?.writeText(sha).catch(() => {});
+            showToast(`Đã sao chép mã commit ${sha}`, 'success');
+          }
         });
       }
       ['git-detail-pull-btn', 'git-detail-push-btn'].forEach(id => {
@@ -8332,6 +9397,73 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           showToast(`Đã thực hiện ${act} trên repo ${repo?.name || ''}`, 'info');
         });
       });
+
+      // --- Resizable Columns for Git View (persisted in localStorage) ---
+      const GIT_COL_STORAGE_KEY = 'hugremote_git_col_widths';
+      const defaultGitColWidths = {
+        repos: 280,
+        workingFiles: 360,
+        historyCommits: 340,
+        historyFiles: 290,
+      };
+      let gitColWidths = { ...defaultGitColWidths };
+      try {
+        const rawSaved = localStorage.getItem(GIT_COL_STORAGE_KEY);
+        if (rawSaved) {
+          const parsed = JSON.parse(rawSaved);
+          if (parsed && typeof parsed === 'object') {
+            gitColWidths = { ...defaultGitColWidths, ...parsed };
+          }
+        }
+      } catch {}
+
+      function applyGitColWidths() {
+        const viewGitEl = document.getElementById('view-git');
+        if (!viewGitEl) return;
+        viewGitEl.style.setProperty('--git-repos-col-width', `${gitColWidths.repos}px`);
+        viewGitEl.style.setProperty('--git-working-files-col-width', `${gitColWidths.workingFiles}px`);
+        viewGitEl.style.setProperty('--git-history-commits-col-width', `${gitColWidths.historyCommits}px`);
+        viewGitEl.style.setProperty('--git-history-files-col-width', `${gitColWidths.historyFiles}px`);
+      }
+
+      function saveGitColWidths() {
+        try {
+          localStorage.setItem(GIT_COL_STORAGE_KEY, JSON.stringify(gitColWidths));
+        } catch {}
+      }
+
+      function bindGitColumnResizer(resizerId, key, minPx, maxPx, getStartWidth) {
+        const handle = document.getElementById(resizerId);
+        if (!handle) return;
+        handle.addEventListener('mousedown', (startEv) => {
+          startEv.preventDefault();
+          const startX = startEv.clientX;
+          const initialWidth = getStartWidth();
+          handle.classList.add('is-dragging');
+          document.body.classList.add('quick-tree-dragging');
+          const onMove = (moveEv) => {
+            const delta = moveEv.clientX - startX;
+            const nextWidth = Math.max(minPx, Math.min(maxPx, Math.round(initialWidth + delta)));
+            gitColWidths[key] = nextWidth;
+            applyGitColWidths();
+          };
+          const onUp = () => {
+            handle.classList.remove('is-dragging');
+            document.body.classList.remove('quick-tree-dragging');
+            saveGitColWidths();
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+          };
+          window.addEventListener('mousemove', onMove);
+          window.addEventListener('mouseup', onUp);
+        });
+      }
+
+      applyGitColWidths();
+      bindGitColumnResizer('git-resizer-repos', 'repos', 180, 520, () => gitColWidths.repos);
+      bindGitColumnResizer('git-resizer-working-files', 'workingFiles', 220, 720, () => gitColWidths.workingFiles);
+      bindGitColumnResizer('git-resizer-history-commits', 'historyCommits', 220, 640, () => gitColWidths.historyCommits);
+      bindGitColumnResizer('git-resizer-history-files', 'historyFiles', 190, 560, () => gitColWidths.historyFiles);
 
       function setQuickPanelMode(mode) {
         quickPanelMode = mode;
@@ -13197,6 +14329,162 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
           if (lblEl) lblEl.textContent = 'Cập nhật nhanh';
           btnQuickUpdate.classList.remove('active');
           showToast('Đã cập nhật thành công lên v1.6.8', 'success');
+        });
+      }
+
+      // --- OIDC SSO Configuration in Settings View ---
+      const btnToggleOidcSetup = document.getElementById('btn-toggle-oidc-setup');
+      const oidcPanel = document.getElementById('settings-oidc-panel');
+      const oidcLabelSpan = document.getElementById('btn-toggle-oidc-label');
+      const oidcSettingMode = document.getElementById('oidc-setting-mode');
+      const oidcSettingIssuer = document.getElementById('oidc-setting-issuer');
+      const oidcSettingClientId = document.getElementById('oidc-setting-client-id');
+      const oidcSettingClientSecret = document.getElementById('oidc-setting-client-secret');
+      const oidcSettingEmails = document.getElementById('oidc-setting-emails');
+      const oidcSettingLabel = document.getElementById('oidc-setting-label');
+      const oidcFeedback = document.getElementById('oidc-setting-feedback');
+      const btnOidcDiscover = document.getElementById('btn-oidc-discover-test');
+      const btnSaveOidc = document.getElementById('btn-save-oidc-settings');
+      const oidcStatusBadge = document.getElementById('oidc-status-badge');
+      const oidcModeBadge = document.getElementById('oidc-mode-badge');
+      const oidcSummaryText = document.getElementById('oidc-summary-text');
+
+      const oidcPresets = {
+        generic: {
+          mode: 'both',
+          issuer: 'https://auth.company.com',
+          clientId: 'hugremote-client',
+          secret: 'sec_generic_abc123',
+          emails: 'admin@company.com, dev@company.com',
+          label: 'Tiếp tục với Single Sign-On · OIDC',
+        },
+        keycloak: {
+          mode: 'both',
+          issuer: 'https://sso.company.com/realms/corp-dev',
+          clientId: 'hugremote-web',
+          secret: 'sec_keycloak_xyz987',
+          emails: 'admin@company.com',
+          label: 'Đăng nhập với Keycloak SSO',
+        },
+        authentik: {
+          mode: 'both',
+          issuer: 'https://authentik.company.internal/application/o/hugremote/',
+          clientId: 'hugremote-app',
+          secret: 'sec_authentik_555',
+          emails: 'hungnd@company.internal',
+          label: 'Đăng nhập với Authentik SSO',
+        },
+        okta: {
+          mode: 'both',
+          issuer: 'https://dev-company.okta.com/oauth2/default',
+          clientId: '0oae1234567890',
+          secret: 'sec_okta_777',
+          emails: 'hungnd@oktadomain.com',
+          label: 'Tiếp tục với Okta Verify',
+        },
+        azure: {
+          mode: 'both',
+          issuer: 'https://login.microsoftonline.com/your-tenant-uuid/v2.0',
+          clientId: 'azure-client-uuid',
+          secret: 'sec_azure_333',
+          emails: 'hungnd@microsoft-tenant.com',
+          label: 'Đăng nhập tài khoản Microsoft 365',
+        },
+      };
+
+      // Set current origin callback URL if in browser
+      const oidcCallbackDisplay = document.getElementById('oidc-callback-url-display');
+      const btnCopyOidcCallback = document.getElementById('btn-copy-oidc-callback');
+      if (oidcCallbackDisplay && typeof window !== 'undefined' && window.location && window.location.origin) {
+        oidcCallbackDisplay.value = `${window.location.origin}/auth/oidc/callback`;
+      }
+      if (btnCopyOidcCallback && oidcCallbackDisplay) {
+        btnCopyOidcCallback.addEventListener('click', () => {
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(oidcCallbackDisplay.value).catch(() => {});
+          }
+          showToast('Đã sao chép Callback URL vào clipboard', 'success');
+        });
+      }
+
+      if (btnToggleOidcSetup && oidcPanel) {
+        btnToggleOidcSetup.addEventListener('click', () => {
+          const isOpen = oidcPanel.style.display !== 'none';
+          oidcPanel.style.display = isOpen ? 'none' : 'flex';
+          if (oidcLabelSpan) {
+            oidcLabelSpan.textContent = isOpen ? 'Cài đặt OIDC' : 'Đóng cài đặt';
+          }
+          btnToggleOidcSetup.classList.toggle('active', !isOpen);
+        });
+      }
+
+      ['generic', 'keycloak', 'authentik', 'okta', 'azure'].forEach(key => {
+        const btn = document.getElementById(`btn-oidc-preset-${key}`);
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          ['generic', 'keycloak', 'authentik', 'okta', 'azure'].forEach(k => {
+            document.getElementById(`btn-oidc-preset-${k}`)?.classList.remove('active');
+          });
+          btn.classList.add('active');
+          const p = oidcPresets[key];
+          if (p) {
+            if (oidcSettingMode) oidcSettingMode.value = p.mode;
+            if (oidcSettingIssuer) oidcSettingIssuer.value = p.issuer;
+            if (oidcSettingClientId) oidcSettingClientId.value = p.clientId;
+            if (oidcSettingClientSecret) oidcSettingClientSecret.value = p.secret;
+            if (oidcSettingEmails) oidcSettingEmails.value = p.emails;
+            if (oidcSettingLabel) oidcSettingLabel.value = p.label;
+          }
+          if (oidcFeedback) {
+            oidcFeedback.style.display = 'none';
+          }
+        });
+      });
+
+      if (btnOidcDiscover) {
+        btnOidcDiscover.addEventListener('click', () => {
+          const issuer = oidcSettingIssuer?.value?.trim() || '';
+          if (!issuer) {
+            showToast('Vui lòng nhập OIDC Issuer URL để kiểm tra', 'warning');
+            return;
+          }
+          btnOidcDiscover.disabled = true;
+          btnOidcDiscover.innerHTML = '<i class="ri-loader-4-line spin-anim"></i> Đang kết nối IdP...';
+          setTimeout(() => {
+            btnOidcDiscover.disabled = false;
+            btnOidcDiscover.innerHTML = '<i class="ri-radar-line"></i> Kiểm tra kết nối IdP';
+            if (oidcFeedback) {
+              oidcFeedback.style.display = 'block';
+              oidcFeedback.style.background = 'rgba(34, 197, 94, 0.12)';
+              oidcFeedback.style.border = '1px solid rgba(34, 197, 94, 0.35)';
+              oidcFeedback.style.color = '#86efac';
+              oidcFeedback.innerHTML = `<b>Kết nối thành công!</b> Đã phát hiện OpenID Discovery: Authorization Endpoint, Token Endpoint và Userinfo Endpoint phản hồi hợp lệ.`;
+            }
+            showToast('Đã phát hiện OpenID Discovery hợp lệ từ IdP', 'success');
+          }, 600);
+        });
+      }
+
+      if (btnSaveOidc) {
+        btnSaveOidc.addEventListener('click', () => {
+          const mode = oidcSettingMode?.value || 'none';
+          const issuer = oidcSettingIssuer?.value?.trim() || '';
+          const clientId = oidcSettingClientId?.value?.trim() || '';
+          const isEnabled = mode === 'oidc' || mode === 'both' || mode === 'hybrid';
+
+          if (oidcStatusBadge) {
+            oidcStatusBadge.className = isEnabled ? 'git-repo-count ok' : 'git-repo-count';
+            oidcStatusBadge.textContent = isEnabled ? 'Đang bật' : 'Đang tắt';
+          }
+          if (oidcModeBadge) {
+            oidcModeBadge.textContent = `AUTH_MODE=${mode}`;
+          }
+          if (oidcSummaryText) {
+            oidcSummaryText.textContent = isEnabled
+              ? `OIDC SSO đang kích hoạt qua ${issuer || 'IdP'} · Client ID: ${clientId || 'chưa đặt'}`
+              : 'Cấu hình nhà cung cấp xác thực OpenID Connect như Keycloak, Authentik, Okta, Microsoft Entra ID hoặc Generic OIDC cho HugRemote.';
+          }
+          showToast(`Đã lưu cài đặt OIDC · Chế độ ${mode}`, 'success');
         });
       }
 

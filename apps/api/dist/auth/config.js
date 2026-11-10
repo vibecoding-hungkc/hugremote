@@ -1,11 +1,15 @@
 import crypto from 'crypto';
 import { BASE_PATH } from '../config.js';
-function normalizeMode(value) {
+export function normalizeMode(value) {
     const raw = (value || 'none').toLowerCase().trim();
     if (raw === 'password')
         return 'password';
     if (raw === 'google')
         return 'google';
+    if (raw === 'oidc')
+        return 'oidc';
+    if (raw === 'both' || raw === 'hybrid')
+        return 'both';
     return 'none';
 }
 const ephemeralSecret = crypto.randomBytes(32).toString('hex');
@@ -21,8 +25,17 @@ export const authConfig = {
         .split(',')
         .map((s) => s.trim().toLowerCase())
         .filter(Boolean)),
+    oidcIssuerUrl: (process.env.OIDC_ISSUER_URL || '').trim().replace(/\/+$/, ''),
+    oidcClientId: (process.env.OIDC_CLIENT_ID || '').trim(),
+    oidcClientSecret: (process.env.OIDC_CLIENT_SECRET || '').trim(),
+    oidcAllowedEmails: new Set((process.env.OIDC_ALLOWED_EMAILS || '')
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)),
+    oidcButtonLabel: (process.env.OIDC_BUTTON_LABEL || 'Tiếp tục với Single Sign-On · OIDC').trim(),
     sessionCookie: 'hugremote_session',
     oauthStateCookie: 'hugremote_oauth_state',
+    oidcPkceCookie: 'hugremote_oidc_pkce',
     sessionTtlMs: 1000 * 60 * 60 * 24 * 14,
 };
 export function validateAuthConfig() {
@@ -35,6 +48,16 @@ export function validateAuthConfig() {
         ].filter(Boolean);
         if (missing.length) {
             throw new Error(`AUTH_MODE=google requires ${missing.join(', ')}`);
+        }
+    }
+    if (authConfig.mode === 'oidc') {
+        const missing = [
+            !authConfig.oidcIssuerUrl && 'OIDC_ISSUER_URL',
+            !authConfig.oidcClientId && 'OIDC_CLIENT_ID',
+            !authConfig.oidcClientSecret && 'OIDC_CLIENT_SECRET',
+        ].filter(Boolean);
+        if (missing.length) {
+            throw new Error(`AUTH_MODE=oidc requires ${missing.join(', ')}`);
         }
     }
 }

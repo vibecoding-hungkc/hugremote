@@ -2,7 +2,25 @@
   <div class="auth-gate">
     <div class="auth-card">
       <div class="auth-logo">
-        <div class="auth-logo-mark">🐴</div>
+        <div class="auth-logo-mark">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="34" height="34">
+            <defs>
+              <linearGradient id="gate-logo-bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#1e293b"/>
+                <stop offset="1" stop-color="#090d16"/>
+              </linearGradient>
+              <linearGradient id="gate-logo-code" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#7dd3fc"/>
+                <stop offset="1" stop-color="#38bdf8"/>
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#gate-logo-bg)"/>
+            <rect x="2" y="2" width="60" height="60" rx="15" fill="none" stroke="#334155" stroke-width="2"/>
+            <path d="M24 22 L15 32 L24 42" fill="none" stroke="url(#gate-logo-code)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M40 22 L49 32 L40 42" fill="none" stroke="#d97757" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="36" y1="20" x2="28" y2="44" stroke="#e2e8f0" stroke-width="4.5" stroke-linecap="round"/>
+          </svg>
+        </div>
         <div>
           <h1>HugRemote</h1>
           <p>{{ t('auth.subtitle') }}</p>
@@ -82,7 +100,7 @@
         </button>
       </div>
 
-      <div v-else-if="auth.mode === 'password'" class="auth-form" @keyup.enter="submitPassword">
+      <div v-else-if="auth.mode === 'password' || auth.mode === 'both'" class="auth-form" @keyup.enter="submitPassword">
         <label class="auth-label" for="auth-password">{{ t('auth.passwordLabel') }}</label>
         <input
           id="auth-password"
@@ -103,6 +121,23 @@
           <span v-if="submitting" class="auth-spinner"></span>
           <span>{{ submitting ? t('auth.unlocking') : t('auth.unlock') }}</span>
         </button>
+
+        <template v-if="auth.mode === 'both'">
+          <div class="auth-divider">
+            <span>{{ t('auth.or') || 'Hoặc' }}</span>
+          </div>
+          <a class="auth-button oidc" :href="auth.oidcLoginUrl()">
+            <i class="ri-shield-user-line"></i>
+            <span>{{ auth.oidcButtonLabel }}</span>
+          </a>
+        </template>
+      </div>
+
+      <div v-else-if="auth.mode === 'oidc'" class="auth-form">
+        <a class="auth-button oidc" :href="auth.oidcLoginUrl()">
+          <i class="ri-shield-user-line"></i>
+          <span>{{ auth.oidcButtonLabel }}</span>
+        </a>
       </div>
 
       <div v-else-if="auth.mode === 'google'" class="auth-form">
@@ -123,6 +158,10 @@
             ? t('auth.twoFactorHint')
             : auth.mode === 'google'
             ? t('auth.googleHint')
+            : auth.mode === 'oidc'
+            ? t('auth.oidcHint')
+            : auth.mode === 'both'
+            ? t('auth.bothHint')
             : t('auth.passwordHint')
         }}
       </p>
@@ -374,6 +413,35 @@ onUnmounted(() => {
 .auth-button.google {
   background: #f8fafc;
   color: #989898;
+}
+
+.auth-button.oidc {
+  background: #262626;
+  color: #eeeeee;
+  border: 1px solid #3d3d3d;
+}
+
+.auth-button.oidc:hover {
+  background: #333333;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #737373;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 4px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #333333;
 }
 
 .must-change-badge {

@@ -23,13 +23,19 @@ function isPublicPath(pathname: string): boolean {
       p === '/api/auth/password' ||
       p === '/api/auth/logout' ||
       p === '/api/auth/change-password' ||
-      p === '/api/auth/2fa/verify'
+      p === '/api/auth/2fa/verify' ||
+      p === '/api/auth/oidc' ||
+      p === '/api/auth/oidc/callback' ||
+      p === '/api/auth/oidc/config' ||
+      p === '/api/auth/oidc/discover'
     );
   }
   return (
     p === '/login' ||
     p === '/auth/google' ||
     p === '/auth/google/callback' ||
+    p === '/auth/oidc' ||
+    p === '/auth/oidc/callback' ||
     p.startsWith('/assets/') ||
     p === '/favicon.ico' ||
     p === '/manifest.webmanifest' ||

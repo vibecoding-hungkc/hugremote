@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { apiUrl, getBasePath } from '../utils/api.js';
 import { useI18nStore } from './i18nStore.js';
 
-type AuthMode = 'none' | 'password' | 'google';
+type AuthMode = 'none' | 'password' | 'google' | 'oidc' | 'both';
 
 interface AuthUser {
   provider: AuthMode;
@@ -22,6 +22,9 @@ export const useAuthStore = defineStore('auth', () => {
   const mustChangePassword = ref(false);
   const twoFactorEnabled = ref(false);
   const requiresTwoFactor = ref(false);
+  const oidcButtonLabel = ref('Tiếp tục với Single Sign-On · OIDC');
+  const oidcConfigured = ref(false);
+  const oidcCallbackUrl = ref('');
   const loading = ref(true);
   const error = ref('');
   const attemptsLeft = ref<number | null>(null);
@@ -48,6 +51,9 @@ export const useAuthStore = defineStore('auth', () => {
       mustChangePassword.value = Boolean(data.mustChangePassword || data.user?.mustChangePassword);
       twoFactorEnabled.value = Boolean(data.twoFactorEnabled);
       requiresTwoFactor.value = Boolean(data.requiresTwoFactor);
+      oidcButtonLabel.value = data.oidcButtonLabel || 'Tiếp tục với Single Sign-On · OIDC';
+      oidcConfigured.value = Boolean(data.oidcConfigured);
+      oidcCallbackUrl.value = data.oidcCallbackUrl || '';
     } catch (_) {
       error.value = i18n.t('auth.cannotReach');
       authenticated.value = false;
@@ -152,6 +158,10 @@ export const useAuthStore = defineStore('auth', () => {
     return `${getBasePath()}/auth/google`;
   }
 
+  function oidcLoginUrl() {
+    return `${getBasePath()}/auth/oidc`;
+  }
+
   return {
     mode,
     authenticated,
@@ -159,6 +169,9 @@ export const useAuthStore = defineStore('auth', () => {
     mustChangePassword,
     twoFactorEnabled,
     requiresTwoFactor,
+    oidcButtonLabel,
+    oidcConfigured,
+    oidcCallbackUrl,
     changePassword,
     verifyTwoFactor,
     loading,
@@ -170,6 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginPassword,
     logout,
     googleLoginUrl,
+    oidcLoginUrl,
   };
 });
 

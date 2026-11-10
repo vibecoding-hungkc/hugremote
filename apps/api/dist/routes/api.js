@@ -1084,6 +1084,42 @@ export const apiRoutes = async (fastify) => {
             return reply.status(400).send({ error: err.message });
         }
     });
+    fastify.get('/api/git/commits', async (request, reply) => {
+        const serverId = request.query.serverId || 'server-local';
+        const target = getGitProject(serverId, request.query.projectId);
+        if ('error' in target)
+            return reply.status(404).send({ error: target.error });
+        const { project, service } = target;
+        try {
+            const { targetPath } = resolveProjectSubpath(project.rootPath, request.query.repoPath, MAX_GIT_SCAN_DEPTH);
+            const limit = request.query.limit ? Number(request.query.limit) : 40;
+            return await service.getCommitHistory(targetPath, {
+                limit,
+                file: request.query.file,
+                search: request.query.search,
+            });
+        }
+        catch (err) {
+            return reply.status(400).send({ error: err.message });
+        }
+    });
+    fastify.get('/api/git/commit-diff', async (request, reply) => {
+        const serverId = request.query.serverId || 'server-local';
+        const target = getGitProject(serverId, request.query.projectId);
+        if ('error' in target)
+            return reply.status(404).send({ error: target.error });
+        const { project, service } = target;
+        const hash = request.query.hash || '';
+        if (!hash.trim())
+            return reply.status(400).send({ error: 'hash is required' });
+        try {
+            const { targetPath } = resolveProjectSubpath(project.rootPath, request.query.repoPath, MAX_GIT_SCAN_DEPTH);
+            return await service.getCommitDiff(targetPath, hash, request.query.file);
+        }
+        catch (err) {
+            return reply.status(400).send({ error: err.message });
+        }
+    });
     fastify.post('/api/claude/limits', async (request) => {
         const updated = claudeService.updateLimits(request.body || {});
         return { success: true, limits: updated };

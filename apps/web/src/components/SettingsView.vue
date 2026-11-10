@@ -202,6 +202,200 @@
       </div>
     </div>
 
+    <!-- OIDC SINGLE SIGN-ON (SSO) SETTINGS CARD -->
+    <div id="settings-oidc-card" class="settings-card settings-oidc-card">
+      <div class="settings-card-header">
+        <div class="settings-card-title-group">
+          <div class="settings-card-title">
+            <i class="ri-shield-user-line" style="color: #38bdf8"></i>
+            <span>Đăng nhập Single Sign-On · OIDC</span>
+            <span
+              id="oidc-status-badge"
+              class="version-status-badge"
+              :class="isOidcEnabled ? 'ok status-indicator' : ''"
+            >
+              {{ isOidcEnabled ? 'Đang bật' : 'Đang tắt' }}
+            </span>
+            <span id="oidc-mode-badge" class="version-code-pill">
+              AUTH_MODE={{ oidcState.mode }}
+            </span>
+          </div>
+          <div id="oidc-summary-text" class="settings-card-desc">
+            {{ oidcSummaryText }}
+          </div>
+        </div>
+
+        <div class="settings-toolbar-row">
+          <button
+            id="btn-toggle-oidc-setup"
+            type="button"
+            class="settings-toggle-pill"
+            :class="{ active: showOidcPanel }"
+            :disabled="oidcBusy"
+            @click="onToggleOidcPanel"
+          >
+            <i class="ri-settings-4-line"></i>
+            <span id="btn-toggle-oidc-label">
+              {{ showOidcPanel ? 'Đóng cài đặt' : 'Cài đặt OIDC' }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- OIDC Setup Form Panel -->
+      <div v-if="showOidcPanel" id="settings-oidc-panel" class="oidc-setup-panel">
+        <div class="oidc-field-group">
+          <label class="oidc-field-label">Chọn mẫu cấu hình nhanh IdP</label>
+          <div class="oidc-presets-row">
+            <button
+              v-for="(p, key) in oidcPresets"
+              :key="key"
+              :id="`btn-oidc-preset-${key}`"
+              type="button"
+              class="settings-preset-btn"
+              :class="{ active: selectedPresetKey === key }"
+              @click="applyOidcPreset(key)"
+            >
+              {{ p.title }}
+            </button>
+          </div>
+        </div>
+
+        <div class="oidc-field-group">
+          <label for="oidc-setting-mode" class="oidc-field-label">Chế độ xác thực · AUTH_MODE</label>
+          <select id="oidc-setting-mode" v-model="oidcForm.mode" class="settings-select">
+            <option value="both">both · Cho phép cả Mật khẩu và OIDC SSO</option>
+            <option value="oidc">oidc · Bắt buộc đăng nhập qua OIDC SSO</option>
+            <option value="password">password · Chỉ dùng mật khẩu nội bộ</option>
+            <option value="none">none · Tắt xác thực</option>
+          </select>
+        </div>
+
+        <!-- OIDC Callback URL Box -->
+        <div class="oidc-callback-box">
+          <div class="oidc-callback-header">
+            <span class="oidc-callback-title">
+              <i class="ri-link"></i>
+              <span>Redirect URI · Callback URL cần đăng ký trên IdP</span>
+            </span>
+            <button
+              id="btn-copy-oidc-callback"
+              type="button"
+              class="settings-reset-btn"
+              @click="copyOidcCallback"
+            >
+              <i class="ri-file-copy-line"></i>
+              <span>Sao chép URL</span>
+            </button>
+          </div>
+          <input
+            id="oidc-callback-url-display"
+            type="text"
+            readonly
+            class="settings-input oidc-callback-input"
+            :value="effectiveCallbackUrl"
+          />
+          <div class="oidc-callback-hint">
+            Dán URL này vào mục <b>Valid Redirect URIs</b> (Keycloak, Authentik) hoặc <b>Sign-in redirect URIs</b> (Azure AD, Okta) khi tạo Client trên IdP.
+          </div>
+        </div>
+
+        <div class="oidc-field-group">
+          <div class="oidc-field-header">
+            <label for="oidc-setting-issuer" class="oidc-field-label">OIDC Issuer URL</label>
+            <button
+              id="btn-oidc-discover-test"
+              type="button"
+              class="settings-reset-btn"
+              :disabled="oidcDiscovering || !oidcForm.issuerUrl.trim()"
+              @click="testOidcDiscover"
+            >
+              <i class="ri-radar-line" :class="{ 'spin-anim': oidcDiscovering }"></i>
+              <span>{{ oidcDiscovering ? 'Đang kiểm tra IdP...' : 'Kiểm tra kết nối IdP' }}</span>
+            </button>
+          </div>
+          <input
+            id="oidc-setting-issuer"
+            v-model="oidcForm.issuerUrl"
+            type="text"
+            class="settings-input"
+            placeholder="https://auth.company.com hoặc Realm URL"
+          />
+        </div>
+
+        <div class="oidc-fields-grid">
+          <div class="oidc-field-group">
+            <label for="oidc-setting-client-id" class="oidc-field-label">Client ID</label>
+            <input
+              id="oidc-setting-client-id"
+              v-model="oidcForm.clientId"
+              type="text"
+              class="settings-input"
+              placeholder="hugremote-client"
+            />
+          </div>
+          <div class="oidc-field-group">
+            <label for="oidc-setting-client-secret" class="oidc-field-label">
+              Client Secret {{ oidcState.hasClientSecret ? '· Đã có secret cũ' : '' }}
+            </label>
+            <input
+              id="oidc-setting-client-secret"
+              v-model="oidcForm.clientSecret"
+              type="password"
+              class="settings-input"
+              :placeholder="oidcState.hasClientSecret ? 'Nhập secret mới nếu muốn thay đổi' : 'Client secret từ IdP'"
+            />
+          </div>
+        </div>
+
+        <div class="oidc-field-group">
+          <label for="oidc-setting-emails" class="oidc-field-label">
+            Danh sách email được phép · OIDC_ALLOWED_EMAILS
+          </label>
+          <input
+            id="oidc-setting-emails"
+            v-model="oidcForm.allowedEmails"
+            type="text"
+            class="settings-input"
+            placeholder="admin@company.com, dev@company.com · Bỏ trống nếu cho phép tất cả email"
+          />
+        </div>
+
+        <div class="oidc-field-group">
+          <label for="oidc-setting-label" class="oidc-field-label">Nhãn hiển thị trên nút đăng nhập</label>
+          <input
+            id="oidc-setting-label"
+            v-model="oidcForm.buttonLabel"
+            type="text"
+            class="settings-input"
+            placeholder="Tiếp tục với Single Sign-On · OIDC"
+          />
+        </div>
+
+        <div
+          v-if="oidcFeedback"
+          id="oidc-setting-feedback"
+          class="oidc-feedback-banner settings-shortcut-notice"
+        >
+          <i :class="oidcFeedback.type === 'ok' ? 'ri-checkbox-circle-line' : 'ri-error-warning-line'"></i>
+          <span>{{ oidcFeedback.message }}</span>
+        </div>
+
+        <div class="oidc-actions-row">
+          <button
+            id="btn-save-oidc-settings"
+            type="button"
+            class="settings-toggle-pill active"
+            :disabled="oidcSaving"
+            @click="saveOidcSettings"
+          >
+            <i :class="oidcSaving ? 'ri-loader-4-line spin-anim' : 'ri-save-line'"></i>
+            <span>{{ oidcSaving ? 'Đang lưu...' : 'Lưu cài đặt OIDC' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="settings-version-card" class="settings-card settings-version-card">
       <div class="settings-card-header">
         <div class="settings-card-title-group">
@@ -370,7 +564,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { apiUrl } from '../utils/api.js';
 import { useI18n } from '../composables/useI18n.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -569,6 +763,225 @@ async function copyText(text: string, message: string) {
     flashNotice(message);
   } catch {
     flashNotice(message);
+  }
+}
+
+// --- OIDC SSO STATE & HANDLERS ---
+const oidcState = ref({
+  mode: 'none',
+  issuerUrl: '',
+  clientId: '',
+  hasClientSecret: false,
+  allowedEmails: '',
+  buttonLabel: 'Tiếp tục với Single Sign-On · OIDC',
+  callbackUrl: '',
+  configured: false,
+  updatedAt: '',
+});
+const showOidcPanel = ref(false);
+const oidcBusy = ref(false);
+const oidcDiscovering = ref(false);
+const oidcSaving = ref(false);
+const selectedPresetKey = ref<string>('generic');
+const oidcFeedback = ref<{ type: 'ok' | 'err'; message: string } | null>(null);
+
+const oidcForm = ref({
+  mode: 'both',
+  issuerUrl: '',
+  clientId: '',
+  clientSecret: '',
+  allowedEmails: '',
+  buttonLabel: 'Tiếp tục với Single Sign-On · OIDC',
+});
+
+const oidcPresets = {
+  generic: {
+    title: 'Generic OIDC',
+    mode: 'both',
+    issuer: 'https://auth.company.com',
+    clientId: 'hugremote-client',
+    secret: 'sec_generic_abc123',
+    emails: 'admin@company.com, dev@company.com',
+    label: 'Tiếp tục với Single Sign-On · OIDC',
+  },
+  keycloak: {
+    title: 'Keycloak',
+    mode: 'both',
+    issuer: 'https://sso.company.com/realms/corp-dev',
+    clientId: 'hugremote-web',
+    secret: 'sec_keycloak_xyz987',
+    emails: 'admin@company.com',
+    label: 'Đăng nhập với Keycloak SSO',
+  },
+  authentik: {
+    title: 'Authentik',
+    mode: 'both',
+    issuer: 'https://authentik.company.internal/application/o/hugremote/',
+    clientId: 'hugremote-app',
+    secret: 'sec_authentik_555',
+    emails: 'hungnd@company.internal',
+    label: 'Đăng nhập với Authentik SSO',
+  },
+  okta: {
+    title: 'Okta',
+    mode: 'both',
+    issuer: 'https://dev-company.okta.com/oauth2/default',
+    clientId: '0oae1234567890',
+    secret: 'sec_okta_777',
+    emails: 'hungnd@oktadomain.com',
+    label: 'Tiếp tục với Okta Verify',
+  },
+  azure: {
+    title: 'Microsoft Entra ID',
+    mode: 'both',
+    issuer: 'https://login.microsoftonline.com/your-tenant-uuid/v2.0',
+    clientId: 'azure-client-uuid',
+    secret: 'sec_azure_333',
+    emails: 'hungnd@microsoft-tenant.com',
+    label: 'Đăng nhập tài khoản Microsoft 365',
+  },
+};
+
+const isOidcEnabled = computed(() => {
+  return oidcState.value.mode === 'both' || oidcState.value.mode === 'oidc';
+});
+
+const effectiveCallbackUrl = computed(() => {
+  if (oidcState.value.callbackUrl) return oidcState.value.callbackUrl;
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/auth/oidc/callback`;
+  }
+  return 'https://hugremote.example.com/auth/oidc/callback';
+});
+
+const oidcSummaryText = computed(() => {
+  if (isOidcEnabled.value && oidcState.value.issuerUrl) {
+    const modeLabel = oidcState.value.mode === 'both' ? 'chế độ cả Pass và OIDC' : 'chỉ OIDC';
+    return `OIDC SSO đang kích hoạt (${modeLabel}) qua ${oidcState.value.issuerUrl} · Client ID: ${oidcState.value.clientId || 'chưa đặt'}`;
+  }
+  return 'Cấu hình nhà cung cấp xác thực OpenID Connect như Keycloak, Authentik, Okta, Microsoft Entra ID hoặc Generic OIDC cho HugRemote.';
+});
+
+async function fetchOidcConfig() {
+  try {
+    const res = await fetch(apiUrl('/api/auth/oidc/config'), { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && typeof data === 'object') {
+      oidcState.value = {
+        mode: data.mode || 'none',
+        issuerUrl: data.issuerUrl || '',
+        clientId: data.clientId || '',
+        hasClientSecret: Boolean(data.hasClientSecret),
+        allowedEmails: data.allowedEmails || '',
+        buttonLabel: data.buttonLabel || 'Tiếp tục với Single Sign-On · OIDC',
+        callbackUrl: data.callbackUrl || '',
+        configured: Boolean(data.configured),
+        updatedAt: data.updatedAt || '',
+      };
+      oidcForm.value.mode = data.mode && data.mode !== 'none' ? data.mode : 'both';
+      oidcForm.value.issuerUrl = data.issuerUrl || '';
+      oidcForm.value.clientId = data.clientId || '';
+      oidcForm.value.allowedEmails = data.allowedEmails || '';
+      oidcForm.value.buttonLabel = data.buttonLabel || 'Tiếp tục với Single Sign-On · OIDC';
+    }
+  } catch {
+    // Ignore in offline
+  }
+}
+
+function onToggleOidcPanel() {
+  showOidcPanel.value = !showOidcPanel.value;
+  oidcFeedback.value = null;
+}
+
+function applyOidcPreset(key: string) {
+  selectedPresetKey.value = key;
+  const p = (oidcPresets as any)[key];
+  if (!p) return;
+  oidcForm.value.mode = p.mode;
+  oidcForm.value.issuerUrl = p.issuer;
+  oidcForm.value.clientId = p.clientId;
+  oidcForm.value.clientSecret = p.secret;
+  oidcForm.value.allowedEmails = p.emails;
+  oidcForm.value.buttonLabel = p.label;
+  oidcFeedback.value = null;
+}
+
+async function copyOidcCallback() {
+  await copyText(effectiveCallbackUrl.value, 'Đã sao chép Callback URL vào clipboard');
+}
+
+async function testOidcDiscover() {
+  const issuer = oidcForm.value.issuerUrl.trim();
+  if (!issuer) {
+    flashNotice('Vui lòng nhập OIDC Issuer URL để kiểm tra');
+    return;
+  }
+  oidcDiscovering.value = true;
+  oidcFeedback.value = null;
+  try {
+    const res = await fetch(apiUrl('/api/auth/oidc/discover'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ issuerUrl: issuer }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.valid) {
+      oidcFeedback.value = {
+        type: 'ok',
+        message: `Kết nối thành công! Đã phát hiện Authorization Endpoint và Token Endpoint từ IdP.`,
+      };
+      flashNotice('IdP phản hồi hợp lệ');
+    } else {
+      oidcFeedback.value = {
+        type: 'err',
+        message: data.error || 'Không thể phát hiện cấu hình OpenID từ Issuer URL này',
+      };
+    }
+  } catch (err: any) {
+    oidcFeedback.value = {
+      type: 'err',
+      message: err.message || 'Lỗi mạng khi kết nối tới IdP',
+    };
+  } finally {
+    oidcDiscovering.value = false;
+  }
+}
+
+async function saveOidcSettings() {
+  oidcSaving.value = true;
+  oidcFeedback.value = null;
+  try {
+    const res = await fetch(apiUrl('/api/auth/oidc/config'), {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(oidcForm.value),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      await fetchOidcConfig();
+      await authStore.fetchMe();
+      flashNotice(`Đã lưu cài đặt OIDC · Chế độ ${oidcForm.value.mode}`);
+      oidcFeedback.value = {
+        type: 'ok',
+        message: `Đã lưu cấu hình thành công! Chế độ hiện tại: AUTH_MODE=${oidcForm.value.mode}.`,
+      };
+    } else {
+      oidcFeedback.value = {
+        type: 'err',
+        message: data.error || 'Lưu cài đặt OIDC thất bại',
+      };
+    }
+  } catch (err: any) {
+    oidcFeedback.value = {
+      type: 'err',
+      message: err.message || 'Lỗi mạng khi lưu cấu hình',
+    };
+  } finally {
+    oidcSaving.value = false;
   }
 }
 
@@ -782,6 +1195,7 @@ onMounted(() => {
     window.addEventListener('keydown', onRecordKeyDown, true);
   }
   void fetchTwoFactorStatus();
+  void fetchOidcConfig();
   void fetchVersionStatus();
 });
 
@@ -1166,5 +1580,150 @@ onBeforeUnmount(() => {
   .two-factor-recovery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .oidc-fields-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* OIDC SSO Styles */
+.oidc-setup-panel {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #2e2e2e;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.oidc-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.oidc-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oidc-field-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #d4d4d4;
+}
+
+.oidc-presets-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.settings-preset-btn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid #3a3a3a;
+  background: #242424;
+  color: #cccccc;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.settings-preset-btn:hover {
+  background: #2e2e2e;
+  color: #ffffff;
+}
+
+.settings-preset-btn.active {
+  background: #383838;
+  border-color: #555555;
+  color: #ffffff;
+}
+
+.settings-select,
+.settings-input {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid #3f3f3f;
+  background: #171717;
+  color: #eeeeee;
+  font-size: 12px;
+  outline: none;
+}
+
+.settings-select:focus,
+.settings-input:focus {
+  border-color: #666666;
+}
+
+.oidc-callback-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #191919;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.oidc-callback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.oidc-callback-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #eeeeee;
+}
+
+.oidc-callback-input {
+  font-family: monospace;
+  font-size: 11.5px;
+  color: #d4d4d4;
+  background: #141414;
+  border: 1px solid #333333;
+}
+
+.oidc-callback-hint {
+  font-size: 11px;
+  color: #9e9e9e;
+  line-height: 1.4;
+}
+
+.oidc-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.oidc-feedback-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.oidc-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 }
 </style>

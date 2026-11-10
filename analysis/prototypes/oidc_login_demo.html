@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HugRemote · Demo Giao diện OIDC Login</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css">
+  <style>
+    :root {
+      --bg-root: #0d0d0d;
+      --bg-surface: #161616;
+      --bg-card: #1c1c1c;
+      --bg-hover: #262626;
+      --border-subtle: #2b2b2b;
+      --border-focus: #525252;
+      --text-main: #f0f0f0;
+      --text-muted: #9e9e9e;
+      --text-dim: #6b6b6b;
+      --accent-blue: #38bdf8;
+      --accent-green: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-red: #f87171;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-root);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Top Navigation / Controls Bar */
+    .demo-topbar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .demo-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .demo-brand-logo {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .demo-brand-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .demo-controls-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .demo-control-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .demo-btn-pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 5px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .demo-btn-pill:hover {
+      background: var(--bg-hover);
+      color: var(--text-main);
+      border-color: var(--border-focus);
+    }
+
+    .demo-btn-pill.active {
+      background: #2b2b2b;
+      color: #ffffff;
+      border-color: #666666;
+    }
+
+    /* Main Layout: Split Screen (Gate Mockup on Left, Config & Telemetry on Right) */
+    .demo-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 0;
+    }
+
+    @media (max-width: 960px) {
+      .demo-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* LEFT: Auth Gate Simulation */
+    .gate-preview-pane {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      background: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.05) 0%, transparent 65%), #0d0d0d;
+      border-right: 1px solid var(--border-subtle);
+      min-height: 540px;
+      position: relative;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 28px 24px;
+      box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.65);
+      position: relative;
+    }
+
+    .auth-logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .auth-logo-mark {
+      width: 48px;
+      height: 48px;
+      background: #141b26;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 4px;
+    }
+
+    .auth-logo h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .auth-logo p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .auth-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .auth-input {
+      width: 100%;
+      height: 38px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--text-main);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .auth-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    .auth-btn-primary {
+      width: 100%;
+      height: 40px;
+      background: #2e2e2e;
+      border: 1px solid #484848;
+      border-radius: 8px;
+      color: #f0f0f0;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .auth-btn-primary:hover {
+      background: #383838;
+      border-color: #666666;
+    }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 4px 0;
+      color: var(--text-dim);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    /* OIDC SSO Button */
+    .auth-btn-oidc {
+      width: 100%;
+      height: 44px;
+      background: linear-gradient(135deg, #242424, #1b1b1b);
+      border: 1px solid #3d3d3d;
+      border-radius: 8px;
+      color: #f5f5f5;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      text-decoration: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .auth-btn-oidc:hover {
+      background: linear-gradient(135deg, #2c2c2c, #222222);
+      border-color: #585858;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+
+    .auth-btn-oidc i {
+      font-size: 17px;
+      color: var(--accent-blue);
+    }
+
+    .auth-hint {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      text-align: center;
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+
+    .auth-error-banner {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 12px;
+      color: #fca5a5;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .auth-success-box {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .auth-success-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .auth-user-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #292929;
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--accent-green);
+      flex-shrink: 0;
+    }
+
+    /* RIGHT: Technical Architecture, Flow & Environment Guide */
+    .demo-docs-pane {
+      padding: 28px 24px;
+      background: var(--bg-surface);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .demo-section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 18px;
+    }
+
+    .demo-section-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .demo-section-title i {
+      color: var(--accent-blue);
+      font-size: 16px;
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+
+    .flow-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 8px 10px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 7px;
+      font-size: 12px;
+    }
+
+    .flow-step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      border: 1px solid #484848;
+      color: var(--accent-blue);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .code-block {
+      background: #0f0f0f;
+      border: 1px solid #282828;
+      border-radius: 7px;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: #d1d5db;
+      line-height: 1.6;
+      overflow-x: auto;
+      user-select: text;
+    }
+
+    .code-comment { color: #6b7280; }
+    .code-var { color: #38bdf8; font-weight: 600; }
+    .code-val { color: #a3e635; }
+    .code-str { color: #fcd34d; }
+
+    .idp-selector-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .idp-tab-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .idp-tab-btn.active {
+      background: #2c2c2c;
+      border-color: #555555;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Controller Bar -->
+  <header class="demo-topbar">
+    <div class="demo-brand">
+      <div class="demo-brand-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="22" height="22">
+          <defs>
+            <linearGradient id="topbar-logo-bg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#1e293b"/>
+              <stop offset="1" stop-color="#090d16"/>
+            </linearGradient>
+            <linearGradient id="topbar-logo-code" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#7dd3fc"/>
+              <stop offset="1" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#topbar-logo-bg)"/>
+          <rect x="2" y="2" width="60" height="60" rx="15" fill="none" stroke="#334155" stroke-width="2"/>
+          <path d="M24 22 L15 32 L24 42" fill="none" stroke="url(#topbar-logo-code)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M40 22 L49 32 L40 42" fill="none" stroke="#d97757" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="36" y1="20" x2="28" y2="44" stroke="#e2e8f0" stroke-width="4.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span>HugRemote</span>
+      <span class="demo-brand-badge">OIDC Login Preview</span>
+    </div>
+
+    <div class="demo-controls-group">
+      <span class="demo-control-label">Màn hình xem:</span>
+      <button type="button" class="demo-btn-pill active" id="btn-tab-settings" onclick="switchMainTab('settings')">
+        <i class="ri-settings-4-line"></i> Mục Cài đặt · #settings-oidc-card
+      </button>
+      <button type="button" class="demo-btn-pill" id="btn-tab-gate" onclick="switchMainTab('gate')">
+        <i class="ri-login-box-line"></i> Màn hình Đăng nhập · Auth Gate
+      </button>
+      <span class="demo-control-label" id="gate-modes-label" style="display: none; margin-left: 8px;">Chế độ:</span>
+      <button type="button" class="demo-btn-pill active" id="btn-mode-both" style="display: none;" onclick="setAuthLayout('both')">
+        <i class="ri-git-merge-line"></i> both · Password + OIDC
+      </button>
+      <button type="button" class="demo-btn-pill" id="btn-mode-oidc-only" style="display: none;" onclick="setAuthLayout('oidc-only')">
+        <i class="ri-shield-keyhole-line"></i> oidc · Chỉ OIDC
+      </button>
+      <button type="button" class="demo-btn-pill" id="btn-mode-password-only" style="display: none;" onclick="setAuthLayout('password-only')">
+        <i class="ri-lock-password-line"></i> Chỉ Password
+      </button>
+    </div>
+  </header>
+
+  <main class="demo-container">
+    <!-- LEFT: Interactive Auth Gate Simulation & Settings View -->
+    <section class="gate-preview-pane">
+      <!-- VIEW TAB 1: Settings View with #settings-oidc-card -->
+      <div id="view-tab-settings" style="width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 14px;">
+        <div class="auth-card" id="settings-oidc-card" style="max-width: 100%;">
+          <div class="settings-card-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-bottom: none; padding-bottom: 0;">
+            <div class="settings-banner-title" style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: #f0f0f0; flex-wrap: wrap;">
+              <i class="ri-shield-user-line" style="color: #38bdf8; font-size: 17px;"></i>
+              <span>Đăng nhập Single Sign-On · OIDC</span>
+              <span id="demo-oidc-status-badge" class="demo-brand-badge" style="color: var(--accent-green); border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.1);">Đang bật</span>
+              <span id="demo-oidc-mode-badge" class="quick-git-depth-tag">AUTH_MODE=oidc</span>
+            </div>
+            <div class="settings-banner-controls">
+              <button type="button" id="demo-btn-toggle-oidc" class="demo-btn-pill active" onclick="toggleOidcSettingsPanel()">
+                <i class="ri-settings-4-line"></i>
+                <span id="demo-btn-toggle-label">Đóng cài đặt</span>
+              </button>
+            </div>
+          </div>
+          <div id="demo-oidc-summary-text" style="font-size: 11.5px; color: #9e9e9e; margin-top: 6px;">
+            Cấu hình nhà cung cấp xác thực OpenID Connect như Keycloak, Authentik, Okta, Microsoft Entra ID hoặc Generic OIDC cho HugRemote.
+          </div>
+
+          <div id="demo-settings-oidc-panel" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+              <label style="font-size: 11.5px; font-weight: 600; color: #d4d4d4;">Chọn mẫu cấu hình nhanh IdP</label>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button type="button" class="idp-tab-btn active" id="demo-preset-generic" onclick="selectIdp('generic')">Generic OIDC</button>
+                <button type="button" class="idp-tab-btn" id="demo-preset-keycloak" onclick="selectIdp('keycloak')">Keycloak</button>
+                <button type="button" class="idp-tab-btn" id="demo-preset-authentik" onclick="selectIdp('authentik')">Authentik</button>
+                <button type="button" class="idp-tab-btn" id="demo-preset-okta" onclick="selectIdp('okta')">Okta</button>
+                <button type="button" class="idp-tab-btn" id="demo-preset-azure" onclick="selectIdp('azure')">Microsoft Entra ID</button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label for="set-auth-mode" style="font-size: 11.5px; font-weight: 600; color: #d4d4d4;">Chế độ xác thực · AUTH_MODE</label>
+              <select id="set-auth-mode" class="auth-input" style="height: 34px; font-size: 12px;" onchange="onSettingsModeChange()">
+                <option value="both" selected>both · Cho phép cả Mật khẩu và OIDC SSO</option>
+                <option value="oidc">oidc · Bắt buộc đăng nhập qua OIDC SSO</option>
+                <option value="password">password · Chỉ dùng mật khẩu nội bộ</option>
+                <option value="none">none · Tắt xác thực</option>
+              </select>
+            </div>
+
+            <!-- Callback URL / Redirect URI Box -->
+            <div style="display: flex; flex-direction: column; gap: 5px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.28); border-radius: 6px; padding: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                <label style="font-size: 11.5px; font-weight: 700; color: #7dd3fc; display: flex; align-items: center; gap: 5px;">
+                  <i class="ri-link"></i> Redirect URI · Callback URL cần đăng ký trên IdP
+                </label>
+                <button type="button" class="demo-btn-pill" id="demo-btn-copy-callback" style="height: 24px; padding: 0 8px; font-size: 11px;" onclick="copyDemoCallbackUrl()">
+                  <i class="ri-file-copy-line"></i> Sao chép URL
+                </button>
+              </div>
+              <input id="demo-callback-url-display" class="auth-input" readonly style="height: 32px; font-family: var(--font-mono); font-size: 11.5px; color: #38bdf8; background: #0b1120; border-color: #1e293b;" value="https://hugremote.example.com/auth/oidc/callback" />
+              <span style="font-size: 11px; color: #94a3b8; line-height: 1.35;">
+                Dán URL này vào mục <b>Valid Redirect URIs</b> (Keycloak, Authentik) hoặc <b>Sign-in redirect URIs</b> (Azure AD, Okta) khi tạo Client trên IdP.
+              </span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+                <label for="set-issuer-url" style="font-size: 11.5px; font-weight: 600; color: #d4d4d4;">OIDC Issuer URL</label>
+                <button type="button" class="demo-btn-pill" id="demo-btn-test-discover" style="height: 24px; padding: 0 8px; font-size: 11px;" onclick="testDiscoverInSettings()">
+                  <i class="ri-radar-line"></i> Kiểm tra kết nối IdP
+                </button>
+              </div>
+              <input id="set-issuer-url" class="auth-input" style="height: 34px; font-family: var(--font-mono); font-size: 12px;" value="https://auth.yourdomain.com" />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="set-client-id" style="font-size: 11.5px; font-weight: 600; color: #d4d4d4;">Client ID</label>
+                <input id="set-client-id" class="auth-input" style="height: 34px; font-family: var(--font-mono); font-size: 12px;" value="hugremote-client" />
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label for="set-client-secret" style="font-size: 11.5px; font-weight: 600; color: #d4d4d4;">Client Secret</label>
+                <input id="set-client-secret" type="password" class="auth-input" style="height: 34px; font-family: var(--font-mono); font-size: 12px;" value="sec_generic_abc123" />
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label for="set-allowed-emails" style="font-size: 11.5px; font-weight: 600; color: #d4d4d4;">Danh sách email được phép · OIDC_ALLOWED_EMAILS</label>
+              <input id="set-allowed-emails" class="auth-input" style="height: 34px; font-family: var(--font-mono); font-size: 12px;" value="hungnd@example.com" placeholder="admin@company.com, dev@company.com" />
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label for="set-button-label" style="font-size: 11.5px; font-weight: 600; color: #d4d4d4;">Nhãn hiển thị trên nút đăng nhập</label>
+              <input id="set-button-label" class="auth-input" style="height: 34px; font-size: 12px;" value="Tiếp tục với Single Sign-On · OIDC" />
+            </div>
+
+            <div id="demo-settings-feedback" style="display: none; padding: 8px 10px; border-radius: 6px; font-size: 11.5px; line-height: 1.4;"></div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
+              <button type="button" class="auth-btn-primary" style="width: auto; padding: 0 16px; height: 34px;" onclick="saveOidcSettingsInDemo()">
+                <i class="ri-save-line"></i> Lưu cài đặt OIDC
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW TAB 2: Interactive Auth Gate Simulation -->
+      <div id="view-tab-gate" style="display: none; width: 100%; max-width: 400px;">
+        <div class="auth-card" id="sim-auth-card">
+          <div class="auth-logo">
+            <div class="auth-logo-mark">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="40" height="40">
+                <defs>
+                  <linearGradient id="card-logo-bg" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#1e293b"/>
+                    <stop offset="1" stop-color="#090d16"/>
+                  </linearGradient>
+                  <linearGradient id="card-logo-code" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#7dd3fc"/>
+                    <stop offset="1" stop-color="#38bdf8"/>
+                  </linearGradient>
+                </defs>
+                <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#card-logo-bg)"/>
+                <rect x="2" y="2" width="60" height="60" rx="15" fill="none" stroke="#334155" stroke-width="2"/>
+                <path d="M24 22 L15 32 L24 42" fill="none" stroke="url(#card-logo-code)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M40 22 L49 32 L40 42" fill="none" stroke="#d97757" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="36" y1="20" x2="28" y2="44" stroke="#e2e8f0" stroke-width="4.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <h1>HugRemote</h1>
+              <p id="auth-subtitle">Mobile-First Web IDE &amp; Remote Agent Terminal</p>
+            </div>
+          </div>
+
+          <!-- State: Not logged in -->
+          <div id="auth-state-unauthed" class="auth-form">
+            <!-- Password Form Fields (shown only in hybrid or password-only) -->
+            <div id="section-password-fields" style="display: none;">
+              <label class="auth-label" for="sim-password">Mật khẩu hệ thống</label>
+              <input
+                id="sim-password"
+                class="auth-input"
+                type="password"
+                placeholder="Nhập mật khẩu truy cập..."
+                value=""
+              />
+              <button type="button" class="auth-btn-primary" style="margin-top: 10px;" onclick="simulatePasswordLogin()">
+                <i class="ri-lock-unlock-line"></i>
+                <span>Mở khóa HugRemote</span>
+              </button>
+            </div>
+
+            <!-- Divider (shown only in hybrid) -->
+            <div id="section-divider" class="auth-divider" style="display: none;">
+              <span>Hoặc</span>
+            </div>
+
+            <!-- OIDC SSO Button (shown in oidc-only or hybrid) -->
+            <div id="section-oidc-btn">
+              <button type="button" class="auth-btn-oidc" id="btn-oidc-sso" onclick="simulateOidcLogin()">
+                <i id="oidc-provider-icon" class="ri-shield-user-line"></i>
+                <span id="oidc-button-text">Tiếp tục với Single Sign-On · OIDC</span>
+              </button>
+            </div>
+
+            <!-- Error message if simulated -->
+            <div id="sim-auth-error" class="auth-error-banner" style="display: none;">
+              <i class="ri-error-warning-line"></i>
+              <span id="sim-auth-error-text">Email không nằm trong danh sách được cấp quyền</span>
+            </div>
+
+            <p class="auth-hint" id="auth-footer-hint">
+              Toàn bộ truy cập được bảo vệ bắt buộc qua nhà cung cấp OIDC SSO.
+            </p>
+          </div>
+
+          <!-- State: Logged In via OIDC -->
+          <div id="auth-state-authed" class="auth-form" style="display: none;">
+            <div class="auth-success-box">
+              <div class="auth-success-header">
+                <div class="auth-user-avatar" id="res-user-avatar">DH</div>
+                <div style="min-width: 0; flex: 1;">
+                  <div style="font-weight: 700; font-size: 13.5px;" id="res-user-name">Duy Hưng</div>
+                  <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);" id="res-user-email">hungnd@example.com</div>
+                </div>
+                <span class="demo-brand-badge" style="color: var(--accent-green); border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.1);">OIDC OK</span>
+              </div>
+              <div style="font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); border-top: 1px solid var(--border-subtle); padding-top: 8px;">
+                IdP Issuer: <span id="res-idp-issuer" style="color: var(--text-muted);">https://auth.yourdomain.com</span><br>
+                Session: <span style="color: var(--accent-green);">Đã xác thực &amp; gán cookie phiên an toàn</span>
+              </div>
+            </div>
+
+            <button type="button" class="auth-btn-primary" onclick="resetSimulator()">
+              <i class="ri-logout-box-r-line"></i>
+              <span>Đăng xuất thử lại</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Architecture, Environment Config & Sequence -->
+    <section class="demo-docs-pane">
+      <!-- Card 1: Provider Examples -->
+      <div class="demo-section-card">
+        <div class="demo-section-title">
+          <i class="ri-settings-4-line"></i>
+          <span>Cấu hình biến môi trường IdP</span>
+        </div>
+        
+        <div class="idp-selector-tabs">
+          <button type="button" class="idp-tab-btn active" onclick="selectIdp('generic')">Generic OIDC</button>
+          <button type="button" class="idp-tab-btn" onclick="selectIdp('keycloak')">Keycloak</button>
+          <button type="button" class="idp-tab-btn" onclick="selectIdp('authentik')">Authentik</button>
+          <button type="button" class="idp-tab-btn" onclick="selectIdp('okta')">Okta</button>
+          <button type="button" class="idp-tab-btn" onclick="selectIdp('azure')">Microsoft Entra ID</button>
+        </div>
+
+        <pre class="code-block" id="idp-env-code"><span class="code-comment"># ~/.config/hugremote/.env</span>
+<span class="code-var">AUTH_MODE</span>=<span class="code-val">oidc</span>
+<span class="code-var">APP_URL</span>=<span class="code-str">https://hugremote.example.com</span>
+<span class="code-var">OIDC_ISSUER_URL</span>=<span class="code-str">https://auth.yourdomain.com</span>
+<span class="code-var">OIDC_CLIENT_ID</span>=<span class="code-str">hugremote-client</span>
+<span class="code-var">OIDC_CLIENT_SECRET</span>=<span class="code-str">sec_generic_abc123...</span>
+<span class="code-var">OIDC_ALLOWED_EMAILS</span>=<span class="code-str">hungnd@example.com</span>
+<span class="code-var">OIDC_BUTTON_LABEL</span>=<span class="code-str">Tiếp tục với Single Sign-On · OIDC</span></pre>
+      </div>
+
+      <!-- Card 2: 5-Step Security Flow -->
+      <div class="demo-section-card">
+        <div class="demo-section-title">
+          <i class="ri-shield-check-line"></i>
+          <span>Luồng xác thực chuẩn OpenID Connect</span>
+        </div>
+        <div class="flow-steps">
+          <div class="flow-step-item">
+            <span class="flow-step-num">1</span>
+            <div>
+              <b>Chuyển hướng IdP:</b> Người dùng bấm nút SSO, HugRemote sinh chuỗi ngẫu nhiên <code>state</code> và <code>code_verifier</code> (PKCE) lưu vào cookie ký bảo mật, chuyển hướng sang <code>/protocol/openid-connect/auth</code>.
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <span class="flow-step-num">2</span>
+            <div>
+              <b>Đăng nhập tại IdP:</b> Người dùng xác thực tại Keycloak / Authentik / Okta / Azure AD. IdP chuyển hướng ngược về <code>/auth/oidc/callback?code=...&state=...</code>.
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <span class="flow-step-num">3</span>
+            <div>
+              <b>Đổi Token &amp; Userinfo:</b> Backend HugRemote kiểm tra tính hợp lệ của <code>state</code> để chống tấn công CSRF, gọi <code>/token</code> để lấy Access Token và <code>/userinfo</code> để lấy Email, Họ tên, Avatar.
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <span class="flow-step-num">4</span>
+            <div>
+              <b>Kiểm tra Whitelist:</b> Đối chiếu Email của người dùng với <code>OIDC_ALLOWED_EMAILS</code>. Nếu không khớp sẽ từ chối truy cập <code>403 email_not_allowed</code>.
+            </div>
+          </div>
+          <div class="flow-step-item">
+            <span class="flow-step-num">5</span>
+            <div>
+              <b>Thiết lập phiên làm việc:</b> Khởi tạo cookie phiên <code>hugremote_session</code> an toàn và chuyển hướng về giao diện làm việc chính.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Test Simulated Scenarios -->
+      <div class="demo-section-card">
+        <div class="demo-section-title">
+          <i class="ri-flask-line"></i>
+          <span>Thử nghiệm các tình huống kiểm thử</span>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="demo-btn-pill" onclick="triggerSimError('email_denied')">
+            <i class="ri-forbid-line" style="color: var(--accent-red);"></i> Email bị từ chối
+          </button>
+          <button type="button" class="demo-btn-pill" onclick="triggerSimError('idp_timeout')">
+            <i class="ri-timer-line" style="color: var(--accent-amber);"></i> IdP Timeout
+          </button>
+          <button type="button" class="demo-btn-pill" onclick="triggerSimSuccess()">
+            <i class="ri-checkbox-circle-line" style="color: var(--accent-green);"></i> Đăng nhập thành công
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const idpConfigs = {
+      generic: {
+        name: 'Generic OIDC',
+        icon: 'ri-shield-user-line',
+        buttonText: 'Tiếp tục với Single Sign-On · OIDC',
+        issuer: 'https://auth.yourdomain.com',
+        clientId: 'hugremote-client',
+        env: `# ~/.config/hugremote/.env
+# Chế độ 'both': cho phép cả Mật khẩu nội bộ và OIDC SSO
+AUTH_MODE=both
+APP_URL=https://hugremote.example.com
+OIDC_ISSUER_URL=https://auth.yourdomain.com
+OIDC_CLIENT_ID=hugremote-client
+OIDC_CLIENT_SECRET=sec_generic_abc123...
+OIDC_ALLOWED_EMAILS=hungnd@example.com
+OIDC_BUTTON_LABEL=Tiếp tục với Single Sign-On · OIDC`
+      },
+      keycloak: {
+        name: 'Keycloak',
+        icon: 'ri-key-fill',
+        buttonText: 'Đăng nhập với Keycloak SSO',
+        issuer: 'https://sso.company.com/realms/corp-dev',
+        clientId: 'hugremote-web',
+        env: `# ~/.config/hugremote/.env
+AUTH_MODE=both
+APP_URL=https://hugremote.example.com
+OIDC_ISSUER_URL=https://sso.company.com/realms/corp-dev
+OIDC_CLIENT_ID=hugremote-web
+OIDC_CLIENT_SECRET=sec_keycloak_secret...
+OIDC_ALLOWED_EMAILS=hungnd@company.com,lead@company.com
+OIDC_BUTTON_LABEL=Đăng nhập với Keycloak SSO`
+      },
+      authentik: {
+        name: 'Authentik',
+        icon: 'ri-fingerprint-line',
+        buttonText: 'Đăng nhập với Authentik SSO',
+        issuer: 'https://authentik.company.internal/application/o/hugremote/',
+        clientId: 'hugremote-app',
+        env: `# ~/.config/hugremote/.env
+AUTH_MODE=both
+APP_URL=https://hugremote.example.com
+OIDC_ISSUER_URL=https://authentik.company.internal/application/o/hugremote/
+OIDC_CLIENT_ID=hugremote-app
+OIDC_CLIENT_SECRET=sec_authentik_secret...
+OIDC_ALLOWED_EMAILS=hungnd@company.internal
+OIDC_BUTTON_LABEL=Đăng nhập với Authentik SSO`
+      },
+      okta: {
+        name: 'Okta',
+        icon: 'ri-lock-2-line',
+        buttonText: 'Tiếp tục với Okta Verify',
+        issuer: 'https://dev-123456.okta.com/oauth2/default',
+        clientId: '0oae1234567890',
+        env: `# ~/.config/hugremote/.env
+AUTH_MODE=both
+APP_URL=https://hugremote.example.com
+OIDC_ISSUER_URL=https://dev-123456.okta.com/oauth2/default
+OIDC_CLIENT_ID=0oae1234567890
+OIDC_CLIENT_SECRET=sec_okta_secret...
+OIDC_ALLOWED_EMAILS=hungnd@oktadomain.com
+OIDC_BUTTON_LABEL=Tiếp tục với Okta Verify`
+      },
+      azure: {
+        name: 'Microsoft Entra ID',
+        icon: 'ri-windows-fill',
+        buttonText: 'Đăng nhập tài khoản Microsoft 365',
+        issuer: 'https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0',
+        clientId: 'azure-client-uuid',
+        env: `# ~/.config/hugremote/.env
+AUTH_MODE=both
+APP_URL=https://hugremote.example.com
+OIDC_ISSUER_URL=https://login.microsoftonline.com/<tenant-id>/v2.0
+OIDC_CLIENT_ID=<client-id>
+OIDC_CLIENT_SECRET=<client-secret>
+OIDC_ALLOWED_EMAILS=hungnd@microsoft-tenant.com
+OIDC_BUTTON_LABEL=Đăng nhập tài khoản Microsoft 365`
+      }
+    };
+
+    let currentIdp = 'generic';
+    let currentAuthMode = 'both';
+
+    function copyDemoCallbackUrl() {
+      const input = document.getElementById('demo-callback-url-display');
+      if (input && navigator.clipboard) {
+        navigator.clipboard.writeText(input.value).catch(() => {});
+      }
+      alert('Đã sao chép Redirect URI Callback URL vào clipboard!');
+    }
+
+    function switchMainTab(tab) {
+      document.getElementById('btn-tab-settings').classList.toggle('active', tab === 'settings');
+      document.getElementById('btn-tab-gate').classList.toggle('active', tab === 'gate');
+      document.getElementById('view-tab-settings').style.display = tab === 'settings' ? 'flex' : 'none';
+      document.getElementById('view-tab-gate').style.display = tab === 'gate' ? 'block' : 'none';
+
+      const showGateModes = tab === 'gate';
+      document.getElementById('gate-modes-label').style.display = showGateModes ? 'inline-block' : 'none';
+      document.getElementById('btn-mode-both').style.display = showGateModes ? 'inline-flex' : 'none';
+      document.getElementById('btn-mode-oidc-only').style.display = showGateModes ? 'inline-flex' : 'none';
+      document.getElementById('btn-mode-password-only').style.display = showGateModes ? 'inline-flex' : 'none';
+    }
+
+    function toggleOidcSettingsPanel() {
+      const panel = document.getElementById('demo-settings-oidc-panel');
+      const lbl = document.getElementById('demo-btn-toggle-label');
+      const btn = document.getElementById('demo-btn-toggle-oidc');
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'flex';
+      if (lbl) lbl.textContent = isOpen ? 'Cài đặt OIDC' : 'Đóng cài đặt';
+      btn.classList.toggle('active', !isOpen);
+    }
+
+    function onSettingsModeChange() {
+      const mode = document.getElementById('set-auth-mode').value;
+      currentAuthMode = mode;
+      document.getElementById('demo-oidc-mode-badge').textContent = `AUTH_MODE=${mode}`;
+    }
+
+    function testDiscoverInSettings() {
+      const issuer = document.getElementById('set-issuer-url').value.trim();
+      const btn = document.getElementById('demo-btn-test-discover');
+      const feedback = document.getElementById('demo-settings-feedback');
+      if (!issuer) {
+        alert('Vui lòng nhập OIDC Issuer URL để kiểm tra');
+        return;
+      }
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ri-loader-4-line" style="animation: spin 0.9s linear infinite;"></i> Đang kết nối IdP...';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ri-radar-line"></i> Kiểm tra kết nối IdP';
+        feedback.style.display = 'block';
+        feedback.style.background = 'rgba(34, 197, 94, 0.12)';
+        feedback.style.border = '1px solid rgba(34, 197, 94, 0.35)';
+        feedback.style.color = '#86efac';
+        feedback.innerHTML = `<b>Kết nối thành công!</b> Đã phát hiện OpenID Discovery: Authorization Endpoint, Token Endpoint và Userinfo Endpoint phản hồi hợp lệ từ <code>${issuer}</code>.`;
+      }, 600);
+    }
+
+    function saveOidcSettingsInDemo() {
+      const mode = document.getElementById('set-auth-mode').value;
+      const issuer = document.getElementById('set-issuer-url').value.trim();
+      const clientId = document.getElementById('set-client-id').value.trim();
+      const label = document.getElementById('set-button-label').value.trim();
+      const isEnabled = mode === 'both' || mode === 'oidc' || mode === 'hybrid';
+
+      const statusBadge = document.getElementById('demo-oidc-status-badge');
+      const modeBadge = document.getElementById('demo-oidc-mode-badge');
+      const sumText = document.getElementById('demo-oidc-summary-text');
+      const feedback = document.getElementById('demo-settings-feedback');
+
+      if (statusBadge) {
+        statusBadge.textContent = isEnabled ? 'Đang bật' : 'Đang tắt';
+        statusBadge.style.color = isEnabled ? 'var(--accent-green)' : 'var(--text-muted)';
+        statusBadge.style.background = isEnabled ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.06)';
+        statusBadge.style.borderColor = isEnabled ? 'rgba(34,197,94,0.4)' : 'var(--border-subtle)';
+      }
+      if (modeBadge) modeBadge.textContent = `AUTH_MODE=${mode}`;
+      if (sumText) {
+        sumText.textContent = isEnabled
+          ? `OIDC SSO đang kích hoạt (${mode === 'both' ? 'chế độ cả Pass và OIDC' : 'chỉ OIDC'}) qua ${issuer || 'IdP'} · Client ID: ${clientId || 'chưa đặt'}`
+          : 'Cấu hình nhà cung cấp xác thực OpenID Connect như Keycloak, Authentik, Okta, Microsoft Entra ID hoặc Generic OIDC cho HugRemote.';
+      }
+
+      // Sync into Auth Gate Simulator
+      if (label) document.getElementById('oidc-button-text').textContent = label;
+      if (mode === 'both') setAuthLayout('both');
+      else if (mode === 'oidc') setAuthLayout('oidc-only');
+      else if (mode === 'password') setAuthLayout('password-only');
+
+      feedback.style.display = 'block';
+      feedback.style.background = 'rgba(56, 189, 248, 0.12)';
+      feedback.style.border = '1px solid rgba(56, 189, 248, 0.35)';
+      feedback.style.color = '#7dd3fc';
+      feedback.innerHTML = `<b>Đã lưu cấu hình!</b> Đã áp dụng chế độ <code>AUTH_MODE=${mode}</code>. Bạn có thể bấm sang tab <i>Màn hình Đăng nhập</i> để thử nghiệm.`;
+    }
+
+    function setAuthLayout(mode) {
+      document.querySelectorAll('.demo-controls-group .demo-btn-pill').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-mode-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const passSec = document.getElementById('section-password-fields');
+      const divSec = document.getElementById('section-divider');
+      const oidcSec = document.getElementById('section-oidc-btn');
+      const hintEl = document.getElementById('auth-footer-hint');
+
+      hideError();
+
+      if (mode === 'both' || mode === 'hybrid') {
+        passSec.style.display = 'block';
+        divSec.style.display = 'flex';
+        oidcSec.style.display = 'block';
+        hintEl.textContent = 'Hỗ trợ cả xác thực mật khẩu nội bộ và Single Sign-On qua OIDC.';
+      } else if (mode === 'oidc-only' || mode === 'oidc') {
+        passSec.style.display = 'none';
+        divSec.style.display = 'none';
+        oidcSec.style.display = 'block';
+        hintEl.textContent = 'Toàn bộ truy cập được bảo vệ bắt buộc qua nhà cung cấp OIDC SSO.';
+      } else if (mode === 'password-only' || mode === 'password') {
+        passSec.style.display = 'block';
+        divSec.style.display = 'none';
+        oidcSec.style.display = 'none';
+        hintEl.textContent = 'Sử dụng mật khẩu bảo vệ cục bộ trên máy chủ HugRemote.';
+      }
+    }
+
+    function selectIdp(key) {
+      currentIdp = key;
+      document.querySelectorAll('.idp-tab-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(`demo-preset-${key}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const conf = idpConfigs[key];
+      document.getElementById('idp-env-code').textContent = conf.env;
+      document.getElementById('oidc-button-text').textContent = conf.buttonText;
+      document.getElementById('oidc-provider-icon').className = conf.icon;
+      document.getElementById('res-idp-issuer').textContent = conf.issuer;
+
+      // Update settings inputs
+      const issuerInput = document.getElementById('set-issuer-url');
+      const clientInput = document.getElementById('set-client-id');
+      const labelInput = document.getElementById('set-button-label');
+      if (issuerInput) issuerInput.value = conf.issuer;
+      if (clientInput) clientInput.value = conf.clientId;
+      if (labelInput) labelInput.value = conf.buttonText;
+    }
+
+    function simulateOidcLogin() {
+      const btn = document.getElementById('btn-oidc-sso');
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="ri-loader-4-line" style="animation: spin 0.9s linear infinite;"></i><span>Đang kết nối tới ' + idpConfigs[currentIdp].name + '...</span>';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+        triggerSimSuccess();
+      }, 700);
+    }
+
+    function simulatePasswordLogin() {
+      const input = document.getElementById('sim-password');
+      if (!input.value.trim()) {
+        showError('Vui lòng nhập mật khẩu');
+        return;
+      }
+      triggerSimSuccess('Password Admin', 'admin@local');
+    }
+
+    function triggerSimSuccess(name, email) {
+      hideError();
+      document.getElementById('auth-state-unauthed').style.display = 'none';
+      document.getElementById('auth-state-authed').style.display = 'flex';
+      document.getElementById('res-user-name').textContent = name || 'Duy Hưng';
+      document.getElementById('res-user-email').textContent = email || 'hungnd@example.com';
+      document.getElementById('res-idp-issuer').textContent = idpConfigs[currentIdp].issuer;
+    }
+
+    function triggerSimError(type) {
+      document.getElementById('auth-state-authed').style.display = 'none';
+      document.getElementById('auth-state-unauthed').style.display = 'flex';
+      if (type === 'email_denied') {
+        showError('Email hungnd@gmail.com không nằm trong danh sách OIDC_ALLOWED_EMAILS');
+      } else {
+        showError('Không thể kết nối tới máy chủ OIDC Issuer (Connection Timed Out)');
+      }
+    }
+
+    function showError(msg) {
+      const errBox = document.getElementById('sim-auth-error');
+      const errText = document.getElementById('sim-auth-error-text');
+      errText.textContent = msg;
+      errBox.style.display = 'flex';
+    }
+
+    function hideError() {
+      document.getElementById('sim-auth-error').style.display = 'none';
+    }
+
+    function resetSimulator() {
+      hideError();
+      document.getElementById('sim-password').value = '';
+      document.getElementById('auth-state-authed').style.display = 'none';
+      document.getElementById('auth-state-unauthed').style.display = 'flex';
+    }
+
+    // Set current origin callback URL if in browser
+    const demoCallbackInput = document.getElementById('demo-callback-url-display');
+    if (demoCallbackInput && typeof window !== 'undefined' && window.location && window.location.origin) {
+      demoCallbackInput.value = `${window.location.origin}/auth/oidc/callback`;
+    }
+
+    // Default to 'both' mode (showing both Password and OIDC SSO)
+    setAuthLayout('both');
+  </script>
+</body>
+</html>

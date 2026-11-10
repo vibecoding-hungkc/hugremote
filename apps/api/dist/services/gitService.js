@@ -211,12 +211,17 @@ function parseNumstat(raw) {
     });
     return map;
 }
-function parseDiff(raw) {
+function parseDiff(raw, includeFileHeaders = false) {
     let oldLine = 0;
     let newLine = 0;
     const lines = [];
     for (const line of raw.split('\n')) {
-        if (line.startsWith('@@')) {
+        if (includeFileHeaders && line.startsWith('diff --git ')) {
+            const m = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
+            const fileLabel = m ? m[2] : line.slice('diff --git '.length);
+            lines.push({ type: 'hunk', content: `=== ${fileLabel} ===` });
+        }
+        else if (line.startsWith('@@')) {
             const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
             oldLine = match ? Number(match[1]) : 0;
             newLine = match ? Number(match[2]) : 0;
@@ -233,6 +238,17 @@ function parseDiff(raw) {
         }
     }
     return lines;
+}
+function normalizeNumstatFilePath(rawPath) {
+    const braceRename = rawPath.match(/^(.*)\{([^{}]*) => ([^{}]*)\}(.*)$/);
+    if (braceRename) {
+        return `${braceRename[1]}${braceRename[3]}${braceRename[4]}`.replace(/\/+/g, '/');
+    }
+    if (rawPath.includes(' => ')) {
+        const parts = rawPath.split(' => ');
+        return parts[parts.length - 1].trim();
+    }
+    return rawPath.trim();
 }
 export class GitService {
     executor;
@@ -461,6 +477,169 @@ export class GitService {
         if (!clean)
             throw new Error('Commit message is required');
         return await this.execGit(cwd, ['commit', '-m', clean]);
+    }
+    async getCommitHistory(cwd, options = {}) {
+        const limit = Math.max(1, Math.min(Number(options.limit) || 40, 100));
+        const cleanFile = (options.file || '').trim();
+        if (cleanFile) {
+            if (cleanFile.startsWith('-') || cleanFile.includes('\0') || cleanFile.split('/').includes('..')) {
+                throw new Error('Invalid file filter');
+            }
+        }
+        const execTarget = this.executor ? cwd : this.expandLocalPath(cwd);
+        const fileArgs = cleanFile ? ['--', cleanFile] : [];
+        const formatSpec = '__HUG_COMMIT__%H\t%h\t%D\t%an\t%ad\t%ar\t%s';
+        const [numstatRaw, nameStatusRaw, allFilesRaw] = await Promise.all([
+            this.execGit(execTarget, [
+                'log',
+                '-n',
+                String(limit),
+                '--date=iso-strict',
+                `--pretty=format:${formatSpec}`,
+                '--numstat',
+                ...fileArgs,
+            ]).catch(() => ''),
+            this.execGit(execTarget, [
+                'log',
+                '-n',
+                String(limit),
+                '--pretty=format:__HUG_COMMIT__%H',
+                '--name-status',
+                ...fileArgs,
+            ]).catch(() => ''),
+            cleanFile
+                ? this.execGit(execTarget, [
+                    'log',
+                    '-n',
+                    String(limit),
+                    '--pretty=format:',
+                    '--name-only',
+                ]).catch(() => '')
+                : Promise.resolve(''),
+        ]);
+        const statusByCommit = new Map();
+        let currentStatusHash = '';
+        for (const rawLine of nameStatusRaw.split('\n')) {
+            const line = rawLine.trim();
+            if (!line)
+                continue;
+            if (line.startsWith('__HUG_COMMIT__')) {
+                currentStatusHash = line.slice('__HUG_COMMIT__'.length).trim();
+                if (!statusByCommit.has(currentStatusHash)) {
+                    statusByCommit.set(currentStatusHash, new Map());
+                }
+                continue;
+            }
+            if (!currentStatusHash)
+                continue;
+            const parts = line.split('\t');
+            if (parts.length < 2)
+                continue;
+            const code = parts[0].trim().toUpperCase();
+            const filePath = (parts.length >= 3 ? parts[2] : parts[1]).trim();
+            const normalizedStatus = code.startsWith('A')
+                ? 'A'
+                : code.startsWith('D')
+                    ? 'D'
+                    : code.startsWith('R')
+                        ? 'R'
+                        : 'M';
+            statusByCommit.get(currentStatusHash)?.set(filePath, normalizedStatus);
+        }
+        const commits = [];
+        let currentCommit = null;
+        for (const rawLine of numstatRaw.split('\n')) {
+            const line = rawLine.trimEnd();
+            if (!line.trim())
+                continue;
+            if (line.startsWith('__HUG_COMMIT__')) {
+                const payload = line.slice('__HUG_COMMIT__'.length);
+                const [hash = '', shortHash = '', ref = '', author = '', date = '', relativeDate = '', ...subjectParts] = payload.split('\t');
+                currentCommit = {
+                    hash: hash.trim(),
+                    shortHash: shortHash.trim() || hash.trim().slice(0, 7),
+                    ref: ref.trim(),
+                    subject: subjectParts.join('\t').trim(),
+                    author: author.trim(),
+                    date: date.trim(),
+                    relativeDate: relativeDate.trim(),
+                    files: [],
+                };
+                commits.push(currentCommit);
+                continue;
+            }
+            if (!currentCommit)
+                continue;
+            const parts = line.split('\t');
+            if (parts.length < 3)
+                continue;
+            const [addStr, delStr, ...restPath] = parts;
+            const filePath = normalizeNumstatFilePath(restPath.join('\t'));
+            if (!filePath)
+                continue;
+            const additions = addStr === '-' ? 0 : Number(addStr || 0);
+            const deletions = delStr === '-' ? 0 : Number(delStr || 0);
+            const st = statusByCommit.get(currentCommit.hash)?.get(filePath) || 'M';
+            currentCommit.files.push({
+                path: filePath,
+                status: st,
+                additions: Number.isFinite(additions) ? additions : 0,
+                deletions: Number.isFinite(deletions) ? deletions : 0,
+            });
+        }
+        const fileCounts = new Map();
+        if (cleanFile && allFilesRaw.trim()) {
+            for (const rawLine of allFilesRaw.split('\n')) {
+                const fp = rawLine.trim();
+                if (!fp)
+                    continue;
+                fileCounts.set(fp, (fileCounts.get(fp) || 0) + 1);
+            }
+        }
+        else {
+            for (const c of commits) {
+                for (const f of c.files) {
+                    fileCounts.set(f.path, (fileCounts.get(f.path) || 0) + 1);
+                }
+            }
+        }
+        const trackedFiles = Array.from(fileCounts.entries()).map(([p, count]) => ({
+            path: p,
+            count,
+        }));
+        const q = (options.search || '').trim().toLowerCase();
+        const filteredCommits = q
+            ? commits.filter(c => c.hash.toLowerCase().includes(q) ||
+                c.shortHash.toLowerCase().includes(q) ||
+                c.subject.toLowerCase().includes(q) ||
+                c.author.toLowerCase().includes(q) ||
+                c.files.some(f => f.path.toLowerCase().includes(q)))
+            : commits;
+        return {
+            commits: filteredCommits,
+            trackedFiles,
+        };
+    }
+    async getCommitDiff(cwd, commitHash, file) {
+        const cleanHash = (commitHash || '').trim();
+        if (!/^[0-9a-fA-F]{4,64}$/.test(cleanHash)) {
+            throw new Error('Invalid commit hash');
+        }
+        const cleanFile = (file || '').trim();
+        if (cleanFile) {
+            if (cleanFile.startsWith('-') || cleanFile.includes('\0') || cleanFile.split('/').includes('..')) {
+                throw new Error('Invalid file path');
+            }
+        }
+        const execTarget = this.executor ? cwd : this.expandLocalPath(cwd);
+        const args = cleanFile
+            ? ['show', '--format=', '--patch', cleanHash, '--', cleanFile]
+            : ['show', '--format=', '--patch', cleanHash];
+        const raw = await this.execGit(execTarget, args);
+        return {
+            file: cleanFile || `commit:${cleanHash.slice(0, 7)}`,
+            lines: parseDiff(raw, !cleanFile),
+        };
     }
 }
 export const gitService = new GitService();

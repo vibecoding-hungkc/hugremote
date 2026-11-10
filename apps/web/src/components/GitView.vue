@@ -1,5 +1,10 @@
 <template>
-  <div class="git-view" :class="{ 'mobile-detail-open': mobileDetailOpen }">
+  <div
+    ref="gitViewRoot"
+    class="git-view"
+    :class="{ 'mobile-detail-open': mobileDetailOpen }"
+    :style="gitColCssVars"
+  >
     <!-- 1. Top Scanner Banner -->
     <div class="git-scanner-banner">
       <div class="git-scanner-info">
@@ -44,7 +49,7 @@
       </div>
     </div>
 
-    <!-- 2. Main 2-Column Grid (Repos List on Left, Active Repo Detail + Split Diff on Right) -->
+    <!-- 2. Main 2-Column Grid (Repos List on Left, Resizer, Active Repo Detail on Right) -->
     <div class="git-main-grid" :class="{ 'mobile-detail-open': mobileDetailOpen }">
       <!-- Left Column: Repository Cards -->
       <div id="git-multi-repo-bar" class="git-repos-column git-multi-repo-bar">
@@ -106,7 +111,18 @@
         </div>
       </div>
 
-      <!-- Right Column: Active Repo Toolbar + 2-Pane Split (Changed Files + Live Diff) -->
+      <!-- Column Resizer 1: Repo List <-> Repo Detail -->
+      <div
+        id="git-resizer-repos"
+        class="git-col-resizer"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Kéo để chỉnh độ rộng cột danh sách repo"
+        title="Kéo để chỉnh độ rộng cột danh sách repo"
+        @mousedown="startResize($event, 'repos', 180, 520)"
+      ></div>
+
+      <!-- Right Column: Active Repo Toolbar + 2-Tab Mode (Working Tree | Commit History) -->
       <div class="git-Active-detail-column git-repo-detail">
         <button
           id="git-mobile-back"
@@ -162,9 +178,46 @@
           </button>
         </div>
 
+        <!-- 2-Tab Subview Switcher (Working Changes vs Commit History) -->
+        <div class="git-detail-mode-bar">
+          <div class="git-detail-mode-tabs" role="tablist" aria-label="Chế độ xem Git">
+            <button
+              id="git-mode-working"
+              type="button"
+              class="git-repo-filter-btn"
+              :class="{ active: detailMode === 'working' }"
+              data-git-mode="working"
+              @click="switchDetailMode('working')"
+            >
+              <i class="ri-file-edit-line"></i>
+              <span>Thay đổi hiện tại · {{ gitStore.files.length }}</span>
+            </button>
+            <button
+              id="git-mode-history"
+              type="button"
+              class="git-repo-filter-btn"
+              :class="{ active: detailMode === 'history' }"
+              data-git-mode="history"
+              @click="switchDetailMode('history')"
+            >
+              <i class="ri-history-line"></i>
+              <span>Lịch sử Commit · {{ gitStore.commits.length }}</span>
+            </button>
+          </div>
+          <span id="git-detail-mode-summary" class="git-detail-mode-hint">
+            {{ gitStore.files.length }} tệp đang sửa · {{ gitStore.commits.length }} commit trong lịch sử
+          </span>
+        </div>
+
         <p v-if="gitStore.error" class="git-error">{{ gitStore.error }}</p>
 
-        <div class="git-detail-split">
+        <!-- TAB 1: WORKING TREE CHANGES -->
+        <div
+          v-show="detailMode === 'working'"
+          id="git-working-tree-section"
+          class="git-detail-split"
+          :data-mobile-step="workingMobileStep"
+        >
           <!-- Left Box: Changed Files + Commit Bar -->
           <div class="git-files-box">
             <div class="git-box-title">
@@ -195,12 +248,20 @@
                 >
                   <i :class="file.staged ? 'ri-checkbox-circle-fill' : 'ri-checkbox-blank-circle-line'"></i>
                 </button>
-                <button class="file-open" @click="gitStore.fetchDiff(file.path)">
+                <button class="file-open" @click="openWorkingFileDiff(file.path)">
                   <span class="status" :class="file.status">{{ file.status }}</span>
                   <span class="file-path git-file-path" :title="file.path">{{ file.path }}</span>
                   <span class="stage-label">{{ file.staged ? 'staged' : 'unstaged' }}</span>
                   <span class="stat plus">+{{ file.additions }}</span>
                   <span class="stat minus">-{{ file.deletions }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="git-repo-filter-btn git-track-file-btn"
+                  title="Xem lịch sử các commit đã thay đổi tệp này"
+                  @click.stop="trackFileInHistory(file.path)"
+                >
+                  Lịch sử tệp
                 </button>
               </div>
             </div>
@@ -232,8 +293,28 @@
             </div>
           </div>
 
+          <!-- Column Resizer 2: Working Files <-> Working Diff -->
+          <div
+            id="git-resizer-working-files"
+            class="git-col-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Kéo để chỉnh độ rộng cột tệp thay đổi"
+            title="Kéo để chỉnh độ rộng cột tệp thay đổi"
+            @mousedown="startResize($event, 'workingFiles', 220, 720)"
+          ></div>
+
           <!-- Right Box: Quick Diff Viewer -->
           <div class="git-diff-box">
+            <button
+              id="git-working-mobile-back-files"
+              type="button"
+              class="git-sub-mobile-back"
+              aria-label="Quay lại danh sách tệp thay đổi"
+              @click="workingMobileStep = 'files'"
+            >
+              <i class="ri-arrow-left-line" aria-hidden="true"></i> Danh sách tệp thay đổi
+            </button>
             <div class="git-box-title">
               <span>Xem nhanh Diff</span>
               <span id="git-detail-diff-filename" class="git-diff-filename">
@@ -262,6 +343,307 @@
             </div>
           </div>
         </div>
+
+        <!-- TAB 2: GIT COMMIT HISTORY & CHANGED FILES PER COMMIT -->
+        <div
+          v-show="detailMode === 'history'"
+          id="git-history-section"
+          class="git-history-section"
+          :data-mobile-step="historyMobileStep"
+        >
+          <div class="git-history-head">
+            <div class="git-history-title-group">
+              <i class="ri-git-commit-line"></i>
+              <span>Lịch sử Commit &amp; Biến động tệp</span>
+              <span id="git-history-branch-badge" class="quick-git-depth-tag">
+                nhánh {{ gitStore.branch || 'main' }}
+              </span>
+              <span id="git-history-count-badge" class="git-repo-count ok">
+                {{ gitStore.commits.length }} commit
+              </span>
+              <span
+                v-if="gitStore.historyFileFilter"
+                id="git-history-tracked-pill"
+                class="git-history-tracked-pill"
+              >
+                <i class="ri-file-search-line"></i>
+                <span id="git-history-tracked-file-name">
+                  Đang theo dõi: {{ gitStore.historyFileFilter }}
+                </span>
+                <button
+                  id="git-history-clear-file-filter"
+                  type="button"
+                  title="Bỏ lọc theo tệp"
+                  aria-label="Bỏ lọc theo tệp"
+                  @click="clearTrackedFileFilter"
+                >
+                  ×
+                </button>
+              </span>
+            </div>
+
+            <div class="git-history-controls">
+              <select
+                id="git-history-file-select"
+                class="git-history-select"
+                :value="gitStore.historyFileFilter"
+                aria-label="Lọc lịch sử commit theo tệp"
+                @change="onHistoryFileSelectChange($event)"
+              >
+                <option value="">
+                  Tất cả tệp trong lịch sử · {{ gitStore.trackedHistoryFiles.length }} tệp
+                </option>
+                <option
+                  v-for="item in gitStore.trackedHistoryFiles"
+                  :key="item.path"
+                  :value="item.path"
+                >
+                  {{ item.path }} · {{ item.count }} commit
+                </option>
+              </select>
+
+              <input
+                id="git-history-search-input"
+                v-model="gitStore.historySearchQuery"
+                class="git-history-search"
+                type="text"
+                placeholder="Tìm mã SHA, nội dung commit, tác giả, tên tệp..."
+                aria-label="Tìm kiếm trong lịch sử commit"
+                @input="onHistorySearchInput"
+              />
+            </div>
+          </div>
+
+          <div class="git-history-split">
+            <!-- Column 1: Commit History List -->
+            <div class="git-history-commits-box">
+              <div class="git-box-title">
+                <span>Danh sách Commit theo thời gian</span>
+                <span id="git-history-filtered-count" class="quick-git-depth-tag">
+                  {{ gitStore.commits.length }} commit
+                </span>
+              </div>
+
+              <div
+                id="git-history-commit-list"
+                class="git-history-commit-list"
+                role="listbox"
+                aria-label="Danh sách commit của repo"
+              >
+                <div v-if="gitStore.commits.length === 0 && !gitStore.loadingHistory" class="git-empty">
+                  Không tìm thấy commit nào khớp bộ lọc.
+                </div>
+                <button
+                  v-for="commit in gitStore.commits"
+                  :key="commit.hash"
+                  type="button"
+                  class="git-commit-item"
+                  :class="{ active: gitStore.selectedCommit?.hash === commit.hash }"
+                  :data-commit-hash="commit.hash"
+                  @click="handleSelectCommit(commit.hash)"
+                >
+                  <span class="git-commit-timeline" aria-hidden="true">
+                    <span class="git-commit-dot"></span>
+                    <span class="git-commit-line"></span>
+                  </span>
+                  <span class="git-commit-main">
+                    <span class="git-commit-top">
+                      <span class="git-commit-sha">{{ commit.shortHash }}</span>
+                      <span v-if="commit.ref" class="git-commit-ref">{{ commit.ref }}</span>
+                      <span class="git-commit-date">{{ commit.relativeDate }}</span>
+                    </span>
+                    <span class="git-commit-subject">{{ commit.subject }}</span>
+                    <span class="git-commit-meta">
+                      <span><i class="ri-user-3-line"></i> {{ commit.author }}</span>
+                      <span>·</span>
+                      <span>{{ commit.files.length }} tệp thay đổi</span>
+                      <span class="stat plus">+{{ sumCommitAdditions(commit) }}</span>
+                      <span class="stat minus">-{{ sumCommitDeletions(commit) }}</span>
+                    </span>
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Column Resizer 3: History Commits <-> History Commit Detail -->
+            <div
+              id="git-resizer-history-commits"
+              class="git-col-resizer"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Kéo để chỉnh độ rộng cột danh sách commit"
+              title="Kéo để chỉnh độ rộng cột danh sách commit"
+              @mousedown="startResize($event, 'historyCommits', 220, 640)"
+            ></div>
+
+            <!-- Column 2: Selected Commit Summary + Side-by-Side Files & Diff -->
+            <div class="git-history-detail-box">
+              <div id="git-commit-detail-banner" class="git-commit-detail-banner">
+                <button
+                  id="git-history-mobile-back-commits"
+                  type="button"
+                  class="git-sub-mobile-back git-banner-mobile-back"
+                  aria-label="Quay lại danh sách commit"
+                  @click="historyMobileStep = 'commits'"
+                >
+                  <i class="ri-arrow-left-line" aria-hidden="true"></i> Danh sách Commit
+                </button>
+
+                <template v-if="gitStore.selectedCommit">
+                  <div class="git-commit-detail-top">
+                    <span id="git-commit-detail-subject" class="git-commit-detail-subject">
+                      {{ gitStore.selectedCommit.subject }}
+                    </span>
+                    <button
+                      id="git-copy-commit-sha-btn"
+                      type="button"
+                      class="git-repo-filter-btn"
+                      @click="copySelectedCommitSha"
+                    >
+                      <i class="ri-file-copy-line"></i>
+                      <span id="git-commit-detail-sha">{{ gitStore.selectedCommit.shortHash }}</span>
+                    </button>
+                  </div>
+                  <div class="git-commit-detail-sub">
+                    <span id="git-commit-detail-author">
+                      <i class="ri-user-3-line"></i> {{ gitStore.selectedCommit.author }}
+                    </span>
+                    <span>·</span>
+                    <span id="git-commit-detail-time">{{ gitStore.selectedCommit.relativeDate }}</span>
+                    <span>·</span>
+                    <span id="git-commit-detail-stats">
+                      {{ gitStore.selectedCommit.files.length }} tệp thay đổi · +{{
+                        sumCommitAdditions(gitStore.selectedCommit)
+                      }}
+                      -{{ sumCommitDeletions(gitStore.selectedCommit) }}
+                    </span>
+                  </div>
+                </template>
+                <div v-else class="git-commit-detail-subject">
+                  Chọn một commit để xem chi tiết
+                </div>
+              </div>
+
+              <div class="git-commit-inspector-split">
+                <!-- Changed files inside selected commit -->
+                <div id="git-commit-files-pane" class="git-commit-files-pane">
+                  <div class="git-box-title">
+                    <span>Tệp thay đổi trong commit</span>
+                    <div class="git-box-title-actions">
+                      <span id="git-commit-files-count" class="quick-git-depth-tag">
+                        {{ gitStore.selectedCommit?.files.length || 0 }} tệp
+                      </span>
+                      <button
+                        id="git-commit-view-all-diff-btn"
+                        type="button"
+                        class="git-repo-filter-btn"
+                        :class="{ active: gitStore.commitViewAllFilesDiff }"
+                        @click="handleToggleCommitAllDiff"
+                      >
+                        Xem gộp mọi tệp
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="git-commit-file-list" class="git-commit-files-list">
+                    <div
+                      v-if="!gitStore.selectedCommit || gitStore.selectedCommit.files.length === 0"
+                      class="git-empty"
+                    >
+                      Không có tệp thay đổi trong commit này.
+                    </div>
+                    <div
+                      v-for="cFile in gitStore.selectedCommit?.files || []"
+                      :key="cFile.path"
+                      class="file-row git-file-row git-commit-file-row"
+                      :class="{
+                        active:
+                          !gitStore.commitViewAllFilesDiff &&
+                          gitStore.selectedCommitFile === cFile.path,
+                      }"
+                      :data-commit-file-path="cFile.path"
+                    >
+                      <button
+                        type="button"
+                        class="file-open"
+                        @click="handleSelectCommitFile(cFile.path)"
+                      >
+                        <span class="status" :class="cFile.status">{{ cFile.status }}</span>
+                        <span class="file-path git-file-path" :title="cFile.path">
+                          {{ cFile.path }}
+                        </span>
+                        <span class="stat plus">+{{ cFile.additions }}</span>
+                        <span class="stat minus">-{{ cFile.deletions }}</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="git-repo-filter-btn git-track-file-btn"
+                        :class="{ active: gitStore.historyFileFilter === cFile.path }"
+                        :data-commit-track-file="cFile.path"
+                        @click.stop="toggleTrackFileFromCommit(cFile.path)"
+                      >
+                        {{ gitStore.historyFileFilter === cFile.path ? 'Đang theo dõi' : 'Theo dõi tệp' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Column Resizer 4: Commit Files <-> Commit Diff -->
+                <div
+                  id="git-resizer-history-files"
+                  class="git-col-resizer"
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-label="Kéo để chỉnh độ rộng cột tệp trong commit"
+                  title="Kéo để chỉnh độ rộng cột tệp trong commit"
+                  @mousedown="startResize($event, 'historyFiles', 190, 560)"
+                ></div>
+
+                <!-- Commit File Diff Viewer -->
+                <div id="git-commit-diff-pane" class="git-commit-diff-pane">
+                  <button
+                    id="git-history-mobile-back-files"
+                    type="button"
+                    class="git-sub-mobile-back"
+                    aria-label="Quay lại danh sách tệp trong commit"
+                    @click="historyMobileStep = 'files'"
+                  >
+                    <i class="ri-arrow-left-line" aria-hidden="true"></i> Tệp thay đổi trong commit
+                  </button>
+                  <div class="git-box-title">
+                    <span>Diff trong commit</span>
+                    <span id="git-commit-diff-filename" class="git-diff-filename">
+                      {{ commitDiffTitle }}
+                    </span>
+                  </div>
+
+                  <div id="git-commit-diff-body" class="diff-lines git-diff-pre">
+                    <div
+                      v-if="!gitStore.selectedCommit || gitStore.commitDiffLines.length === 0"
+                      class="git-diff-empty"
+                    >
+                      {{
+                        gitStore.loadingCommitDiff
+                          ? 'Đang tải Diff của commit...'
+                          : '// Chọn một tệp trong commit để xem chi tiết Diff'
+                      }}
+                    </div>
+                    <div
+                      v-for="(line, idx) in gitStore.commitDiffLines"
+                      :key="idx"
+                      class="diff-line"
+                      :class="line.type"
+                    >
+                      <span class="line-no">{{ line.oldLine ?? '' }}</span>
+                      <span class="line-no">{{ line.newLine ?? '' }}</span>
+                      <span class="line-code">{{ line.content }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -270,19 +652,97 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import { useGitStore, type GitChangedFile } from '../stores/gitStore.js';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import {
+  useGitStore,
+  type GitChangedFile,
+  type GitCommitItem,
+} from '../stores/gitStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { useProjectStore } from '../stores/projectStore.js';
+
+const GIT_COL_STORAGE_KEY = 'hugremote_git_col_widths';
 
 const gitStore = useGitStore();
 const serverStore = useServerStore();
 const projectStore = useProjectStore();
+const gitViewRoot = ref<HTMLElement | null>(null);
 const showBranches = ref(false);
 const mobileDetailOpen = ref(false);
+const detailMode = ref<'working' | 'history'>('working');
+const workingMobileStep = ref<'files' | 'diff'>('files');
+const historyMobileStep = ref<'commits' | 'files' | 'diff'>('commits');
 const commitMessage = ref('');
 const remoteAction = ref<'pull' | 'push' | null>(null);
 const toast = ref<{ type: 'ok' | 'err'; message: string } | null>(null);
+
+const colWidths = reactive({
+  repos: 280,
+  workingFiles: 360,
+  historyCommits: 340,
+  historyFiles: 290,
+});
+
+function loadSavedColWidths() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const raw = localStorage.getItem(GIT_COL_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      if (typeof parsed.repos === 'number') colWidths.repos = parsed.repos;
+      if (typeof parsed.workingFiles === 'number') colWidths.workingFiles = parsed.workingFiles;
+      if (typeof parsed.historyCommits === 'number') colWidths.historyCommits = parsed.historyCommits;
+      if (typeof parsed.historyFiles === 'number') colWidths.historyFiles = parsed.historyFiles;
+    }
+  } catch {
+    // Ignore storage read failure
+  }
+}
+
+function saveColWidths() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(GIT_COL_STORAGE_KEY, JSON.stringify({ ...colWidths }));
+  } catch {
+    // Ignore storage write failure
+  }
+}
+
+const gitColCssVars = computed(() => ({
+  '--git-repos-col-width': `${colWidths.repos}px`,
+  '--git-working-files-col-width': `${colWidths.workingFiles}px`,
+  '--git-history-commits-col-width': `${colWidths.historyCommits}px`,
+  '--git-history-files-col-width': `${colWidths.historyFiles}px`,
+}));
+
+function startResize(
+  ev: MouseEvent,
+  key: 'repos' | 'workingFiles' | 'historyCommits' | 'historyFiles',
+  minPx: number,
+  maxPx: number,
+) {
+  ev.preventDefault();
+  const startX = ev.clientX;
+  const initialWidth = colWidths[key];
+  const targetEl = ev.currentTarget as HTMLElement | null;
+  targetEl?.classList.add('is-dragging');
+
+  const onMove = (moveEv: MouseEvent) => {
+    const delta = moveEv.clientX - startX;
+    colWidths[key] = Math.max(minPx, Math.min(maxPx, Math.round(initialWidth + delta)));
+  };
+
+  const onUp = () => {
+    targetEl?.classList.remove('is-dragging');
+    saveColWidths();
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  };
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
 
 const hasStagedFiles = computed(() => gitStore.files.some(file => file.staged));
 const hasUnstagedFiles = computed(() => gitStore.files.some(file => !file.staged));
@@ -322,6 +782,25 @@ const pushTitle = computed(() => {
   return `Push ${gitStore.ahead} commit lên ${gitStore.upstream}`;
 });
 
+const commitDiffTitle = computed(() => {
+  const c = gitStore.selectedCommit;
+  if (!c) return 'Chưa chọn commit';
+  if (gitStore.commitViewAllFilesDiff) {
+    return `Tất cả ${c.files.length} tệp @ ${c.shortHash}`;
+  }
+  return gitStore.selectedCommitFile
+    ? `${gitStore.selectedCommitFile} @ ${c.shortHash}`
+    : `Commit ${c.shortHash}`;
+});
+
+function sumCommitAdditions(commit: GitCommitItem): number {
+  return (commit.files || []).reduce((sum, f) => sum + (f.additions || 0), 0);
+}
+
+function sumCommitDeletions(commit: GitCommitItem): number {
+  return (commit.files || []).reduce((sum, f) => sum + (f.deletions || 0), 0);
+}
+
 function showToast(type: 'ok' | 'err', message: string) {
   toast.value = { type, message };
   setTimeout(() => {
@@ -344,18 +823,20 @@ async function autoLoadFirstDiffIfNeeded() {
 
 async function refresh() {
   await gitStore.fetchRepos();
-  await Promise.all([gitStore.fetchStatus(), gitStore.fetchBranches()]);
+  await Promise.all([gitStore.fetchStatus(), gitStore.fetchBranches(), gitStore.fetchCommits()]);
   await autoLoadFirstDiffIfNeeded();
 }
 
 async function refreshRepos() {
   await gitStore.fetchRepos();
-  await gitStore.fetchStatus();
+  await Promise.all([gitStore.fetchStatus(), gitStore.fetchCommits()]);
   await autoLoadFirstDiffIfNeeded();
 }
 
 async function openRepo(relPath: string) {
   showBranches.value = false;
+  workingMobileStep.value = 'files';
+  historyMobileStep.value = 'commits';
   await gitStore.selectRepo(relPath);
   await autoLoadFirstDiffIfNeeded();
   mobileDetailOpen.value = true;
@@ -364,6 +845,80 @@ async function openRepo(relPath: string) {
 function backToRepos() {
   showBranches.value = false;
   mobileDetailOpen.value = false;
+}
+
+function switchDetailMode(mode: 'working' | 'history') {
+  detailMode.value = mode;
+  workingMobileStep.value = 'files';
+  historyMobileStep.value = 'commits';
+  if (mode === 'history' && gitStore.commits.length === 0) {
+    gitStore.fetchCommits();
+  }
+}
+
+async function openWorkingFileDiff(filePath: string) {
+  workingMobileStep.value = 'diff';
+  await gitStore.fetchDiff(filePath);
+}
+
+async function trackFileInHistory(filePath: string) {
+  detailMode.value = 'history';
+  historyMobileStep.value = 'commits';
+  await gitStore.setHistoryFileFilter(filePath);
+  showToast('ok', `Đang lọc lịch sử commit của tệp ${filePath}`);
+}
+
+async function handleSelectCommit(hash: string) {
+  historyMobileStep.value = 'files';
+  await gitStore.selectCommit(hash);
+}
+
+async function handleSelectCommitFile(filePath: string) {
+  historyMobileStep.value = 'diff';
+  await gitStore.selectCommitFile(filePath);
+}
+
+async function handleToggleCommitAllDiff() {
+  await gitStore.toggleCommitAllFilesDiff();
+  if (gitStore.commitViewAllFilesDiff) {
+    historyMobileStep.value = 'diff';
+  }
+}
+
+async function toggleTrackFileFromCommit(filePath: string) {
+  const next = gitStore.historyFileFilter === filePath ? '' : filePath;
+  historyMobileStep.value = 'commits';
+  await gitStore.setHistoryFileFilter(next);
+  showToast('ok', next ? `Đang lọc các commit thay đổi tệp ${next}` : `Đã bỏ lọc theo tệp ${filePath}`);
+}
+
+async function clearTrackedFileFilter() {
+  historyMobileStep.value = 'commits';
+  await gitStore.setHistoryFileFilter('');
+}
+
+async function onHistoryFileSelectChange(ev: Event) {
+  const val = (ev.target as HTMLSelectElement | null)?.value || '';
+  historyMobileStep.value = 'commits';
+  await gitStore.setHistoryFileFilter(val);
+}
+
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+function onHistorySearchInput() {
+  historyMobileStep.value = 'commits';
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    gitStore.fetchCommits();
+  }, 180);
+}
+
+function copySelectedCommitSha() {
+  const sha = gitStore.selectedCommit?.hash || gitStore.selectedCommit?.shortHash;
+  if (!sha) return;
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    navigator.clipboard.writeText(sha).catch(() => {});
+  }
+  showToast('ok', `Đã sao chép mã commit ${sha.slice(0, 7)}`);
 }
 
 async function switchBranch(name: string) {
@@ -411,9 +966,14 @@ async function runRemote(action: 'pull' | 'push') {
   }
 }
 
-onMounted(refresh);
+onMounted(() => {
+  loadSavedColWidths();
+  refresh();
+});
 watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () => {
   mobileDetailOpen.value = false;
+  workingMobileStep.value = 'files';
+  historyMobileStep.value = 'commits';
   refresh();
 });
 </script>
@@ -480,8 +1040,8 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
 
 .git-repo-filter-btn,
 .git-rescan-btn {
-  height: 24px;
-  padding: 0 8px;
+  height: 26px;
+  padding: 0 9px;
   border-radius: 5px;
   border: 1px solid #3a3a3a;
   background: #262626;
@@ -491,7 +1051,7 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
 }
 
 .git-repo-filter-btn.active {
@@ -504,9 +1064,41 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: var(--git-repos-col-width, 280px) 8px minmax(0, 1fr);
+  gap: 0;
   overflow: hidden;
+}
+
+.git-col-resizer {
+  width: 100%;
+  height: 100%;
+  min-width: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.git-col-resizer::before {
+  content: '';
+  width: 2px;
+  height: 36px;
+  border-radius: 2px;
+  background: #383838;
+  transition: background 0.15s, height 0.15s;
+}
+
+.git-col-resizer:hover::before,
+.git-col-resizer.is-dragging::before {
+  background: #8a8a8a;
+  height: 54px;
 }
 
 .git-repos-column {
@@ -661,12 +1253,13 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
   overflow: hidden;
 }
 
-.git-mobile-back {
+.git-mobile-back,
+.git-sub-mobile-back {
   display: none;
   align-self: flex-start;
   align-items: center;
   gap: 6px;
-  min-height: 32px;
+  min-height: 34px;
   padding: 0 10px;
   border-radius: 6px;
   border: 1px solid #3f3f3f;
@@ -775,12 +1368,38 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
   background: rgba(56, 189, 248, 0.1);
 }
 
+.git-detail-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: #1b1b1b;
+  border: 1px solid #303030;
+  flex-shrink: 0;
+}
+
+.git-detail-mode-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.git-detail-mode-hint {
+  font-size: 11px;
+  color: #9e9e9e;
+  font-family: monospace;
+}
+
 .git-detail-split {
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(280px, 1.15fr);
-  gap: 10px;
+  grid-template-columns: var(--git-working-files-col-width, 360px) 8px minmax(0, 1fr);
+  gap: 0;
   overflow: hidden;
 }
 
@@ -806,6 +1425,12 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
   justify-content: space-between;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.git-box-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .git-diff-filename {
@@ -892,6 +1517,13 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
 
 .minus {
   color: #ef4444;
+}
+
+.git-track-file-btn {
+  height: 22px;
+  padding: 0 7px;
+  font-size: 10px;
+  flex-shrink: 0;
 }
 
 .commit-box {
@@ -982,6 +1614,307 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
   user-select: none;
 }
 
+/* Git Commit History Styles */
+.git-history-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #181818;
+  border: 1px solid #303030;
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.git-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2b2b2b;
+  flex-shrink: 0;
+}
+
+.git-history-title-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ececec;
+}
+
+.git-history-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 240px;
+}
+
+.git-history-select {
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid #424242;
+  background: #222222;
+  color: #ececec;
+  font-family: monospace;
+  font-size: 11.5px;
+}
+
+.git-history-search {
+  min-width: 190px;
+  max-width: 280px;
+  flex: 1;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid #424242;
+  background: #141414;
+  color: #ececec;
+  font-size: 11.5px;
+}
+
+.git-history-tracked-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #262626;
+  border: 1px solid #525252;
+  color: #e8e8e8;
+  font-family: monospace;
+  font-size: 10.5px;
+}
+
+.git-history-tracked-pill button {
+  border: 0;
+  background: transparent;
+  color: #cccccc;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 2px;
+}
+
+.git-history-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--git-history-commits-col-width, 340px) 8px minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+}
+
+.git-history-commits-box,
+.git-history-detail-box {
+  background: #202020;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.git-history-commit-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.git-commit-item {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-bottom: 1px solid #292929;
+  background: transparent;
+  color: #e5e5e5;
+  text-align: left;
+  cursor: pointer;
+}
+
+.git-commit-item:hover {
+  background: #262626;
+}
+
+.git-commit-item.active {
+  background: #2b2b2b;
+  box-shadow: inset 2px 0 #b5b5b5;
+}
+
+.git-commit-timeline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 14px;
+  flex-shrink: 0;
+  padding-top: 3px;
+}
+
+.git-commit-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #787878;
+  border: 2px solid #2b2b2b;
+  flex-shrink: 0;
+}
+
+.git-commit-item.active .git-commit-dot {
+  background: #f0f0f0;
+  border-color: #8a8a8a;
+}
+
+.git-commit-line {
+  flex: 1;
+  width: 1px;
+  background: #333333;
+  margin-top: 4px;
+}
+
+.git-commit-item:last-child .git-commit-line {
+  display: none;
+}
+
+.git-commit-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.git-commit-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.git-commit-sha {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 11px;
+  color: #ececec;
+  background: #262626;
+  border: 1px solid #3f3f3f;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.git-commit-ref {
+  font-family: monospace;
+  font-size: 10px;
+  color: #d4d4d4;
+  background: #2b2b2b;
+  border: 1px solid #484848;
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.git-commit-date {
+  margin-left: auto;
+  font-family: monospace;
+  font-size: 10.5px;
+  color: #9e9e9e;
+}
+
+.git-commit-subject {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f0f0f0;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.git-commit-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #9e9e9e;
+}
+
+.git-commit-detail-banner {
+  padding: 9px 12px;
+  border-bottom: 1px solid #2e2e2e;
+  background: #1b1b1b;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.git-commit-detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.git-commit-detail-subject {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #f0f0f0;
+  line-height: 1.35;
+}
+
+.git-commit-detail-sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #a3a3a3;
+}
+
+.git-commit-inspector-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--git-history-files-col-width, 290px) 6px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.git-commit-files-pane {
+  border-right: 1px solid #2e2e2e;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.git-commit-files-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.git-commit-diff-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .git-empty,
 .git-error {
   color: #989898;
@@ -1028,6 +1961,10 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
     overflow: visible;
   }
 
+  .git-col-resizer {
+    display: none !important;
+  }
+
   .git-view:not(.mobile-detail-open) .git-repo-detail {
     display: none;
   }
@@ -1036,8 +1973,13 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
     display: none;
   }
 
-  .git-mobile-back {
+  .git-mobile-back,
+  .git-sub-mobile-back {
     display: inline-flex;
+  }
+
+  .git-banner-mobile-back {
+    margin-bottom: 4px;
   }
 
   .git-detail-split {
@@ -1045,9 +1987,60 @@ watch(() => [serverStore.currentServerId, projectStore.currentProject?.id], () =
     overflow: visible;
   }
 
-  .git-files-box,
-  .git-diff-box {
-    max-height: 360px;
+  /* Working Tree Mobile List -> Detail drill-down */
+  #git-working-tree-section[data-mobile-step="files"] .git-diff-box {
+    display: none;
+  }
+
+  #git-working-tree-section[data-mobile-step="diff"] .git-files-box {
+    display: none;
+  }
+
+  #git-working-tree-section[data-mobile-step="diff"] .git-diff-box {
+    display: flex;
+    min-height: 360px;
+  }
+
+  /* Commit History Mobile 3-Step List -> Detail drill-down */
+  .git-history-split {
+    display: block;
+    overflow: visible;
+  }
+
+  .git-history-controls {
+    justify-content: stretch;
+    min-width: 100%;
+  }
+
+  .git-history-search {
+    max-width: none;
+    width: 100%;
+  }
+
+  .git-commit-inspector-split {
+    display: block;
+    overflow: visible;
+  }
+
+  .git-commit-files-pane {
+    border-right: 0;
+  }
+
+  #git-history-section[data-mobile-step="commits"] .git-history-detail-box {
+    display: none;
+  }
+
+  #git-history-section[data-mobile-step="files"] .git-history-head,
+  #git-history-section[data-mobile-step="files"] .git-history-commits-box,
+  #git-history-section[data-mobile-step="files"] .git-commit-diff-pane {
+    display: none;
+  }
+
+  #git-history-section[data-mobile-step="diff"] .git-history-head,
+  #git-history-section[data-mobile-step="diff"] .git-history-commits-box,
+  #git-history-section[data-mobile-step="diff"] .git-commit-detail-banner,
+  #git-history-section[data-mobile-step="diff"] .git-commit-files-pane {
+    display: none;
   }
 }
 </style>

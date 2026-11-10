@@ -29,7 +29,7 @@ function assertGradientBorder(style, selector, surface) {
 for (const [style, label] of [[vueStyle(dockSource), 'app'], [prototype.match(/<style\b[^>]*>([\s\S]*?)<\/style>/i)?.[1] || '', 'prototype']]) {
   const active = declarations(style, '.dock-item.active');
   const line = declarations(style, '.dock-item.active::after');
-  assert.equal(active.background, label === 'app' ? '#171717' : 'var(--bg-card)', `${label}: retain original active fill`);
+  assert.equal(active.background, 'transparent', `${label}: retain transparent active fill`);
   assert.doesNotMatch(active['background-image'] || '', /gradient/, `${label}: no gradient around entire tab`);
   assert.doesNotMatch(active.border || active['border-color'] || '', /gradient|#38bdf8|#c084fc|#d97757/, `${label}: no colored outline`);
   assert.match(line.content || '', /^['"]{2}$/, `${label}: top line must exist`);

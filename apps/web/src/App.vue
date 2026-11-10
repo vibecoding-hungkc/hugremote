@@ -600,8 +600,8 @@ html, body {
   .app-root.workspace-sidebar-open .main-content {
     padding-left: var(--workspace-sidebar-width, 256px);
   }
-  .app-root.workspace-sidebar-open .context-row {
-    padding-left: calc(var(--workspace-sidebar-width, 256px) + 10px);
+  .app-root.workspace-sidebar-open .smart-header-center {
+    padding-left: calc(var(--workspace-sidebar-width, 256px) + 6px);
   }
 }
 
@@ -609,8 +609,8 @@ html, body {
   .app-root.quick-tree-open .main-content {
     padding-right: var(--quick-panel-width, 320px);
   }
-  .app-root.quick-tree-open .context-row {
-    padding-right: calc(var(--quick-panel-width, 320px) + 10px);
+  .app-root.quick-tree-open .smart-header-right {
+    padding-right: calc(var(--quick-panel-width, 320px) + 6px) !important;
   }
 }
 

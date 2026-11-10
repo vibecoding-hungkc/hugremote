@@ -1197,6 +1197,7 @@
       white-space: nowrap;
     }
     .context-row {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -1205,19 +1206,6 @@
       gap: 8px;
       min-width: 0;
       box-sizing: border-box;
-      transition:
-        padding-left 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-        padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @media (min-width: 900px) {
-      #app.workspace-sidebar-open .context-row {
-        padding-left: calc(var(--workspace-sidebar-width, 256px) + 10px);
-      }
-    }
-    @media (min-width: 800px) {
-      #app.quick-tree-open .context-row {
-        padding-right: calc(var(--quick-panel-width, 304px) + 10px);
-      }
     }
 
     /* Left Workspace Sidebar & Toggle Button (Desktop docked + Mobile slide-over drawer) */
@@ -1232,6 +1220,11 @@
     }
 
     .btn-workspace-sidebar-toggle {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 20;
       width: 28px;
       height: 28px;
       border-radius: 7px;
@@ -1657,6 +1650,13 @@
       align-items: center;
       min-width: 0;
       overflow: hidden;
+      padding-left: 36px;
+      transition: padding-left 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @media (min-width: 900px) {
+      #app.workspace-sidebar-open .smart-header-center {
+        padding-left: calc(var(--workspace-sidebar-width, 256px) + 6px);
+      }
     }
     .ctx-header-item {
       display: none;
@@ -1739,11 +1739,36 @@
       border-radius: 8px;
     }
 
+    .quick-tree-trigger[data-quick-panel="files"] {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 20;
+    }
+    .quick-tree-trigger[data-quick-panel="git"] {
+      position: absolute;
+      right: 44px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 20;
+    }
+
     .smart-header-right {
       display: flex;
       align-items: center;
       gap: 5px;
       flex-shrink: 0;
+      padding-right: 42px;
+      transition: padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
+      padding-right: 76px;
+    }
+    @media (min-width: 800px) {
+      #app.quick-tree-open .smart-header-right {
+        padding-right: calc(var(--quick-panel-width, 304px) + 6px) !important;
+      }
     }
     .ctx-actions-item {
       display: none;

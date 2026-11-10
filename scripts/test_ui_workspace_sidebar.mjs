@@ -359,21 +359,27 @@ try {
     assert.match(wsHtml, /btn-dw-server-remove/, 'Remove server from workspace button must render when >1 server');
   });
 
-  await test('AC-10: SmartHeader context-row indents according to workspace sidebar and folder (quick panel) widths', async () => {
+  await test('AC-10: Workspace toggle and Folder triggers stay fixed at corners, while active header content indents', async () => {
     const repoRoot = path.resolve(root, '../..');
     const smartHeaderVue = fs.readFileSync(path.resolve(repoRoot, 'apps/web/src/components/SmartHeader.vue'), 'utf8');
     const appVue = fs.readFileSync(path.resolve(repoRoot, 'apps/web/src/App.vue'), 'utf8');
     const protoHtml = fs.readFileSync(path.resolve(repoRoot, 'analysis/prototypes/prototype.html'), 'utf8');
 
-    // SmartHeader.vue & App.vue rules
-    assert.match(smartHeaderVue, /\.workspace-sidebar-open\s+\.context-row[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
-    assert.match(smartHeaderVue, /\.quick-tree-open\s+\.context-row[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
-    assert.match(appVue, /\.workspace-sidebar-open\s+\.context-row[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
-    assert.match(appVue, /\.quick-tree-open\s+\.context-row[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
+    // SmartHeader.vue fixed corners & indentations
+    assert.match(smartHeaderVue, /\.btn-workspace-sidebar-toggle\s*\{[\s\S]*?position:\s*absolute[\s\S]*?left:\s*10px/);
+    assert.match(smartHeaderVue, /\.btn-icon-action\.quick-tree-trigger\[data-quick-panel="files"\]\s*\{[\s\S]*?position:\s*absolute[\s\S]*?right:\s*10px/);
+    assert.match(smartHeaderVue, /\.workspace-sidebar-open\s+\.smart-header-center[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
+    assert.match(smartHeaderVue, /\.quick-tree-open\s+\.smart-header-right[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
 
-    // prototype.html rules
-    assert.match(protoHtml, /#app\.workspace-sidebar-open\s+\.context-row[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
-    assert.match(protoHtml, /#app\.quick-tree-open\s+\.context-row[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
+    // App.vue rules
+    assert.match(appVue, /\.workspace-sidebar-open\s+\.smart-header-center[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
+    assert.match(appVue, /\.quick-tree-open\s+\.smart-header-right[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
+
+    // prototype.html fixed corners & indentations
+    assert.match(protoHtml, /\.btn-workspace-sidebar-toggle\s*\{[\s\S]*?position:\s*absolute[\s\S]*?left:\s*10px/);
+    assert.match(protoHtml, /\.quick-tree-trigger\[data-quick-panel="files"\]\s*\{[\s\S]*?position:\s*absolute[\s\S]*?right:\s*10px/);
+    assert.match(protoHtml, /#app\.workspace-sidebar-open\s+\.smart-header-center[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
+    assert.match(protoHtml, /#app\.quick-tree-open\s+\.smart-header-right[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
   });
 } finally {
   await vite.close();

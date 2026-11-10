@@ -502,6 +502,7 @@ async function closeFile() {
 }
 
 .context-row {
+  position: relative;
   height: 38px;
   display: flex;
   align-items: center;
@@ -511,23 +512,6 @@ async function closeFile() {
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
-  transition:
-    padding-left 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-    padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@media (min-width: 900px) {
-  .app-root.workspace-sidebar-open .context-row,
-  #app.workspace-sidebar-open .context-row {
-    padding-left: calc(var(--workspace-sidebar-width, 256px) + 10px);
-  }
-}
-
-@media (min-width: 800px) {
-  .app-root.quick-tree-open .context-row,
-  #app.quick-tree-open .context-row {
-    padding-right: calc(var(--quick-panel-width, 320px) + 10px);
-  }
 }
 
 .server-menu-btn {
@@ -564,6 +548,22 @@ async function closeFile() {
   min-width: 30px;
   height: 30px;
   font-size: 16px;
+}
+
+.btn-icon-action.quick-tree-trigger[data-quick-panel="files"] {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+}
+
+.btn-icon-action.quick-tree-trigger[data-quick-panel="git"] {
+  position: absolute;
+  right: 44px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
 }
 
 .btn-icon-action.quick-tree-trigger[aria-expanded="true"] {
@@ -616,6 +616,15 @@ async function closeFile() {
   justify-content: flex-start;
   overflow: hidden;
   padding: 0 4px;
+  padding-left: 36px;
+  transition: padding-left 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 900px) {
+  .app-root.workspace-sidebar-open .smart-header-center,
+  #app.workspace-sidebar-open .smart-header-center {
+    padding-left: calc(var(--workspace-sidebar-width, 256px) + 6px);
+  }
 }
 
 .ctx-header-item {
@@ -634,6 +643,11 @@ async function closeFile() {
 }
 
 .btn-workspace-sidebar-toggle {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
   width: 28px;
   min-width: 28px;
   height: 28px;
@@ -689,6 +703,19 @@ async function closeFile() {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  padding-right: 42px;
+  transition: padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
+  padding-right: 76px;
+}
+
+@media (min-width: 800px) {
+  .app-root.quick-tree-open .smart-header-right,
+  #app.quick-tree-open .smart-header-right {
+    padding-right: calc(var(--quick-panel-width, 320px) + 6px) !important;
+  }
 }
 
 .term-session-pill, .claude-session-pill {

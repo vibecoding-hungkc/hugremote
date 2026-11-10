@@ -23,12 +23,65 @@ export const useServerStore = defineStore('server', () => {
 
   const availableKeys = ref<string[]>([]);
   const SAVED_SERVER_KEY = 'hugremote_active_server';
+  const SAVED_WORKSPACE_SERVERS_KEY = 'hugremote_workspace_servers';
   const currentServerId = ref<string>(
     (typeof localStorage !== 'undefined' && localStorage.getItem(SAVED_SERVER_KEY)) || 'server-local'
   );
 
+  function loadInitialWorkspaceServers(): string[] {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem(SAVED_WORKSPACE_SERVERS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const list = parsed.map((id) => String(id)).filter(Boolean);
+            if (!list.includes(currentServerId.value)) {
+              list.push(currentServerId.value);
+            }
+            return list;
+          }
+        }
+      }
+    } catch {}
+    return [currentServerId.value];
+  }
+
+  const workspaceServerIds = ref<string[]>(loadInitialWorkspaceServers());
+
+  function saveWorkspaceServers() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SAVED_WORKSPACE_SERVERS_KEY, JSON.stringify(workspaceServerIds.value));
+      }
+    } catch {}
+  }
+
   const currentServer = computed(() => {
     return servers.value.find((s) => s.id === currentServerId.value) || servers.value[0];
+  });
+
+  const workspaceServers = computed<ServerItem[]>(() => {
+    const ids = [...workspaceServerIds.value];
+    if (currentServerId.value && !ids.includes(currentServerId.value)) {
+      ids.push(currentServerId.value);
+    }
+    const found: ServerItem[] = [];
+    for (const id of ids) {
+      const srv = servers.value.find((s) => s.id === id);
+      if (srv && !found.some((x) => x.id === srv.id)) {
+        found.push(srv);
+      }
+    }
+    if (found.length === 0 && servers.value[0]) {
+      found.push(servers.value[0]);
+    }
+    return found;
+  });
+
+  const availableServersToAdd = computed<ServerItem[]>(() => {
+    const activeSet = new Set(workspaceServers.value.map((s) => s.id));
+    return servers.value.filter((s) => !activeSet.has(s.id));
   });
 
   const connectedCount = computed(() => {
@@ -115,6 +168,10 @@ export const useServerStore = defineStore('server', () => {
 
   function selectServer(id: string) {
     currentServerId.value = id;
+    if (!workspaceServerIds.value.includes(id)) {
+      workspaceServerIds.value = [...workspaceServerIds.value, id];
+      saveWorkspaceServers();
+    }
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(SAVED_SERVER_KEY, id);
     }
@@ -122,11 +179,34 @@ export const useServerStore = defineStore('server', () => {
     if (s) s.isConnected = true;
   }
 
+  function addServerToWorkspace(id: string) {
+    if (!id) return;
+    if (!workspaceServerIds.value.includes(id)) {
+      workspaceServerIds.value = [...workspaceServerIds.value, id];
+      saveWorkspaceServers();
+    }
+    const s = servers.value.find((x) => x.id === id);
+    if (s) s.isConnected = true;
+  }
+
+  function removeServerFromWorkspace(id: string) {
+    if (workspaceServerIds.value.length <= 1) return;
+    workspaceServerIds.value = workspaceServerIds.value.filter((x) => x !== id);
+    saveWorkspaceServers();
+    if (currentServerId.value === id) {
+      const nextId = workspaceServerIds.value[0] || 'server-local';
+      selectServer(nextId);
+    }
+  }
+
   return {
     servers,
     availableKeys,
     currentServerId,
     currentServer,
+    workspaceServerIds,
+    workspaceServers,
+    availableServersToAdd,
     connectedCount,
     fetchServers,
     fetchAvailableKeys,
@@ -134,5 +214,7 @@ export const useServerStore = defineStore('server', () => {
     updateServerWorkspace,
     disconnectServer,
     selectServer,
+    addServerToWorkspace,
+    removeServerFromWorkspace,
   };
 });

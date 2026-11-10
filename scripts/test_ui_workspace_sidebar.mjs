@@ -295,6 +295,60 @@ try {
     assert.doesNotMatch(wsHtml, /btn-dw-claude-stop/);
     assert.equal((wsHtml.match(/class="dw-claude-running status-indicator"/g) || []).length, 1, 'Only running Claude session should render running indicator');
   });
+
+  await test('AC-9: WorkspaceSidebar supports adding and displaying multiple servers simultaneously in the Workspace tree', async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const serverStore = useServerStore();
+    const projectStore = useProjectStore();
+    const terminalStore = useTerminalStore();
+    const claudeStore = useClaudeStore();
+
+    serverStore.servers = [
+      { id: 'server-local', name: 'localhost', type: 'local', label: 'Local', host: '127.0.0.1', user: '', port: 22, isConnected: true },
+      { id: 'server-prod', name: 'prod-api-01', type: 'ssh', label: 'Prod API', host: '203.0.113.10', user: 'ubuntu', port: 22, isConnected: true },
+      { id: 'server-gpu', name: 'gpu-worker', type: 'ssh', label: 'GPU Worker', host: '203.0.113.11', user: 'root', port: 22, isConnected: false },
+    ];
+    serverStore.currentServerId = 'server-local';
+    serverStore.addServerToWorkspace('server-prod');
+
+    assert.equal(serverStore.workspaceServers.length, 2, 'Two servers must be present in workspaceServers');
+    assert.equal(serverStore.availableServersToAdd.length, 1, 'One server remains available to add');
+    assert.equal(serverStore.availableServersToAdd[0].id, 'server-gpu');
+
+    projectStore.projects = [
+      { id: 'proj-local-1', serverId: 'server-local', name: 'local-app', rootPath: '/home/u/local-app', lastOpenedAt: 100 },
+      { id: 'proj-prod-1', serverId: 'server-prod', name: 'prod-service', rootPath: '/srv/prod-service', lastOpenedAt: 200 },
+    ];
+    projectStore.activeProjectIdByServer['server-local'] = 'proj-local-1';
+    projectStore.activeProjectIdByServer['server-prod'] = 'proj-prod-1';
+
+    terminalStore.sessions = [
+      { id: 'term-local-1', serverId: 'server-local', projectId: 'proj-local-1', name: 'local-shell', cwd: '/home/u/local-app' },
+      { id: 'term-prod-1', serverId: 'server-prod', projectId: 'proj-prod-1', name: 'prod-logs', cwd: '/srv/prod-service' },
+    ];
+    claudeStore.sessions = [
+      { id: 'claude-local-1', serverId: 'server-local', projectId: 'proj-local-1', name: 'Local Agent', cwd: '/home/u/local-app', model: 'sonnet', messages: [] },
+      { id: 'claude-prod-1', serverId: 'server-prod', projectId: 'proj-prod-1', name: 'Prod Agent', cwd: '/srv/prod-service', model: 'opus', messages: [], isRunning: true },
+    ];
+
+    const wsApp = createSSRApp(WorkspaceSidebar, { isOpen: true });
+    wsApp.use(pinia);
+    const wsHtml = await renderToString(wsApp);
+
+    assert.match(wsHtml, /id="btn-dw-add-server"/);
+    assert.match(wsHtml, /data-dw-server-group="server-local"/);
+    assert.match(wsHtml, /data-dw-server-group="server-prod"/);
+    assert.match(wsHtml, /localhost/);
+    assert.match(wsHtml, /prod-api-01/);
+    assert.match(wsHtml, /local-app/);
+    assert.match(wsHtml, /prod-service/);
+    assert.match(wsHtml, /local-shell/);
+    assert.match(wsHtml, /prod-logs/);
+    assert.match(wsHtml, /Local Agent/);
+    assert.match(wsHtml, /Prod Agent/);
+    assert.match(wsHtml, /btn-dw-server-remove/, 'Remove server from workspace button must render when >1 server');
+  });
 } finally {
   await vite.close();
 }

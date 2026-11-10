@@ -228,6 +228,21 @@ export const useTerminalStore = defineStore('terminal', () => {
     }
   }
 
+  function ensureProjectSession(serverId: string, projectId: string, cwd: string) {
+    if (!serverId || !projectId) return;
+    const exists = sessions.value.some((s) => s.serverId === serverId && s.projectId === projectId);
+    if (!exists) {
+      sessions.value.push({
+        id: `term-${serverId}-${projectId}-${Date.now()}`,
+        name: extractLast3Dirs(cwd),
+        serverId,
+        projectId,
+        cwd,
+        isCustomNamed: false,
+      });
+    }
+  }
+
   watch(activeSessionId, (id) => {
     if (id && typeof localStorage !== 'undefined') {
       localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${serverStore.currentServerId}`, id);
@@ -255,5 +270,6 @@ export const useTerminalStore = defineStore('terminal', () => {
     renameSession,
     updateSession,
     ensureServerSession,
+    ensureProjectSession,
   };
 });

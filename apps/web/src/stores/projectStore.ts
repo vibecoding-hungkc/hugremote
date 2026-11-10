@@ -17,6 +17,10 @@ export const useProjectStore = defineStore('project', () => {
     projects.value.filter((p) => p.serverId === serverStore.currentServerId)
   );
 
+  function projectsForServer(serverId: string): ProjectItem[] {
+    return projects.value.filter((p) => p.serverId === serverId);
+  }
+
   const currentProject = computed(() => {
     const activeId = activeProjectIdByServer.value[serverStore.currentServerId];
     return currentServerProjects.value.find((p) => p.id === activeId) || currentServerProjects.value[0] || null;
@@ -129,6 +133,7 @@ export const useProjectStore = defineStore('project', () => {
     projects,
     activeProjectIdByServer,
     currentServerProjects,
+    projectsForServer,
     currentProject,
     loading,
     error,

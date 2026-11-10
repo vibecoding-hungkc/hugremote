@@ -37,6 +37,7 @@
       @update:panel-width="handleWorkspaceSidebarWidthChange"
       @close="setWorkspaceSidebarOpen(false)"
       @open-project-modal="isProjectModalOpen = true"
+      @open-server-modal="isServerModalOpen = true"
       @project-selected="handleScopeChanged"
       @open-new-terminal="openNewTerminalModal"
       @edit-terminal="handleEditTerminalSession"
@@ -316,17 +317,23 @@ async function handleGlobalShortcutKeyDown(event: KeyboardEvent) {
 
   if (!shortcutStore.enabled) return;
 
-  // Match <prefix>+<1..9>
+  // Match <prefix>+<1..9> across workspaceServers
   for (let idx = 1; idx <= 9; idx++) {
     const projCombo = shortcutStore.getItemShortcut('project', idx);
     if (projCombo && projCombo.toLowerCase() === combo.toLowerCase()) {
-      const targetProj = projectStore.currentServerProjects[idx - 1];
+      const allProjs = serverStore.workspaceServers.flatMap(srv =>
+        projectStore.projectsForServer(srv.id)
+      );
+      const targetProj = allProjs[idx - 1];
       if (!targetProj) return;
       event.preventDefault();
       event.stopPropagation();
-      if (targetProj.id !== projectStore.currentProject?.id) {
+      if (targetProj.serverId !== serverStore.currentServerId || targetProj.id !== projectStore.currentProject?.id) {
         if (!(await fileStore.confirmUnsavedChanges())) return;
-        await projectStore.selectProject(targetProj.id);
+        if (targetProj.serverId !== serverStore.currentServerId) {
+          serverStore.selectServer(targetProj.serverId);
+        }
+        await projectStore.selectProject(targetProj.id, targetProj.serverId);
         await handleScopeChanged();
       }
       return;
@@ -334,20 +341,25 @@ async function handleGlobalShortcutKeyDown(event: KeyboardEvent) {
 
     const termCombo = shortcutStore.getItemShortcut('terminal', idx);
     if (termCombo && termCombo.toLowerCase() === combo.toLowerCase()) {
-      const allTerms: Array<{ session: any; projectId: string }> = [];
-      for (const proj of projectStore.currentServerProjects) {
-        const list = terminalStore.sessions.filter(
-          s => s.serverId === serverStore.currentServerId && s.projectId === proj.id
-        );
-        for (const s of list) allTerms.push({ session: s, projectId: proj.id });
+      const allTerms: Array<{ session: any; projectId: string; serverId: string }> = [];
+      for (const srv of serverStore.workspaceServers) {
+        for (const proj of projectStore.projectsForServer(srv.id)) {
+          const list = terminalStore.sessions.filter(
+            s => s.serverId === srv.id && s.projectId === proj.id
+          );
+          for (const s of list) allTerms.push({ session: s, projectId: proj.id, serverId: srv.id });
+        }
       }
       const target = allTerms[idx - 1];
       if (!target) return;
       event.preventDefault();
       event.stopPropagation();
-      if (target.projectId && target.projectId !== projectStore.currentProject?.id) {
+      if (target.serverId !== serverStore.currentServerId || (target.projectId && target.projectId !== projectStore.currentProject?.id)) {
         if (!(await fileStore.confirmUnsavedChanges())) return;
-        await projectStore.selectProject(target.projectId);
+        if (target.serverId !== serverStore.currentServerId) {
+          serverStore.selectServer(target.serverId);
+        }
+        await projectStore.selectProject(target.projectId, target.serverId);
         await handleScopeChanged();
       }
       terminalStore.switchSession(target.session.id);
@@ -357,22 +369,27 @@ async function handleGlobalShortcutKeyDown(event: KeyboardEvent) {
 
     const claudeCombo = shortcutStore.getItemShortcut('claude', idx);
     if (claudeCombo && claudeCombo.toLowerCase() === combo.toLowerCase()) {
-      const allClaudes: Array<{ session: any; projectId: string }> = [];
-      for (const proj of projectStore.currentServerProjects) {
-        const list = claudeStore.sessions.filter(
-          s =>
-            s.serverId === serverStore.currentServerId &&
-            (s.projectId ? s.projectId === proj.id : s.cwd?.replace(/\/+$/, '') === proj.rootPath.replace(/\/+$/, ''))
-        );
-        for (const s of list) allClaudes.push({ session: s, projectId: proj.id });
+      const allClaudes: Array<{ session: any; projectId: string; serverId: string }> = [];
+      for (const srv of serverStore.workspaceServers) {
+        for (const proj of projectStore.projectsForServer(srv.id)) {
+          const list = claudeStore.sessions.filter(
+            s =>
+              s.serverId === srv.id &&
+              (s.projectId ? s.projectId === proj.id : s.cwd?.replace(/\/+$/, '') === proj.rootPath.replace(/\/+$/, ''))
+          );
+          for (const s of list) allClaudes.push({ session: s, projectId: proj.id, serverId: srv.id });
+        }
       }
       const target = allClaudes[idx - 1];
       if (!target) return;
       event.preventDefault();
       event.stopPropagation();
-      if (target.projectId && target.projectId !== projectStore.currentProject?.id) {
+      if (target.serverId !== serverStore.currentServerId || (target.projectId && target.projectId !== projectStore.currentProject?.id)) {
         if (!(await fileStore.confirmUnsavedChanges())) return;
-        await projectStore.selectProject(target.projectId);
+        if (target.serverId !== serverStore.currentServerId) {
+          serverStore.selectServer(target.serverId);
+        }
+        await projectStore.selectProject(target.projectId, target.serverId);
         await handleScopeChanged();
       }
       claudeStore.switchSession(target.session.id);
@@ -382,7 +399,7 @@ async function handleGlobalShortcutKeyDown(event: KeyboardEvent) {
 
     const serverCombo = shortcutStore.getItemShortcut('server', idx);
     if (serverCombo && serverCombo.toLowerCase() === combo.toLowerCase()) {
-      const targetServer = serverStore.servers[idx - 1];
+      const targetServer = serverStore.workspaceServers[idx - 1] || serverStore.servers[idx - 1];
       if (!targetServer || targetServer.id === serverStore.currentServerId) return;
       event.preventDefault();
       event.stopPropagation();

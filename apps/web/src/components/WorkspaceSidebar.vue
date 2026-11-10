@@ -11,7 +11,7 @@
     class="desktop-workspace-sidebar"
     :class="{ open: isOpen, resizing: isResizing, 'shortcut-labels-visible': shortcutStore.showLabels }"
     :style="{ width: `${panelWidth}px` }"
-    aria-label="Điều hướng nhanh Project và Session"
+    aria-label="Điều hướng nhanh Server, Project và Session"
   >
     <div class="dw-top-header">
       <div class="dw-top-title">
@@ -48,78 +48,346 @@
       @keydown="onResizeKeyDown"
     ></div>
 
-    <!-- Project tree -->
-    <div class="dw-scroll-content"><div class="dw-section">
-      <div class="dw-section-head">
-        <span><i class="ri-folder-2-line" style="color: #38bdf8"></i> Projects</span>
-        <button
-          id="btn-dw-manage-proj"
-          type="button"
-          title="Quản lý hoặc thêm Project"
-          @click="handleOpenProjectModal"
-        >
-          <i class="ri-equalizer-line"></i> Quản lý
-        </button>
-      </div>
-      <div id="dw-project-list" class="dw-list">
-        <div v-for="(proj, projIdx) in projectStore.currentServerProjects" :key="proj.id"
-          class="dw-project-group" :data-dw-project-group="proj.id">
-          <div class="dw-item proj-item" :class="{ active: proj.id === projectStore.currentProject?.id }"
-            :data-dw-project="proj.id" @click="handleSelectProject(proj.id)">
-            <button type="button" class="dw-caret" :aria-label="collapsedProjectIds.has(proj.id) ? 'Mở nhóm Project' : 'Thu gọn nhóm Project'"
-              :aria-expanded="!collapsedProjectIds.has(proj.id)" @click.stop="toggleProject(proj.id)">
-              <i :class="collapsedProjectIds.has(proj.id) ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'"></i>
+    <!-- Multi-Server & Project Tree -->
+    <div class="dw-scroll-content">
+      <div class="dw-section">
+        <div class="dw-section-head">
+          <span>
+            <i class="ri-server-line" style="color: #34d399"></i>
+            Servers · {{ serverStore.workspaceServers.length }}
+          </span>
+          <div class="dw-section-actions">
+            <button
+              id="btn-dw-add-server"
+              type="button"
+              :class="{ active: showAddServerMenu }"
+              title="Thêm Server vào Workspace"
+              @click="showAddServerMenu = !showAddServerMenu"
+            >
+              <i class="ri-add-line"></i> Server
             </button>
-            <div class="dw-item-main"><div class="dw-item-title">
-              <span class="dw-idx-badge" :data-proj-index="projIdx + 1">{{ projIdx + 1 }}</span>
-              <i :class="isHomeProject(proj) ? 'ri-home-4-line' : 'ri-folder-2-line'" style="color: #38bdf8"></i>
-              <span>{{ proj.name }}</span>
-            </div></div>
-            <kbd v-if="shortcutStore.getItemShortcut('project', projIdx + 1)" class="dw-kbd-tag">{{ shortcutStore.getItemShortcut('project', projIdx + 1) }}</kbd>
-            <span v-if="proj.id === projectStore.currentProject?.id" class="dw-active-dot" aria-label="Project đang chọn"></span>
-            <div class="dw-item-actions" @click.stop>
-              <button v-if="!isHomeProject(proj)" type="button" class="danger btn-dw-proj-del"
-                title="Xóa project" @click="requestDeleteProject(proj)"><i class="ri-delete-bin-line"></i></button>
-            </div>
+            <button
+              id="btn-dw-manage-proj"
+              type="button"
+              title="Quản lý hoặc thêm Project"
+              @click="handleOpenProjectModal"
+            >
+              <i class="ri-equalizer-line"></i> Quản lý
+            </button>
           </div>
-          <div v-if="!collapsedProjectIds.has(proj.id)" class="dw-proj-children">
-            <div class="dw-sub-group">
-              <div class="dw-sub-header"><span><i class="ri-terminal-box-line" style="color: #c084fc"></i> Terminal</span>
-                <button type="button" :id="proj.id === projectStore.currentProject?.id ? 'btn-dw-new-term' : undefined"
-                  title="Tạo Terminal trong Project" @click="handleOpenNewTerminal(proj.id)"><i class="ri-add-line"></i></button>
-              </div>
-              <div class="dw-session-list">
-                <div v-for="s in sessionsForProject(proj.id, proj.rootPath, 'terminal')" :key="s.id"
-                  class="dw-item term-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === terminalStore.activeSession?.id }"
-                  :data-dw-term="s.id" :data-dw-term-project="proj.id" @click="handleSelectTerminal(s)">
-                  <div class="dw-item-main"><div class="dw-item-title"><span class="dw-idx-badge" :data-term-index="getTermIndex(s.id)">{{ getTermIndex(s.id) }}</span><i class="ri-terminal-box-line" style="color: #c084fc"></i><span>{{ s.name }}</span></div></div>
-                  <kbd v-if="shortcutStore.getItemShortcut('terminal', getTermIndex(s.id))" class="dw-kbd-tag">{{ shortcutStore.getItemShortcut('terminal', getTermIndex(s.id)) }}</kbd>
-                  <span v-if="proj.id === projectStore.currentProject?.id && s.id === terminalStore.activeSession?.id" class="dw-active-dot" aria-label="Terminal đang chọn"></span>
-                  <div class="dw-item-actions" @click.stop>
-                    <button type="button" class="btn-dw-term-edit" title="Chỉnh sửa phiên" @click="handleEditTerminal(s)"><i class="ri-edit-line"></i></button>
-                    <button v-if="sessionsForProject(proj.id, proj.rootPath, 'terminal').length > 1" type="button" class="danger btn-dw-term-close"
-                      title="Đóng phiên" :disabled="Boolean(closingTermId)" @click="requestCloseTerminal(s)"><i class="ri-close-line"></i></button>
-                  </div>
+        </div>
+
+        <!-- Inline Add Server to Workspace Picker -->
+        <div v-if="showAddServerMenu" id="dw-add-server-menu" class="dw-add-server-menu">
+          <div class="dw-add-server-title">Thêm Server vào Workspace</div>
+          <div v-if="serverStore.availableServersToAdd.length === 0" class="dw-add-server-empty">
+            Tất cả Server đã có trong Workspace
+          </div>
+          <button
+            v-for="availSrv in serverStore.availableServersToAdd"
+            :key="availSrv.id"
+            type="button"
+            class="dw-add-server-option"
+            :data-dw-add-server-item="availSrv.id"
+            @click="handleAddServerToWorkspace(availSrv.id)"
+          >
+            <i :class="availSrv.type === 'local' ? 'ri-hard-drive-2-line' : 'ri-server-line'" style="color: #34d399"></i>
+            <span>{{ availSrv.name }}</span>
+            <i class="ri-add-circle-line dw-add-server-plus"></i>
+          </button>
+          <button
+            id="btn-dw-open-server-modal"
+            type="button"
+            class="dw-add-server-manage-btn"
+            @click="handleOpenServerModal"
+          >
+            <i class="ri-settings-3-line"></i>
+            <span>Kết nối / Quản lý Server SSH...</span>
+          </button>
+        </div>
+
+        <div id="dw-project-list" class="dw-list">
+          <div
+            v-for="(srv, srvIdx) in serverStore.workspaceServers"
+            :key="srv.id"
+            class="dw-server-group"
+            :data-dw-server-group="srv.id"
+          >
+            <!-- Server Row -->
+            <div
+              class="dw-item server-item"
+              :class="{ active: srv.id === serverStore.currentServerId }"
+              :data-dw-server="srv.id"
+              @click="handleSelectServer(srv.id)"
+            >
+              <button
+                type="button"
+                class="dw-caret"
+                :aria-label="collapsedServerIds.has(srv.id) ? 'Mở nhóm Server' : 'Thu gọn nhóm Server'"
+                :aria-expanded="!collapsedServerIds.has(srv.id)"
+                @click.stop="toggleServer(srv.id)"
+              >
+                <i :class="collapsedServerIds.has(srv.id) ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'"></i>
+              </button>
+              <div class="dw-item-main">
+                <div class="dw-item-title">
+                  <span class="dw-idx-badge" :data-server-index="srvIdx + 1">{{ srvIdx + 1 }}</span>
+                  <i
+                    :class="srv.type === 'local' ? 'ri-hard-drive-2-line' : 'ri-server-line'"
+                    style="color: #34d399"
+                  ></i>
+                  <span>{{ srv.name }}</span>
                 </div>
               </div>
-            </div>
-            <div class="dw-sub-group">
-              <div class="dw-sub-header"><span><i class="ri-sparkling-fill" style="color: #f59e0b"></i> Claude</span>
-                <button type="button" :id="proj.id === projectStore.currentProject?.id ? 'btn-dw-new-claude' : undefined"
-                  title="Tạo Claude trong Project" @click="handleOpenNewClaude(proj.id)"><i class="ri-add-line"></i></button>
+              <kbd
+                v-if="shortcutStore.getItemShortcut('server', srvIdx + 1)"
+                class="dw-kbd-tag"
+              >
+                {{ shortcutStore.getItemShortcut('server', srvIdx + 1) }}
+              </kbd>
+              <span
+                v-if="srv.id === serverStore.currentServerId"
+                class="dw-server-active-badge"
+              >
+                active
+              </span>
+              <div class="dw-item-actions" @click.stop>
+                <button
+                  type="button"
+                  class="btn-dw-server-proj"
+                  title="Quản lý hoặc thêm Project trên Server này"
+                  @click="handleManageServerProjects(srv.id)"
+                >
+                  <i class="ri-folder-add-line"></i>
+                </button>
+                <button
+                  v-if="serverStore.workspaceServers.length > 1"
+                  type="button"
+                  class="danger btn-dw-server-remove"
+                  title="Gỡ Server khỏi Workspace"
+                  @click="handleRemoveServerFromWorkspace(srv.id)"
+                >
+                  <i class="ri-close-line"></i>
+                </button>
               </div>
-              <div class="dw-session-list">
-                <div v-for="s in sessionsForProject(proj.id, proj.rootPath, 'claude')" :key="s.id"
-                  class="dw-item claude-item" :class="{ active: proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id, running: isClaudeSessionRunning(s) }"
-                  :data-dw-claude="s.id" :data-dw-claude-project="proj.id" @click="handleSelectClaude(s)">
-                  <div class="dw-item-main"><div class="dw-item-title"><span class="dw-idx-badge" :data-claude-index="getClaudeIndex(s.id)">{{ getClaudeIndex(s.id) }}</span><i class="ri-sparkling-fill" style="color: #f59e0b"></i><span>{{ displayClaudeName(s) }}</span></div></div>
-                  <span v-if="isClaudeSessionRunning(s)" class="dw-claude-running status-indicator" aria-label="Claude đang làm việc"></span>
-                  <kbd v-if="shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id))" class="dw-kbd-tag">{{ shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id)) }}</kbd>
-                  <span v-if="proj.id === projectStore.currentProject?.id && s.id === claudeStore.activeSession?.id" class="dw-active-dot" aria-label="Claude đang chọn"></span>
+            </div>
+
+            <!-- Projects inside this Server -->
+            <div v-if="!collapsedServerIds.has(srv.id)" class="dw-server-children">
+              <div
+                v-for="proj in projectStore.projectsForServer(srv.id)"
+                :key="proj.id"
+                class="dw-project-group"
+                :data-dw-project-group="proj.id"
+              >
+                <div
+                  class="dw-item proj-item"
+                  :class="{ active: srv.id === serverStore.currentServerId && proj.id === projectStore.currentProject?.id }"
+                  :data-dw-project="proj.id"
+                  :data-dw-project-server="srv.id"
+                  @click="handleSelectProject(proj.id, srv.id)"
+                >
+                  <button
+                    type="button"
+                    class="dw-caret"
+                    :aria-label="collapsedProjectIds.has(proj.id) ? 'Mở nhóm Project' : 'Thu gọn nhóm Project'"
+                    :aria-expanded="!collapsedProjectIds.has(proj.id)"
+                    @click.stop="toggleProject(proj.id)"
+                  >
+                    <i :class="collapsedProjectIds.has(proj.id) ? 'ri-arrow-right-s-line' : 'ri-arrow-down-s-line'"></i>
+                  </button>
+                  <div class="dw-item-main">
+                    <div class="dw-item-title">
+                      <span class="dw-idx-badge" :data-proj-index="getProjIndex(proj.id)">
+                        {{ getProjIndex(proj.id) }}
+                      </span>
+                      <i
+                        :class="isHomeProject(proj) ? 'ri-home-4-line' : 'ri-folder-2-line'"
+                        style="color: #38bdf8"
+                      ></i>
+                      <span>{{ proj.name }}</span>
+                    </div>
+                  </div>
+                  <kbd
+                    v-if="shortcutStore.getItemShortcut('project', getProjIndex(proj.id))"
+                    class="dw-kbd-tag"
+                  >
+                    {{ shortcutStore.getItemShortcut('project', getProjIndex(proj.id)) }}
+                  </kbd>
+                  <span
+                    v-if="srv.id === serverStore.currentServerId && proj.id === projectStore.currentProject?.id"
+                    class="dw-active-dot"
+                    aria-label="Project đang chọn"
+                  ></span>
                   <div class="dw-item-actions" @click.stop>
-                    <button type="button" class="btn-dw-claude-edit" title="Chỉnh sửa phiên Claude" @click="handleEditClaude(s)"><i class="ri-edit-line"></i></button>
-                    <button v-if="sessionsForProject(proj.id, proj.rootPath, 'claude').length > 1" type="button" class="danger btn-dw-claude-close"
-                      title="Đóng phiên Claude" @click="handleDeleteClaude(s)"><i class="ri-close-line"></i></button>
+                    <button
+                      v-if="!isHomeProject(proj)"
+                      type="button"
+                      class="danger btn-dw-proj-del"
+                      title="Xóa project"
+                      @click="requestDeleteProject(proj)"
+                    >
+                      <i class="ri-delete-bin-line"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="!collapsedProjectIds.has(proj.id)" class="dw-proj-children">
+                  <div class="dw-sub-group">
+                    <div class="dw-sub-header">
+                      <span><i class="ri-terminal-box-line" style="color: #c084fc"></i> Terminal</span>
+                      <button
+                        type="button"
+                        :id="srv.id === serverStore.currentServerId && proj.id === projectStore.currentProject?.id ? 'btn-dw-new-term' : undefined"
+                        title="Tạo Terminal trong Project"
+                        @click="handleOpenNewTerminal(proj.id, srv.id)"
+                      >
+                        <i class="ri-add-line"></i>
+                      </button>
+                    </div>
+                    <div class="dw-session-list">
+                      <div
+                        v-for="s in sessionsForProject(proj.id, proj.rootPath, 'terminal', srv.id)"
+                        :key="s.id"
+                        class="dw-item term-item"
+                        :class="{
+                          active:
+                            srv.id === serverStore.currentServerId &&
+                            proj.id === projectStore.currentProject?.id &&
+                            s.id === terminalStore.activeSession?.id,
+                        }"
+                        :data-dw-term="s.id"
+                        :data-dw-term-project="proj.id"
+                        :data-dw-term-server="srv.id"
+                        @click="handleSelectTerminal(s)"
+                      >
+                        <div class="dw-item-main">
+                          <div class="dw-item-title">
+                            <span class="dw-idx-badge" :data-term-index="getTermIndex(s.id)">
+                              {{ getTermIndex(s.id) }}
+                            </span>
+                            <i class="ri-terminal-box-line" style="color: #c084fc"></i>
+                            <span>{{ s.name }}</span>
+                          </div>
+                        </div>
+                        <kbd
+                          v-if="shortcutStore.getItemShortcut('terminal', getTermIndex(s.id))"
+                          class="dw-kbd-tag"
+                        >
+                          {{ shortcutStore.getItemShortcut('terminal', getTermIndex(s.id)) }}
+                        </kbd>
+                        <span
+                          v-if="
+                            srv.id === serverStore.currentServerId &&
+                            proj.id === projectStore.currentProject?.id &&
+                            s.id === terminalStore.activeSession?.id
+                          "
+                          class="dw-active-dot"
+                          aria-label="Terminal đang chọn"
+                        ></span>
+                        <div class="dw-item-actions" @click.stop>
+                          <button
+                            type="button"
+                            class="btn-dw-term-edit"
+                            title="Chỉnh sửa phiên"
+                            @click="handleEditTerminal(s)"
+                          >
+                            <i class="ri-edit-line"></i>
+                          </button>
+                          <button
+                            v-if="sessionsForProject(proj.id, proj.rootPath, 'terminal', srv.id).length > 1"
+                            type="button"
+                            class="danger btn-dw-term-close"
+                            title="Đóng phiên"
+                            :disabled="Boolean(closingTermId)"
+                            @click="requestCloseTerminal(s)"
+                          >
+                            <i class="ri-close-line"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="dw-sub-group">
+                    <div class="dw-sub-header">
+                      <span><i class="ri-sparkling-fill" style="color: #f59e0b"></i> Claude</span>
+                      <button
+                        type="button"
+                        :id="srv.id === serverStore.currentServerId && proj.id === projectStore.currentProject?.id ? 'btn-dw-new-claude' : undefined"
+                        title="Tạo Claude trong Project"
+                        @click="handleOpenNewClaude(proj.id, srv.id)"
+                      >
+                        <i class="ri-add-line"></i>
+                      </button>
+                    </div>
+                    <div class="dw-session-list">
+                      <div
+                        v-for="s in sessionsForProject(proj.id, proj.rootPath, 'claude', srv.id)"
+                        :key="s.id"
+                        class="dw-item claude-item"
+                        :class="{
+                          active:
+                            srv.id === serverStore.currentServerId &&
+                            proj.id === projectStore.currentProject?.id &&
+                            s.id === claudeStore.activeSession?.id,
+                          running: isClaudeSessionRunning(s),
+                        }"
+                        :data-dw-claude="s.id"
+                        :data-dw-claude-project="proj.id"
+                        :data-dw-claude-server="srv.id"
+                        @click="handleSelectClaude(s)"
+                      >
+                        <div class="dw-item-main">
+                          <div class="dw-item-title">
+                            <span class="dw-idx-badge" :data-claude-index="getClaudeIndex(s.id)">
+                              {{ getClaudeIndex(s.id) }}
+                            </span>
+                            <i class="ri-sparkling-fill" style="color: #f59e0b"></i>
+                            <span>{{ displayClaudeName(s) }}</span>
+                          </div>
+                        </div>
+                        <span
+                          v-if="isClaudeSessionRunning(s)"
+                          class="dw-claude-running status-indicator"
+                          aria-label="Claude đang làm việc"
+                        ></span>
+                        <kbd
+                          v-if="shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id))"
+                          class="dw-kbd-tag"
+                        >
+                          {{ shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id)) }}
+                        </kbd>
+                        <span
+                          v-if="
+                            srv.id === serverStore.currentServerId &&
+                            proj.id === projectStore.currentProject?.id &&
+                            s.id === claudeStore.activeSession?.id
+                          "
+                          class="dw-active-dot"
+                          aria-label="Claude đang chọn"
+                        ></span>
+                        <div class="dw-item-actions" @click.stop>
+                          <button
+                            type="button"
+                            class="btn-dw-claude-edit"
+                            title="Chỉnh sửa phiên Claude"
+                            @click="handleEditClaude(s)"
+                          >
+                            <i class="ri-edit-line"></i>
+                          </button>
+                          <button
+                            v-if="sessionsForProject(proj.id, proj.rootPath, 'claude', srv.id).length > 1"
+                            type="button"
+                            class="danger btn-dw-claude-close"
+                            title="Đóng phiên Claude"
+                            @click="handleDeleteClaude(s)"
+                          >
+                            <i class="ri-close-line"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -127,7 +395,7 @@
           </div>
         </div>
       </div>
-    </div></div>
+    </div>
 
     <p v-if="sidebarError" class="dw-error-msg" role="alert">{{ sidebarError }}</p>
 
@@ -175,6 +443,7 @@ const emit = defineEmits<{
   (e: 'update:panelWidth', width: number): void;
   (e: 'close'): void;
   (e: 'open-project-modal'): void;
+  (e: 'open-server-modal'): void;
   (e: 'project-selected'): void;
   (e: 'open-new-terminal'): void;
   (e: 'edit-terminal', session: any): void;
@@ -193,14 +462,23 @@ const fileStore = useFileStore();
 const shortcutStore = useShortcutStore();
 
 const sidebarError = ref('');
+const showAddServerMenu = ref(false);
 const deletingProjectTarget = ref<ProjectItem | null>(null);
 const closingTermTarget = ref<TerminalSessionItem | null>(null);
 const closingTermId = ref('');
+const collapsedServerIds = ref<Set<string>>(new Set());
 const collapsedProjectIds = ref<Set<string>>(new Set());
 const allClaudeSessions = ref<ClaudeSession[]>([]);
 const minWidth = 220;
 const isResizing = ref(false);
 const effectiveMaxWidth = computed(() => typeof window === 'undefined' ? 520 : Math.max(minWidth, Math.min(520, window.innerWidth - 320)));
+
+function toggleServer(id: string) {
+  const next = new Set(collapsedServerIds.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  collapsedServerIds.value = next;
+}
 
 function toggleProject(id: string) {
   const next = new Set(collapsedProjectIds.value);
@@ -209,26 +487,64 @@ function toggleProject(id: string) {
   collapsedProjectIds.value = next;
 }
 
-// Session store deliberately holds only the current Project's fetch. The tree
-// loads an all-project snapshot separately and never overwrites an active stream.
+// Fetch projects and sessions across all servers present in the Workspace
 let sessionRequest = 0;
 async function refreshAllClaudeSessions() {
   const request = ++sessionRequest;
-  const serverId = serverStore.currentServerId;
+  const targetServers = serverStore.workspaceServers.map((s) => s.id);
   try {
-    const response = await fetch(apiUrl(`/api/claude/sessions?serverId=${encodeURIComponent(serverId)}`));
-    if (!response.ok) return;
-    const data = await response.json();
-    if (request === sessionRequest && serverId === serverStore.currentServerId && Array.isArray(data.sessions)) {
-      allClaudeSessions.value = data.sessions;
-      claudeStore.syncServerSessionsStatus?.(serverId, data.sessions);
+    const results = await Promise.all(
+      targetServers.map(async (srvId) => {
+        try {
+          const response = await fetch(apiUrl(`/api/claude/sessions?serverId=${encodeURIComponent(srvId)}`));
+          if (!response.ok) return [];
+          const data = await response.json();
+          if (Array.isArray(data.sessions)) {
+            claudeStore.syncServerSessionsStatus?.(srvId, data.sessions);
+            return data.sessions as ClaudeSession[];
+          }
+        } catch {}
+        return [];
+      })
+    );
+    if (request === sessionRequest) {
+      allClaudeSessions.value = results.flat();
     }
   } catch { /* Keep the previously fetched tree if offline. */ }
 }
-watch(() => serverStore.currentServerId, () => {
-  allClaudeSessions.value = [];
-  refreshAllClaudeSessions();
-});
+
+async function ensureWorkspaceServersLoaded() {
+  for (const srv of serverStore.workspaceServers) {
+    const existingProjs = projectStore.projectsForServer(srv.id);
+    if (existingProjs.length === 0) {
+      projectStore.fetchProjects(srv.id).then(() => {
+        const projs = projectStore.projectsForServer(srv.id);
+        const activeId = projectStore.activeProjectIdByServer[srv.id] || projs[0]?.id;
+        const activeProj = projs.find(p => p.id === activeId) || projs[0];
+        if (activeProj) {
+          terminalStore.ensureProjectSession(srv.id, activeProj.id, activeProj.rootPath);
+        }
+      }).catch(() => {});
+    } else {
+      const activeId = projectStore.activeProjectIdByServer[srv.id] || existingProjs[0]?.id;
+      const activeProj = existingProjs.find(p => p.id === activeId) || existingProjs[0];
+      if (activeProj) {
+        terminalStore.ensureProjectSession(srv.id, activeProj.id, activeProj.rootPath);
+      }
+    }
+  }
+  await refreshAllClaudeSessions();
+}
+
+watch(
+  () => [
+    serverStore.currentServerId,
+    serverStore.workspaceServers.map(s => s.id).join(','),
+  ],
+  () => {
+    ensureWorkspaceServersLoaded();
+  }
+);
 watch(
   () => [
     projectStore.currentProject?.id,
@@ -267,7 +583,7 @@ watch(
   () => syncRunningPoll()
 );
 onMounted(() => {
-  refreshAllClaudeSessions();
+  ensureWorkspaceServersLoaded();
   syncRunningPoll();
 });
 onBeforeUnmount(() => {
@@ -294,18 +610,26 @@ function displayClaudeName(session: ClaudeSession): string {
 }
 
 function resolveClaudeProjectId(session: ClaudeSession) {
-  return session.projectId || projectStore.currentServerProjects.find(p =>
+  const srvId = session.serverId || serverStore.currentServerId;
+  return session.projectId || projectStore.projectsForServer(srvId).find(p =>
     p.rootPath.replace(/\/+$/, '') === session.cwd?.replace(/\/+$/, '')
   )?.id;
 }
 
-function sessionsForProject(id: string, rootPath: string, kind: 'terminal'): TerminalSessionItem[];
-function sessionsForProject(id: string, rootPath: string, kind: 'claude'): ClaudeSession[];
-function sessionsForProject(id: string, rootPath: string, kind: 'terminal' | 'claude'): TerminalSessionItem[] | ClaudeSession[] {
-  if (kind === 'terminal') return terminalStore.sessions.filter(s => s.serverId === serverStore.currentServerId && s.projectId === id);
+function sessionsForProject(id: string, rootPath: string, kind: 'terminal', serverId?: string): TerminalSessionItem[];
+function sessionsForProject(id: string, rootPath: string, kind: 'claude', serverId?: string): ClaudeSession[];
+function sessionsForProject(
+  id: string,
+  rootPath: string,
+  kind: 'terminal' | 'claude',
+  serverId = serverStore.currentServerId
+): TerminalSessionItem[] | ClaudeSession[] {
+  if (kind === 'terminal') {
+    return terminalStore.sessions.filter(s => s.serverId === serverId && s.projectId === id);
+  }
   const byId = new Map<string, ClaudeSession>();
   for (const s of [...allClaudeSessions.value, ...claudeStore.sessions]) {
-    if (s.serverId !== serverStore.currentServerId) continue;
+    if (s.serverId !== serverId) continue;
     if (s.projectId ? s.projectId === id : s.cwd?.replace(/\/+$/, '') === rootPath.replace(/\/+$/, '')) {
       const prev = byId.get(s.id);
       const isRunning = Boolean(prev?.isRunning || s.isRunning || claudeStore.isSessionRunning(s.id));
@@ -315,13 +639,27 @@ function sessionsForProject(id: string, rootPath: string, kind: 'terminal' | 'cl
   return [...byId.values()];
 }
 
+const projIndexMap = computed(() => {
+  const map = new Map<string, number>();
+  let idx = 0;
+  for (const srv of serverStore.workspaceServers) {
+    for (const proj of projectStore.projectsForServer(srv.id)) {
+      idx++;
+      map.set(proj.id, idx);
+    }
+  }
+  return map;
+});
+
 const termIndexMap = computed(() => {
   const map = new Map<string, number>();
   let idx = 0;
-  for (const proj of projectStore.currentServerProjects) {
-    for (const s of sessionsForProject(proj.id, proj.rootPath, 'terminal')) {
-      idx++;
-      map.set(s.id, idx);
+  for (const srv of serverStore.workspaceServers) {
+    for (const proj of projectStore.projectsForServer(srv.id)) {
+      for (const s of sessionsForProject(proj.id, proj.rootPath, 'terminal', srv.id)) {
+        idx++;
+        map.set(s.id, idx);
+      }
     }
   }
   return map;
@@ -330,14 +668,20 @@ const termIndexMap = computed(() => {
 const claudeIndexMap = computed(() => {
   const map = new Map<string, number>();
   let idx = 0;
-  for (const proj of projectStore.currentServerProjects) {
-    for (const s of sessionsForProject(proj.id, proj.rootPath, 'claude')) {
-      idx++;
-      map.set(s.id, idx);
+  for (const srv of serverStore.workspaceServers) {
+    for (const proj of projectStore.projectsForServer(srv.id)) {
+      for (const s of sessionsForProject(proj.id, proj.rootPath, 'claude', srv.id)) {
+        idx++;
+        map.set(s.id, idx);
+      }
     }
   }
   return map;
 });
+
+function getProjIndex(projectId: string): number {
+  return projIndexMap.value.get(projectId) || 1;
+}
 
 function getTermIndex(sessionId: string): number {
   return termIndexMap.value.get(sessionId) || 1;
@@ -396,26 +740,90 @@ function closeOnMobileIfNeeded() {
   }
 }
 
+async function handleAddServerToWorkspace(serverId: string) {
+  showAddServerMenu.value = false;
+  serverStore.addServerToWorkspace(serverId);
+  const nextCollapsed = new Set(collapsedServerIds.value);
+  nextCollapsed.delete(serverId);
+  collapsedServerIds.value = nextCollapsed;
+  try {
+    await projectStore.fetchProjects(serverId);
+    const projs = projectStore.projectsForServer(serverId);
+    const activeId = projectStore.activeProjectIdByServer[serverId] || projs[0]?.id;
+    const activeProj = projs.find(p => p.id === activeId) || projs[0];
+    if (activeProj) {
+      terminalStore.ensureProjectSession(serverId, activeProj.id, activeProj.rootPath);
+    }
+    await refreshAllClaudeSessions();
+  } catch (err: any) {
+    sidebarError.value = err?.message || 'Không thể tải danh sách Project của Server.';
+  }
+}
+
+function handleRemoveServerFromWorkspace(serverId: string) {
+  const wasCurrent = serverId === serverStore.currentServerId;
+  serverStore.removeServerFromWorkspace(serverId);
+  if (wasCurrent) {
+    emit('project-selected');
+  }
+}
+
+function handleOpenServerModal() {
+  showAddServerMenu.value = false;
+  emit('open-server-modal');
+}
+
+async function handleSelectServer(serverId: string) {
+  if (serverId === serverStore.currentServerId) {
+    toggleServer(serverId);
+    return;
+  }
+  sidebarError.value = '';
+  try {
+    if (!(await fileStore.confirmUnsavedChanges())) return;
+    if (projectStore.projectsForServer(serverId).length === 0) {
+      await projectStore.fetchProjects(serverId);
+    }
+    serverStore.selectServer(serverId);
+    const nextCollapsed = new Set(collapsedServerIds.value);
+    nextCollapsed.delete(serverId);
+    collapsedServerIds.value = nextCollapsed;
+    emit('project-selected');
+  } catch (err: any) {
+    sidebarError.value = err?.message || 'Không thể chuyển Server.';
+  }
+}
+
+async function handleManageServerProjects(serverId: string) {
+  if (serverId !== serverStore.currentServerId) {
+    await handleSelectServer(serverId);
+  }
+  emit('open-project-modal');
+}
+
 function handleOpenProjectModal() {
   emit('open-project-modal');
 }
 
-async function handleOpenNewTerminal(projectId: string) {
-  if (!await selectProjectScope(projectId)) return;
+async function handleOpenNewTerminal(projectId: string, serverId = serverStore.currentServerId) {
+  if (!await selectProjectScope(projectId, serverId)) return;
   emit('open-new-terminal');
 }
 
-async function handleOpenNewClaude(projectId: string) {
-  if (!await selectProjectScope(projectId)) return;
+async function handleOpenNewClaude(projectId: string, serverId = serverStore.currentServerId) {
+  if (!await selectProjectScope(projectId, serverId)) return;
   emit('open-new-claude');
 }
 
-async function selectProjectScope(projectId: string): Promise<boolean> {
-  if (projectId === projectStore.currentProject?.id) return true;
+async function selectProjectScope(projectId: string, serverId = serverStore.currentServerId): Promise<boolean> {
+  if (serverId === serverStore.currentServerId && projectId === projectStore.currentProject?.id) return true;
   sidebarError.value = '';
   try {
     if (!(await fileStore.confirmUnsavedChanges())) return false;
-    await projectStore.selectProject(projectId);
+    if (serverId !== serverStore.currentServerId) {
+      serverStore.selectServer(serverId);
+    }
+    await projectStore.selectProject(projectId, serverId);
     emit('project-selected');
     return true;
   } catch (err: any) {
@@ -424,8 +832,8 @@ async function selectProjectScope(projectId: string): Promise<boolean> {
   }
 }
 
-async function handleSelectProject(projectId: string) {
-  await selectProjectScope(projectId);
+async function handleSelectProject(projectId: string, serverId = serverStore.currentServerId) {
+  await selectProjectScope(projectId, serverId);
 }
 
 function requestDeleteProject(project: ProjectItem) {
@@ -439,9 +847,12 @@ async function executeDeleteProject() {
   deletingProjectTarget.value = null;
   sidebarError.value = '';
   try {
-    const wasCurrent = target.id === projectStore.currentProject?.id;
+    const wasCurrent = target.id === projectStore.currentProject?.id && target.serverId === serverStore.currentServerId;
     if (wasCurrent && !(await fileStore.confirmUnsavedChanges())) return;
     await projectStore.deleteProject(target.id);
+    if (target.serverId && target.serverId !== serverStore.currentServerId) {
+      await projectStore.fetchProjects(target.serverId);
+    }
     if (wasCurrent) {
       emit('project-selected');
     }
@@ -451,14 +862,14 @@ async function executeDeleteProject() {
 }
 
 async function handleSelectTerminal(session: TerminalSessionItem) {
-  if (session.projectId && !await selectProjectScope(session.projectId)) return;
+  if (session.projectId && !await selectProjectScope(session.projectId, session.serverId)) return;
   terminalStore.switchSession(session.id);
   emit('select-terminal');
   closeOnMobileIfNeeded();
 }
 
 async function handleEditTerminal(session: TerminalSessionItem) {
-  if (session.projectId && !await selectProjectScope(session.projectId)) return;
+  if (session.projectId && !await selectProjectScope(session.projectId, session.serverId)) return;
   emit('edit-terminal', session);
 }
 
@@ -471,7 +882,7 @@ async function executeCloseTerminal() {
   const target = closingTermTarget.value;
   if (!target) return;
   closingTermTarget.value = null;
-  if (target.projectId && !await selectProjectScope(target.projectId)) return;
+  if (target.projectId && !await selectProjectScope(target.projectId, target.serverId)) return;
   closingTermId.value = target.id;
   sidebarError.value = '';
   try {
@@ -485,7 +896,7 @@ async function executeCloseTerminal() {
 
 async function handleSelectClaude(session: ClaudeSession) {
   const projectId = resolveClaudeProjectId(session);
-  if (projectId && !await selectProjectScope(projectId)) return;
+  if (projectId && !await selectProjectScope(projectId, session.serverId)) return;
   claudeStore.switchSession(session.id);
   emit('select-claude');
   closeOnMobileIfNeeded();
@@ -493,13 +904,13 @@ async function handleSelectClaude(session: ClaudeSession) {
 
 async function handleEditClaude(session: ClaudeSession) {
   const projectId = resolveClaudeProjectId(session);
-  if (projectId && !await selectProjectScope(projectId)) return;
+  if (projectId && !await selectProjectScope(projectId, session.serverId)) return;
   emit('edit-claude', session);
 }
 
 async function handleDeleteClaude(session: ClaudeSession) {
   const projectId = resolveClaudeProjectId(session);
-  if (projectId && !await selectProjectScope(projectId)) return;
+  if (projectId && !await selectProjectScope(projectId, session.serverId)) return;
   emit('delete-claude', session);
 }
 </script>
@@ -535,12 +946,91 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-scroll-content { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 .dw-section { display: flex; flex-direction: column; gap: 5px; min-height: 0; }
 .dw-section-head { padding: 1px 6px; color: #a5a5a5; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
-.dw-section-head button { font-size: 10px; padding: 3px 5px; }
-.dw-list { display: flex; flex-direction: column; gap: 3px; padding-left: 8px; border-left: 1px solid #454545; }
+.dw-section-actions { display: flex; align-items: center; gap: 4px; }
+.dw-section-head button { font-size: 10px; padding: 3px 6px; display: inline-flex; align-items: center; gap: 3px; }
+.dw-section-head button.active { background: #2c2c2c; color: #f5f5f5; }
+.dw-add-server-menu {
+  background: #1f1f1f;
+  border: 1px solid #363636;
+  border-radius: 6px;
+  padding: 6px;
+  margin: 2px 4px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dw-add-server-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9e9e9e;
+  padding: 2px 4px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.dw-add-server-empty {
+  font-size: 11px;
+  color: #888888;
+  padding: 4px 6px;
+}
+.dw-add-server-option,
+.dw-add-server-manage-btn {
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 0;
+  background: #262626;
+  color: #e5e5e5;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.dw-add-server-option:hover,
+.dw-add-server-manage-btn:hover {
+  background: #323232;
+  color: #ffffff;
+}
+.dw-add-server-option span,
+.dw-add-server-manage-btn span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dw-add-server-plus {
+  color: #a8a8a8;
+  font-size: 13px;
+}
+.dw-add-server-manage-btn {
+  border-top: 1px solid #333333;
+  background: transparent;
+  color: #b5b5b5;
+  font-family: inherit;
+}
+.dw-list { display: flex; flex-direction: column; gap: 6px; padding-left: 8px; border-left: 1px solid #454545; }
+.dw-server-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dw-server-children { display: flex; flex-direction: column; gap: 3px; margin-left: 10px; padding-left: 7px; border-left: 1px solid #363636; }
 .dw-project-group { display: flex; flex-direction: column; min-width: 0; }
 .dw-item { display: flex; align-items: center; gap: 5px; min-width: 0; min-height: 29px; padding: 3px 4px; color: #c5c5c5; cursor: pointer; border-radius: 4px; background: transparent; }
+.dw-item.server-item { background: rgba(255, 255, 255, .03); font-weight: 700; }
 .dw-item:hover, .dw-sub-header button:hover, .dw-section-head button:hover, .dw-item-actions button:hover { background: rgba(255,255,255,.07); color: #f5f5f5; }
 .dw-item.active { color: #f5f5f5; }
+.dw-server-active-badge {
+  font-family: monospace;
+  font-size: 9.5px;
+  color: #cfcfcf;
+  background: #2b2b2b;
+  border: 1px solid #424242;
+  border-radius: 999px;
+  padding: 0 5px;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
 .dw-caret { width: 18px; height: 22px; flex-shrink: 0; font-size: 15px; }
 .dw-item-main { display: flex; min-width: 0; flex: 1; }
 .dw-item-title { display: flex; align-items: center; gap: 6px; min-width: 0; font-family: monospace; font-size: 11.5px; font-weight: 650; }

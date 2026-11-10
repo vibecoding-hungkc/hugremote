@@ -15,6 +15,7 @@ function isSemantic(file, selector) {
     (file.endsWith('SmartHeader.vue') && /(?:project-selector-btn|term-session-pill|claude-session-pill|header-action-dropdown-wrapper:has\(\.header-dropdown-menu\)|header-dropdown-menu|quick-tree-trigger\[(?:aria-expanded|data-quick-panel))/.test(selector)) ||
     (file.endsWith('prototype.html') && /(?:project-selector-btn|term-session-pill|quick-tree-trigger\[aria-expanded|quick-tree-trigger\[data-quick-panel)/.test(selector)) ||
     (file.endsWith('GitView.vue') && semanticGit.test(selector)) ||
+    ((file.endsWith('WorkspaceSidebar.vue') || file.endsWith('prototype.html')) && /\.dw-item\b.*\.active\b/.test(selector)) ||
     (/(FileExplorer|FolderTreeNode|QuickWorkspacePanel|NewTerminalModal)\.vue$/.test(file) && semanticIcon.test(selector));
 }
 const color = /#(?:[0-9a-f]{3,8})\b|(?:rgba?|hsla?)\([^)]*\)/gi;

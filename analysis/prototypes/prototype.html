@@ -1458,17 +1458,6 @@
       padding-left: 7px;
       border-left: 1px solid #363636;
     }
-    .dw-server-active-badge {
-      font-family: var(--font-mono);
-      font-size: 9.5px;
-      color: #cfcfcf;
-      background: #2b2b2b;
-      border: 1px solid #424242;
-      border-radius: 999px;
-      padding: 0 5px;
-      line-height: 1.4;
-      flex-shrink: 0;
-    }
     .dw-list {
       display: flex;
       flex-direction: column;
@@ -1491,19 +1480,28 @@
       border-color: #535353;
       background: rgba(40, 40, 40, 0.9);
     }
-    .dw-item.active.proj-item {
-      border-color: #7d7d7d;
-      background: linear-gradient(135deg, rgba(64, 64, 64, 0.2), rgba(58, 58, 58, 0.24));
+    .dw-item.active.server-item,
+    .dw-item.server-item.active {
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      background: rgba(52, 211, 153, 0.08);
       color: #eeeeee;
     }
-    .dw-item.active.term-item {
-      border-color: #727272;
-      background: linear-gradient(135deg, rgba(64, 64, 64, 0.22), rgba(64, 64, 64, 0.14));
+    .dw-item.active.proj-item,
+    .dw-item.proj-item.active {
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: rgba(56, 189, 248, 0.08);
+      color: #eeeeee;
+    }
+    .dw-item.active.term-item,
+    .dw-item.term-item.active {
+      border: 1px solid rgba(192, 132, 252, 0.45);
+      background: rgba(192, 132, 252, 0.08);
       color: #ececec;
     }
-    .dw-item.active.claude-item {
-      border-color: #7d7d7d;
-      background: linear-gradient(135deg, rgba(64, 64, 64, 0.22), rgba(64, 64, 64, 0.14));
+    .dw-item.active.claude-item,
+    .dw-item.claude-item.active {
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      background: rgba(245, 158, 11, 0.08);
       color: #eeeeee;
     }
     .dw-item-main {
@@ -1579,11 +1577,32 @@
     .dw-project-scope-pill { background:none; border:0; border-radius:0; padding:0; }
     .dw-close-btn, .dw-section-head button { border:0; background:transparent; }
     .dw-list { padding-left:8px; border-left:1px solid #454545; gap:3px; }
-    .dw-item { border:0; background:transparent; border-radius:4px; min-height:28px; padding:3px 4px; }
-    .dw-item:hover { border:0; background:rgba(255,255,255,.07); }
-    .dw-item.active.proj-item, .dw-item.active.term-item, .dw-item.active.claude-item { border:0; background:transparent; }
-    .dw-item.active::after { content:''; width:6px; height:6px; border-radius:50%; background:#e7e7e7; flex-shrink:0; order:1; }
-    .dw-item.active .dw-item-actions { order:2; }
+    .dw-item { border:0; background:transparent; border-radius:5px; min-height:28px; padding:3px 5px; }
+    .dw-item:hover { background:rgba(255,255,255,.07); }
+    .dw-item.active.server-item,
+    .dw-item.server-item.active {
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      background: rgba(52, 211, 153, 0.08);
+      color: #eeeeee;
+    }
+    .dw-item.active.proj-item,
+    .dw-item.proj-item.active {
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: rgba(56, 189, 248, 0.08);
+      color: #eeeeee;
+    }
+    .dw-item.active.term-item,
+    .dw-item.term-item.active {
+      border: 1px solid rgba(192, 132, 252, 0.45);
+      background: rgba(192, 132, 252, 0.08);
+      color: #ececec;
+    }
+    .dw-item.active.claude-item,
+    .dw-item.claude-item.active {
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      background: rgba(245, 158, 11, 0.08);
+      color: #eeeeee;
+    }
     .dw-item.claude-item.running { background:rgba(255, 255, 255, 0.04); }
     .dw-claude-running.status-indicator {
       width: 11px;
@@ -13987,7 +14006,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
                 </div>
               </div>
               ${srvShortcut ? `<kbd class="dw-kbd-tag">${escapeHtml(srvShortcut)}</kbd>` : ''}
-              ${isSrvCurrent ? '<span class="dw-server-active-badge">active</span>' : ''}
               <div class="dw-item-actions">
                 <button type="button" class="btn-dw-server-proj" title="Quản lý Project trên Server này"><i class="ri-folder-add-line"></i></button>
                 ${wsServers.length > 1 ? '<button type="button" class="danger btn-dw-server-remove" title="Gỡ Server khỏi Workspace"><i class="ri-close-line"></i></button>' : ''}

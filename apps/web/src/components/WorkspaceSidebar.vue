@@ -132,12 +132,6 @@
               >
                 {{ shortcutStore.getItemShortcut('server', srvIdx + 1) }}
               </kbd>
-              <span
-                v-if="srv.id === serverStore.currentServerId"
-                class="dw-server-active-badge"
-              >
-                active
-              </span>
               <div class="dw-item-actions" @click.stop>
                 <button
                   type="button"
@@ -201,11 +195,6 @@
                   >
                     {{ shortcutStore.getItemShortcut('project', getProjIndex(proj.id)) }}
                   </kbd>
-                  <span
-                    v-if="srv.id === serverStore.currentServerId && proj.id === projectStore.currentProject?.id"
-                    class="dw-active-dot"
-                    aria-label="Project đang chọn"
-                  ></span>
                   <div class="dw-item-actions" @click.stop>
                     <button
                       v-if="!isHomeProject(proj)"
@@ -263,15 +252,6 @@
                         >
                           {{ shortcutStore.getItemShortcut('terminal', getTermIndex(s.id)) }}
                         </kbd>
-                        <span
-                          v-if="
-                            srv.id === serverStore.currentServerId &&
-                            proj.id === projectStore.currentProject?.id &&
-                            s.id === terminalStore.activeSession?.id
-                          "
-                          class="dw-active-dot"
-                          aria-label="Terminal đang chọn"
-                        ></span>
                         <div class="dw-item-actions" @click.stop>
                           <button
                             type="button"
@@ -345,15 +325,6 @@
                         >
                           {{ shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id)) }}
                         </kbd>
-                        <span
-                          v-if="
-                            srv.id === serverStore.currentServerId &&
-                            proj.id === projectStore.currentProject?.id &&
-                            s.id === claudeStore.activeSession?.id
-                          "
-                          class="dw-active-dot"
-                          aria-label="Claude đang chọn"
-                        ></span>
                         <div class="dw-item-actions" @click.stop>
                           <button
                             type="button"
@@ -1005,20 +976,29 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-server-group { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .dw-server-children { display: flex; flex-direction: column; gap: 3px; margin-left: 10px; padding-left: 7px; border-left: 1px solid #363636; }
 .dw-project-group { display: flex; flex-direction: column; min-width: 0; }
-.dw-item { display: flex; align-items: center; gap: 5px; min-width: 0; min-height: 29px; padding: 3px 4px; color: #c5c5c5; cursor: pointer; border-radius: 4px; background: transparent; }
+.dw-item {
+  display: flex; align-items: center; gap: 5px; min-width: 0; min-height: 29px;
+  padding: 3px 5px; color: #c5c5c5; cursor: pointer; border-radius: 5px;
+  background: transparent;
+}
 .dw-item.server-item { background: rgba(255, 255, 255, .03); font-weight: 700; }
 .dw-item:hover, .dw-sub-header button:hover, .dw-section-head button:hover, .dw-item-actions button:hover { background: rgba(255,255,255,.07); color: #f5f5f5; }
 .dw-item.active { color: #f5f5f5; }
-.dw-server-active-badge {
-  font-family: monospace;
-  font-size: 9.5px;
-  color: #cfcfcf;
-  background: #2b2b2b;
-  border: 1px solid #424242;
-  border-radius: 999px;
-  padding: 0 5px;
-  line-height: 1.4;
-  flex-shrink: 0;
+.dw-item.server-item.active {
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  background: rgba(52, 211, 153, 0.08);
+}
+.dw-item.proj-item.active {
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.08);
+}
+.dw-item.term-item.active {
+  border: 1px solid rgba(192, 132, 252, 0.45);
+  background: rgba(192, 132, 252, 0.08);
+}
+.dw-item.claude-item.active {
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.08);
 }
 .dw-caret { width: 18px; height: 22px; flex-shrink: 0; font-size: 15px; }
 .dw-item-main { display: flex; min-width: 0; flex: 1; }
@@ -1030,7 +1010,6 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-kbd-tag { display: none; align-items: center; justify-content: center; font-family: monospace; font-size: 9.5px; color: #9a9a9a; background: #1d1d1d; border: 1px solid #2f2f2f; border-radius: 4px; padding: 1px 4px; flex-shrink: 0; line-height: 1.2; }
 .desktop-workspace-sidebar.shortcut-labels-visible .dw-kbd-tag,
 :global(.app-root.shortcut-labels-visible .dw-kbd-tag) { display: inline-flex; }
-.dw-active-dot { width: 6px; height: 6px; border-radius: 50%; background: #e7e7e7; flex-shrink: 0; }
 .dw-claude-running.status-indicator {
   width: 11px; height: 11px; border-radius: 50%;
   border: 1.8px solid rgba(245, 158, 11, .28); border-top-color: #f59e0b;

@@ -135,7 +135,11 @@ try {
     assert.match(htmlA, /data-dw-project-group="proj-b"/);
     assert.match(htmlA, /data-dw-term-project="proj-b"/);
     assert.match(htmlA, /data-dw-claude-project="proj-b"/);
-    assert.equal((htmlA.match(/class="dw-active-dot"/g) || []).length, 3, 'only selected Project, Terminal and Claude show a dot');
+    assert.doesNotMatch(htmlA, /class="dw-active-dot"/);
+    assert.doesNotMatch(htmlA, /class="dw-server-active-badge"/);
+    assert.match(htmlA, /data-dw-project="proj-a"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-project="proj-a"/);
+    assert.match(htmlA, /data-dw-term="term-a1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-term="term-a1"/);
+    assert.match(htmlA, /data-dw-claude="claude-a1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-claude="claude-a1"/);
     assert.doesNotMatch(htmlA, /data-dw-layout-btn|dw-item-sub/);
 
     // Switch to Project B and verify sessions switch to Project B
@@ -151,7 +155,11 @@ try {
     assert.match(htmlB, /hugcode-shell/, 'Project A sessions remain visible');
     assert.match(htmlB, /claude-hugremote-session/);
     assert.match(htmlB, /claude-hugcode-session/, 'Project A sessions remain visible');
-    assert.equal((htmlB.match(/class="dw-active-dot"/g) || []).length, 3);
+    assert.doesNotMatch(htmlB, /class="dw-active-dot"/);
+    assert.doesNotMatch(htmlB, /class="dw-server-active-badge"/);
+    assert.match(htmlB, /data-dw-project="proj-b"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-project="proj-b"/);
+    assert.match(htmlB, /data-dw-term="term-b1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-term="term-b1"/);
+    assert.match(htmlB, /data-dw-claude="claude-b1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-claude="claude-b1"/);
   });
 
   await test('AC-5: Workspace rows display only names in the app and prototype', async () => {

@@ -25,8 +25,8 @@ function authStatus(req) {
         requiresTwoFactor,
         isDefaultPassword: passwordStore.isDefault(),
         oidcButtonLabel: authConfig.oidcButtonLabel,
-        oidcConfigured: oidcStore.getConfig().configured,
-        oidcCallbackUrl: oidcStore.getCallbackUrl(),
+        oidcConfigured: oidcStore.getConfig(req).configured,
+        oidcCallbackUrl: oidcStore.getCallbackUrl(req),
         appUrl: authConfig.appUrl,
         basePath: BASE_PATH,
     };
@@ -233,17 +233,17 @@ export async function authRoutes(fastify) {
         return handleGoogleCallback(req, reply);
     });
     // --- OIDC SSO (GENERIC OPENID CONNECT) ROUTES ---
-    fastify.get('/auth/oidc', async (_req, reply) => {
+    fastify.get('/auth/oidc', async (req, reply) => {
         if (authConfig.mode !== 'oidc' && authConfig.mode !== 'both') {
             return reply.status(400).send('OIDC auth is disabled');
         }
-        return redirectToOidc(reply);
+        return redirectToOidc(req, reply);
     });
-    fastify.get('/api/auth/oidc', async (_req, reply) => {
+    fastify.get('/api/auth/oidc', async (req, reply) => {
         if (authConfig.mode !== 'oidc' && authConfig.mode !== 'both') {
             return reply.status(400).send('OIDC auth is disabled');
         }
-        return redirectToOidc(reply);
+        return redirectToOidc(req, reply);
     });
     fastify.get('/auth/oidc/callback', async (req, reply) => {
         if (authConfig.mode !== 'oidc' && authConfig.mode !== 'both') {
@@ -257,8 +257,8 @@ export async function authRoutes(fastify) {
         }
         return handleOidcCallback(req, reply);
     });
-    fastify.get('/api/auth/oidc/config', async () => {
-        return oidcStore.getConfig();
+    fastify.get('/api/auth/oidc/config', async (req) => {
+        return oidcStore.getConfig(req);
     });
     fastify.post('/api/auth/oidc/discover', async (req, reply) => {
         const issuerUrl = req.body?.issuerUrl || '';

@@ -44,8 +44,8 @@ async function resolveEndpoints(issuerUrl: string) {
   return cachedEndpoints;
 }
 
-export async function redirectToOidc(reply: FastifyReply) {
-  const cfg = oidcStore.getConfig();
+export async function redirectToOidc(req: FastifyRequest, reply: FastifyReply) {
+  const cfg = oidcStore.getConfig(req);
   if (!cfg.configured || !authConfig.oidcIssuerUrl || !authConfig.oidcClientId) {
     return reply.redirect(`${withBasePath('/login')}?error=oidc_not_configured`);
   }
@@ -61,7 +61,7 @@ export async function redirectToOidc(reply: FastifyReply) {
       makeCookie(authConfig.oidcPkceCookie, encodeSigned(codeVerifier), 600),
     ]);
 
-    const redirectUri = oidcStore.getCallbackUrl();
+    const redirectUri = oidcStore.getCallbackUrl(req);
     const url = new URL(endpoints.authorizationEndpoint);
     url.searchParams.set('client_id', authConfig.oidcClientId);
     url.searchParams.set('redirect_uri', redirectUri);
@@ -112,7 +112,7 @@ export async function handleOidcCallback(
 
   try {
     const endpoints = await resolveEndpoints(authConfig.oidcIssuerUrl);
-    const redirectUri = oidcStore.getCallbackUrl();
+    const redirectUri = oidcStore.getCallbackUrl(req);
 
     const bodyParams = new URLSearchParams({
       grant_type: 'authorization_code',

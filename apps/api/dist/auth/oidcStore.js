@@ -85,10 +85,16 @@ export class OidcStore {
         this.record = this.load();
         this.syncToAuthConfig();
     }
-    getCallbackUrl() {
-        return `${authConfig.appUrl}${withBasePath('/auth/oidc/callback')}`;
+    getCallbackUrl(req) {
+        let baseOrigin = authConfig.appUrl;
+        if (!process.env.APP_URL && req && req.headers && req.headers.host && req.headers.host !== 'localhost:80') {
+            const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
+            const host = String(req.headers['x-forwarded-host'] || req.headers.host).split(',')[0].trim();
+            baseOrigin = `${proto}://${host}`;
+        }
+        return `${baseOrigin.replace(/\/+$/, '')}${withBasePath('/auth/oidc/callback')}`;
     }
-    getConfig() {
+    getConfig(req) {
         return {
             mode: authConfig.mode,
             issuerUrl: this.record.issuerUrl || authConfig.oidcIssuerUrl || '',
@@ -96,7 +102,7 @@ export class OidcStore {
             hasClientSecret: Boolean(this.record.clientSecret || authConfig.oidcClientSecret),
             allowedEmails: (this.record.allowedEmails.length > 0 ? this.record.allowedEmails : Array.from(authConfig.oidcAllowedEmails)).join(', '),
             buttonLabel: this.record.buttonLabel || authConfig.oidcButtonLabel || 'Tiếp tục với Single Sign-On · OIDC',
-            callbackUrl: this.getCallbackUrl(),
+            callbackUrl: this.getCallbackUrl(req),
             configured: Boolean((this.record.issuerUrl || authConfig.oidcIssuerUrl) &&
                 (this.record.clientId || authConfig.oidcClientId) &&
                 (this.record.clientSecret || authConfig.oidcClientSecret)),

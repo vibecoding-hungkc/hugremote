@@ -1325,7 +1325,12 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .dw-close-btn {
+    .dw-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .dw-close-btn, .dw-add-server-btn {
       width: 24px;
       height: 24px;
       border-radius: 6px;
@@ -1339,7 +1344,7 @@
       font-size: 15px;
       flex-shrink: 0;
     }
-    .dw-close-btn:hover {
+    .dw-close-btn:hover, .dw-add-server-btn:hover, .dw-add-server-btn.active {
       background: rgba(255, 255, 255, 0.1);
       color: #f8fafc;
     }
@@ -5113,20 +5118,18 @@
             <span>Workspace</span>
             <span id="dw-active-project-pill" class="dw-project-scope-pill">hugcode</span>
           </div>
-          <button type="button" id="btn-close-workspace-sidebar" class="dw-close-btn" title="Đóng cột Workspace" aria-label="Đóng cột Workspace">
-            <i class="ri-close-line"></i>
-          </button>
+          <div class="dw-top-actions">
+            <button type="button" id="btn-dw-add-server" class="dw-add-server-btn" title="Thêm Server vào Workspace" aria-label="Thêm Server vào Workspace">
+              <i class="ri-add-line"></i>
+            </button>
+            <button type="button" id="btn-close-workspace-sidebar" class="dw-close-btn" title="Đóng cột Workspace" aria-label="Đóng cột Workspace">
+              <i class="ri-close-line"></i>
+            </button>
+          </div>
         </div>
         <div id="dw-workspace-resize" class="dw-workspace-resize" role="separator" tabindex="0"
           aria-orientation="vertical" aria-label="Điều chỉnh độ rộng Workspace" aria-valuemin="220" aria-valuemax="520" aria-valuenow="256"></div>
         <div class="dw-section" data-dw-sec="projects">
-          <div class="dw-section-head">
-            <span id="dw-servers-head-label"><i class="ri-server-line" style="color:#34d399;"></i> Servers · 1</span>
-            <div class="dw-section-actions">
-              <button type="button" id="btn-dw-add-server" title="Thêm Server vào Workspace"><i class="ri-add-line"></i> Server</button>
-              <button type="button" id="btn-dw-manage-proj"><i class="ri-equalizer-line"></i> Quản lý</button>
-            </div>
-          </div>
           <div id="dw-add-server-menu" class="dw-add-server-menu" style="display:none;"></div>
           <div class="dw-list" id="dw-project-list"></div>
         </div>
@@ -13944,11 +13947,6 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
         ensureProjectSessionBuckets(cur);
         const activeProj = getActiveProject();
         const wsServers = getWorkspaceServers();
-
-        const headLabel = document.getElementById('dw-servers-head-label');
-        if (headLabel) {
-          headLabel.innerHTML = `<i class="ri-server-line" style="color:#34d399;"></i> Servers · ${wsServers.length}`;
-        }
 
         if (currentProjectLabelEl && activeProj) {
           currentProjectLabelEl.textContent = activeProj.name;

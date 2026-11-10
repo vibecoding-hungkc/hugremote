@@ -21,16 +21,29 @@
           {{ activeProjectName }}
         </span>
       </div>
-      <button
-        id="btn-close-workspace-sidebar"
-        type="button"
-        class="dw-close-btn"
-        title="Đóng cột Workspace"
-        aria-label="Đóng cột Workspace"
-        @click="$emit('close')"
-      >
-        <i class="ri-close-line"></i>
-      </button>
+      <div class="dw-top-actions">
+        <button
+          id="btn-dw-add-server"
+          type="button"
+          class="dw-add-server-btn"
+          :class="{ active: showAddServerMenu }"
+          title="Thêm Server vào Workspace"
+          aria-label="Thêm Server vào Workspace"
+          @click="showAddServerMenu = !showAddServerMenu"
+        >
+          <i class="ri-add-line"></i>
+        </button>
+        <button
+          id="btn-close-workspace-sidebar"
+          type="button"
+          class="dw-close-btn"
+          title="Đóng cột Workspace"
+          aria-label="Đóng cột Workspace"
+          @click="$emit('close')"
+        >
+          <i class="ri-close-line"></i>
+        </button>
+      </div>
     </div>
 
     <div
@@ -51,32 +64,6 @@
     <!-- Multi-Server & Project Tree -->
     <div class="dw-scroll-content">
       <div class="dw-section">
-        <div class="dw-section-head">
-          <span>
-            <i class="ri-server-line" style="color: #34d399"></i>
-            Servers · {{ serverStore.workspaceServers.length }}
-          </span>
-          <div class="dw-section-actions">
-            <button
-              id="btn-dw-add-server"
-              type="button"
-              :class="{ active: showAddServerMenu }"
-              title="Thêm Server vào Workspace"
-              @click="showAddServerMenu = !showAddServerMenu"
-            >
-              <i class="ri-add-line"></i> Server
-            </button>
-            <button
-              id="btn-dw-manage-proj"
-              type="button"
-              title="Quản lý hoặc thêm Project"
-              @click="handleOpenProjectModal"
-            >
-              <i class="ri-equalizer-line"></i> Quản lý
-            </button>
-          </div>
-        </div>
-
         <!-- Inline Add Server to Workspace Picker -->
         <div v-if="showAddServerMenu" id="dw-add-server-menu" class="dw-add-server-menu">
           <div class="dw-add-server-title">Thêm Server vào Workspace</div>
@@ -939,10 +926,12 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-top-title { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 800; }
 .dw-top-title > i { color: #a5a5a5; font-size: 15px; }
 .dw-project-scope-pill { color: #a6a6a6; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
-.dw-close-btn, .dw-section-head button, .dw-sub-header button, .dw-caret, .dw-item-actions button {
+.dw-top-actions { display: flex; align-items: center; gap: 3px; }
+.dw-close-btn, .dw-add-server-btn, .dw-section-head button, .dw-sub-header button, .dw-caret, .dw-item-actions button {
   background: transparent; border: 0; color: #a8a8a8; cursor: pointer; border-radius: 4px;
 }
-.dw-close-btn { width: 25px; height: 25px; font-size: 16px; flex-shrink: 0; }
+.dw-close-btn, .dw-add-server-btn { width: 25px; height: 25px; font-size: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+.dw-add-server-btn:hover, .dw-add-server-btn.active { background: rgba(255, 255, 255, .08); color: #f5f5f5; }
 .dw-scroll-content { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 .dw-section { display: flex; flex-direction: column; gap: 5px; min-height: 0; }
 .dw-section-head { padding: 1px 6px; color: #a5a5a5; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }

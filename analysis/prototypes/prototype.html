@@ -1750,6 +1750,14 @@
       top: 3px;
       z-index: 20;
     }
+    @media (max-width: 799px) {
+      .quick-tree-trigger[data-quick-panel="git"] {
+        display: none !important;
+      }
+    }
+    #app:not(.is-desktop-device) .quick-tree-trigger[data-quick-panel="git"] {
+      display: none !important;
+    }
 
     .smart-header-right {
       display: flex;
@@ -1761,6 +1769,14 @@
     }
     .smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
       padding-right: 76px;
+    }
+    @media (max-width: 799px) {
+      .smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
+        padding-right: 42px;
+      }
+    }
+    #app:not(.is-desktop-device) .smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
+      padding-right: 42px;
     }
     @media (min-width: 800px) {
       #app.quick-tree-open .smart-header-right {
@@ -4723,6 +4739,41 @@
     /* ========================================================
        SHORTCUT THIN INDEX, TOGGLEABLE LABELS & SETTINGS BLOCK
        ======================================================== */
+    @media (max-width: 799px) {
+      .smart-bottom-dock {
+        padding: 0 6px;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .dock-label {
+        display: none !important;
+      }
+      .dock-icon {
+        font-size: 19px;
+      }
+      .dock-item {
+        gap: 3px;
+        padding: 0 4px;
+        min-width: 0;
+      }
+      .dock-item.dock-item-icon-only {
+        flex: 1;
+      }
+    }
+    #app:not(.is-desktop-device) .dock-label {
+      display: none !important;
+    }
+    #app:not(.is-desktop-device) .dock-icon {
+      font-size: 19px;
+    }
+    #app:not(.is-desktop-device) .dock-item {
+      gap: 3px;
+      padding: 0 4px;
+      min-width: 0;
+    }
+    #app:not(.is-desktop-device) .dock-item.dock-item-icon-only {
+      flex: 1;
+    }
+
     @media (max-width: 440px) {
       .smart-bottom-dock {
         padding: 0 4px;
@@ -4736,15 +4787,6 @@
         gap: 3px;
         padding: 0 2px;
         min-width: 0;
-      }
-      .dock-icon {
-        font-size: 14px;
-      }
-      .dock-label {
-        font-size: 11px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
       }
       .dock-badge-num {
         font-size: 9px;
@@ -5132,7 +5174,6 @@
           <div id="ctx-actions-claude" class="ctx-actions-item">
             <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="files" type="button" aria-label="Xem nhanh thư mục" aria-controls="quick-tree-panel" aria-expanded="false" title="Xem nhanh thư mục"><i class="ri-folder-2-line"></i></button>
             <button class="btn-icon-action quick-tree-trigger" data-quick-tree-trigger data-quick-panel="git" type="button" aria-label="Quản lý Git nhanh" aria-controls="quick-tree-panel" aria-expanded="false" title="Quản lý Git nhanh"><i class="ri-git-branch-line"></i></button>
-            <button id="btn-header-claude-limits" class="btn-icon-action" title="Xem hạn mức sử dụng"><i class="ri-dashboard-3-line" style="color:#f59e0b;"></i></button>
             <button id="btn-add-claude" class="btn-icon-action" title="Khởi chạy phiên Claude mới"><i class="ri-add-line"></i></button>
             <button id="btn-claude-more" class="btn-icon-action" title="Tùy chọn Claude"><i class="ri-more-2-fill"></i></button>
           </div>

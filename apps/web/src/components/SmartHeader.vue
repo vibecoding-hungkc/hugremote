@@ -564,6 +564,18 @@ async function closeFile() {
   z-index: 20;
 }
 
+@media (max-width: 799px) {
+  .btn-icon-action.quick-tree-trigger[data-quick-panel="git"],
+  .quick-tree-trigger[data-quick-panel="git"] {
+    display: none !important;
+  }
+}
+
+:global(.app-root:not(.is-desktop-device)) .btn-icon-action.quick-tree-trigger[data-quick-panel="git"],
+:global(.app-root:not(.is-desktop-device)) .quick-tree-trigger[data-quick-panel="git"] {
+  display: none !important;
+}
+
 .btn-icon-action.quick-tree-trigger[aria-expanded="true"] {
   color: #d5d5d5;
   background: linear-gradient(135deg, #2f2f2f, #2a2a2a);
@@ -706,6 +718,16 @@ async function closeFile() {
 
 .smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
   padding-right: 76px;
+}
+
+@media (max-width: 799px) {
+  .smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
+    padding-right: 42px;
+  }
+}
+
+:global(.app-root:not(.is-desktop-device)) .smart-header-right:has(.quick-tree-trigger[data-quick-panel="git"]) {
+  padding-right: 42px;
 }
 
 @media (min-width: 800px) {

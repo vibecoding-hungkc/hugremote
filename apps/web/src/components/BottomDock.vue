@@ -39,4 +39,25 @@ const terminalStore = useTerminalStore(); const claudeStore = useClaudeStore(); 
 .dock-icon { font-size:16px; } .dock-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .dock-badge { background:#404040; color:#fff; font-size:9.5px; font-family:monospace; padding:1px 5px; border-radius:10px; margin-left:1px; }
 .dock-badge.claude-badge { background:#404040; } .dock-badge.git-badge { background:#f59e0b; }
+
+@media (max-width: 799px) {
+  .dock-label { display: none !important; }
+  .dock-icon { font-size: 19px; }
+  .dock-item { gap: 3px; padding: 0 4px; }
+  .dock-item.dock-item-icon-only { flex: 1; }
+}
+
+:global(.app-root:not(.is-desktop-device)) .dock-label {
+  display: none !important;
+}
+:global(.app-root:not(.is-desktop-device)) .dock-icon {
+  font-size: 19px;
+}
+:global(.app-root:not(.is-desktop-device)) .dock-item {
+  gap: 3px;
+  padding: 0 4px;
+}
+:global(.app-root:not(.is-desktop-device)) .dock-item.dock-item-icon-only {
+  flex: 1;
+}
 </style>

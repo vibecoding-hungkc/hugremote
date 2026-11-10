@@ -511,6 +511,23 @@ async function closeFile() {
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+  transition:
+    padding-left 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 900px) {
+  .app-root.workspace-sidebar-open .context-row,
+  #app.workspace-sidebar-open .context-row {
+    padding-left: calc(var(--workspace-sidebar-width, 256px) + 10px);
+  }
+}
+
+@media (min-width: 800px) {
+  .app-root.quick-tree-open .context-row,
+  #app.quick-tree-open .context-row {
+    padding-right: calc(var(--quick-panel-width, 320px) + 10px);
+  }
 }
 
 .server-menu-btn {

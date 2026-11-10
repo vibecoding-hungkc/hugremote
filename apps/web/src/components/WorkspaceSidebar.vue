@@ -228,6 +228,7 @@
                         class="dw-item term-item"
                         :class="{
                           active:
+                            props.activeTab === 'terminal' &&
                             srv.id === serverStore.currentServerId &&
                             proj.id === projectStore.currentProject?.id &&
                             s.id === terminalStore.activeSession?.id,
@@ -295,6 +296,7 @@
                         class="dw-item claude-item"
                         :class="{
                           active:
+                            props.activeTab === 'claude' &&
                             srv.id === serverStore.currentServerId &&
                             proj.id === projectStore.currentProject?.id &&
                             s.id === claudeStore.activeSession?.id,
@@ -395,7 +397,8 @@ import ConfirmModal from './ConfirmModal.vue';
 const props = withDefaults(defineProps<{
   isOpen: boolean;
   panelWidth?: number;
-}>(), { panelWidth: 256 });
+  activeTab?: string;
+}>(), { panelWidth: 256, activeTab: '' });
 
 const emit = defineEmits<{
   (e: 'update:panelWidth', width: number): void;

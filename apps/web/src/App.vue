@@ -34,6 +34,7 @@
     <WorkspaceSidebar
       :is-open="isWorkspaceSidebarOpen"
       :panel-width="workspaceSidebarWidth"
+      :active-tab="activeTab"
       @update:panel-width="handleWorkspaceSidebarWidthChange"
       @close="setWorkspaceSidebarOpen(false)"
       @open-project-modal="isProjectModalOpen = true"
@@ -599,11 +600,17 @@ html, body {
   .app-root.workspace-sidebar-open .main-content {
     padding-left: var(--workspace-sidebar-width, 256px);
   }
+  .app-root.workspace-sidebar-open .context-row {
+    padding-left: calc(var(--workspace-sidebar-width, 256px) + 10px);
+  }
 }
 
 @media (min-width: 800px) {
   .app-root.quick-tree-open .main-content {
     padding-right: var(--quick-panel-width, 320px);
+  }
+  .app-root.quick-tree-open .context-row {
+    padding-right: calc(var(--quick-panel-width, 320px) + 10px);
   }
 }
 

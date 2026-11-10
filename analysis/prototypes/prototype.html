@@ -1204,6 +1204,20 @@
       padding: 0 10px;
       gap: 8px;
       min-width: 0;
+      box-sizing: border-box;
+      transition:
+        padding-left 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+        padding-right 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @media (min-width: 900px) {
+      #app.workspace-sidebar-open .context-row {
+        padding-left: calc(var(--workspace-sidebar-width, 256px) + 10px);
+      }
+    }
+    @media (min-width: 800px) {
+      #app.quick-tree-open .context-row {
+        padding-right: calc(var(--quick-panel-width, 304px) + 10px);
+      }
     }
 
     /* Left Workspace Sidebar & Toggle Button (Desktop docked + Mobile slide-over drawer) */
@@ -10141,6 +10155,9 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
           }
           if (typeof renderSettingsScreen === 'function') renderSettingsScreen();
         }
+        if (typeof renderDesktopWorkspaceTree === 'function') {
+          renderDesktopWorkspaceTree();
+        }
       }
 
       dockItems.forEach(btn => {
@@ -13843,7 +13860,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       function buildDwTermSessionRow(srv, proj, sess, totalInProj, isProjectActive, termIdx) {
-        const isCurrent = srv.id === currentServerId && isProjectActive && sess.id === activeSessionId;
+        const isTabActive = Boolean(document.getElementById('view-terminal')?.classList.contains('active'));
+        const isCurrent = isTabActive && srv.id === currentServerId && isProjectActive && sess.id === activeSessionId;
         const resolvedIdx = termIdx || getTerminalSessionNumber(sess.id, 1);
         const shortcutStr = getEffectiveItemShortcut('terminal', sess.id, resolvedIdx);
         const item = document.createElement('div');
@@ -13901,7 +13919,8 @@ Date:   Tue Oct 6 16:15:00 2026 +0700
       }
 
       function buildDwClaudeSessionRow(srv, proj, sess, totalInProj, isProjectActive, claudeIdx) {
-        const isCurrent = srv.id === currentServerId && isProjectActive && sess.id === activeClaudeId;
+        const isTabActive = Boolean(document.getElementById('view-claude')?.classList.contains('active'));
+        const isCurrent = isTabActive && srv.id === currentServerId && isProjectActive && sess.id === activeClaudeId;
         const isRunning = Boolean(sess.isRunning);
         const resolvedIdx = claudeIdx || getClaudeSessionNumber(sess.id, 1);
         const shortcutStr = getEffectiveItemShortcut('claude', sess.id, resolvedIdx);

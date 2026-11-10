@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 import { createServer } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { createPinia, setActivePinia } from 'pinia';
@@ -118,8 +119,8 @@ try {
     ];
     claudeStore.activeSessionId = 'claude-a1';
 
-    // Render with Project A active
-    const appA = createSSRApp(WorkspaceSidebar, { isOpen: true });
+    // Render with Project A active and Terminal tab active
+    const appA = createSSRApp(WorkspaceSidebar, { isOpen: true, activeTab: 'terminal' });
     appA.use(pinia);
     const htmlA = await renderToString(appA);
 
@@ -138,16 +139,16 @@ try {
     assert.doesNotMatch(htmlA, /class="dw-active-dot"/);
     assert.doesNotMatch(htmlA, /class="dw-server-active-badge"/);
     assert.match(htmlA, /data-dw-project="proj-a"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-project="proj-a"/);
-    assert.match(htmlA, /data-dw-term="term-a1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-term="term-a1"/);
-    assert.match(htmlA, /data-dw-claude="claude-a1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-claude="claude-a1"/);
+    assert.match(htmlA, /data-dw-term="term-a1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-term="term-a1"/, 'Terminal session must be active when activeTab is terminal');
+    assert.doesNotMatch(htmlA, /data-dw-claude="claude-a1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-claude="claude-a1"/, 'Claude session must NOT be active when activeTab is terminal');
     assert.doesNotMatch(htmlA, /data-dw-layout-btn|dw-item-sub/);
 
-    // Switch to Project B and verify sessions switch to Project B
+    // Switch to Project B and Claude tab active
     projectStore.activeProjectIdByServer[srvId] = 'proj-b';
     terminalStore.activeSessionId = 'term-b1';
     claudeStore.activeSessionId = 'claude-b1';
 
-    const appB = createSSRApp(WorkspaceSidebar, { isOpen: true });
+    const appB = createSSRApp(WorkspaceSidebar, { isOpen: true, activeTab: 'claude' });
     appB.use(pinia);
     const htmlB = await renderToString(appB);
 
@@ -158,8 +159,8 @@ try {
     assert.doesNotMatch(htmlB, /class="dw-active-dot"/);
     assert.doesNotMatch(htmlB, /class="dw-server-active-badge"/);
     assert.match(htmlB, /data-dw-project="proj-b"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-project="proj-b"/);
-    assert.match(htmlB, /data-dw-term="term-b1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-term="term-b1"/);
-    assert.match(htmlB, /data-dw-claude="claude-b1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-claude="claude-b1"/);
+    assert.doesNotMatch(htmlB, /data-dw-term="term-b1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-term="term-b1"/, 'Terminal session must NOT be active when activeTab is claude');
+    assert.match(htmlB, /data-dw-claude="claude-b1"[^>]*class="[^"]*\bactive\b[^"]*"|class="[^"]*\bactive\b[^"]*"[^>]*data-dw-claude="claude-b1"/, 'Claude session must be active when activeTab is claude');
   });
 
   await test('AC-5: Workspace rows display only names in the app and prototype', async () => {
@@ -356,6 +357,23 @@ try {
     assert.match(wsHtml, /Local Agent/);
     assert.match(wsHtml, /Prod Agent/);
     assert.match(wsHtml, /btn-dw-server-remove/, 'Remove server from workspace button must render when >1 server');
+  });
+
+  await test('AC-10: SmartHeader context-row indents according to workspace sidebar and folder (quick panel) widths', async () => {
+    const repoRoot = path.resolve(root, '../..');
+    const smartHeaderVue = fs.readFileSync(path.resolve(repoRoot, 'apps/web/src/components/SmartHeader.vue'), 'utf8');
+    const appVue = fs.readFileSync(path.resolve(repoRoot, 'apps/web/src/App.vue'), 'utf8');
+    const protoHtml = fs.readFileSync(path.resolve(repoRoot, 'analysis/prototypes/prototype.html'), 'utf8');
+
+    // SmartHeader.vue & App.vue rules
+    assert.match(smartHeaderVue, /\.workspace-sidebar-open\s+\.context-row[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
+    assert.match(smartHeaderVue, /\.quick-tree-open\s+\.context-row[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
+    assert.match(appVue, /\.workspace-sidebar-open\s+\.context-row[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
+    assert.match(appVue, /\.quick-tree-open\s+\.context-row[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
+
+    // prototype.html rules
+    assert.match(protoHtml, /#app\.workspace-sidebar-open\s+\.context-row[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
+    assert.match(protoHtml, /#app\.quick-tree-open\s+\.context-row[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
   });
 } finally {
   await vite.close();

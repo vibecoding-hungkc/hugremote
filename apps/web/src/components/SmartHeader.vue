@@ -553,16 +553,14 @@ async function closeFile() {
 .btn-icon-action.quick-tree-trigger[data-quick-panel="files"] {
   position: absolute;
   right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 4px;
   z-index: 20;
 }
 
 .btn-icon-action.quick-tree-trigger[data-quick-panel="git"] {
   position: absolute;
   right: 44px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 4px;
   z-index: 20;
 }
 
@@ -645,8 +643,7 @@ async function closeFile() {
 .btn-workspace-sidebar-toggle {
   position: absolute;
   left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 5px;
   z-index: 20;
   width: 28px;
   min-width: 28px;

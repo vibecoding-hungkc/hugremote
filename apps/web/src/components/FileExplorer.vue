@@ -143,8 +143,14 @@
               <i class="ri-download-2-line"></i>
             </button>
 
-            <button v-if="item.isDirectory" class="btn-action-icon project" @click="emit('open-folder-as-project', item.relPath)" title="Open as Project">
-              <i class="ri-folder-add-line"></i>
+            <button
+              v-if="item.isDirectory"
+              class="btn-action-icon project"
+              :class="{ 'is-in-workspace': isExistingProject(item.relPath) }"
+              @click="emit('open-folder-as-project', item.relPath)"
+              :title="isExistingProject(item.relPath) ? 'Chuyển tới dự án' : 'Mở làm dự án'"
+            >
+              <i :class="isExistingProject(item.relPath) ? 'ri-folder-shared-line' : 'ri-folder-add-line'"></i>
             </button>
             <button class="btn-action-icon" @click="openRename(item)" :title="t('common.edit')">
               <i class="ri-edit-line"></i>
@@ -196,10 +202,11 @@
                 v-if="item.isDirectory"
                 type="button"
                 class="menu-item project"
+                :class="{ 'is-in-workspace': isExistingProject(item.relPath) }"
                 @click="onMobileRowAction(() => emit('open-folder-as-project', item.relPath))"
               >
-                <i class="ri-folder-add-line"></i>
-                <span>Mở làm Project</span>
+                <i :class="isExistingProject(item.relPath) ? 'ri-folder-shared-line' : 'ri-folder-add-line'"></i>
+                <span>{{ isExistingProject(item.relPath) ? 'Chuyển tới dự án' : 'Mở làm dự án' }}</span>
               </button>
 
               <button
@@ -314,6 +321,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useFileStore, FileEntry } from '../stores/fileStore.js';
+import { useProjectStore } from '../stores/projectStore.js';
+import { useServerStore } from '../stores/serverStore.js';
 import InputModal from './InputModal.vue';
 import ConfirmModal from './ConfirmModal.vue';
 import { useI18n } from '../composables/useI18n.js';
@@ -332,7 +341,25 @@ const emit = defineEmits<{
   (e: 'open-folder-as-project', relPath: string): void;
 }>();
 const fileStore = useFileStore();
+const projectStore = useProjectStore();
+const serverStore = useServerStore();
 const { t } = useI18n();
+
+function isExistingProject(relPath: string): boolean {
+  const root = (serverStore.currentServer.workspace || '~').trim().replace(/\/+$/, '');
+  const cleanRel = (relPath || '').trim().replace(/^\/+|\/+$/g, '');
+  const fullPath = `${root}/${cleanRel}`.replace(/\/+$/, '');
+  const srvId = serverStore.currentServerId;
+  return projectStore.projectsForServer(srvId).some((p) => {
+    const pRoot = p.rootPath.trim().replace(/\/+$/, '');
+    return (
+      pRoot === fullPath ||
+      (fullPath.startsWith('~/') && pRoot === fullPath) ||
+      (pRoot.startsWith('~/') && fullPath.endsWith(pRoot.slice(2))) ||
+      (cleanRel && p.name === cleanRel && (pRoot.endsWith(`/${cleanRel}`) || pRoot === fullPath))
+    );
+  });
+}
 
 const targetItem = ref<FileEntry | null>(null);
 const isRenameModalOpen = ref(false);
@@ -1116,6 +1143,12 @@ defineExpose({
   color: #a5a5a5;
   border-color: rgba(125, 125, 125, 0.35);
   background: rgba(64, 64, 64, 0.08);
+}
+
+.btn-action-icon.project.is-in-workspace {
+  color: #e5e5e5;
+  border-color: rgba(229, 229, 229, 0.4);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .btn-action-icon.danger:hover {

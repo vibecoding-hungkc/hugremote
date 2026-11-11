@@ -381,6 +381,62 @@ try {
     assert.match(protoHtml, /#app\.workspace-sidebar-open\s+\.smart-header-center[\s\S]*?padding-left:\s*calc\(var\(--workspace-sidebar-width/);
     assert.match(protoHtml, /#app\.quick-tree-open\s+\.smart-header-right[\s\S]*?padding-right:\s*calc\(var\(--quick-panel-width/);
   });
+
+  await test('AC-11: Cross-server tab & session focus edge case: clicking Claude session on another server activates Claude and avoids terminal focus', async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const serverStore = useServerStore();
+    const projectStore = useProjectStore();
+    const terminalStore = useTerminalStore();
+    const claudeStore = useClaudeStore();
+
+    serverStore.servers = [
+      { id: 'server-local', name: 'localhost', type: 'local', label: 'Local', host: '127.0.0.1', user: '', port: 22, isConnected: true },
+      { id: 'server-remote', name: 'remote-box', type: 'ssh', label: 'Remote', host: '203.0.113.10', user: 'devops', port: 22, isConnected: true },
+    ];
+    serverStore.currentServerId = 'server-local';
+    serverStore.addServerToWorkspace('server-remote');
+
+    projectStore.projects = [
+      { id: 'proj-local', serverId: 'server-local', name: 'local-app', rootPath: '/home/u/local-app', lastOpenedAt: 100 },
+      { id: 'proj-remote', serverId: 'server-remote', name: 'remote-app', rootPath: '/srv/remote-app', lastOpenedAt: 200 },
+    ];
+    projectStore.activeProjectIdByServer['server-local'] = 'proj-local';
+    projectStore.activeProjectIdByServer['server-remote'] = 'proj-remote';
+
+    terminalStore.sessions = [
+      { id: 'term-local-1', serverId: 'server-local', projectId: 'proj-local', name: 'local-term', cwd: '/home/u/local-app' },
+      { id: 'term-remote-1', serverId: 'server-remote', projectId: 'proj-remote', name: 'remote-term', cwd: '/srv/remote-app' },
+    ];
+    terminalStore.activeSessionId = 'term-local-1';
+
+    claudeStore.sessions = [
+      { id: 'claude-local-1', serverId: 'server-local', projectId: 'proj-local', name: 'local-claude', cwd: '/home/u/local-app', messages: [] },
+      { id: 'claude-remote-1', serverId: 'server-remote', projectId: 'proj-remote', name: 'remote-claude', cwd: '/srv/remote-app', messages: [] },
+    ];
+    claudeStore.activeSessionId = 'claude-local-1';
+
+    // 1. When on terminal tab, terminal session on server-local is active
+    const wsTermApp = createSSRApp(WorkspaceSidebar, { isOpen: true, activeTab: 'terminal' });
+    wsTermApp.use(pinia);
+    const wsTermHtml = await renderToString(wsTermApp);
+    assert.match(wsTermHtml, /class="[^"]*(?:active[^"]*server-item|server-item[^"]*active)[^"]*"[^>]*data-dw-server="server-local"/);
+    assert.match(wsTermHtml, /class="[^"]*(?:active[^"]*term-item|term-item[^"]*active)[^"]*"[^>]*data-dw-term="term-local-1"/);
+    assert.doesNotMatch(wsTermHtml, /class="[^"]*(?:active[^"]*claude-item|claude-item[^"]*active)[^"]*"/);
+
+    // 2. When switched to Claude session on server-remote:
+    serverStore.selectServer('server-remote');
+    projectStore.activeProjectIdByServer['server-remote'] = 'proj-remote';
+    claudeStore.switchSession('claude-remote-1');
+
+    const wsClaudeApp = createSSRApp(WorkspaceSidebar, { isOpen: true, activeTab: 'claude' });
+    wsClaudeApp.use(pinia);
+    const wsClaudeHtml = await renderToString(wsClaudeApp);
+    assert.match(wsClaudeHtml, /class="[^"]*(?:active[^"]*server-item|server-item[^"]*active)[^"]*"[^>]*data-dw-server="server-remote"/);
+    assert.match(wsClaudeHtml, /class="[^"]*(?:active[^"]*proj-item|proj-item[^"]*active)[^"]*"[^>]*data-dw-project="proj-remote"/);
+    assert.match(wsClaudeHtml, /class="[^"]*(?:active[^"]*claude-item|claude-item[^"]*active)[^"]*"[^>]*data-dw-claude="claude-remote-1"/);
+    assert.doesNotMatch(wsClaudeHtml, /class="[^"]*(?:active[^"]*term-item|term-item[^"]*active)[^"]*"/);
+  });
 } finally {
   await vite.close();
 }

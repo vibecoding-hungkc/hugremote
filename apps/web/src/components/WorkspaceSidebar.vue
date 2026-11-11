@@ -570,8 +570,8 @@ function displayClaudeName(session: ClaudeSession): string {
   return raw;
 }
 
-function resolveClaudeProjectId(session: ClaudeSession) {
-  const srvId = session.serverId || serverStore.currentServerId;
+function resolveClaudeProjectId(session: ClaudeSession, serverId = session.serverId || serverStore.currentServerId) {
+  const srvId = serverId;
   return session.projectId || projectStore.projectsForServer(srvId).find(p =>
     p.rootPath.replace(/\/+$/, '') === session.cwd?.replace(/\/+$/, '')
   )?.id;
@@ -692,7 +692,12 @@ const activeProjectName = computed(() => {
 });
 
 function isHomeProject(project: ProjectItem) {
-  return project.name === '~' || project.rootPath === '~';
+  if (project.name === '~' || project.rootPath === '~') return true;
+  const srv = serverStore.servers.find(s => s.id === project.serverId);
+  if (srv?.workspace && (project.rootPath === srv.workspace || project.rootPath.replace(/\/+$/, '') === srv.workspace.replace(/\/+$/, ''))) {
+    return true;
+  }
+  return false;
 }
 
 function closeOnMobileIfNeeded() {
@@ -810,7 +815,20 @@ async function executeDeleteProject() {
   try {
     const wasCurrent = target.id === projectStore.currentProject?.id && target.serverId === serverStore.currentServerId;
     if (wasCurrent && !(await fileStore.confirmUnsavedChanges())) return;
-    await projectStore.deleteProject(target.id);
+
+    // Clean up any terminal sessions belonging to this project
+    const termSessions = terminalStore.sessions.filter(s => s.serverId === target.serverId && s.projectId === target.id);
+    for (const term of termSessions) {
+      terminalStore.closeSession(term.id).catch(() => {});
+    }
+
+    // Clean up any claude sessions belonging to this project
+    const claudeSessions = claudeStore.sessions.filter(s => s.serverId === target.serverId && s.projectId === target.id);
+    for (const cs of claudeSessions) {
+      claudeStore.deleteSession(cs.id).catch(() => {});
+    }
+
+    await projectStore.deleteProject(target.id, target.serverId);
     if (target.serverId && target.serverId !== serverStore.currentServerId) {
       await projectStore.fetchProjects(target.serverId);
     }
@@ -823,9 +841,14 @@ async function executeDeleteProject() {
 }
 
 async function handleSelectTerminal(session: TerminalSessionItem) {
-  if (session.projectId && !await selectProjectScope(session.projectId, session.serverId)) return;
-  terminalStore.switchSession(session.id);
   emit('select-terminal');
+  const targetServerId = session.serverId || serverStore.currentServerId;
+  if (session.projectId && !await selectProjectScope(session.projectId, targetServerId)) return;
+  if (!session.projectId && targetServerId !== serverStore.currentServerId) {
+    serverStore.selectServer(targetServerId);
+    emit('project-selected');
+  }
+  terminalStore.switchSession(session.id);
   closeOnMobileIfNeeded();
 }
 
@@ -856,10 +879,16 @@ async function executeCloseTerminal() {
 }
 
 async function handleSelectClaude(session: ClaudeSession) {
-  const projectId = resolveClaudeProjectId(session);
-  if (projectId && !await selectProjectScope(projectId, session.serverId)) return;
-  claudeStore.switchSession(session.id);
   emit('select-claude');
+  const targetServerId = session.serverId || serverStore.currentServerId;
+  const targetProjectId = resolveClaudeProjectId(session, targetServerId);
+  if (targetProjectId) {
+    if (!await selectProjectScope(targetProjectId, targetServerId)) return;
+  } else if (targetServerId !== serverStore.currentServerId) {
+    serverStore.selectServer(targetServerId);
+    emit('project-selected');
+  }
+  claudeStore.switchSession(session.id);
   closeOnMobileIfNeeded();
 }
 

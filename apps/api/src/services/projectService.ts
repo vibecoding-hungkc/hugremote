@@ -29,13 +29,13 @@ function slugPart(value: string): string {
     .slice(0, 80) || 'project';
 }
 
-function basenameForProject(rootPath: string): string {
+export function basenameForProject(rootPath: string): string {
   if (!rootPath || rootPath === '~') return '~';
   const clean = rootPath.replace(/\/+$/, '');
   return path.posix.basename(clean) || path.basename(clean) || '~';
 }
 
-function resolveProjectWorkspacePath(serverId: string, rootPath: string): string {
+export function resolveProjectWorkspacePath(serverId: string, rootPath: string): string {
   const trimmed = (rootPath || '~').trim() || '~';
   if (!serverId || serverId === 'server-local') {
     return normalizeWorkspacePath(trimmed);
@@ -43,15 +43,35 @@ function resolveProjectWorkspacePath(serverId: string, rootPath: string): string
   // On macOS, os.homedir() is /Users/<user>, which does not exist on remote Linux SSH servers.
   // Keep '~' or '~/...' intact for remote servers so remote SFTP/Git/Claude/Terminal resolve it on the remote host.
   const localHome = os.homedir();
+  let normalized = trimmed;
   if (localHome.startsWith('/Users/') && (trimmed === localHome || trimmed.startsWith(localHome + '/'))) {
     const rel = trimmed.slice(localHome.length).replace(/^\/+/, '');
-    return rel ? `~/${rel}` : '~';
+    normalized = rel ? `~/${rel}` : '~';
   }
-  return trimmed;
+  if (normalized === '~' || normalized === '~/') return '~';
+  if (normalized.startsWith('~/')) {
+    const cleanSub = path.posix.normalize(normalized.slice(2)).replace(/\/+$/, '');
+    return cleanSub && cleanSub !== '.' ? `~/${cleanSub}` : '~';
+  }
+  const cleanPosix = path.posix.normalize(normalized).replace(/\/+$/, '');
+  return cleanPosix || '/';
 }
 
-function isHomeProject(project: ProjectItem): boolean {
-  return project.name === '~' || path.resolve(project.rootPath) === path.resolve(os.homedir());
+export function canonicalProjectPath(serverId: string, rootPath: string): string {
+  const resolved = resolveProjectWorkspacePath(serverId, rootPath);
+  if (!serverId || serverId === 'server-local') {
+    return path.resolve(resolved);
+  }
+  return resolved.replace(/\/+$/, '') || '/';
+}
+
+export function isHomeProject(project: ProjectItem): boolean {
+  if (project.name === '~' || project.rootPath === '~') return true;
+  if (!project.serverId || project.serverId === 'server-local') {
+    const resolved = path.resolve(normalizeWorkspacePath(project.rootPath));
+    return resolved === path.resolve(os.homedir());
+  }
+  return false;
 }
 
 export class ProjectService {
@@ -96,6 +116,27 @@ export class ProjectService {
         }
         seen.add(project.id);
       }
+
+      // Deduplicate projects per server pointing to the same canonical path
+      const seenCanonicalByServer = new Map<string, ProjectItem>();
+      const deduplicated: ProjectItem[] = [];
+      for (const project of this.state.projects) {
+        const sId = project.serverId || 'server-local';
+        const key = `${sId}:${canonicalProjectPath(sId, project.rootPath)}`;
+        const existing = seenCanonicalByServer.get(key);
+        if (existing) {
+          if (project.updatedAt > existing.updatedAt) existing.updatedAt = project.updatedAt;
+          if (this.state.activeProjectByServer[sId] === project.id) {
+            this.state.activeProjectByServer[sId] = existing.id;
+          }
+          repaired = true;
+          continue;
+        }
+        seenCanonicalByServer.set(key, project);
+        deduplicated.push(project);
+      }
+      this.state.projects = deduplicated;
+
       if (repaired) this.save();
     } catch (err) {
       console.warn('Failed to load projects config:', err);
@@ -146,18 +187,36 @@ export class ProjectService {
     return id;
   }
 
+  isHome(project: ProjectItem): boolean {
+    return isHomeProject(project);
+  }
+
+  findMatchingProject(serverId: string, rootPath: string): ProjectItem | undefined {
+    const canonicalTarget = canonicalProjectPath(serverId, rootPath);
+    const targetIsHome = canonicalTarget === path.resolve(os.homedir()) || canonicalTarget === '~';
+
+    return this.state.projects.find((p) => {
+      if (p.serverId !== serverId) return false;
+      if (targetIsHome && isHomeProject(p)) return true;
+      const canonicalP = canonicalProjectPath(serverId, p.rootPath);
+      return canonicalP === canonicalTarget;
+    });
+  }
+
   openProject(serverId: string, rootPath: string, name?: string): ProjectItem {
     const normalizedRoot = resolveProjectWorkspacePath(serverId, rootPath || '~');
-    const projectName = (name || basenameForProject(rootPath || normalizedRoot)).trim() || '~';
-    const existing = this.state.projects.find((p) => p.serverId === serverId && p.rootPath === normalizedRoot);
+    const existing = this.findMatchingProject(serverId, normalizedRoot);
     if (existing) {
-      existing.name = projectName;
+      if (name && name.trim() && name.trim() !== '~' && existing.name === '~') {
+        existing.name = name.trim();
+      }
       existing.updatedAt = Date.now();
       this.state.activeProjectByServer[serverId] = existing.id;
       this.save();
       return existing;
     }
 
+    const projectName = (name || basenameForProject(rootPath || normalizedRoot)).trim() || '~';
     const id = this.uniqueProjectId(serverId, projectName, normalizedRoot);
     const project: ProjectItem = {
       id,

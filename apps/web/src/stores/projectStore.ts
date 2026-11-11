@@ -69,10 +69,26 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function openProject(rootPath: string, name?: string, serverId = serverStore.currentServerId) {
+    const cleanRoot = (rootPath || '~').trim().replace(/\/+$/, '') || '/';
+    // If project already exists in this server's workspace, select it instead of creating duplicate
+    const existing = projectsForServer(serverId).find((p) => {
+      const pRoot = p.rootPath.trim().replace(/\/+$/, '') || '/';
+      if (pRoot === cleanRoot) return true;
+      if (cleanRoot === '~' && (p.name === '~' || pRoot === '~')) return true;
+      if (cleanRoot.startsWith('~/') && pRoot.endsWith(cleanRoot.slice(2))) return true;
+      if (pRoot.startsWith('~/') && cleanRoot.endsWith(pRoot.slice(2))) return true;
+      return false;
+    });
+
+    if (existing) {
+      await selectProject(existing.id, serverId);
+      return existing;
+    }
+
     const res = await fetch(apiUrl('/api/projects'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ serverId, rootPath, name }),
+      body: JSON.stringify({ serverId, rootPath: cleanRoot, name }),
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to open project');
     const data = await res.json();
@@ -123,10 +139,29 @@ export const useProjectStore = defineStore('project', () => {
     await fetchProjects(data.project.serverId);
   }
 
-  async function deleteProject(projectId: string) {
+  async function deleteProject(projectId: string, serverId?: string) {
+    const target = projects.value.find((p) => p.id === projectId);
+    const effServerId = serverId || target?.serverId || serverStore.currentServerId;
+
     const res = await fetch(apiUrl(`/api/projects/${encodeURIComponent(projectId)}`), { method: 'DELETE' });
     if (!res.ok) throw new Error((await res.json()).error || 'Failed to delete project');
-    await fetchProjects(serverStore.currentServerId);
+    const data = await res.json().catch(() => ({}));
+
+    if (typeof localStorage !== 'undefined') {
+      const savedKey = `hugremote_active_project_${effServerId}`;
+      if (localStorage.getItem(savedKey) === projectId) {
+        if (data.activeProjectId) {
+          localStorage.setItem(savedKey, data.activeProjectId);
+        } else {
+          localStorage.removeItem(savedKey);
+        }
+      }
+    }
+
+    await fetchProjects(effServerId, data.activeProjectId);
+    if (effServerId !== serverStore.currentServerId) {
+      await fetchProjects(serverStore.currentServerId);
+    }
   }
 
   return {

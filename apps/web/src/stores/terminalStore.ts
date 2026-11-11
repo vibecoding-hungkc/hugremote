@@ -33,16 +33,41 @@ export const useTerminalStore = defineStore('terminal', () => {
   const serverStore = useServerStore();
   const projectStore = useProjectStore();
 
-  const sessions = ref<TerminalSessionItem[]>([
-    {
-      id: 'term-local-main',
-      name: 'terminal',
-      serverId: 'server-local',
-      projectId: '',
-      cwd: '',
-      isCustomNamed: false,
-    },
-  ]);
+  const SAVED_SESSIONS_KEY = 'hugremote_terminal_sessions';
+
+  function loadInitialSessions(): TerminalSessionItem[] {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem(SAVED_SESSIONS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      }
+    } catch {}
+    return [
+      {
+        id: 'term-local-main',
+        name: 'terminal',
+        serverId: 'server-local',
+        projectId: '',
+        cwd: '',
+        isCustomNamed: false,
+      },
+    ];
+  }
+
+  const sessions = ref<TerminalSessionItem[]>(loadInitialSessions());
+
+  function saveSessions() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SAVED_SESSIONS_KEY, JSON.stringify(sessions.value));
+      }
+    } catch {}
+  }
 
   const SAVED_TERM_KEY_PREFIX = 'hugremote_active_terminal_session_';
   const activeSessionId = ref(
@@ -101,6 +126,7 @@ export const useTerminalStore = defineStore('terminal', () => {
       isCustomNamed: hasCustomName,
     };
     sessions.value.push(newSession);
+    saveSessions();
     activeSessionId.value = newSession.id;
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(`${SAVED_TERM_KEY_PREFIX}${curServerId}`, newSession.id);
@@ -174,6 +200,7 @@ export const useTerminalStore = defineStore('terminal', () => {
       if (!response.ok) throw new Error('Không thể đóng terminal. Vui lòng thử lại.');
       const idx = sessions.value.findIndex((s) => s.id === id);
       if (idx !== -1) sessions.value.splice(idx, 1);
+      saveSessions();
       if (activeSessionId.value === id) {
         const remaining = sessions.value.filter((s) => s.serverId === session.serverId && s.projectId === session.projectId);
         if (remaining.length) {
@@ -204,6 +231,7 @@ export const useTerminalStore = defineStore('terminal', () => {
     } else if (updates.isCustomNamed === false) {
       sess.name = getDefaultSessionName(updates.cwd ?? sess.cwd);
     }
+    saveSessions();
     return sess;
   }
 
@@ -240,6 +268,7 @@ export const useTerminalStore = defineStore('terminal', () => {
         cwd,
         isCustomNamed: false,
       });
+      saveSessions();
     }
   }
 

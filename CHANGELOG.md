@@ -1,5 +1,27 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.14] - 2026-11-11
+
+Bản phát hành hoàn thiện **Hộp thoại Quản lý Project (`ProjectModal.vue`)**, khắc phục lỗi **Xóa Project có ID dài (`>100` ký tự)** và bổ sung **Lưu trữ trạng thái bền vững cho Workspace & Terminal Sessions** sau khi khởi động lại.
+
+### Khắc phục lỗi & Cải tiến
+
+- **Cải tiến Hộp thoại Quản lý Project (`ProjectModal.vue`, `FolderTreePicker.vue`):**
+  - Loại bỏ nút `Workspace` gây tạo bản ghi project trùng lặp với thư mục Home của máy chủ từ xa.
+  - Thay thế bằng 2 nút trực quan: **Thư mục Home** và **Chọn thư mục**, đồng thời bổ sung nút chọn thư mục ngay cạnh ô nhập đường dẫn.
+  - Khi bấm **Chọn thư mục**, hệ thống mở cây thư mục (`FolderTreePicker`) cho phép duyệt và chọn bất kỳ thư mục nào trên máy chủ để mở làm Project ngay lập tức.
+  - Chuẩn hóa điều kiện `isHomeProject`: chỉ duy nhất project `~` là Home Project, các project khác (kể cả project trỏ vào thư mục workspace được tạo trước đó) đều hiển thị đầy đủ nút xóa `🗑️` và có thể xóa bình thường.
+
+- **Khắc phục lỗi Không xóa được Project có ID dài (`app.ts`):**
+  - Nâng giới hạn `maxParamLength` của Fastify router từ `100` lên `500` ký tự, xử lý triệt để lỗi HTTP `414 (FST_ERR_MAX_PARAM_LENGTH)` khi xóa hoặc chọn các project trên máy chủ SSH có tên dài (kết hợp SHA-256 digest vượt quá 100 ký tự).
+
+- **Lưu trữ bền vững trạng thái Workspace & Phiên làm việc sau khi khởi động lại (`projectService.ts`, `serverStore.ts`, `terminalStore.ts`, `WorkspaceSidebar.vue`):**
+  - Lưu danh sách các máy chủ trong Workspace (`workspaceServerIds`) trực tiếp vào `~/.config/hugremote/projects.json` thông qua API `/api/projects/workspace-servers`, đồng bộ tự động khi khởi động lại ứng dụng hoặc mở trên trình duyệt mới.
+  - Lưu trữ danh sách các phiên Terminal (`hugremote_terminal_sessions`) trong `localStorage` để giữ nguyên tên phiên, thư mục làm việc (`cwd`) và liên kết `projectId` sau khi khởi động lại, tự động kết nối lại PTY khi mở.
+  - Tự động nạp danh sách project và phiên Claude/Terminal cho toàn bộ các máy chủ và project có trong Workspace ngay khi khởi động.
+
+---
+
 ## [v1.6.13] - 2026-11-11
 
 Bản phát hành khắc phục sự cố khi **Mở/Sửa đường dẫn Project thành Root (`/`)**, đảm bảo Project tại Root hiển thị nút xóa, có thể gỡ khỏi Workspace và cho phép khởi tạo đầy đủ phiên Terminal / Claude.

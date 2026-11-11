@@ -476,23 +476,16 @@ async function refreshAllClaudeSessions() {
 
 async function ensureWorkspaceServersLoaded() {
   for (const srv of serverStore.workspaceServers) {
-    const existingProjs = projectStore.projectsForServer(srv.id);
-    if (existingProjs.length === 0) {
-      projectStore.fetchProjects(srv.id).then(() => {
-        const projs = projectStore.projectsForServer(srv.id);
-        const activeId = projectStore.activeProjectIdByServer[srv.id] || projs[0]?.id;
-        const activeProj = projs.find(p => p.id === activeId) || projs[0];
-        if (activeProj) {
-          terminalStore.ensureProjectSession(srv.id, activeProj.id, activeProj.rootPath);
-        }
-      }).catch(() => {});
-    } else {
-      const activeId = projectStore.activeProjectIdByServer[srv.id] || existingProjs[0]?.id;
-      const activeProj = existingProjs.find(p => p.id === activeId) || existingProjs[0];
-      if (activeProj) {
-        terminalStore.ensureProjectSession(srv.id, activeProj.id, activeProj.rootPath);
+    try {
+      const projs = projectStore.projectsForServer(srv.id);
+      if (projs.length === 0) {
+        await projectStore.fetchProjects(srv.id);
       }
-    }
+      const allProjs = projectStore.projectsForServer(srv.id);
+      for (const proj of allProjs) {
+        terminalStore.ensureProjectSession(srv.id, proj.id, proj.rootPath);
+      }
+    } catch (_) {}
   }
   await refreshAllClaudeSessions();
 }

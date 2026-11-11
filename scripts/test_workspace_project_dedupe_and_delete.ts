@@ -156,3 +156,51 @@ test('Legacy project at "/" with corrupt name "~" is automatically repaired on l
   assert.equal(store.deleteProject('root-corrupt'), true);
   assert.equal(store.list('server-local').projects.length, 1);
 });
+
+test('ProjectService persists workspaceServerIds across restarts', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-ws-srv-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'projects.json');
+
+  const store1 = new ProjectService(file);
+  assert.deepEqual(store1.getWorkspaceServers(), ['server-local']);
+
+  store1.setWorkspaceServers(['server-local', 'server-ssh-aeh-acn-ttn-201']);
+  assert.deepEqual(store1.getWorkspaceServers(), ['server-local', 'server-ssh-aeh-acn-ttn-201']);
+
+  // Reload from disk
+  const store2 = new ProjectService(file);
+  assert.deepEqual(store2.getWorkspaceServers(), ['server-local', 'server-ssh-aeh-acn-ttn-201']);
+});
+
+test('Fastify route DELETE /api/projects/:id handles long URL-encoded project IDs (>100 chars) without 414 error', async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-long-param-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'projects.json');
+  process.env.HUGCODE_PROJECTS_FILE = file;
+  process.env.AUTH_MODE = 'none';
+
+  const { projectService } = await import('../apps/api/src/services/projectService.ts');
+  const { createApp } = await import('../apps/api/src/app.ts');
+
+  projectService.resetForTests(file);
+  const longServerId = 'server-ssh-aeh-acn-ttn-201';
+  projectService.openHomeProject(longServerId);
+  const longProj = projectService.openProject(longServerId, '/home/aeh-acn-ttn/projects/kiennt/acn4e-viper', 'acn-viper');
+
+  const encodedId = encodeURIComponent(longProj.id);
+  assert.ok(encodedId.length > 100, `Expected encoded project ID length > 100, got ${encodedId.length}`);
+
+  const app = await createApp();
+  t.after(() => app.close());
+
+  const delRes = await app.inject({
+    method: 'DELETE',
+    url: `/api/projects/${encodedId}`,
+  });
+
+  assert.equal(delRes.statusCode, 200, `Expected 200 OK for deleting long project ID, got ${delRes.statusCode}: ${delRes.body}`);
+  const body = JSON.parse(delRes.body);
+  assert.equal(body.success, true);
+  assert.equal(projectService.getProject(longProj.id), undefined);
+});

@@ -2,7 +2,7 @@
 
 **IDE trên trình duyệt cho điện thoại, tablet và desktop.** Mở terminal, duyệt và sửa file, theo dõi Git, làm việc với Claude Code trên máy hiện tại hoặc máy chủ SSH — không cần cài agent trên máy đích.
 
-[![Version](https://img.shields.io/badge/version-v1.6.13-38bdf8)](CHANGELOG.md) [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-5fa04e)](package.json) [![Release](https://img.shields.io/badge/channel-stable-c084fc)](https://github.com/vibecoding-hungkc/hugremote/releases/tag/v1.6.13)
+[![Version](https://img.shields.io/badge/version-v1.6.14-38bdf8)](CHANGELOG.md) [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-5fa04e)](package.json) [![Release](https://img.shields.io/badge/channel-stable-c084fc)](https://github.com/vibecoding-hungkc/hugremote/releases/tag/v1.6.14)
 
 > **Bảo mật:** HugRemote có quyền truy cập terminal và file theo quyền của tài khoản đang chạy dịch vụ. Không đưa cổng HTTP ra Internet khi `AUTH_MODE=none`. Hãy bật xác thực và đặt ứng dụng sau HTTPS/reverse proxy trước khi cho phép truy cập từ xa.
 

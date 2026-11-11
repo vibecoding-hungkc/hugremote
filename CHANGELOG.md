@@ -1,5 +1,43 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.11] - 2026-11-10
+
+Bản phát hành bổ sung tính năng **Làm việc đa máy chủ (Multi-Server Workspace)** trong cùng một cây Workspace, nâng cấp toàn diện **Giao diện Git 2 tab (Thay đổi hiện tại & Lịch sử Commit)** kèm thanh chia cột Resizable, tích hợp **Xác thực Đăng nhập OIDC Single Sign-On (SSO)**, tinh gọn thanh Header/Sidebar (cố định nút góc và thụt lề nội dung theo panel), chuẩn hóa thanh **Bottom Menu trên Mobile** (chỉ hiển thị icon và viền gradient 2px cạnh trên).
+
+### Tính năng mới & Cải tiến
+
+- **Làm việc đa máy chủ đồng thời trong Workspace Sidebar (`WorkspaceSidebar.vue`, `serverStore.ts`):**
+  - Hỗ trợ thêm nhiều máy chủ vào cây Workspace đồng thời (`workspaceServerIds` lưu trong `localStorage`).
+  - Phân cấp rõ ràng: Server ➔ Project ➔ Terminal sessions & Claude sessions.
+  - Tinh gọn thanh tiêu đề Workspace: lược bỏ dòng nhãn `Servers` và nút `Quản lý`, chuyển nút thêm máy chủ `+` (`#btn-dw-add-server`) lên góc phải trên cùng cạnh nút đóng `×`.
+  - Thay thế nhãn chữ `active` và các chấm tròn `dot` bằng đường viền `border` màu nhẹ nhàng, tinh tế theo từng loại mục (server xanh ngọc, project xanh da trời, terminal tím, claude cam).
+  - Đồng bộ trạng thái active của session trên Workspace theo đúng tab Bottom Menu đang mở (khi ở Terminal chỉ active terminal, khi ở Claude chỉ active claude).
+
+- **Đồng bộ Layout Header với Workspace & Folder Panels (`SmartHeader.vue`, `App.vue`):**
+  - Cố định nút Workspace ở góc trái ngoài cùng (`left: 10px`) và nút Folder ở góc phải ngoài cùng (`right: 10px`) trên thanh Header.
+  - Thụt lề nội dung hiển thị ngữ cảnh (`.smart-header-center` và `.smart-header-right`) theo đúng độ rộng thực tế của Workspace Sidebar (`--workspace-sidebar-width`) và bảng Folder (`--quick-panel-width`), giữ nội dung luôn thẳng hàng tuyệt đối với khung làm việc chính bên dưới.
+  - Khắc phục lỗi nút Folder bị nhảy tọa độ dọc khi click chuột (loại bỏ phụ thuộc `translateY(-50%)` bị ghi đè bởi `:active scale`).
+  - Lược bỏ icon limit usage khỏi header và ẩn icon Git nhanh trên màn hình mobile (`< 800px`).
+  - Lược bỏ nhãn văn bản "Thư mục dự án" ở thanh tiêu đề sidebar folder (`QuickWorkspacePanel.vue`).
+
+- **Chuẩn hóa Bottom Menu trên Mobile (`BottomDock.vue`):**
+  - Trên mobile: ẩn toàn bộ nhãn chữ (`dock-label`), tăng kích thước icon lên `19px` cân đối đều cả 5 tab (`Tệp`, `Lệnh`, `Claude`, `Git`, `Cài đặt`).
+  - Mục active của Bottom Menu tuân thủ nghiêm ngặt chỉ có một vạch gradient mảnh `2px` ở cạnh trên (`.dock-item.active::after`), không có màu nền hay viền hộp bao quanh.
+
+- **Git View 2 Tab & Cột Resizable (`GitView.vue`, `gitService.ts`, `gitStore.ts`):**
+  - Bổ sung tab **Lịch sử Commit** song song với tab **Thay đổi hiện tại**.
+  - Xem danh sách commit theo thời gian, lọc commit theo từng tệp, xem chi tiết biến động tệp và diff của từng commit.
+  - Hỗ trợ luồng mobile drill-down 3 bước mượt mà (Commit ➔ Danh sách tệp ➔ Chi tiết Diff).
+  - Bổ sung 4 thanh kéo chia cột Desktop (`.git-col-resizer`) tùy chỉnh độ rộng cột linh hoạt.
+
+- **Xác thực Đăng nhập OIDC Single Sign-On (SSO) (`oidcAuth.ts`, `oidcStore.ts`, `SettingsView.vue`, `AuthGate.vue`):**
+  - Hỗ trợ Authorization Code Flow với PKCE (S256), chống CSRF bằng state token ký số.
+  - Hỗ trợ chế độ `both` cho phép đăng nhập đồng thời cả Mật khẩu nội bộ và OIDC SSO.
+  - Tự động nhận diện động Callback URL (`/auth/oidc/callback`) từ request origin khi chưa cấu hình `APP_URL`.
+  - Màn hình Cài đặt hỗ trợ preset 1-click (Keycloak, Authentik, Okta, Microsoft Entra ID), kiểm tra issuer discovery và lưu cấu hình bảo mật `0600`.
+
+---
+
 ## [v1.6.10] - 2026-11-08
 
 Bản phát hành khắc phục triệt để các lỗi còn tồn đọng khi làm việc với **Remote SSH Server qua Jump Server (`ProxyJump` / `ProxyCommand`) trên bản cài macOS (`HugRemote.app` / `.dmg`)**, đồng thời tích hợp tùy chọn **Bảo mật 2 lớp · 2FA chuẩn TOTP 6 số** cho bản Web.

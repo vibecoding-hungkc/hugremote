@@ -689,16 +689,7 @@ const activeProjectName = computed(() => {
 function isHomeProject(project: ProjectItem) {
   const norm = (project.rootPath || '').trim().replace(/\/+$/, '') || '/';
   if (norm === '~') return true;
-  if (!project.serverId || project.serverId === 'server-local') {
-    const srv = serverStore.servers.find(s => s.id === 'server-local');
-    const ws = (srv?.workspace || '').trim().replace(/\/+$/, '') || '/';
-    return norm === ws;
-  }
-  const srv = serverStore.servers.find(s => s.id === project.serverId);
-  if (srv?.workspace) {
-    const ws = srv.workspace.trim().replace(/\/+$/, '') || '/';
-    return norm === ws;
-  }
+  if (project.name === '~' && norm !== '/') return true;
   return false;
 }
 

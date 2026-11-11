@@ -29,7 +29,8 @@ export class FsService {
         // If target exists, dereference symlinks to inspect real destination
         if (fs.existsSync(target)) {
             const canonicalTarget = fs.realpathSync(target);
-            const isAllowed = (canonicalTarget === canonicalRoot || canonicalTarget.startsWith(rootWithSep)) && withinBase(canonicalTarget);
+            const inPermittedRoot = canonicalTarget === canonicalRoot || canonicalTarget.startsWith(rootWithSep) || canonicalTarget === canonicalBase || canonicalTarget.startsWith(baseWithSep);
+            const isAllowed = inPermittedRoot && withinBase(canonicalTarget);
             if (!isAllowed) {
                 throw new Error('Access denied: Path resolves outside permitted root (symlink escape detected)');
             }
@@ -39,13 +40,15 @@ export class FsService {
         const parentDir = path.dirname(target);
         if (fs.existsSync(parentDir)) {
             const canonicalParent = fs.realpathSync(parentDir);
-            const isAllowed = (canonicalParent === canonicalRoot || canonicalParent.startsWith(rootWithSep)) && withinBase(canonicalParent);
+            const inPermittedParent = canonicalParent === canonicalRoot || canonicalParent.startsWith(rootWithSep) || canonicalParent === canonicalBase || canonicalParent.startsWith(baseWithSep);
+            const isAllowed = inPermittedParent && withinBase(canonicalParent);
             if (!isAllowed) {
                 throw new Error('Access denied: Parent directory resolves outside permitted root');
             }
         }
         else {
-            const isAllowed = (target === canonicalRoot || target.startsWith(rootWithSep)) && withinBase(target);
+            const inPermitted = (target === canonicalRoot || target.startsWith(rootWithSep) || target === canonicalBase || target.startsWith(baseWithSep));
+            const isAllowed = inPermitted && withinBase(target);
             if (!isAllowed) {
                 throw new Error('Access denied: Path is outside permitted root');
             }

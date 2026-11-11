@@ -1,5 +1,24 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.13] - 2026-11-11
+
+Bản phát hành khắc phục sự cố khi **Mở/Sửa đường dẫn Project thành Root (`/`)**, đảm bảo Project tại Root hiển thị nút xóa, có thể gỡ khỏi Workspace và cho phép khởi tạo đầy đủ phiên Terminal / Claude.
+
+### Khắc phục lỗi & Cải tiến
+
+- **Khắc phục lỗi Đặt tên & Xóa Project tại Root (`/`) (`projectService.ts`, `ProjectModal.vue`, `WorkspaceSidebar.vue`):**
+  - Sửa hàm `basenameForProject`: khi mở đường dẫn root `'/'`, hệ thống đặt tên là `"root"` thay vì fallback nhầm thành `"~"`.
+  - Chuẩn hóa điều kiện `isHomeProject`: chỉ thư mục thực sự là Home (`~` hoặc home directory của server) mới là Home Project. Project tại `'/'` là project thông thường, không bị coi là Home project, hiển thị đầy đủ nút xóa và cho phép xóa an toàn khỏi Workspace.
+  - Tự động phát hiện và vá lỗi cho các bản ghi cũ trong `projects.json`: các project trỏ vào `'/'` nhưng mang tên `"~"` được tự động đổi tên thành `"root"` và mở khóa quyền xóa.
+  - Bổ sung ô nhập đường dẫn thư mục trong form sửa project (`ProjectModal.vue`), cho phép sửa cả tên và đường dẫn.
+
+- **Cho phép khởi tạo đầy đủ Terminal & Claude tại Project Root (`fsService.ts`, `claudeService.ts`, `WorkspaceSidebar.vue`):**
+  - Cập nhật cơ chế kiểm tra `resolveLocalPath`: khi người dùng mở một project (bao gồm cả `/`), hệ thống cấp quyền truy cập hợp lệ trong phạm vi project đó mà không bị chặn bởi `ALLOWED_ROOT`.
+  - Cập nhật `claudeService`: cho phép chạy phiên Claude với `cwd` thuộc project root đã được cấp quyền.
+  - Đảm bảo `sessionsForProject` không làm mất đường dẫn khi `rootPath` là `'/'`.
+
+---
+
 ## [v1.6.12] - 2026-11-11
 
 Bản phát hành sửa lỗi và tăng cường độ tin cậy cho **Cây Workspace đa máy chủ** và **Quản lý Project**, bổ sung kiểm định E2E bao phủ các ca biên (edge cases).

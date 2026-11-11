@@ -59,12 +59,14 @@
 
       <div v-if="renamingProject" class="rename-overlay" @click.self="!renaming && (renamingProject = null)">
         <form class="rename-form" role="dialog" aria-modal="true" aria-labelledby="rename-project-title" @submit.prevent="saveRename">
-          <label id="rename-project-title" for="project-rename-name">Rename project</label>
-          <input id="project-rename-name" v-model="renameName" :disabled="renaming" autofocus />
+          <label id="rename-project-title" for="project-rename-name">Đổi tên & Sửa đường dẫn project</label>
+          <input id="project-rename-name" v-model="renameName" :disabled="renaming" placeholder="Tên project" autofocus />
+          <label for="project-rename-path">Đường dẫn thư mục</label>
+          <input id="project-rename-path" v-model="renamePath" :disabled="renaming" placeholder="~/path/to/folder" />
           <p v-if="renameError" class="rename-error" role="alert">{{ renameError }}</p>
           <div class="rename-actions">
             <button type="button" :disabled="renaming" @click="renamingProject = null">Cancel</button>
-            <button type="submit" :disabled="renaming">{{ renaming ? 'Saving' : 'Save name' }}</button>
+            <button type="submit" :disabled="renaming">{{ renaming ? 'Saving' : 'Save' }}</button>
           </div>
         </form>
       </div>
@@ -101,6 +103,7 @@ const pathInput = ref('');
 const renamingProject = ref<ProjectItem | null>(null);
 const deletingProjectTarget = ref<ProjectItem | null>(null);
 const renameName = ref('');
+const renamePath = ref('');
 const renameError = ref('');
 const renaming = ref(false);
 const scopeBusy = ref(false);
@@ -110,12 +113,14 @@ function startRename(project: ProjectItem) {
   if (isHomeProject(project)) return;
   renamingProject.value = project;
   renameName.value = project.name;
+  renamePath.value = project.rootPath;
   renameError.value = '';
 }
 
 async function saveRename() {
   if (!renamingProject.value || renaming.value) return;
   const name = renameName.value.trim();
+  const pathVal = renamePath.value.trim();
   if (!name) {
     renameError.value = 'Enter a project name';
     return;
@@ -127,7 +132,10 @@ async function saveRename() {
   renaming.value = true;
   renameError.value = '';
   try {
-    await projectStore.renameProject(renamingProject.value.id, name);
+    await projectStore.updateProject(renamingProject.value.id, {
+      name,
+      rootPath: pathVal || undefined,
+    });
     renamingProject.value = null;
   } catch (err: any) {
     renameError.value = err.message || 'Failed to rename project';
@@ -145,7 +153,14 @@ watch(() => props.isOpen, (open) => {
 });
 
 function isHomeProject(project: ProjectItem) {
-  return project.name === '~' || project.rootPath === '~';
+  const norm = (project.rootPath || '').trim().replace(/\/+$/, '') || '/';
+  if (norm === '~') return true;
+  const curSrv = serverStore.currentServer;
+  if (curSrv?.workspace) {
+    const ws = curSrv.workspace.trim().replace(/\/+$/, '') || '/';
+    return norm === ws;
+  }
+  return false;
 }
 
 async function select(id: string) {

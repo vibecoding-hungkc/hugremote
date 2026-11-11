@@ -4,6 +4,7 @@ import os from 'os';
 import { spawn } from 'child_process';
 import { StringDecoder } from 'string_decoder';
 import { ALLOWED_ROOT, normalizeWorkspacePath, sanitizeRemoteWorkspacePath, parseSshConfig } from '../config.js';
+import { projectService } from './projectService.js';
 import { sshPool } from './sshPool.js';
 import { ClaudeEventNormalizer } from './claude/eventNormalizer.js';
 import { ClaudeRunAssembler } from './claude/runAssembler.js';
@@ -185,7 +186,11 @@ function resolveLocalClaudeCwd(cwd) {
     if (cwd) {
         const root = fs.realpathSync(ALLOWED_ROOT);
         const relative = path.relative(root, canonical);
-        if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+        const outsideRoot = relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
+        if (outsideRoot && canonical !== path.resolve('/') && !projectService.list('server-local').projects.some(p => {
+            const pRoot = path.resolve(normalizeWorkspacePath(p.rootPath));
+            return canonical === pRoot || canonical.startsWith(pRoot.endsWith(path.sep) ? pRoot : pRoot + path.sep);
+        })) {
             throw new ContextUsageValidationError('Claude context usage cwd is outside allowed root');
         }
     }

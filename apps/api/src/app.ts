@@ -36,6 +36,10 @@ export async function createApp(): Promise<FastifyInstance> {
       level: 'info',
     },
     bodyLimit: 15 * 1024 * 1024, // 15MB for file sync/uploads
+    maxParamLength: 500,
+    routerOptions: {
+      maxParamLength: 500,
+    },
   });
 
   validateAuthConfig();

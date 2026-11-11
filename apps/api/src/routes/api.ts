@@ -67,6 +67,7 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         ...s,
         isConnected: s.type === 'local' ? true : sshPool.isServerConnected(s.id),
       })),
+      workspaceServerIds: projectService.getWorkspaceServers(),
     };
   });
 
@@ -133,7 +134,16 @@ export const apiRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     const server = all.find((s) => s.id === serverId);
     const fallbackRoot = server?.workspace || '~';
     projectService.ensureActiveProject(serverId, fallbackRoot);
-    return projectService.list(serverId);
+    return {
+      ...projectService.list(serverId),
+      workspaceServerIds: projectService.getWorkspaceServers(),
+    };
+  });
+
+  fastify.post<{ Body: { serverIds: string[] } }>('/api/projects/workspace-servers', async (request) => {
+    const ids = request.body?.serverIds || [];
+    const saved = projectService.setWorkspaceServers(ids);
+    return { success: true, workspaceServerIds: saved };
   });
 
   fastify.post<{ Body: { serverId?: string; rootPath: string; name?: string } }>('/api/projects', async (request, reply) => {

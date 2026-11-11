@@ -72,18 +72,30 @@
       </div>
 
       <div class="quick-row">
-        <button :disabled="scopeBusy" @click="openHome"><i class="ri-home-4-line"></i> Home ~</button>
-        <button :disabled="scopeBusy" @click="useWorkspace"><i class="ri-folder-settings-line"></i> Workspace</button>
+        <button type="button" :disabled="scopeBusy" @click="openHome"><i class="ri-home-4-line"></i> Thư mục Home</button>
+        <button type="button" :disabled="scopeBusy" @click="isFolderPickerOpen = true"><i class="ri-folder-open-line"></i> Chọn thư mục</button>
       </div>
 
       <div class="open-form">
-        <label>Open path as Project</label>
+        <label>Mở thư mục làm Project</label>
         <div class="open-row">
           <input v-model="pathInput" :disabled="scopeBusy" placeholder="~/projects/my-app" />
-          <button :disabled="scopeBusy" @click="openPath"><i class="ri-arrow-right-line"></i></button>
+          <button type="button" class="btn-input-browse" :disabled="scopeBusy" @click="isFolderPickerOpen = true" title="Chọn thư mục"><i class="ri-folder-open-line"></i></button>
+          <button type="button" class="btn-open-submit" :disabled="scopeBusy" @click="openPath" title="Mở"><i class="ri-arrow-right-line"></i></button>
         </div>
       </div>
     </div>
+
+    <!-- Folder Tree Picker Modal -->
+    <FolderTreePicker
+      :is-open="isFolderPickerOpen"
+      :server-id="serverStore.currentServer.id"
+      :server-type="serverStore.currentServer.type"
+      :server-workspace="serverStore.currentServer.workspace || '~'"
+      :initial-path="pathInput || serverStore.currentServer.workspace || '~'"
+      @close="isFolderPickerOpen = false"
+      @confirm="handleFolderPicked"
+    />
   </div>
 </template>
 
@@ -93,6 +105,7 @@ import { useFileStore } from '../stores/fileStore.js';
 import { useServerStore } from '../stores/serverStore.js';
 import { useProjectStore, ProjectItem } from '../stores/projectStore.js';
 import ConfirmModal from './ConfirmModal.vue';
+import FolderTreePicker from './FolderTreePicker.vue';
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'selected'): void }>();
@@ -100,6 +113,7 @@ const serverStore = useServerStore();
 const projectStore = useProjectStore();
 const fileStore = useFileStore();
 const pathInput = ref('');
+const isFolderPickerOpen = ref(false);
 const renamingProject = ref<ProjectItem | null>(null);
 const deletingProjectTarget = ref<ProjectItem | null>(null);
 const renameName = ref('');
@@ -155,11 +169,7 @@ watch(() => props.isOpen, (open) => {
 function isHomeProject(project: ProjectItem) {
   const norm = (project.rootPath || '').trim().replace(/\/+$/, '') || '/';
   if (norm === '~') return true;
-  const curSrv = serverStore.currentServer;
-  if (curSrv?.workspace) {
-    const ws = curSrv.workspace.trim().replace(/\/+$/, '') || '/';
-    return norm === ws;
-  }
+  if (project.name === '~' && norm !== '/') return true;
   return false;
 }
 
@@ -254,6 +264,13 @@ async function openPath() {
     scopeBusy.value = false;
   }
 }
+
+async function handleFolderPicked(pickedPath: string) {
+  isFolderPickerOpen.value = false;
+  if (!pickedPath) return;
+  pathInput.value = pickedPath;
+  await openPath();
+}
 </script>
 
 <style scoped>
@@ -288,5 +305,9 @@ async function openPath() {
 .open-form label { color:#a1a1a1; font-size:11px; font-weight:700; text-transform:uppercase; }
 .open-row { display:flex; gap:8px; }
 .open-row input { flex:1; min-width:0; height:36px; border:1px solid #3f3f3f; border-radius:8px; background:#161616; color:#eeeeee; padding:0 10px; font-family:monospace; }
-.open-row button { width:40px; border-radius:8px; border:0; background:#404040; color:white; }
+.open-row button { width:40px; height:36px; border-radius:8px; border:0; background:#404040; color:white; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+.open-row button.btn-input-browse { background:#282828; border:1px solid #3f3f3f; color:#d4d4d4; }
+.open-row button:hover:not(:disabled) { background:#4f4f4f; }
+.open-row button.btn-input-browse:hover:not(:disabled) { background:#363636; }
+.open-row button:disabled { opacity:.5; cursor:not-allowed; }
 </style>

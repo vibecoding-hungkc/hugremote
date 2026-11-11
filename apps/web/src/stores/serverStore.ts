@@ -55,6 +55,11 @@ export const useServerStore = defineStore('server', () => {
         localStorage.setItem(SAVED_WORKSPACE_SERVERS_KEY, JSON.stringify(workspaceServerIds.value));
       }
     } catch {}
+    fetch(apiUrl('/api/projects/workspace-servers'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serverIds: workspaceServerIds.value }),
+    }).catch(() => {});
   }
 
   const currentServer = computed(() => {
@@ -98,6 +103,20 @@ export const useServerStore = defineStore('server', () => {
           const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(SAVED_SERVER_KEY) : null;
           if (stored && servers.value.some((s) => s.id === stored)) {
             currentServerId.value = stored;
+          }
+        }
+        if (data.workspaceServerIds && Array.isArray(data.workspaceServerIds)) {
+          let updated = false;
+          for (const id of data.workspaceServerIds) {
+            if (!workspaceServerIds.value.includes(id)) {
+              workspaceServerIds.value.push(id);
+              updated = true;
+            }
+          }
+          if (updated && typeof localStorage !== 'undefined') {
+            try {
+              localStorage.setItem(SAVED_WORKSPACE_SERVERS_KEY, JSON.stringify(workspaceServerIds.value));
+            } catch {}
           }
         }
       }

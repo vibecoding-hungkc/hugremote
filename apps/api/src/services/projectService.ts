@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { createHash } from 'crypto';
-import { normalizeWorkspacePath } from '../config.js';
+import { normalizeWorkspacePath, parseSshConfig } from '../config.js';
 
 export interface ProjectItem {
   id: string;
@@ -16,6 +16,7 @@ export interface ProjectItem {
 export interface ProjectsConfig {
   activeProjectByServer: Record<string, string>;
   projects: ProjectItem[];
+  workspaceServerIds?: string[];
 }
 
 const DEFAULT_PROJECTS_FILE = path.join(os.homedir(), '.config', 'hugremote', 'projects.json');
@@ -54,6 +55,29 @@ export function resolveProjectWorkspacePath(serverId: string, rootPath: string):
     const cleanSub = path.posix.normalize(normalized.slice(2)).replace(/\/+$/, '');
     return cleanSub && cleanSub !== '.' ? `~/${cleanSub}` : '~';
   }
+
+  // Check if remote server's home/workspace matches normalized path
+  try {
+    const servers = parseSshConfig();
+    const srv = servers.find((s) => s.id === serverId);
+    if (srv) {
+      const userHome = srv.user && srv.user !== 'root' ? `/home/${srv.user}` : '/root';
+      const ws = (srv.workspace || userHome).trim().replace(/\/+$/, '') || userHome;
+      const cleanNorm = normalized.replace(/\/+$/, '');
+      if (cleanNorm === ws || cleanNorm === userHome) {
+        return '~';
+      }
+      if (cleanNorm.startsWith(ws + '/')) {
+        const sub = cleanNorm.slice(ws.length + 1).replace(/\/+$/, '');
+        return sub ? `~/${sub}` : '~';
+      }
+      if (cleanNorm.startsWith(userHome + '/')) {
+        const sub = cleanNorm.slice(userHome.length + 1).replace(/\/+$/, '');
+        return sub ? `~/${sub}` : '~';
+      }
+    }
+  } catch (_) {}
+
   const cleanPosix = path.posix.normalize(normalized).replace(/\/+$/, '');
   return cleanPosix || '/';
 }
@@ -85,6 +109,24 @@ export class ProjectService {
     this.load();
   }
 
+  getWorkspaceServers(): string[] {
+    const ids = Array.isArray(this.state.workspaceServerIds) ? this.state.workspaceServerIds : [];
+    if (!ids.includes('server-local')) {
+      return ['server-local', ...ids];
+    }
+    return ids;
+  }
+
+  setWorkspaceServers(ids: string[]): string[] {
+    const list = Array.isArray(ids) ? ids.map(s => String(s).trim()).filter(Boolean) : ['server-local'];
+    if (!list.includes('server-local')) {
+      list.unshift('server-local');
+    }
+    this.state.workspaceServerIds = list;
+    this.save();
+    return list;
+  }
+
   resetForTests(filePath?: string) {
     this.filePath = filePath || process.env.HUGCODE_PROJECTS_FILE || DEFAULT_PROJECTS_FILE;
     this.state = { activeProjectByServer: {}, projects: [] };
@@ -98,6 +140,7 @@ export class ProjectService {
       this.state = {
         activeProjectByServer: parsed.activeProjectByServer || {},
         projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+        workspaceServerIds: Array.isArray(parsed.workspaceServerIds) ? parsed.workspaceServerIds : ['server-local'],
       };
       // Older IDs used only the first ten base64 characters of the path.
       // Keep the first record's ID for existing references; repair colliding

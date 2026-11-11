@@ -108,3 +108,51 @@ test('ProjectService multi-server deletion edge case preserves isolation', (t) =
   assert.equal(store.list('server-local').projects.length, 1);
   assert.equal(store.getActiveProject('server-local')?.id, localHome.id);
 });
+
+test('Project at root "/" has name "root", is not home project, and is deletable', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-root-proj-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'projects.json');
+  const store = new ProjectService(file);
+
+  const home = store.openHomeProject('server-local');
+  assert.equal(isHomeProject(home), true);
+
+  const rootProj = store.openProject('server-local', '/');
+  assert.equal(rootProj.name, 'root', 'Project at "/" must be named "root", not "~"');
+  assert.equal(rootProj.rootPath, '/');
+  assert.equal(isHomeProject(rootProj), false, 'Project at "/" must NOT be considered Home project');
+
+  assert.equal(store.list('server-local').projects.length, 2);
+
+  // Must be deletable
+  assert.equal(store.deleteProject(rootProj.id), true, 'Project at root "/" must be deletable');
+  assert.equal(store.list('server-local').projects.length, 1);
+  assert.equal(store.getActiveProject('server-local')?.id, home.id);
+});
+
+test('Legacy project at "/" with corrupt name "~" is automatically repaired on load', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hugremote-root-repair-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'projects.json');
+
+  fs.writeFileSync(file, JSON.stringify({
+    activeProjectByServer: { 'server-local': 'root-corrupt' },
+    projects: [
+      { id: 'real-home', serverId: 'server-local', name: '~', rootPath: os.homedir(), updatedAt: 10 },
+      { id: 'root-corrupt', serverId: 'server-local', name: '~', rootPath: '/', updatedAt: 20 },
+    ],
+  }));
+
+  const store = new ProjectService(file);
+  const projects = store.list('server-local').projects;
+  assert.equal(projects.length, 2);
+
+  const root = projects.find(p => p.id === 'root-corrupt');
+  assert.equal(root?.name, 'root', 'Legacy corrupt name "~" on "/" must be repaired to "root"');
+  assert.equal(isHomeProject(root!), false);
+
+  // Must be deletable
+  assert.equal(store.deleteProject('root-corrupt'), true);
+  assert.equal(store.list('server-local').projects.length, 1);
+});

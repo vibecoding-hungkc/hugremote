@@ -589,9 +589,11 @@ function sessionsForProject(
     return terminalStore.sessions.filter(s => s.serverId === serverId && s.projectId === id);
   }
   const byId = new Map<string, ClaudeSession>();
+  const cleanRoot = (rootPath || '').trim().replace(/\/+$/, '') || '/';
   for (const s of [...allClaudeSessions.value, ...claudeStore.sessions]) {
     if (s.serverId !== serverId) continue;
-    if (s.projectId ? s.projectId === id : s.cwd?.replace(/\/+$/, '') === rootPath.replace(/\/+$/, '')) {
+    const sCwd = (s.cwd || '').trim().replace(/\/+$/, '') || '/';
+    if (s.projectId ? s.projectId === id : sCwd === cleanRoot) {
       const prev = byId.get(s.id);
       const isRunning = Boolean(prev?.isRunning || s.isRunning || claudeStore.isSessionRunning(s.id));
       byId.set(s.id, prev ? { ...prev, ...s, isRunning } : { ...s, isRunning });
@@ -692,10 +694,17 @@ const activeProjectName = computed(() => {
 });
 
 function isHomeProject(project: ProjectItem) {
-  if (project.name === '~' || project.rootPath === '~') return true;
+  const norm = (project.rootPath || '').trim().replace(/\/+$/, '') || '/';
+  if (norm === '~') return true;
+  if (!project.serverId || project.serverId === 'server-local') {
+    const srv = serverStore.servers.find(s => s.id === 'server-local');
+    const ws = (srv?.workspace || '').trim().replace(/\/+$/, '') || '/';
+    return norm === ws;
+  }
   const srv = serverStore.servers.find(s => s.id === project.serverId);
-  if (srv?.workspace && (project.rootPath === srv.workspace || project.rootPath.replace(/\/+$/, '') === srv.workspace.replace(/\/+$/, ''))) {
-    return true;
+  if (srv?.workspace) {
+    const ws = srv.workspace.trim().replace(/\/+$/, '') || '/';
+    return norm === ws;
   }
   return false;
 }

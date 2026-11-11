@@ -62,7 +62,7 @@ function readLocalPackageVersion(rootDir = APP_ROOT): string {
       }
     } catch {}
   }
-  return '1.6.12';
+  return '1.6.13';
 }
 
 function readLocalCommit(rootDir = APP_ROOT): string {

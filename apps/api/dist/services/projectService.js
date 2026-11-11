@@ -16,7 +16,9 @@ export function basenameForProject(rootPath) {
     if (!rootPath || rootPath === '~')
         return '~';
     const clean = rootPath.replace(/\/+$/, '');
-    return path.posix.basename(clean) || path.basename(clean) || '~';
+    if (!clean || clean === '/')
+        return 'root';
+    return path.posix.basename(clean) || path.basename(clean) || 'root';
 }
 export function resolveProjectWorkspacePath(serverId, rootPath) {
     const trimmed = (rootPath || '~').trim() || '~';
@@ -48,10 +50,11 @@ export function canonicalProjectPath(serverId, rootPath) {
     return resolved.replace(/\/+$/, '') || '/';
 }
 export function isHomeProject(project) {
-    if (project.name === '~' || project.rootPath === '~')
+    const norm = (project.rootPath || '').trim().replace(/\/+$/, '') || '/';
+    if (norm === '~')
         return true;
     if (!project.serverId || project.serverId === 'server-local') {
-        const resolved = path.resolve(normalizeWorkspacePath(project.rootPath));
+        const resolved = path.resolve(normalizeWorkspacePath(norm));
         return resolved === path.resolve(os.homedir());
     }
     return false;
@@ -111,6 +114,10 @@ export class ProjectService {
                     }
                     repaired = true;
                     continue;
+                }
+                if (!isHomeProject(project) && project.name === '~') {
+                    project.name = basenameForProject(project.rootPath);
+                    repaired = true;
                 }
                 seenCanonicalByServer.set(key, project);
                 deduplicated.push(project);
@@ -191,7 +198,9 @@ export class ProjectService {
             this.save();
             return existing;
         }
-        const projectName = (name || basenameForProject(rootPath || normalizedRoot)).trim() || '~';
+        const isTargetHome = isHomeProject({ serverId, rootPath: normalizedRoot, name: '', id: '', updatedAt: 0 });
+        const defaultName = isTargetHome ? '~' : basenameForProject(normalizedRoot);
+        const projectName = (name || defaultName).trim() || defaultName;
         const id = this.uniqueProjectId(serverId, projectName, normalizedRoot);
         const project = {
             id,
@@ -218,10 +227,24 @@ export class ProjectService {
         const project = this.getProject(projectId);
         if (!project)
             return undefined;
-        if (updates.name !== undefined)
-            project.name = updates.name.trim() || project.name;
-        if (updates.rootPath !== undefined)
-            project.rootPath = resolveProjectWorkspacePath(project.serverId, updates.rootPath);
+        if (updates.name !== undefined) {
+            const cleanName = updates.name.trim();
+            if (cleanName) {
+                if (cleanName === '~' && !isHomeProject(project)) {
+                    // Do not allow non-home project to be renamed '~'
+                }
+                else {
+                    project.name = cleanName;
+                }
+            }
+        }
+        if (updates.rootPath !== undefined) {
+            const newRoot = resolveProjectWorkspacePath(project.serverId, updates.rootPath);
+            project.rootPath = newRoot;
+            if (!isHomeProject(project) && project.name === '~') {
+                project.name = basenameForProject(newRoot);
+            }
+        }
         if (updates.lastPath !== undefined)
             project.lastPath = updates.lastPath;
         project.updatedAt = Date.now();

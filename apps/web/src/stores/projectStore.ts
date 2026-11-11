@@ -128,15 +128,20 @@ export const useProjectStore = defineStore('project', () => {
     return data.project as ProjectItem;
   }
 
-  async function renameProject(projectId: string, name: string) {
+  async function updateProject(projectId: string, updates: { name?: string; rootPath?: string }) {
     const res = await fetch(apiUrl(`/api/projects/${encodeURIComponent(projectId)}`), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify(updates),
     });
-    if (!res.ok) throw new Error((await res.json()).error || 'Failed to rename project');
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to update project');
     const data = await res.json();
     await fetchProjects(data.project.serverId);
+    return data.project as ProjectItem;
+  }
+
+  async function renameProject(projectId: string, name: string) {
+    return updateProject(projectId, { name });
   }
 
   async function deleteProject(projectId: string, serverId?: string) {
@@ -176,6 +181,7 @@ export const useProjectStore = defineStore('project', () => {
     openProject,
     openHomeProject,
     selectProject,
+    updateProject,
     renameProject,
     deleteProject,
   };

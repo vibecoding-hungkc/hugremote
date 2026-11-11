@@ -473,9 +473,15 @@ export const useClaudeStore = defineStore('claude', () => {
       const defaultName = (!pName || pName === '~') ? 'chat' : pName;
       await createSession(defaultName, currentProjectRoot.value);
     } else {
+      if (activeSessionId.value && currentServerSessions.value.some((s) => s.id === activeSessionId.value)) {
+        storeActiveSessionId(activeSessionId.value, serverStore.currentServer.id, currentProjectId.value);
+        return;
+      }
       const storedId = getStoredActiveSessionId(serverStore.currentServer.id, currentProjectId.value);
       if (storedId && currentServerSessions.value.some((s) => s.id === storedId)) {
         activeSessionId.value = storedId;
+      } else if (currentServerSessions.value.length > 0) {
+        activeSessionId.value = currentServerSessions.value[0].id;
       }
     }
   }

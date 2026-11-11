@@ -140,10 +140,18 @@ export const apiRoutes = async (fastify) => {
         return { success: true, project };
     });
     fastify.delete('/api/projects/:id', async (request, reply) => {
+        const project = projectService.getProject(request.params.id);
+        if (!project)
+            return reply.status(404).send({ error: 'Project not found' });
+        if (projectService.isHome(project)) {
+            return reply.status(400).send({ error: 'Không thể xóa thư mục gốc' });
+        }
+        const serverId = project.serverId;
         const ok = projectService.deleteProject(request.params.id);
         if (!ok)
             return reply.status(404).send({ error: 'Project not found' });
-        return { success: true };
+        const active = projectService.getActiveProject(serverId);
+        return { success: true, activeProjectId: active?.id };
     });
     const serverScope = (request) => request.query?.fsScope === 'server' ||
         request.body?.fsScope === 'server';

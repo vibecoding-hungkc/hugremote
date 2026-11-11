@@ -631,6 +631,7 @@ function handleResize() {
 }
 
 function focusTerminal() {
+  if (props.isActive === false) return;
   if (isLaptopKeyboardOpen.value) {
     // When virtual laptop keyboard is active, do not focus the hidden textarea
     // to prevent iOS/Android virtual on-screen keyboard from popping up

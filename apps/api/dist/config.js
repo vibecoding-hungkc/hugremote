@@ -13,14 +13,12 @@ export const ALLOWED_ROOT = process.env.ALLOWED_ROOT || os.homedir();
 // để giá trị lưu trữ luôn nhất quán với giá trị dùng khi list file thực tế.
 export function normalizeWorkspacePath(p, homeDirOverride) {
     const trimmed = (p || '').trim();
-    if (!trimmed)
-        return homeDirOverride || os.homedir();
     const home = homeDirOverride || os.homedir();
-    if (trimmed === '~')
+    if (!trimmed || trimmed === '~')
         return home;
     if (trimmed.startsWith('~/'))
-        return path.posix.join(home, trimmed.slice(2));
-    return trimmed;
+        return path.resolve(home, trimmed.slice(2));
+    return path.resolve(trimmed);
 }
 export function sanitizeRemoteWorkspacePath(rawPath, remoteUser = 'root', localHome = os.homedir()) {
     const effectiveUser = (remoteUser || 'root').trim() || 'root';

@@ -989,9 +989,9 @@ async function saveOidcSettings() {
 const checkingVersion = ref(false);
 const updatingVersion = ref(false);
 const versionState = ref({
-  currentVersion: '1.6.11',
+  currentVersion: '1.6.12',
   currentCommit: '',
-  latestVersion: '1.6.11',
+  latestVersion: '1.6.12',
   latestCommit: '',
   channel: 'beta' as 'stable' | 'beta',
   hasUpdate: false,

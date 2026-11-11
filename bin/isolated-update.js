@@ -344,8 +344,9 @@ export function installIsolatedRelease({
       throw new Error(`Tag ${ref} không khớp package version ${version}.`);
     }
 
-    runFile('npm', ['ci', '--foreground-scripts'], { cwd: staging, stdio: 'inherit' });
-    runFile('npm', ['run', 'build'], { cwd: staging, stdio: 'inherit' });
+    const buildEnv = { ...process.env, NODE_ENV: 'development' };
+    runFile('npm', ['ci', '--foreground-scripts', '--include=dev'], { cwd: staging, stdio: 'inherit', env: buildEnv });
+    runFile('npm', ['run', 'build'], { cwd: staging, stdio: 'inherit', env: buildEnv });
     const reported = runFile(process.execPath, ['bin/hugremote.js', '--version'], { cwd: staging }).trim();
     if (reported !== `HugRemote v${version}`) throw new Error(`Version probe thất bại: ${reported}`);
 

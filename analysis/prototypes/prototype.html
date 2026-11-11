@@ -5240,7 +5240,7 @@
         <button id="quick-tree-resize" class="quick-tree-resize" type="button" role="separator" aria-orientation="vertical" aria-label="Kéo để đổi chiều rộng bảng" aria-valuemin="220" aria-valuemax="560" aria-valuenow="304" title="Kéo để đổi chiều rộng"></button>
         <div class="quick-tree-head">
           <div class="quick-tree-head-top">
-            <span class="quick-tree-heading"><i id="quick-tree-heading-icon" class="ri-folder-2-line"></i><span id="quick-tree-heading-text">Thư mục dự án</span></span>
+            <span class="quick-tree-heading"><i id="quick-tree-heading-icon" class="ri-folder-2-line"></i><span id="quick-tree-heading-text"></span></span>
             <div class="quick-tree-tools">
               <button id="quick-tree-upload-files" type="button" aria-label="Tải tệp lên" title="Tải tệp lên thư mục đang chọn"><i class="ri-upload-2-line"></i></button>
               <button id="quick-tree-upload-folder" type="button" aria-label="Tải thư mục lên" title="Tải thư mục lên"><i class="ri-folder-upload-line"></i></button>
@@ -9669,7 +9669,7 @@ Hệ thống **Web IDE & Terminal** tối ưu cho lập trình trên màn hình 
         document.getElementById('quick-tree-path').textContent = server?.workspace || 'Workspace';
         document.getElementById('quick-tree-files').hidden = isGit;
         document.getElementById('quick-tree-git').hidden = !isGit;
-        document.getElementById('quick-tree-heading-text').textContent = isGit ? 'Git nhanh' : 'Thư mục dự án';
+        document.getElementById('quick-tree-heading-text').textContent = '';
         document.getElementById('quick-tree-heading-icon').className = isGit ? 'ri-git-branch-line' : 'ri-folder-2-line';
         quickTreePanel.setAttribute('aria-label', isGit ? 'Quản lý Git nhanh' : 'Xem nhanh thư mục');
         if (isGit) renderQuickGit(); else renderQuickTree();

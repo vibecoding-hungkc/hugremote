@@ -32,9 +32,7 @@
     <div class="quick-tree-header">
       <div class="quick-tree-title">
         <i :class="mode === 'git' ? 'ri-git-branch-line' : 'ri-folder-2-line'" id="quick-panel-icon"></i>
-        <span id="quick-panel-title">
-          {{ mode === 'git' ? t('quickPanel.gitTitle') : t('quickPanel.filesTitle') }}
-        </span>
+        <span id="quick-panel-title"></span>
         <div class="quick-panel-tabs" role="tablist" :aria-label="t('quickPanel.modeTabsLabel')">
           <button
             type="button"

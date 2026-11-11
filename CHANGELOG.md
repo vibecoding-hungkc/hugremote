@@ -1,5 +1,34 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.12] - 2026-11-11
+
+Bản phát hành sửa lỗi và tăng cường độ tin cậy cho **Cây Workspace đa máy chủ** và **Quản lý Project**, bổ sung kiểm định E2E bao phủ các ca biên (edge cases).
+
+### Khắc phục lỗi & Cải tiến
+
+- **Chống trùng lặp Project khi mở lại trong Workspace (`projectService.ts`, `projectStore.ts`):**
+  - Chuẩn hóa triệt để đường dẫn project: loại bỏ trailing slash (`/`), thu gọn duplicate slashes (`//`), quy đổi đường dẫn tương đối và tuyệt đối đồng nhất cả trên máy local lẫn remote SSH server.
+  - Khi mở một thư mục đã nằm trong Workspace (từ thanh công cụ Tệp, Cây thư mục hoặc Hộp thoại Project): hệ thống tự động nhận diện và chuyển vùng làm việc (select) tới Project hiện có, tuyệt đối không tạo thêm bản ghi trùng lặp.
+  - Tự động phát hiện và dọn dẹp các bản ghi project trùng lặp cũ khi khởi động hoặc tải cấu hình `projects.json`.
+  - Trên màn hình Tệp (`FileExplorer.vue`): thư mục đã có trong Workspace hiển thị biểu tượng `ri-folder-shared-line` kèm chú thích "Chuyển tới dự án".
+
+- **Xử lý Xóa Project an toàn và dọn dẹp phiên mồ côi (`WorkspaceSidebar.vue`, `projectStore.ts`, `api.ts`):**
+  - Đồng bộ điều kiện Home Project giữa frontend và backend: bảo vệ tuyệt đối thư mục gốc (`~` hoặc home directory), ẩn nút xóa và từ chối xóa ở tầng backend với mã lỗi 400.
+  - Khi xóa một project: tự động dọn dẹp và đóng an toàn các phiên Terminal và Claude thuộc project đó, tránh lỗi mồ côi PTY hoặc tiến trình nền.
+  - Tự động chuyển giao vùng làm việc sang Home Project (`~`) khi project đang chọn bị xóa, đồng thời đồng bộ lại `localStorage` và danh sách project của server tương ứng.
+
+- **Sửa lỗi Focus phiên đa máy chủ trên Workspace (`WorkspaceSidebar.vue`, `TerminalView.vue`, `claudeStore.ts`):**
+  - Khắc phục lỗi tự động focus lại vào Terminal khi đang ở Terminal mà click vào phiên Claude trên máy chủ khác.
+  - `WorkspaceSidebar.vue` chuyển tab (`emit('select-claude')`) ngay lập tức khi click phiên Claude, đưa Terminal về trạng thái inactive trước khi đồng bộ chuyển máy chủ và project.
+  - Bổ sung chốt chặn `props.isActive === false` trong `focusTerminal()` và các bộ đếm thời gian của `TerminalView.vue`, ngăn chặn triệt để hành vi xterm cướp focus DOM khi tab Terminal đang ẩn.
+  - Bảo toàn phiên Claude đang chọn trong `claudeStore.ensureProjectSession()`, không bị ghi đè bởi session ID cũ đã lưu.
+  - Đồng bộ viền active trên Workspace chính xác theo tab và server đích: chỉ phiên Claude được highlight border, phiên Terminal không bị highlight nhầm.
+
+- **Bộ kiểm thử tự động E2E & Edge Cases (`test_workspace_project_dedupe_and_delete.ts`, `test_ui_workspace_sidebar.mjs`):**
+  - Bổ sung bộ test bao phủ toàn bộ các ca biên: mở project trùng với trailing slash / tilde / redundant slashes, xóa project đa máy chủ, cô lập dữ liệu giữa các server, và chuyển tab đa máy chủ không cướp focus.
+
+---
+
 ## [v1.6.11] - 2026-11-10
 
 Bản phát hành bổ sung tính năng **Làm việc đa máy chủ (Multi-Server Workspace)** trong cùng một cây Workspace, nâng cấp toàn diện **Giao diện Git 2 tab (Thay đổi hiện tại & Lịch sử Commit)** kèm thanh chia cột Resizable, tích hợp **Xác thực Đăng nhập OIDC Single Sign-On (SSO)**, tinh gọn thanh Header/Sidebar (cố định nút góc và thụt lề nội dung theo panel), chuẩn hóa thanh **Bottom Menu trên Mobile** (chỉ hiển thị icon và viền gradient 2px cạnh trên).

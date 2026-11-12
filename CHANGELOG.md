@@ -1,5 +1,20 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.16] - 2026-11-12
+
+Bản phát hành chuẩn hóa **Thanh cuộn toàn cục (Global Thin Scrollbar)** cho toàn bộ ứng dụng và tối ưu **Bộ đệm Resize Terminal (`TerminalView.vue`, `localPty.ts`, `sshPool.ts`)**.
+
+### Khắc phục lỗi & Cải tiến
+
+- **Tùy biến Thanh cuộn Toàn cục (Global Scrollbar Style):**
+  - Khai báo chuẩn `scrollbar-width: thin` và `scrollbar-color: rgba(163, 163, 163, 0.4) transparent` trên toàn bộ cây DOM (`*`).
+  - Tùy biến thanh cuộn WebKit mảnh 6px, bo viền capsule, đổi màu mượt mà khi hover/active, áp dụng nhất quán trên màn hình Cài đặt, File Explorer, Workspace Sidebar, Quick Panel, Git View và các Modal.
+- **Tối ưu Terminal Resize & Chống Vỡ Giao diện TUI:**
+  - Bổ sung bộ đệm hoãn 40ms (`resizeDebounceTimer`) khi container thay đổi kích thước, tránh phát dồn dập hàng chục tín hiệu `SIGWINCH` làm vỡ layout CLI/TUI khi mở đóng sidebar hoặc thay đổi khung hình.
+  - Tường minh hóa các biến môi trường `LANG: 'en_US.UTF-8'` và `LC_ALL: 'en_US.UTF-8'` trong cả `localPty.ts` và `sshPool.ts`.
+
+---
+
 ## [v1.6.15] - 2026-11-12
 
 Bản phát hành nâng cấp toàn diện **Tiến trình cập nhật phiên bản (`SettingsView.vue`, `systemUpdateService.ts`, `isolated-update.js`)** và hoàn thiện **Quyền xóa project trên Workspace Sidebar**.

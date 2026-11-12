@@ -1026,9 +1026,9 @@ function startUpdatePolling() {
 }
 
 const versionState = ref({
-  currentVersion: '1.6.15',
+  currentVersion: '1.6.16',
   currentCommit: '',
-  latestVersion: '1.6.15',
+  latestVersion: '1.6.16',
   latestCommit: '',
   channel: 'beta' as 'stable' | 'beta',
   hasUpdate: false,

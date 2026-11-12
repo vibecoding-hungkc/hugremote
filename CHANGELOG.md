@@ -1,5 +1,23 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.15] - 2026-11-12
+
+Bản phát hành nâng cấp toàn diện **Tiến trình cập nhật phiên bản (`SettingsView.vue`, `systemUpdateService.ts`, `isolated-update.js`)** và hoàn thiện **Quyền xóa project trên Workspace Sidebar**.
+
+### Khắc phục lỗi & Cải tiến
+
+- **Nâng cấp Tiến trình Cập nhật Phiên bản:**
+  - Hiển thị tiến trình thời gian thực từng bước (tải mã nguồn, chuẩn bị, cài đặt thư viện/phụ thuộc, biên dịch ứng dụng, chuyển đổi phiên bản).
+  - Bổ sung cơ chế Polling tự động mỗi 2.5 giây chống timeout khi đi qua Reverse Proxy/Cloudflare Tunnel.
+  - Xử lý mượt mà khi cập nhật đồng thời (không còn bị quăng lỗi 500 khi bấm lại hoặc tải lại trang).
+  - Tự động phát hiện và giải phóng khóa chết (`update.lock`) khi tiến trình trước bị hủy bất thường.
+  - Tăng độ trễ khởi động lại dịch vụ lên 1.2s đảm bảo response HTTP được truyền trọn vẹn về trình duyệt.
+
+- **Đồng bộ logic `isHomeProject` trên Workspace Sidebar:**
+  - Chuẩn hóa kiểm tra `isHomeProject` trong `WorkspaceSidebar.vue` đồng bộ với `ProjectModal.vue`: chỉ duy nhất project `~` là Home, mọi project khác (kể cả trỏ vào workspace của user) đều hiển thị đầy đủ nút thùng rác `🗑️` để xóa bình thường.
+
+---
+
 ## [v1.6.14] - 2026-11-11
 
 Bản phát hành hoàn thiện **Hộp thoại Quản lý Project (`ProjectModal.vue`)**, khắc phục lỗi **Xóa Project có ID dài (`>100` ký tự)** và bổ sung **Lưu trữ trạng thái bền vững cho Workspace & Terminal Sessions** sau khi khởi động lại.

@@ -552,6 +552,35 @@ async function executeDeleteClaudeSession() {
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(163, 163, 163, 0.4) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(163, 163, 163, 0.35);
+  border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(163, 163, 163, 0.6);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(163, 163, 163, 0.85);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 html, body {

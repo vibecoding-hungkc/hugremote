@@ -611,7 +611,25 @@ function scheduleReconnect() {
   }, delay);
 }
 
-function handleResize() {
+let resizeDebounceTimer: any = null;
+
+function handleResize(immediate: boolean | Event = false) {
+  if (resizeDebounceTimer) {
+    clearTimeout(resizeDebounceTimer);
+    resizeDebounceTimer = null;
+  }
+  if (immediate === true) {
+    executeResize();
+  } else {
+    resizeDebounceTimer = setTimeout(executeResize, 40);
+  }
+}
+
+function onWindowResize() {
+  handleResize();
+}
+
+function executeResize() {
   if (fitAddon && term && terminalRef.value) {
     const el = terminalRef.value;
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
@@ -800,7 +818,7 @@ function handleWindowPaste(e: ClipboardEvent) {
 onMounted(() => {
   initTerminal();
   requestWakeLock();
-  window.addEventListener('resize', handleResize);
+  window.addEventListener('resize', onWindowResize);
   window.addEventListener('keydown', handleWindowKeyDown);
   window.addEventListener('paste', handleWindowPaste, true);
   if (document.fonts) {
@@ -827,7 +845,11 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   releaseWakeLock();
-  window.removeEventListener('resize', handleResize);
+  if (resizeDebounceTimer) {
+    clearTimeout(resizeDebounceTimer);
+    resizeDebounceTimer = null;
+  }
+  window.removeEventListener('resize', onWindowResize);
   window.removeEventListener('keydown', handleWindowKeyDown);
   window.removeEventListener('paste', handleWindowPaste, true);
   if (resizeObserver) {

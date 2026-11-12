@@ -988,6 +988,43 @@ async function saveOidcSettings() {
 // --- VERSION UPDATER STATE & HANDLERS ---
 const checkingVersion = ref(false);
 const updatingVersion = ref(false);
+let updatePollTimer: any = null;
+
+function stopUpdatePolling() {
+  if (updatePollTimer) {
+    clearInterval(updatePollTimer);
+    updatePollTimer = null;
+  }
+}
+
+function startUpdatePolling() {
+  if (updatePollTimer) return;
+  updatingVersion.value = true;
+  updatePollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(apiUrl('/api/system/version'));
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && !data.isUpdating) {
+        stopUpdatePolling();
+        updatingVersion.value = false;
+        versionState.value.currentVersion = data.currentVersion;
+        versionState.value.currentCommit = data.currentCommit || '';
+        versionState.value.hasUpdate = false;
+        versionState.value.summary = data.summary || `Đã cập nhật lên v${data.currentVersion}`;
+        flashNotice(versionState.value.summary);
+        setTimeout(() => {
+          if (typeof window !== 'undefined') window.location.reload();
+        }, 1500);
+      } else if (data?.updateProgress) {
+        versionState.value.summary = data.updateProgress;
+      }
+    } catch {
+      // Service might be restarting, continue polling
+    }
+  }, 2500);
+}
+
 const versionState = ref({
   currentVersion: '1.6.14',
   currentCommit: '',
@@ -1014,6 +1051,12 @@ async function fetchVersionStatus() {
         hasUpdate: Boolean(data.hasUpdate),
         summary: data.summary || `Đang ở phiên bản v${data.currentVersion}`,
       };
+      if (data.isUpdating) {
+        startUpdatePolling();
+      } else {
+        stopUpdatePolling();
+        updatingVersion.value = false;
+      }
     }
   } catch {
     // Ignore transient network errors during version check
@@ -1025,7 +1068,9 @@ async function fetchVersionStatus() {
 async function handleQuickUpdate() {
   if (updatingVersion.value) return;
   updatingVersion.value = true;
-  versionState.value.summary = 'Đang tải mã nguồn mới và biên dịch bản cập nhật...';
+  versionState.value.summary = 'Đang bắt đầu cập nhật...';
+  startUpdatePolling();
+
   try {
     const res = await fetch(apiUrl('/api/system/update'), {
       method: 'POST',
@@ -1033,28 +1078,34 @@ async function handleQuickUpdate() {
       body: JSON.stringify({ channel: versionState.value.channel }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    if (res.ok) {
+      if (data.inProgress) {
+        versionState.value.summary = data.message || 'Đang thực hiện cập nhật ở chế độ nền...';
+      } else {
+        const nextVer = data.updatedVersion || versionState.value.latestVersion;
+        const nextCommit = data.updatedCommit || versionState.value.latestCommit;
+        versionState.value.currentVersion = nextVer;
+        versionState.value.currentCommit = nextCommit;
+        versionState.value.hasUpdate = false;
+        versionState.value.summary = data.message || `Đã cập nhật lên v${nextVer}`;
+        flashNotice(versionState.value.summary);
+
+        if (data.restarting && typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        }
+      }
+    } else {
       throw new Error(data.error || 'Cập nhật thất bại');
     }
-    const nextVer = data.updatedVersion || versionState.value.latestVersion;
-    const nextCommit = data.updatedCommit || versionState.value.latestCommit;
-    versionState.value.currentVersion = nextVer;
-    versionState.value.currentCommit = nextCommit;
-    versionState.value.hasUpdate = false;
-    versionState.value.summary = data.message || `Đã cập nhật lên v${nextVer}`;
-    flashNotice(versionState.value.summary);
-
-    if (data.restarting && typeof window !== 'undefined') {
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    }
   } catch (err: any) {
-    const msg = err?.message || 'Không thể cập nhật phiên bản';
-    versionState.value.summary = msg;
-    flashNotice(msg);
-  } finally {
-    updatingVersion.value = false;
+    if (!updatePollTimer) {
+      const msg = err?.message || 'Không thể cập nhật phiên bản';
+      versionState.value.summary = msg;
+      flashNotice(msg);
+      updatingVersion.value = false;
+    }
   }
 }
 
@@ -1204,6 +1255,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('keydown', onRecordKeyDown, true);
   }
   if (noticeTimer) clearTimeout(noticeTimer);
+  stopUpdatePolling();
 });
 </script>
 

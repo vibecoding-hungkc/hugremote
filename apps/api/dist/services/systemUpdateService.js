@@ -145,6 +145,7 @@ class SystemUpdateService {
     mockCheckProvider = null;
     mockUpdateRunner = null;
     updating = false;
+    updateProgress = '';
     setMockCheckProviderForTest(fn) {
         this.mockCheckProvider = fn;
     }
@@ -158,6 +159,22 @@ class SystemUpdateService {
         const channel = channelOverride || detectActiveChannel();
         const currentVersion = readLocalPackageVersion();
         const currentCommit = readLocalCommit();
+        if (this.updating) {
+            return {
+                currentVersion,
+                currentCommit,
+                latestVersion: currentVersion,
+                latestCommit: currentCommit,
+                latestReleaseTag: `v${currentVersion}`,
+                channel,
+                hasUpdate: true,
+                summary: this.updateProgress || 'Đang thực hiện cập nhật ở chế độ nền...',
+                checkedAt: new Date().toISOString(),
+                isDesktopApp: Boolean(process.env.HUGREMOTE_DESKTOP_SECRET),
+                isUpdating: true,
+                updateProgress: this.updateProgress,
+            };
+        }
         const [mainMeta, latestReleaseTag] = await Promise.all([
             fetchRemoteMainMetadata(),
             fetchLatestReleaseTag(),
@@ -198,12 +215,22 @@ class SystemUpdateService {
         if (this.mockUpdateRunner) {
             return this.mockUpdateRunner(options);
         }
-        if (this.updating) {
-            throw new Error('Đang thực hiện cập nhật, vui lòng chờ hoàn tất');
-        }
-        this.updating = true;
         const channel = options?.channel || detectActiveChannel();
         const previousVersion = readLocalPackageVersion();
+        if (this.updating) {
+            return {
+                success: true,
+                previousVersion,
+                updatedVersion: previousVersion,
+                updatedCommit: '',
+                channel,
+                restarting: false,
+                message: this.updateProgress || 'Đang thực hiện cập nhật ở chế độ nền...',
+                inProgress: true,
+            };
+        }
+        this.updating = true;
+        this.updateProgress = 'Đang bắt đầu cập nhật...';
         try {
             const cliUpdaterModuleUrl = new URL('../../../../bin/isolated-update.js', import.meta.url).href;
             const { installIsolatedRelease } = await import(/* @vite-ignore */ cliUpdaterModuleUrl);
@@ -241,6 +268,9 @@ class SystemUpdateService {
                 ref: releaseRef,
                 channel: effectiveChannel,
                 service: deferredService,
+                onProgress: (step) => {
+                    this.updateProgress = step;
+                },
             });
             if (shouldRestartSystemd) {
                 setTimeout(() => {
@@ -248,7 +278,7 @@ class SystemUpdateService {
                         execSync('systemctl --user restart hugremote.service', { stdio: 'ignore' });
                     }
                     catch { }
-                }, 450);
+                }, 1200);
             }
             const shortCommit = String(result.commit || '').slice(0, 7);
             return {
@@ -263,6 +293,7 @@ class SystemUpdateService {
         }
         finally {
             this.updating = false;
+            this.updateProgress = '';
         }
     }
 }

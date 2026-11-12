@@ -159,6 +159,8 @@ export function getEnhancedSshEnv(extraEnv) {
         HOME: homeDir,
         USER: process.env.USER || userInfo.username,
         LOGNAME: process.env.LOGNAME || userInfo.username,
+        LANG: process.env.LANG || 'en_US.UTF-8',
+        LC_ALL: process.env.LC_ALL || 'en_US.UTF-8',
         ...(authSock ? { SSH_AUTH_SOCK: authSock } : {}),
         PATH: resolveEnhancedPath(),
         ...(extraEnv || {}),

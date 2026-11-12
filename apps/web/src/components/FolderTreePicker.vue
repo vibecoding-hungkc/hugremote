@@ -108,10 +108,35 @@ function joinPath(base: string, rel: string): string {
   return `${cleanBase}/${rel}`;
 }
 
+function computeRelativeRemainder(target: string, workspace: string): string {
+  const normTarget = (target || '').trim().replace(/\/+$/, '');
+  const normWs = (workspace || '~').trim().replace(/\/+$/, '');
+  if (!normTarget || normTarget === normWs || normTarget === '~') return '';
+
+  if (normWs && normWs !== '~' && normTarget.startsWith(normWs + '/')) {
+    return normTarget.slice(normWs.length + 1);
+  }
+
+  if (normTarget.startsWith('~/')) {
+    return normTarget.slice(2);
+  }
+
+  const homeMatch = normTarget.match(/^\/(?:home|Users)\/[^/]+\/(.+)$/);
+  if (homeMatch && (normWs === '~' || normWs.startsWith('/home/') || normWs.startsWith('/Users/'))) {
+    return homeMatch[1];
+  }
+
+  if (!normTarget.startsWith('/')) {
+    return normTarget;
+  }
+
+  return '';
+}
+
 async function fetchDirEntries(apiPath: string): Promise<any[]> {
   try {
     const res = await fetch(
-      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId || 'server-local')}&path=${encodeURIComponent(apiPath || '')}`)
+      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId || 'server-local')}&fsScope=server&path=${encodeURIComponent(apiPath || '')}`)
     );
     if (!res.ok) {
       console.warn('Failed to fetch dir entries for path:', apiPath, res.status);
@@ -126,15 +151,8 @@ async function fetchDirEntries(apiPath: string): Promise<any[]> {
 }
 
 function buildChildNode(entry: any): TreeNode {
-  let childApiPath: string;
-  let childFullPath: string;
-  if (props.serverType === 'local') {
-    childApiPath = entry.relPath;
-    childFullPath = joinPath(props.serverWorkspace, entry.relPath);
-  } else {
-    childApiPath = entry.relPath;
-    childFullPath = entry.relPath;
-  }
+  const childApiPath = entry.relPath;
+  const childFullPath = joinPath(props.serverWorkspace || '~', entry.relPath);
   return {
     name: entry.name,
     apiPath: childApiPath,
@@ -159,20 +177,8 @@ async function expandToSavedPath(targetPath: string) {
     rootNode.value.loading = false;
   }
 
-  // Không có gì để mở rộng sâu nếu target trùng workspace hoặc rỗng
-  if (!cleanTarget || cleanTarget === workspace) {
-    return;
-  }
-
-  // Tính các đoạn thư mục còn lại giữa workspace và target
-  let relativeRemainder = '';
-  if (cleanTarget.startsWith(workspace + '/')) {
-    relativeRemainder = cleanTarget.slice(workspace.length + 1);
-  } else if (!cleanTarget.startsWith('/')) {
-    // target đã là dạng tương đối
-    relativeRemainder = cleanTarget;
-  } else {
-    // target nằm ngoài workspace (vd: root server khác)
+  const relativeRemainder = computeRelativeRemainder(cleanTarget, workspace);
+  if (!relativeRemainder) {
     return;
   }
 
@@ -217,7 +223,7 @@ async function scrollToSelected() {
 }
 
 watch(
-  () => [props.isOpen, props.serverWorkspace, props.serverId] as const,
+  () => [props.isOpen, props.serverWorkspace, props.serverId, props.initialPath] as const,
   async ([open]) => {
     if (open) {
       rootNode.value = makeRootNode();
@@ -225,7 +231,12 @@ watch(
 
       isNavigating.value = true;
       try {
-        await expandToSavedPath(selectedPath.value);
+        await Promise.race([
+          expandToSavedPath(selectedPath.value),
+          new Promise((resolve) => setTimeout(resolve, 4000)),
+        ]);
+      } catch (err) {
+        console.warn('expandToSavedPath failed:', err);
       } finally {
         isNavigating.value = false;
       }

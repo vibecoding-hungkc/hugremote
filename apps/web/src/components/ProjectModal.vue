@@ -4,7 +4,7 @@
       <div class="modal-header">
         <div>
           <div class="modal-title"><i class="ri-folder-open-line"></i> Projects</div>
-          <div class="modal-subtitle">{{ serverStore.currentServer.name }}</div>
+          <div class="modal-subtitle">{{ serverStore.currentServer?.name || '' }}</div>
         </div>
         <button class="btn-close" @click="$emit('close')"><i class="ri-close-line"></i></button>
       </div>
@@ -89,10 +89,10 @@
     <!-- Folder Tree Picker Modal -->
     <FolderTreePicker
       :is-open="isFolderPickerOpen"
-      :server-id="serverStore.currentServer.id"
-      :server-type="serverStore.currentServer.type"
-      :server-workspace="serverStore.currentServer.workspace || '~'"
-      :initial-path="pathInput || serverStore.currentServer.workspace || '~'"
+      :server-id="serverStore.currentServer?.id || 'server-local'"
+      :server-type="serverStore.currentServer?.type || 'local'"
+      :server-workspace="serverStore.currentServer?.workspace || '~'"
+      :initial-path="pathInput || serverStore.currentServer?.workspace || '~'"
       @close="isFolderPickerOpen = false"
       @confirm="handleFolderPicked"
     />
@@ -161,7 +161,7 @@ async function saveRename() {
 watch(() => props.isOpen, (open) => {
   if (open) {
     scopeError.value = '';
-    pathInput.value = projectStore.currentProject?.rootPath || serverStore.currentServer.workspace || '~';
+    pathInput.value = projectStore.currentProject?.rootPath || serverStore.currentServer?.workspace || '~';
     projectStore.fetchProjects().catch(() => {});
   }
 });

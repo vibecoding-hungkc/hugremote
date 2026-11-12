@@ -93,7 +93,7 @@ async function loadChildren() {
   props.node.loading = true;
   try {
     const res = await fetch(
-      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId || 'server-local')}&path=${encodeURIComponent(props.node.apiPath || '')}`)
+      apiUrl(`/api/fs?serverId=${encodeURIComponent(props.serverId || 'server-local')}&fsScope=server&path=${encodeURIComponent(props.node.apiPath || '')}`)
     );
     if (!res.ok) throw new Error('Failed to list directory');
     const data = await res.json();
@@ -101,15 +101,8 @@ async function loadChildren() {
     const dirEntries = (data.entries || []).filter((e: any) => e.isDirectory);
 
     props.node.children = dirEntries.map((e: any) => {
-      let childApiPath: string;
-      let childFullPath: string;
-      if (props.serverType === 'local') {
-        childApiPath = e.relPath;
-        childFullPath = joinPath(props.serverWorkspace, e.relPath);
-      } else {
-        childApiPath = e.relPath;
-        childFullPath = e.relPath;
-      }
+      const childApiPath = e.relPath;
+      const childFullPath = joinPath(props.serverWorkspace || '~', e.relPath);
       return {
         name: e.name,
         apiPath: childApiPath,

@@ -31,7 +31,7 @@ export const useFileStore = defineStore('file', () => {
   }
   const fileDirs = savedDirs();
   const serverStore = useServerStore();
-  const scopeKey = () => JSON.stringify([serverStore.currentServerId, serverStore.currentServer.workspace || '']);
+  const scopeKey = () => JSON.stringify([serverStore.currentServerId, serverStore.currentServer?.workspace || '']);
   let fileScopeKey = scopeKey();
   const currentRel = ref(typeof fileDirs[fileScopeKey] === 'string' ? fileDirs[fileScopeKey] : '');
   const parentRel = ref<string | null>(null);
@@ -80,11 +80,13 @@ export const useFileStore = defineStore('file', () => {
     try {
       const res = await fetch(apiUrl(`/api/fs?serverId=${encodeURIComponent(serverId)}&fsScope=server&path=${encodeURIComponent(target)}`));
       if (!res.ok) {
-        const err = await res.json();
-        if (target && path === undefined &&
-          ((res.status === 400 && err.error === 'Directory does not exist') ||
-            (res.status === 404 && err.error === 'Directory not found'))) {
+        const err = await res.json().catch(() => ({}));
+        if (target &&
+          ((res.status === 400 && (err.error === 'Directory does not exist' || String(err.error || '').includes('outside') || String(err.error || '').includes('workspace'))) ||
+            (res.status === 404 && (err.error === 'Directory not found' || err.error === 'Server not found')))) {
           fileDirs[fileScopeKey] = '';
+          currentRel.value = '';
+          rememberDirectory('');
           await fetchFiles('');
           return;
         }

@@ -62,8 +62,19 @@ export const useServerStore = defineStore('server', () => {
     }).catch(() => {});
   }
 
-  const currentServer = computed(() => {
-    return servers.value.find((s) => s.id === currentServerId.value) || servers.value[0];
+  const currentServer = computed<ServerItem>(() => {
+    return servers.value.find((s) => s.id === currentServerId.value) || servers.value[0] || {
+      id: currentServerId.value || 'server-local',
+      name: 'localhost',
+      type: 'local',
+      label: 'Local Machine',
+      host: '127.0.0.1',
+      user: '',
+      port: 22,
+      desc: 'Local Host',
+      workspace: '~',
+      isConnected: true,
+    };
   });
 
   const workspaceServers = computed<ServerItem[]>(() => {

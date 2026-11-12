@@ -1,5 +1,27 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.17] - 2026-11-12
+
+Bản phát hành sửa lỗi triệt để **Chọn thư mục dạng cây (`FolderTreePicker.vue`, `FolderTreeNode.vue`)** và nâng cấp tính năng **Tệp / Quản lý File (`FileExplorer.vue`, `fileStore.ts`)** kèm bộ test E2E kiểm thử toàn diện edge cases cho Workspace.
+
+### Khắc phục lỗi & Cải tiến
+
+- **Sửa lỗi 'Đang mở đến thư mục đã chọn...' trong Chọn thư mục (`FolderTreePicker.vue`, `FolderTreeNode.vue`):**
+  - Luôn truyền `fsScope=server` khi truy vấn `/api/fs` để cây thư mục luôn duyệt từ gốc workspace máy chủ, không bị bóp nghẹt bên trong thư mục của sub-project đang active.
+  - Sửa lỗi tính `childFullPath`: trên remote SSH server, trước đây gán `entry.relPath` (ví dụ `acn-viper` hoặc `src`) khiến đường dẫn trả về bị cụt. Đã chuẩn hóa `joinPath(props.serverWorkspace || '~', entry.relPath)` cho cả local và SSH server.
+  - Viết lại hàm `computeRelativeRemainder`: giải quyết hoàn toàn việc lệch tiền tố giữa `~` và `/home/<user>`, loại bỏ lỗi không mở rộng được thư mục đã chọn.
+  - Thêm timeout bảo vệ 4.0 giây: đảm bảo `isNavigating` ("Đang mở đến thư mục đã chọn...") không bao giờ bị treo vĩnh viễn trên giao diện.
+
+- **Nâng cấp Tính năng Tệp & Tự phục hồi lỗi (`FileExplorer.vue`, `fileStore.ts`, `serverStore.ts`):**
+  - Tự động fallback về thư mục gốc `''` khi đường dẫn đã lưu bị xóa hoặc trả về 400/404, xóa sạch cache lỗi trong `localStorage`.
+  - Thêm 2 nút hành động "Về thư mục gốc" và "Thử lại" trực tiếp trong khung báo lỗi để người dùng có thể tự phục hồi ngay trên UI.
+  - Bảo vệ an toàn `serverStore.currentServer` bằng fallback mặc định và optional chaining `?.`, chống hoàn toàn lỗi `TypeError: Cannot read properties of undefined (reading 'workspace')`.
+
+- **Mở rộng Bộ kiểm thử E2E & Edge Cases (`scripts/test_workspace_and_file_edge_cases.ts`):**
+  - Bao phủ toàn diện các ca biên: phân rã tiền tố đường dẫn, ghép nối canonical path, deduplication project trùng lặp, xóa project ID dài (>100 ký tự) trên máy chủ SSH, quản trị project tại root `/`, và lưu trữ bền vững trạng thái Workspace.
+
+---
+
 ## [v1.6.16] - 2026-11-12
 
 Bản phát hành chuẩn hóa **Thanh cuộn toàn cục (Global Thin Scrollbar)** cho toàn bộ ứng dụng và tối ưu **Bộ đệm Resize Terminal (`TerminalView.vue`, `localPty.ts`, `sshPool.ts`)**.

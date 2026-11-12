@@ -94,7 +94,16 @@
       <i class="ri-loader-4-line spin"></i> {{ t('fileExplorer.loading') }}
     </div>
     <div v-else-if="fileStore.error" class="state-box error">
-      <i class="ri-error-warning-line"></i> {{ fileStore.error }}
+      <i class="ri-error-warning-line"></i>
+      <span>{{ fileStore.error }}</span>
+      <div class="state-actions" style="margin-top: 10px; display: flex; gap: 8px;">
+        <button type="button" class="btn-tool-action" @click="fileStore.fetchFiles('')">
+          <i class="ri-home-4-line"></i> Về thư mục gốc
+        </button>
+        <button type="button" class="btn-tool-action" @click="fileStore.fetchFiles()">
+          <i class="ri-refresh-line"></i> Thử lại
+        </button>
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -346,7 +355,7 @@ const serverStore = useServerStore();
 const { t } = useI18n();
 
 function isExistingProject(relPath: string): boolean {
-  const root = (serverStore.currentServer.workspace || '~').trim().replace(/\/+$/, '');
+  const root = (serverStore.currentServer?.workspace || '~').trim().replace(/\/+$/, '');
   const cleanRel = (relPath || '').trim().replace(/^\/+|\/+$/g, '');
   const fullPath = `${root}/${cleanRel}`.replace(/\/+$/, '');
   const srvId = serverStore.currentServerId;

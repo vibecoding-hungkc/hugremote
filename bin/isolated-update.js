@@ -214,15 +214,37 @@ function resolvedLink(linkPath) {
   }
 }
 
-function acquireLock(lockFile) {
+function isStalePidLock(lockFile) {
   try {
-    const fd = fs.openSync(lockFile, 'wx', 0o600);
-    fs.writeFileSync(fd, `${process.pid}\n`, 'utf8');
-    return fd;
-  } catch (error) {
-    if (error.code === 'EEXIST') throw new Error('An isolated updater is already running.');
-    throw error;
+    const content = fs.readFileSync(lockFile, 'utf8').trim();
+    if (!/^\d+$/.test(content)) return false;
+    const pid = Number(content);
+    if (!Number.isInteger(pid) || pid <= 0) return false;
+    process.kill(pid, 0);
+    return false;
+  } catch (err) {
+    return Boolean(err && err.code === 'ESRCH');
   }
+}
+
+function acquireLock(lockFile) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fd = fs.openSync(lockFile, 'wx', 0o600);
+      fs.writeFileSync(fd, `${process.pid}\n`, 'utf8');
+      return fd;
+    } catch (error) {
+      if (error.code === 'EEXIST') {
+        if (attempt === 0 && isStalePidLock(lockFile)) {
+          try { fs.rmSync(lockFile, { force: true }); } catch (_) {}
+          continue;
+        }
+        throw new Error('An isolated updater is already running.');
+      }
+      throw error;
+    }
+  }
+  throw new Error('An isolated updater is already running.');
 }
 
 function releaseLock(lockFile, fd) {
@@ -275,6 +297,7 @@ export function installIsolatedRelease({
   homeDir = os.homedir(),
   service: suppliedService,
   healthTimeoutMs = 15_000,
+  onProgress = () => {},
 }) {
   if (!['stable', 'beta'].includes(channel)) throw new Error('Kênh update không hợp lệ.');
   if (channel === 'stable' && !/^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(ref)) {
@@ -326,6 +349,7 @@ export function installIsolatedRelease({
     serviceWasActive = isActive();
     previousWorkingDirectory = getWorkingDirectory();
 
+    onProgress('Đang tải mã nguồn từ GitHub...');
     runFile('git', ['clone', '--quiet', '--no-checkout', CANONICAL_REPOSITORY, staging], { stdio: 'inherit' });
     const targetRef = channel === 'stable' ? `refs/tags/${ref}^{commit}` : 'refs/remotes/origin/main^{commit}';
     const resolvedCommit = runFile('git', ['rev-parse', '--verify', targetRef], { cwd: staging }).trim().toLowerCase();
@@ -333,6 +357,7 @@ export function installIsolatedRelease({
       throw new Error(`Canonical ref does not match expected commit ${canonicalExpectedCommit}.`);
     }
 
+    onProgress('Đang chuẩn bị phiên bản cập nhật...');
     runFile('git', ['checkout', '--quiet', '--detach', canonicalExpectedCommit], { cwd: staging, stdio: 'inherit' });
     const commit = runFile('git', ['rev-parse', 'HEAD'], { cwd: staging }).trim().toLowerCase();
     if (commit !== canonicalExpectedCommit) throw new Error('Checked-out HEAD does not match expected commit exactly.');
@@ -345,11 +370,14 @@ export function installIsolatedRelease({
     }
 
     const buildEnv = { ...process.env, NODE_ENV: 'development' };
+    onProgress('Đang cài đặt thư viện và phụ thuộc...');
     runFile('npm', ['ci', '--foreground-scripts', '--include=dev'], { cwd: staging, stdio: 'inherit', env: buildEnv });
+    onProgress('Đang biên dịch ứng dụng...');
     runFile('npm', ['run', 'build'], { cwd: staging, stdio: 'inherit', env: buildEnv });
     const reported = runFile(process.execPath, ['bin/hugremote.js', '--version'], { cwd: staging }).trim();
     if (reported !== `HugRemote v${version}`) throw new Error(`Version probe thất bại: ${reported}`);
 
+    onProgress('Đang hoàn tất và chuyển đổi phiên bản...');
     releaseDir = path.join(paths.releasesDir, `${version}-${commit.slice(0, 12)}-${crypto.randomUUID()}`);
     fs.renameSync(staging, releaseDir);
 

@@ -128,7 +128,7 @@
           >
             <i class="ri-side-bar-line"></i>
           </button>
-          <i class="ri-keyboard-box-line"></i> Cài đặt phím tắt
+          <i class="ri-settings-3-line"></i> Cài đặt
         </div>
       </div>
 

@@ -7,7 +7,6 @@
       'quick-tree-open': isQuickPanelActive,
       'workspace-sidebar-open': isWorkspaceSidebarOpen,
       'is-desktop-device': isDesktopDevice,
-      'shortcut-labels-visible': shortcutStore.showLabels,
     }"
     :data-device-type="isDesktopDevice ? 'desktop' : 'mobile'"
     :style="{ '--quick-panel-width': `${quickPanelWidth}px`, '--workspace-sidebar-width': `${workspaceSidebarWidth}px` }"
@@ -47,6 +46,14 @@
       @edit-claude="handleEditClaudeSession"
       @delete-claude="handleDeleteClaudeSession"
       @select-claude="activeTab = 'claude'"
+      @open-spotlight="openSpotlight"
+    />
+
+    <SpotlightSearch
+      :is-open="isSpotlightOpen"
+      :items="spotlightItems"
+      @close="closeSpotlight"
+      @select="handleSpotlightSelect"
     />
 
     <!-- 2. Main Viewport Area -->
@@ -186,6 +193,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import SmartHeader from './components/SmartHeader.vue';
 import WorkspaceSidebar from './components/WorkspaceSidebar.vue';
+import SpotlightSearch from './components/SpotlightSearch.vue';
 import QuickWorkspacePanel from './components/QuickWorkspacePanel.vue';
 import FileExplorer from './components/FileExplorer.vue';
 import CodeEditor from './components/CodeEditor.vue';
@@ -212,11 +220,11 @@ import { useTerminalStore } from './stores/terminalStore.js';
 import { useClaudeStore } from './stores/claudeStore.js';
 import { useProjectStore } from './stores/projectStore.js';
 import { useGitStore } from './stores/gitStore.js';
-import { normalizeKeyComboFromEvent, useShortcutStore } from './stores/shortcutStore.js';
 import { useAppBootstrap } from './composables/useAppBootstrap.js';
 import { useI18n } from './composables/useI18n.js';
 import { useAppRouter } from './app/router.js';
 import { useDesktopDevice } from './utils/device.js';
+import { buildSpotlightItems, isSpotlightHotkey } from './utils/spotlight.js';
 
 const { authStore } = useAppBootstrap();
 const { isDesktopDevice } = useDesktopDevice();
@@ -226,7 +234,6 @@ const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
 const projectStore = useProjectStore();
 const gitStore = useGitStore();
-const shortcutStore = useShortcutStore();
 const { t } = useI18n();
 
 const { activeTab, navigateTo } = useAppRouter();
@@ -302,124 +309,13 @@ function warnUnsaved(event: BeforeUnloadEvent) {
   event.returnValue = '';
 }
 
-async function handleGlobalShortcutKeyDown(event: KeyboardEvent) {
-  const combo = normalizeKeyComboFromEvent(event);
-  if (!combo) return;
-
-  if (
-    shortcutStore.toggleLabelsCombo &&
-    combo.toLowerCase() === shortcutStore.toggleLabelsCombo.toLowerCase()
-  ) {
-    event.preventDefault();
-    event.stopPropagation();
-    shortcutStore.toggleLabelsVisibility();
-    return;
-  }
-
-  if (!shortcutStore.enabled) return;
-
-  // Match <prefix>+<1..9> across workspaceServers
-  for (let idx = 1; idx <= 9; idx++) {
-    const projCombo = shortcutStore.getItemShortcut('project', idx);
-    if (projCombo && projCombo.toLowerCase() === combo.toLowerCase()) {
-      const allProjs = serverStore.workspaceServers.flatMap(srv =>
-        projectStore.projectsForServer(srv.id)
-      );
-      const targetProj = allProjs[idx - 1];
-      if (!targetProj) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (targetProj.serverId !== serverStore.currentServerId || targetProj.id !== projectStore.currentProject?.id) {
-        if (!(await fileStore.confirmUnsavedChanges())) return;
-        if (targetProj.serverId !== serverStore.currentServerId) {
-          serverStore.selectServer(targetProj.serverId);
-        }
-        await projectStore.selectProject(targetProj.id, targetProj.serverId);
-        await handleScopeChanged();
-      }
-      return;
-    }
-
-    const termCombo = shortcutStore.getItemShortcut('terminal', idx);
-    if (termCombo && termCombo.toLowerCase() === combo.toLowerCase()) {
-      const allTerms: Array<{ session: any; projectId: string; serverId: string }> = [];
-      for (const srv of serverStore.workspaceServers) {
-        for (const proj of projectStore.projectsForServer(srv.id)) {
-          const list = terminalStore.sessions.filter(
-            s => s.serverId === srv.id && s.projectId === proj.id
-          );
-          for (const s of list) allTerms.push({ session: s, projectId: proj.id, serverId: srv.id });
-        }
-      }
-      const target = allTerms[idx - 1];
-      if (!target) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (target.serverId !== serverStore.currentServerId || (target.projectId && target.projectId !== projectStore.currentProject?.id)) {
-        if (!(await fileStore.confirmUnsavedChanges())) return;
-        if (target.serverId !== serverStore.currentServerId) {
-          serverStore.selectServer(target.serverId);
-        }
-        await projectStore.selectProject(target.projectId, target.serverId);
-        await handleScopeChanged();
-      }
-      terminalStore.switchSession(target.session.id);
-      activeTab.value = 'terminal';
-      return;
-    }
-
-    const claudeCombo = shortcutStore.getItemShortcut('claude', idx);
-    if (claudeCombo && claudeCombo.toLowerCase() === combo.toLowerCase()) {
-      const allClaudes: Array<{ session: any; projectId: string; serverId: string }> = [];
-      for (const srv of serverStore.workspaceServers) {
-        for (const proj of projectStore.projectsForServer(srv.id)) {
-          const list = claudeStore.sessions.filter(
-            s =>
-              s.serverId === srv.id &&
-              (s.projectId ? s.projectId === proj.id : s.cwd?.replace(/\/+$/, '') === proj.rootPath.replace(/\/+$/, ''))
-          );
-          for (const s of list) allClaudes.push({ session: s, projectId: proj.id, serverId: srv.id });
-        }
-      }
-      const target = allClaudes[idx - 1];
-      if (!target) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (target.serverId !== serverStore.currentServerId || (target.projectId && target.projectId !== projectStore.currentProject?.id)) {
-        if (!(await fileStore.confirmUnsavedChanges())) return;
-        if (target.serverId !== serverStore.currentServerId) {
-          serverStore.selectServer(target.serverId);
-        }
-        await projectStore.selectProject(target.projectId, target.serverId);
-        await handleScopeChanged();
-      }
-      claudeStore.switchSession(target.session.id);
-      activeTab.value = 'claude';
-      return;
-    }
-
-    const serverCombo = shortcutStore.getItemShortcut('server', idx);
-    if (serverCombo && serverCombo.toLowerCase() === combo.toLowerCase()) {
-      const targetServer = serverStore.workspaceServers[idx - 1] || serverStore.servers[idx - 1];
-      if (!targetServer || targetServer.id === serverStore.currentServerId) return;
-      event.preventDefault();
-      event.stopPropagation();
-      if (!(await fileStore.confirmUnsavedChanges())) return;
-      await projectStore.fetchProjects(targetServer.id);
-      serverStore.selectServer(targetServer.id);
-      await handleScopeChanged();
-      return;
-    }
-  }
-}
-
 onMounted(() => {
   window.addEventListener('beforeunload', warnUnsaved);
-  window.addEventListener('keydown', handleGlobalShortcutKeyDown, true);
+  window.addEventListener('keydown', handleSpotlightHotkey, true);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', warnUnsaved);
-  window.removeEventListener('keydown', handleGlobalShortcutKeyDown, true);
+  window.removeEventListener('keydown', handleSpotlightHotkey, true);
 });
 
 async function handleOpenFile(relPath: string) {
@@ -454,6 +350,70 @@ async function handleScopeChanged() {
     claudeStore.ensureProjectSession(),
   ]);
   await gitStore.fetchStatus();
+}
+
+
+// ---- Spotlight quick search (single global hotkey) ----
+const isSpotlightOpen = ref(false);
+
+const spotlightItems = computed(() => {
+  const servers = serverStore.workspaceServers;
+  const projects = servers.flatMap(srv => projectStore.projectsForServer(srv.id));
+  const serverIds = new Set(servers.map(s => s.id));
+  const items = buildSpotlightItems({
+    servers: servers.map(s => ({ id: s.id, name: s.name })),
+    projects: projects.map(p => ({ id: p.id, serverId: p.serverId, name: p.name, rootPath: p.rootPath })),
+    terminals: terminalStore.sessions.filter(s => serverIds.has(s.serverId)),
+    claudes: claudeStore.sessions.filter(s => serverIds.has(s.serverId)),
+  });
+  return items.map(item => ({
+    ...item,
+    isCurrent:
+      item.kind === 'project'
+        ? item.serverId === serverStore.currentServerId && item.id === projectStore.currentProject?.id
+        : item.kind === 'claude'
+          ? item.id === claudeStore.activeSessionId && activeTab.value === 'claude'
+          : item.id === terminalStore.activeSessionId && activeTab.value === 'terminal',
+  }));
+});
+
+function openSpotlight() {
+  isSpotlightOpen.value = true;
+}
+
+function closeSpotlight() {
+  isSpotlightOpen.value = false;
+}
+
+async function handleSpotlightSelect(item: { kind: 'project' | 'claude' | 'terminal'; id: string; serverId: string; projectId?: string }) {
+  closeSpotlight();
+  const needsScope =
+    item.serverId !== serverStore.currentServerId ||
+    (!!item.projectId && item.projectId !== projectStore.currentProject?.id);
+  if (needsScope) {
+    if (!(await fileStore.confirmUnsavedChanges())) return;
+    if (item.serverId !== serverStore.currentServerId) {
+      serverStore.selectServer(item.serverId);
+    }
+    if (item.projectId) {
+      await projectStore.selectProject(item.projectId, item.serverId);
+    }
+    await handleScopeChanged();
+  }
+  if (item.kind === 'terminal') {
+    terminalStore.switchSession(item.id);
+    activeTab.value = 'terminal';
+  } else if (item.kind === 'claude') {
+    claudeStore.switchSession(item.id);
+    activeTab.value = 'claude';
+  }
+}
+
+function handleSpotlightHotkey(event: KeyboardEvent) {
+  if (!isSpotlightHotkey(event, navigator.platform || navigator.userAgent)) return;
+  event.preventDefault();
+  event.stopPropagation();
+  isSpotlightOpen.value = !isSpotlightOpen.value;
 }
 
 // Scope selectors emit only after projects are loaded; avoid duplicate watcher refreshes.

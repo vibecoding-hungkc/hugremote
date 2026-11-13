@@ -9,7 +9,7 @@
   <aside
     id="desktop-workspace-sidebar"
     class="desktop-workspace-sidebar"
-    :class="{ open: isOpen, resizing: isResizing, 'shortcut-labels-visible': shortcutStore.showLabels }"
+    :class="{ open: isOpen, resizing: isResizing }"
     :style="{ width: `${panelWidth}px` }"
     aria-label="Điều hướng nhanh Server, Project và Session"
   >
@@ -22,6 +22,16 @@
         </span>
       </div>
       <div class="dw-top-actions">
+        <button
+          id="btn-dw-open-spotlight"
+          type="button"
+          class="dw-add-server-btn"
+          :title="`Tìm nhanh ${spotlightHotkey}`"
+          :aria-label="`Tìm nhanh ${spotlightHotkey}`"
+          @click="emit('open-spotlight')"
+        >
+          <i class="ri-search-2-line"></i>
+        </button>
         <button
           id="btn-dw-add-server"
           type="button"
@@ -118,7 +128,6 @@
               </button>
               <div class="dw-item-main">
                 <div class="dw-item-title">
-                  <span class="dw-idx-badge" :data-server-index="srvIdx + 1">{{ srvIdx + 1 }}</span>
                   <i
                     :class="srv.type === 'local' ? 'ri-hard-drive-2-line' : 'ri-server-line'"
                     style="color: #34d399"
@@ -126,12 +135,6 @@
                   <span>{{ srv.name }}</span>
                 </div>
               </div>
-              <kbd
-                v-if="shortcutStore.getItemShortcut('server', srvIdx + 1)"
-                class="dw-kbd-tag"
-              >
-                {{ shortcutStore.getItemShortcut('server', srvIdx + 1) }}
-              </kbd>
               <div class="dw-item-actions" @click.stop>
                 <button
                   type="button"
@@ -179,9 +182,6 @@
                   </button>
                   <div class="dw-item-main">
                     <div class="dw-item-title">
-                      <span class="dw-idx-badge" :data-proj-index="getProjIndex(proj.id)">
-                        {{ getProjIndex(proj.id) }}
-                      </span>
                       <i
                         :class="isHomeProject(proj) ? 'ri-home-4-line' : 'ri-folder-2-line'"
                         style="color: #38bdf8"
@@ -189,12 +189,6 @@
                       <span>{{ proj.name }}</span>
                     </div>
                   </div>
-                  <kbd
-                    v-if="shortcutStore.getItemShortcut('project', getProjIndex(proj.id))"
-                    class="dw-kbd-tag"
-                  >
-                    {{ shortcutStore.getItemShortcut('project', getProjIndex(proj.id)) }}
-                  </kbd>
                   <div class="dw-item-actions" @click.stop>
                     <button
                       v-if="!isHomeProject(proj)"
@@ -240,19 +234,10 @@
                       >
                         <div class="dw-item-main">
                           <div class="dw-item-title">
-                            <span class="dw-idx-badge" :data-term-index="getTermIndex(s.id)">
-                              {{ getTermIndex(s.id) }}
-                            </span>
                             <i class="ri-terminal-box-line" style="color: #c084fc"></i>
                             <span>{{ s.name }}</span>
                           </div>
                         </div>
-                        <kbd
-                          v-if="shortcutStore.getItemShortcut('terminal', getTermIndex(s.id))"
-                          class="dw-kbd-tag"
-                        >
-                          {{ shortcutStore.getItemShortcut('terminal', getTermIndex(s.id)) }}
-                        </kbd>
                         <div class="dw-item-actions" @click.stop>
                           <button
                             type="button"
@@ -309,9 +294,6 @@
                       >
                         <div class="dw-item-main">
                           <div class="dw-item-title">
-                            <span class="dw-idx-badge" :data-claude-index="getClaudeIndex(s.id)">
-                              {{ getClaudeIndex(s.id) }}
-                            </span>
                             <i class="ri-sparkling-fill" style="color: #f59e0b"></i>
                             <span>{{ displayClaudeName(s) }}</span>
                           </div>
@@ -321,12 +303,6 @@
                           class="dw-claude-running status-indicator"
                           aria-label="Claude đang làm việc"
                         ></span>
-                        <kbd
-                          v-if="shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id))"
-                          class="dw-kbd-tag"
-                        >
-                          {{ shortcutStore.getItemShortcut('claude', getClaudeIndex(s.id)) }}
-                        </kbd>
                         <div class="dw-item-actions" @click.stop>
                           <button
                             type="button"
@@ -391,8 +367,8 @@ import { useProjectStore, type ProjectItem } from '../stores/projectStore.js';
 import { useTerminalStore, type TerminalSessionItem } from '../stores/terminalStore.js';
 import { useClaudeStore, type ClaudeSession } from '../stores/claudeStore.js';
 import { useFileStore } from '../stores/fileStore.js';
-import { useShortcutStore } from '../stores/shortcutStore.js';
 import ConfirmModal from './ConfirmModal.vue';
+import { spotlightHotkeyLabel } from '../utils/spotlight.js';
 
 const props = withDefaults(defineProps<{
   isOpen: boolean;
@@ -413,14 +389,15 @@ const emit = defineEmits<{
   (e: 'edit-claude', session: any): void;
   (e: 'delete-claude', session: any): void;
   (e: 'select-claude'): void;
+  (e: 'open-spotlight'): void;
 }>();
 
+const spotlightHotkey = spotlightHotkeyLabel(navigator.platform || navigator.userAgent);
 const serverStore = useServerStore();
 const projectStore = useProjectStore();
 const terminalStore = useTerminalStore();
 const claudeStore = useClaudeStore();
 const fileStore = useFileStore();
-const shortcutStore = useShortcutStore();
 
 const sidebarError = ref('');
 const showAddServerMenu = ref(false);
@@ -593,58 +570,6 @@ function sessionsForProject(
     }
   }
   return [...byId.values()];
-}
-
-const projIndexMap = computed(() => {
-  const map = new Map<string, number>();
-  let idx = 0;
-  for (const srv of serverStore.workspaceServers) {
-    for (const proj of projectStore.projectsForServer(srv.id)) {
-      idx++;
-      map.set(proj.id, idx);
-    }
-  }
-  return map;
-});
-
-const termIndexMap = computed(() => {
-  const map = new Map<string, number>();
-  let idx = 0;
-  for (const srv of serverStore.workspaceServers) {
-    for (const proj of projectStore.projectsForServer(srv.id)) {
-      for (const s of sessionsForProject(proj.id, proj.rootPath, 'terminal', srv.id)) {
-        idx++;
-        map.set(s.id, idx);
-      }
-    }
-  }
-  return map;
-});
-
-const claudeIndexMap = computed(() => {
-  const map = new Map<string, number>();
-  let idx = 0;
-  for (const srv of serverStore.workspaceServers) {
-    for (const proj of projectStore.projectsForServer(srv.id)) {
-      for (const s of sessionsForProject(proj.id, proj.rootPath, 'claude', srv.id)) {
-        idx++;
-        map.set(s.id, idx);
-      }
-    }
-  }
-  return map;
-});
-
-function getProjIndex(projectId: string): number {
-  return projIndexMap.value.get(projectId) || 1;
-}
-
-function getTermIndex(sessionId: string): number {
-  return termIndexMap.value.get(sessionId) || 1;
-}
-
-function getClaudeIndex(sessionId: string): number {
-  return claudeIndexMap.value.get(sessionId) || 1;
 }
 
 function clampWidth(width: number) {
@@ -1030,11 +955,6 @@ async function handleDeleteClaude(session: ClaudeSession) {
 .dw-item-title { display: flex; align-items: center; gap: 6px; min-width: 0; font-family: monospace; font-size: 11.5px; font-weight: 650; }
 .dw-item-title > i { color: #a8a8a8; flex-shrink: 0; }
 .dw-item-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dw-idx-badge { display: inline-block; font-family: monospace; font-size: 10px; font-weight: 400; line-height: 1; color: #787878; min-width: 11px; text-align: right; flex-shrink: 0; opacity: .78; user-select: none; }
-.dw-item.active .dw-idx-badge { color: #d4d4d4; opacity: 1; font-weight: 600; }
-.dw-kbd-tag { display: none; align-items: center; justify-content: center; font-family: monospace; font-size: 9.5px; color: #9a9a9a; background: #1d1d1d; border: 1px solid #2f2f2f; border-radius: 4px; padding: 1px 4px; flex-shrink: 0; line-height: 1.2; }
-.desktop-workspace-sidebar.shortcut-labels-visible .dw-kbd-tag,
-:global(.app-root.shortcut-labels-visible .dw-kbd-tag) { display: inline-flex; }
 .dw-claude-running.status-indicator {
   width: 11px; height: 11px; border-radius: 50%;
   border: 1.8px solid rgba(245, 158, 11, .28); border-top-color: #f59e0b;

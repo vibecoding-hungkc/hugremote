@@ -17,7 +17,7 @@ export interface LocalPtyInstance {
   onExit: (callback: () => void) => void;
 }
 
-const MAX_BUFFER_LENGTH = 100 * 1024; // 100KB replay buffer
+const MAX_BUFFER_LENGTH = 500 * 1024; // 500KB replay buffer
 
 /**
  * On macOS (Darwin), node-pty uses `posix_spawn` with a helper binary named `spawn-helper`.
@@ -151,7 +151,12 @@ export function createLocalPty(
   ptyProcess.onData((data: string) => {
     buffer += data;
     if (buffer.length > MAX_BUFFER_LENGTH) {
-      buffer = buffer.substring(buffer.length - MAX_BUFFER_LENGTH);
+      let startIdx = buffer.length - MAX_BUFFER_LENGTH;
+      const nextNewline = buffer.indexOf('\n', startIdx);
+      if (nextNewline !== -1 && nextNewline < startIdx + 2048) {
+        startIdx = nextNewline + 1;
+      }
+      buffer = buffer.substring(startIdx);
     }
     for (const cb of dataCallbacks) {
       cb(data);

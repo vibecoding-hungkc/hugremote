@@ -105,6 +105,10 @@ export const wsRoutes = async (fastify) => {
         });
         try {
             const session = await sessionManager.getOrCreateSession(serverId, sessionId, sessionName, serverConfig, cols, rows, cwd);
+            // Ensure backend PTY has client's actual geometry before buffer replay
+            if (cols > 0 && rows > 0) {
+                sessionManager.resize(sessionId, cols, rows);
+            }
             if (socketClosed || socket.readyState !== WebSocket.OPEN) {
                 clearInterval(pingInterval);
                 return;

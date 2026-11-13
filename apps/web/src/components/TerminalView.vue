@@ -159,8 +159,8 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
-import { useTerminalStore, extractLast3Dirs } from '../stores/terminalStore.js';
-import { useServerStore } from '../stores/serverStore.js';
+import { useTerminalStore, extractLast3Dirs, type TerminalSessionItem } from '../stores/terminalStore.js';
+import { useServerStore, type ServerItem } from '../stores/serverStore.js';
 import { wsUrl as buildWsUrl } from '../utils/api.js';
 import { attachTerminalTouchScrolling, dispatchTerminalWheel } from '../utils/terminalScroll.js';
 import InputModal from './InputModal.vue';
@@ -184,6 +184,23 @@ const isDisconnected = ref(false);
 const currentFontSize = ref(13);
 const isPasteModalOpen = ref(false);
 
+interface SessionTerminalInstance {
+  sessionId: string;
+  serverId: string;
+  term: Terminal;
+  fitAddon: FitAddon;
+  webLinksAddon: WebLinksAddon;
+  socket: WebSocket | null;
+  wrapper: HTMLElement;
+  cleanupTouch: (() => void) | null;
+  reconnectAttempts: number;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+  isDisconnected: boolean;
+}
+
+const sessionInstances = new Map<string, SessionTerminalInstance>();
+let activeInstance: SessionTerminalInstance | null = null;
+
 let term: Terminal | null = null;
 let fitAddon: FitAddon | null = null;
 let resizeObserver: ResizeObserver | null = null;
@@ -192,6 +209,27 @@ let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let wakeLock: any = null;
 let cleanupTouch: (() => void) | null = null;
+
+function syncActiveRefs(inst: SessionTerminalInstance | null) {
+  activeInstance = inst;
+  if (inst) {
+    term = inst.term;
+    fitAddon = inst.fitAddon;
+    socket = inst.socket;
+    cleanupTouch = inst.cleanupTouch;
+    reconnectTimer = inst.reconnectTimer;
+    reconnectAttempts = inst.reconnectAttempts;
+    isDisconnected.value = inst.isDisconnected;
+  } else {
+    term = null;
+    fitAddon = null;
+    socket = null;
+    cleanupTouch = null;
+    reconnectTimer = null;
+    reconnectAttempts = 0;
+    isDisconnected.value = false;
+  }
+}
 
 // --- WAKE LOCK API ---
 async function requestWakeLock() {
@@ -353,12 +391,37 @@ function executeManualPaste(text: string) {
   }
 }
 
-function disconnectSocket(markDisconnected = false) {
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
+function disconnectInstanceSocket(inst: SessionTerminalInstance, markDisconnected = false) {
+  if (inst.reconnectTimer) {
+    clearTimeout(inst.reconnectTimer);
+    inst.reconnectTimer = null;
+  }
+  if (inst.socket) {
+    inst.socket.onopen = null;
+    inst.socket.onmessage = null;
+    inst.socket.onclose = null;
+    inst.socket.onerror = null;
+    try {
+      inst.socket.close();
+    } catch (_) {}
+    inst.socket = null;
+  }
+  if (markDisconnected) {
+    inst.isDisconnected = true;
+    if (activeInstance === inst) {
+      isDisconnected.value = true;
+    }
+  }
+  if (activeInstance === inst) {
+    socket = null;
     reconnectTimer = null;
   }
-  if (socket) {
+}
+
+function disconnectSocket(markDisconnected = false) {
+  if (activeInstance) {
+    disconnectInstanceSocket(activeInstance, markDisconnected);
+  } else if (socket) {
     socket.onopen = null;
     socket.onmessage = null;
     socket.onclose = null;
@@ -367,28 +430,25 @@ function disconnectSocket(markDisconnected = false) {
       socket.close();
     } catch (_) {}
     socket = null;
-  }
-  if (markDisconnected) {
-    isDisconnected.value = true;
+    if (markDisconnected) {
+      isDisconnected.value = true;
+    }
   }
 }
 
 function cleanupCurrentTerminal() {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-    resizeObserver = null;
-  }
-  if (cleanupTouch) {
-    cleanupTouch();
-    cleanupTouch = null;
-  }
-  disconnectSocket();
-  if (term) {
+  if (activeInstance) {
+    const id = activeInstance.sessionId;
+    disconnectInstanceSocket(activeInstance, true);
     try {
-      term.dispose();
+      activeInstance.term.dispose();
     } catch (_) {}
-    term = null;
-    fitAddon = null;
+    activeInstance.cleanupTouch?.();
+    if (activeInstance.wrapper && activeInstance.wrapper !== terminalRef.value) {
+      try { activeInstance.wrapper.remove(); } catch (_) {}
+    }
+    sessionInstances.delete(id);
+    syncActiveRefs(null);
   }
   if (terminalRef.value) {
     terminalRef.value.innerHTML = '';
@@ -405,12 +465,93 @@ function setupTouchScrolling() {
   cleanupTouch = attachTerminalTouchScrolling(terminalRef.value, () => term);
 }
 
-function initTerminal() {
-  if (!terminalRef.value) return;
+function connectInstanceWebSocket(inst: SessionTerminalInstance, session: TerminalSessionItem, server: ServerItem) {
+  if (terminalStore.isSessionSuspended(session.id)) return;
 
-  cleanupCurrentTerminal();
+  const cols = inst.term.cols || 80;
+  const rows = inst.term.rows || 24;
+  const serverId = session.serverId || server.id;
+  const wsPath = `/ws/terminal?serverId=${encodeURIComponent(
+    serverId
+  )}&sessionId=${encodeURIComponent(session.id)}&name=${encodeURIComponent(
+    session.name
+  )}&cols=${cols}&rows=${rows}${session.cwd ? `&cwd=${encodeURIComponent(session.cwd)}` : ''}`;
 
-  term = new Terminal({
+  const ws = new WebSocket(buildWsUrl(wsPath));
+  inst.socket = ws;
+  if (activeInstance === inst) {
+    socket = ws;
+  }
+
+  ws.onopen = () => {
+    inst.isDisconnected = false;
+    if (activeInstance === inst) isDisconnected.value = false;
+    if (inst.reconnectAttempts > 0) {
+      try { inst.term.reset(); } catch (_) {}
+    }
+    inst.reconnectAttempts = 0;
+    if (activeInstance === inst) reconnectAttempts = 0;
+
+    // Synchronize dimensions immediately on connect without delay
+    executeResizeForInstance(inst);
+
+    if (activeInstance === inst && props.isActive !== false && !isLaptopKeyboardOpen.value) {
+      setTimeout(focusTerminal, 30);
+    }
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      inst.term.write(event.data);
+    } catch (_) {}
+  };
+
+  ws.onclose = () => {
+    inst.isDisconnected = true;
+    if (activeInstance === inst) isDisconnected.value = true;
+    const curSession = terminalStore.activeSession;
+    if (curSession && terminalStore.isSessionSuspended(curSession.id)) return;
+    scheduleInstanceReconnect(inst, session, server);
+  };
+
+  ws.onerror = () => {
+    inst.isDisconnected = true;
+    if (activeInstance === inst) isDisconnected.value = true;
+  };
+}
+
+function scheduleInstanceReconnect(inst: SessionTerminalInstance, session: TerminalSessionItem, server: ServerItem) {
+  if (terminalStore.isSessionSuspended(session.id)) return;
+  if (inst.reconnectTimer) return;
+  const delay = Math.min(30000, 1000 * Math.pow(1.5, inst.reconnectAttempts));
+  inst.reconnectAttempts++;
+  if (activeInstance === inst) reconnectAttempts = inst.reconnectAttempts;
+
+  inst.reconnectTimer = setTimeout(() => {
+    inst.reconnectTimer = null;
+    if (activeInstance === inst) reconnectTimer = null;
+    connectInstanceWebSocket(inst, session, server);
+  }, delay);
+  if (activeInstance === inst) reconnectTimer = inst.reconnectTimer;
+}
+
+function createSessionTerminal(session: TerminalSessionItem, server: ServerItem): SessionTerminalInstance | null {
+  if (!terminalRef.value) return null;
+
+  const hasDom = typeof document !== 'undefined' && typeof document.createElement === 'function' && terminalRef.value && typeof (terminalRef.value as any).appendChild === 'function';
+  const wrapper = hasDom
+    ? document.createElement('div')
+    : terminalRef.value;
+
+  if (hasDom && wrapper !== terminalRef.value) {
+    wrapper.className = 'xterm-session-instance';
+    wrapper.style.width = '100%';
+    wrapper.style.height = '100%';
+    wrapper.style.display = 'block';
+    terminalRef.value.appendChild(wrapper);
+  }
+
+  const newTerm = new Terminal({
     cursorBlink: true,
     fontSize: currentFontSize.value,
     fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace",
@@ -441,12 +582,20 @@ function initTerminal() {
     macOptionClickForcesSelection: true,
   });
 
-  fitAddon = new FitAddon();
-  const webLinksAddon = new WebLinksAddon();
-  term.loadAddon(fitAddon);
-  term.loadAddon(webLinksAddon);
-  term.open(terminalRef.value);
+  const newFit = new FitAddon();
+  const newLinks = new WebLinksAddon();
+  newTerm.loadAddon(newFit);
+  newTerm.loadAddon(newLinks);
+  newTerm.open(wrapper);
 
+  // CRITICAL: Fit immediately so cols and rows match the real geometry BEFORE connecting
+  try {
+    newFit.fit();
+  } catch (_) {}
+
+  const term = newTerm;
+
+  // Key event handler
   if (typeof (term as any).attachCustomKeyEventHandler === 'function') {
     term.attachCustomKeyEventHandler((event: KeyboardEvent) => {
       if (event.type !== 'keydown') return true;
@@ -490,21 +639,8 @@ function initTerminal() {
     });
   }
 
-  // Setup ResizeObserver to automatically fit on container resize, tab switch, and font render
-  if (typeof ResizeObserver !== 'undefined' && terminalRef.value) {
-    if (resizeObserver) resizeObserver.disconnect();
-    resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
-          handleResize();
-        }
-      }
-    });
-    resizeObserver.observe(terminalRef.value);
-  }
-
-  // SANITIZE MOBILE TEXTAREA (Prevent mobile autocorrect/autocapitalize from messing up commands)
-  const textarea = terminalRef.value.querySelector('textarea');
+  // Mobile textarea sanitization
+  const textarea = (wrapper as any).querySelector?.('textarea');
   if (textarea) {
     textarea.setAttribute('autocomplete', 'off');
     textarea.setAttribute('autocorrect', 'off');
@@ -513,102 +649,127 @@ function initTerminal() {
     textarea.setAttribute('enterkeyhint', 'go');
   }
 
-  // OSC TITLE AUTO-DETECTION (Default to last 3 directory levels from pwd)
-  term.onTitleChange((title) => {
-    const curSession = terminalStore.activeSession;
-    if (curSession && title && title.trim()) {
-      // Do not overwrite user custom names
-      if (curSession.isCustomNamed) return;
-
+  // OSC Title auto-detection
+  newTerm.onTitleChange((title) => {
+    const s = session;
+    if (s && title && title.trim()) {
+      if (s.isCustomNamed) return;
       const cleanTitle = title.trim();
       if (cleanTitle.includes(':')) {
         const afterColon = cleanTitle.split(':').slice(1).join(':').trim();
         const dirName = extractLast3Dirs(afterColon);
         if (dirName && dirName !== 'terminal') {
-          terminalStore.renameSession(curSession.id, dirName);
+          terminalStore.renameSession(s.id, dirName);
           return;
         }
       }
-      terminalStore.renameSession(curSession.id, extractLast3Dirs(cleanTitle));
+      terminalStore.renameSession(s.id, extractLast3Dirs(cleanTitle));
     }
   });
 
-  setTimeout(handleResize, 60);
-  if (props.isActive !== false) {
+  // Touch scrolling
+  let cleanupTouchFn: (() => void) | null = null;
+  if (wrapper && typeof attachTerminalTouchScrolling === 'function') {
+    cleanupTouchFn = attachTerminalTouchScrolling(wrapper, () => newTerm);
+  }
+
+  const inst: SessionTerminalInstance = {
+    sessionId: session.id,
+    serverId: session.serverId || server.id,
+    term: newTerm,
+    fitAddon: newFit,
+    webLinksAddon: newLinks,
+    socket: null,
+    wrapper,
+    cleanupTouch: cleanupTouchFn,
+    reconnectAttempts: 0,
+    reconnectTimer: null,
+    isDisconnected: false,
+  };
+
+  sessionInstances.set(session.id, inst);
+  syncActiveRefs(inst);
+
+  connectInstanceWebSocket(inst, session, server);
+
+  newTerm.onData((data) => {
+    if (inst.socket && inst.socket.readyState === WebSocket.OPEN) {
+      inst.socket.send(data);
+    }
+  });
+
+  if (props.isActive !== false && !isLaptopKeyboardOpen.value) {
     setTimeout(focusTerminal, 40);
   }
 
-  // Enable touch scrolling for mobile devices on xterm canvas/screen
-  setupTouchScrolling();
+  return inst;
+}
 
-  connectWebSocket();
+function activateSession(session = terminalStore.activeSession, server = serverStore.currentServer) {
+  if (!terminalRef.value) return;
+  if (!session) {
+    terminalStore.ensureServerSession();
+    session = terminalStore.activeSession;
+    if (!session) return;
+  }
 
-  term.onData((data) => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(data);
+  const sessionId = session.id;
+
+  // 1. Hide all other session wrappers
+  for (const [id, inst] of sessionInstances.entries()) {
+    if (id !== sessionId) {
+      if (inst.wrapper && inst.wrapper.style) {
+        inst.wrapper.style.display = 'none';
+      }
     }
-  });
+  }
+
+  // 2. If instance already exists for this session
+  const existing = sessionInstances.get(sessionId);
+  if (existing) {
+    if (existing.wrapper && existing.wrapper.style) {
+      existing.wrapper.style.display = 'block';
+    }
+    syncActiveRefs(existing);
+
+    // Immediately fit and sync resize
+    executeResizeForInstance(existing);
+
+    if (props.isActive !== false && !isLaptopKeyboardOpen.value) {
+      setTimeout(focusTerminal, 30);
+    }
+    return;
+  }
+
+  // 3. Create brand new instance for this session
+  createSessionTerminal(session, server);
+}
+
+function initTerminal() {
+  if (!terminalRef.value) return;
+  activateSession();
 }
 
 function connectWebSocket() {
-  const curServer = serverStore.currentServer;
-  if (!terminalStore.activeSession) {
-    terminalStore.ensureServerSession();
-  }
   const curSession = terminalStore.activeSession;
-  if (!curSession || !term) return;
-  if (terminalStore.isSessionSuspended(curSession.id)) return;
-
-  const cols = term.cols || 80;
-  const rows = term.rows || 24;
-  const wsPath = `/ws/terminal?serverId=${encodeURIComponent(
-    curServer.id
-  )}&sessionId=${encodeURIComponent(curSession.id)}&name=${encodeURIComponent(
-    curSession.name
-  )}&cols=${cols}&rows=${rows}${curSession.cwd ? `&cwd=${encodeURIComponent(curSession.cwd)}` : ''}`;
-
-  socket = new WebSocket(buildWsUrl(wsPath));
-
-  socket.onopen = () => {
-    isDisconnected.value = false;
-    if (reconnectAttempts > 0 && term) {
-      term.reset();
-    }
-    reconnectAttempts = 0;
-    handleResize();
-    if (props.isActive !== false) {
-      setTimeout(focusTerminal, 30);
-    }
-  };
-
-  socket.onmessage = (event) => {
-    if (term) {
-      term.write(event.data);
-    }
-  };
-
-  socket.onclose = () => {
-    isDisconnected.value = true;
-    const session = terminalStore.activeSession;
-    if (session && terminalStore.isSessionSuspended(session.id)) return;
-    scheduleReconnect();
-  };
-
-  socket.onerror = () => {
-    isDisconnected.value = true;
-  };
+  const curServer = serverStore.currentServer;
+  if (!curSession) return;
+  const inst = sessionInstances.get(curSession.id);
+  if (inst) {
+    connectInstanceWebSocket(inst, curSession, curServer);
+  } else {
+    initTerminal();
+  }
 }
 
 function scheduleReconnect() {
   const curSession = terminalStore.activeSession;
-  if (!curSession || terminalStore.isSessionSuspended(curSession.id)) return;
-  if (reconnectTimer) return;
-  const delay = Math.min(30000, 1000 * Math.pow(1.5, reconnectAttempts));
-  reconnectAttempts++;
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    connectWebSocket();
-  }, delay);
+  const curServer = serverStore.currentServer;
+  if (!curSession) return;
+  const inst = sessionInstances.get(curSession.id);
+  if (inst) {
+    scheduleInstanceReconnect(inst, curSession, curServer);
+  }
 }
 
 let resizeDebounceTimer: any = null;
@@ -629,8 +790,29 @@ function onWindowResize() {
   handleResize();
 }
 
+function executeResizeForInstance(inst: SessionTerminalInstance) {
+  if (inst && inst.wrapper) {
+    const el = inst.wrapper;
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
+    try {
+      inst.fitAddon.fit();
+      if (inst.socket && inst.socket.readyState === WebSocket.OPEN) {
+        inst.socket.send(
+          JSON.stringify({
+            type: 'resize',
+            cols: inst.term.cols,
+            rows: inst.term.rows,
+          })
+        );
+      }
+    } catch (_) {}
+  }
+}
+
 function executeResize() {
-  if (fitAddon && term && terminalRef.value) {
+  if (activeInstance) {
+    executeResizeForInstance(activeInstance);
+  } else if (fitAddon && term && terminalRef.value) {
     const el = terminalRef.value;
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
     try {
@@ -716,10 +898,32 @@ watch(
     if (newSuspended) return;
 
     if (newId !== oldId || newServer !== oldServer) {
-      initTerminal();
+      activateSession();
     } else if (oldSuspended || newCwd !== oldCwd) {
-      disconnectSocket();
-      connectWebSocket();
+      if (activeInstance) {
+        disconnectInstanceSocket(activeInstance);
+        const curSession = terminalStore.activeSession;
+        const curServer = serverStore.currentServer;
+        if (curSession) connectInstanceWebSocket(activeInstance, curSession, curServer);
+      }
+    }
+  }
+);
+
+watch(
+  () => terminalStore.sessions.map((s) => s.id),
+  (currentIds) => {
+    const idSet = new Set(currentIds);
+    for (const [id, inst] of Array.from(sessionInstances.entries())) {
+      if (!idSet.has(id)) {
+        disconnectInstanceSocket(inst, true);
+        try { inst.term.dispose(); } catch (_) {}
+        inst.cleanupTouch?.();
+        if (inst.wrapper && inst.wrapper !== terminalRef.value) {
+          try { inst.wrapper.remove(); } catch (_) {}
+        }
+        sessionInstances.delete(id);
+      }
     }
   }
 );
@@ -823,13 +1027,13 @@ onMounted(() => {
   window.addEventListener('paste', handleWindowPaste, true);
   if (document.fonts) {
     document.fonts.ready.then(() => {
-      handleResize();
+      handleResize(true);
     });
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       requestWakeLock();
-      handleResize();
+      handleResize(true);
       const curSession = terminalStore.activeSession;
       if (curSession && terminalStore.isSessionSuspended(curSession.id)) return;
       if (!socket || socket.readyState !== WebSocket.OPEN) {
@@ -841,6 +1045,19 @@ onMounted(() => {
       }
     }
   });
+
+  // Setup ResizeObserver to automatically fit on container resize, tab switch, and font render
+  if (typeof ResizeObserver !== 'undefined' && terminalRef.value) {
+    if (resizeObserver) resizeObserver.disconnect();
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          handleResize();
+        }
+      }
+    });
+    resizeObserver.observe(terminalRef.value);
+  }
 });
 
 onBeforeUnmount(() => {
@@ -856,7 +1073,16 @@ onBeforeUnmount(() => {
     resizeObserver.disconnect();
     resizeObserver = null;
   }
-  cleanupCurrentTerminal();
+  for (const inst of sessionInstances.values()) {
+    disconnectInstanceSocket(inst, true);
+    try { inst.term.dispose(); } catch (_) {}
+    inst.cleanupTouch?.();
+    if (inst.wrapper && inst.wrapper !== terminalRef.value) {
+      try { inst.wrapper.remove(); } catch (_) {}
+    }
+  }
+  sessionInstances.clear();
+  syncActiveRefs(null);
 });
 
 defineExpose({

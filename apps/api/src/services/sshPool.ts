@@ -25,7 +25,7 @@ export interface RemotePtyInstance {
   onExit: (callback: () => void) => void;
 }
 
-const MAX_BUFFER_LENGTH = 100 * 1024;
+const MAX_BUFFER_LENGTH = 500 * 1024;
 const NATIVE_FALLBACK_TTL_MS = 2 * 60 * 1000;
 
 export function isEncryptedPrivateKeyBuffer(buf: Buffer): boolean {
@@ -795,7 +795,12 @@ class SshConnectionPool {
     ptyProcess.onData((data: string) => {
       buffer += data;
       if (buffer.length > MAX_BUFFER_LENGTH) {
-        buffer = buffer.substring(buffer.length - MAX_BUFFER_LENGTH);
+        let startIdx = buffer.length - MAX_BUFFER_LENGTH;
+        const nextNewline = buffer.indexOf('\n', startIdx);
+        if (nextNewline !== -1 && nextNewline < startIdx + 2048) {
+          startIdx = nextNewline + 1;
+        }
+        buffer = buffer.substring(startIdx);
       }
       if (!sentInitialCwd && sanitizedCwd) {
         sentInitialCwd = true;
@@ -967,7 +972,12 @@ class SshConnectionPool {
               const str = chunk.toString('utf8');
               buffer += str;
               if (buffer.length > MAX_BUFFER_LENGTH) {
-                buffer = buffer.substring(buffer.length - MAX_BUFFER_LENGTH);
+                let startIdx = buffer.length - MAX_BUFFER_LENGTH;
+                const nextNewline = buffer.indexOf('\n', startIdx);
+                if (nextNewline !== -1 && nextNewline < startIdx + 2048) {
+                  startIdx = nextNewline + 1;
+                }
+                buffer = buffer.substring(startIdx);
               }
               for (const cb of dataCallbacks) cb(str);
             });

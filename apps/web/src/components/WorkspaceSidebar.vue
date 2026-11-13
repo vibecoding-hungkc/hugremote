@@ -835,13 +835,13 @@ async function executeDeleteProject() {
 
 async function handleSelectTerminal(session: TerminalSessionItem) {
   emit('select-terminal');
+  terminalStore.switchSession(session.id);
   const targetServerId = session.serverId || serverStore.currentServerId;
   if (session.projectId && !await selectProjectScope(session.projectId, targetServerId)) return;
   if (!session.projectId && targetServerId !== serverStore.currentServerId) {
     serverStore.selectServer(targetServerId);
     emit('project-selected');
   }
-  terminalStore.switchSession(session.id);
   closeOnMobileIfNeeded();
 }
 

@@ -1,6 +1,32 @@
 # 📋 Changelog — HugRemote
 
-## [v1.6.17] - 2026-11-12
+## [v1.6.18] - 2026-11-13
+
+Bản phát hành khắc phục triệt để lỗi **vỡ giao diện Terminal Claude Code CLI (UI corruption / text overlap / staircase artifacts)** khi chuyển đổi qua lại giữa các phiên terminal trên nhiều máy chủ khác nhau, giới thiệu cơ chế **Multi-Session Terminal Pooling** và đồng bộ kích thước PTY trước khi phát lại bộ đệm.
+
+### Khắc phục lỗi & Cải tiến
+
+- **Cơ chế Multi-Session Terminal Pooling (`TerminalView.vue`):**
+  - Duy trì bộ nhớ đệm riêng biệt (`SessionTerminalInstance`) cho từng phiên terminal kết nối đến các máy chủ khác nhau.
+  - Khi chuyển qua lại giữa các cửa sổ terminal hoặc giữa các máy chủ, không hủy (`dispose`) xterm instance và không ngắt kết nối WebSocket cũ. Thay vào đó, ẩn/hiện wrapper tương ứng (`display: none` / `display: block`).
+  - Giữ nguyên vẹn 100% màn hình TUI phức tạp của Claude Code CLI (alternate screen buffer, cursor addressing, ANSI formatting), loại bỏ hoàn toàn việc phát lại (replay) đè dữ liệu hay lệch tọa độ con trỏ.
+  - Khi kích hoạt lại phiên cũ, tự động gọi `fitAddon.fit()` và đồng bộ kích cỡ tức thì mà không cần độ trễ debounce.
+
+- **Đồng bộ kích cỡ PTY trước khi phát lại đệm (`ws.ts`, `sessionManager.ts`):**
+  - Khách hàng (client) tự động `fit()` ngay sau khi mở xterm để xác định chính xác số cột và dòng (`cols` x `rows`) thực tế trước khi gửi yêu cầu WebSocket.
+  - Tuyến WebSocket phía backend tự động resize PTY theo đúng kích thước thực tế của client trước khi thực hiện `sessionManager.attach(...)` và phát lại `session.backend.buffer`, ngăn chặn triệt để hiện tượng ngắt dòng cứng tại 80 cột mặc định.
+
+- **Nâng cấp dung lượng và độ an toàn của bộ đệm PTY (`localPty.ts`, `sshPool.ts`):**
+  - Mở rộng dung lượng đệm lịch sử từ 100KB lên 500KB.
+  - Cắt tỉa bộ đệm tại vị trí ký tự xuống dòng (`\n`) thay vì cắt ngẫu nhiên, bảo vệ toàn vẹn các chuỗi UTF-8 nhiều byte (tiếng Việt có dấu) và chuỗi escape sequence ANSI.
+
+- **Khắc phục thứ tự chuyển phiên trong Sidebar (`WorkspaceSidebar.vue`):**
+  - Chuyển `terminalStore.switchSession(session.id)` lên đầu tiên trong `handleSelectTerminal` trước khi đổi ngữ cảnh máy chủ/project, loại bỏ trạng thái trung gian không khớp giữa ID phiên và server ID.
+
+- **Bổ sung bộ test hồi quy (`scripts/test_ui_terminal_multi_server_switch.mjs`):**
+  - Kiểm thử tự động cơ chế pooling, toggle wrapper, PTY resize trước attach, bộ đệm an toàn, và luồng switch session trên sidebar.
+
+---
 
 Bản phát hành sửa lỗi triệt để **Chọn thư mục dạng cây (`FolderTreePicker.vue`, `FolderTreeNode.vue`)** và nâng cấp tính năng **Tệp / Quản lý File (`FileExplorer.vue`, `fileStore.ts`)** kèm bộ test E2E kiểm thử toàn diện edge cases cho Workspace.
 

@@ -61,7 +61,6 @@ try {
   const { default: WorkspaceSidebar } = await vite.ssrLoadModule('/src/components/WorkspaceSidebar.vue');
   const { default: QuickWorkspacePanel } = await vite.ssrLoadModule('/src/components/QuickWorkspacePanel.vue');
   const { default: SettingsView } = await vite.ssrLoadModule('/src/components/SettingsView.vue');
-  const { useShortcutStore } = await vite.ssrLoadModule('/src/stores/shortcutStore.ts');
   const { useServerStore } = await vite.ssrLoadModule('/src/stores/serverStore.ts');
   const { useProjectStore } = await vite.ssrLoadModule('/src/stores/projectStore.ts');
   const { useTerminalStore } = await vite.ssrLoadModule('/src/stores/terminalStore.ts');
@@ -83,7 +82,7 @@ try {
     assert.doesNotMatch(settingsBtnMatch[1], /dock-label|Cài đặt/, '#dock-item-settings must be icon-only without a text label');
   });
 
-  await test('AC-2b: SettingsView renders language selector (#settings-language-card) and shared shortcut block (#settings-shortcut-card) with 5 group rules', async () => {
+  await test('AC-2b: SettingsView renders language selector (#settings-language-card) and no longer renders the removed shortcut card', async () => {
     const pinia = createPinia();
     setActivePinia(pinia);
     const app = createSSRApp(SettingsView);
@@ -105,19 +104,10 @@ try {
     assert.match(html, /id="two-factor-status-badge"/);
     assert.match(html, /id="btn-toggle-2fa-setup"/);
 
-    assert.match(html, /id="settings-shortcut-card"/);
-    assert.match(html, /id="shortcut-labels-toggle-btn"/);
-    assert.match(html, /id="shortcut-enabled-toggle"/);
-    assert.match(html, /id="btn-reset-shortcuts-default"/);
-    assert.match(html, /data-shortcut-group="project"/);
-    assert.match(html, /data-shortcut-group="claude"/);
-    assert.match(html, /data-shortcut-group="terminal"/);
-    assert.match(html, /data-shortcut-group="server"/);
-    assert.match(html, /data-shortcut-group="toggleLabels"/);
-    assert.doesNotMatch(html, /settings-shortcut-projects|btn-move-up|btn-move-down/);
+    assert.doesNotMatch(html, /settings-shortcut-card|shortcut-enabled-toggle|shortcut-labels-toggle-btn|btn-reset-shortcuts-default|data-shortcut-group/);
   });
 
-  await test('AC-3: shortcutStore & WorkspaceSidebar render thin index (1, 2...) and toggleable .dw-kbd-tag', async () => {
+  await test('AC-3: WorkspaceSidebar has no index badges or shortcut tags and keeps the spotlight trigger', async () => {
     storageMap.clear();
     const pinia = createPinia();
     setActivePinia(pinia);
@@ -125,7 +115,6 @@ try {
     const projectStore = useProjectStore();
     const terminalStore = useTerminalStore();
     const claudeStore = useClaudeStore();
-    const shortcutStore = useShortcutStore();
 
     const srvId = serverStore.currentServerId;
     projectStore.projects = [
@@ -141,32 +130,18 @@ try {
       { id: 'claude-1', serverId: srvId, projectId: 'proj-1', name: 'Refactor UI', cwd: '/home/u/hugcode', model: 'sonnet', messages: [] },
     ];
 
-    assert.equal(shortcutStore.showLabels, false, 'Labels must be hidden by default');
-    assert.equal(shortcutStore.getItemShortcut('project', 1), 'Alt+1');
-    assert.equal(shortcutStore.getItemShortcut('claude', 1), 'Alt+Shift+1');
-    assert.equal(shortcutStore.getItemShortcut('terminal', 2), 'Ctrl+Alt+2');
-    assert.equal(shortcutStore.getItemShortcut('server', 1), 'Ctrl+Shift+1');
-
-    shortcutStore.toggleLabelsVisibility();
-    assert.equal(shortcutStore.showLabels, true);
-    shortcutStore.toggleLabelsVisibility();
-    assert.equal(shortcutStore.showLabels, false);
-
     const wsApp = createSSRApp(WorkspaceSidebar, { isOpen: true });
     wsApp.use(pinia);
     const wsHtml = await renderToString(wsApp);
 
-    assert.match(wsHtml, /class="dw-idx-badge"[^>]*data-proj-index="1"[^>]*>1<\/span>/);
-    assert.match(wsHtml, /class="dw-idx-badge"[^>]*data-proj-index="2"[^>]*>2<\/span>/);
-    assert.match(wsHtml, /class="dw-idx-badge"[^>]*data-term-index="1"[^>]*>1<\/span>/);
-    assert.match(wsHtml, /class="dw-idx-badge"[^>]*data-term-index="2"[^>]*>2<\/span>/);
-    assert.match(wsHtml, /class="dw-idx-badge"[^>]*data-claude-index="1"[^>]*>1<\/span>/);
-    assert.match(wsHtml, /<kbd class="dw-kbd-tag"[^>]*>Alt\+1<\/kbd>/);
-    assert.match(wsHtml, /<kbd class="dw-kbd-tag"[^>]*>Ctrl\+Alt\+2<\/kbd>/);
+    assert.match(wsHtml, /Workspace/);
+    assert.match(wsHtml, /main-shell/);
+    assert.match(wsHtml, /Refactor UI/);
+    assert.match(wsHtml, /id="btn-dw-open-spotlight"/);
+    assert.doesNotMatch(wsHtml, /dw-idx-badge|dw-kbd-tag|data-proj-index|data-term-index|data-claude-index/);
 
-    const wsCss = fs.readFileSync(fileURLToPath(new URL('../apps/web/src/components/WorkspaceSidebar.vue', import.meta.url)), 'utf8');
-    assert.match(wsCss, /\.dw-kbd-tag\s*\{[\s\S]*?display:\s*none/);
-    assert.match(wsCss, /\.shortcut-labels-visible[\s\S]*?\.dw-kbd-tag[\s\S]*?\{[\s\S]*?display:\s*inline-flex/);
+    const wsSource = fs.readFileSync(fileURLToPath(new URL('../apps/web/src/components/WorkspaceSidebar.vue', import.meta.url)), 'utf8');
+    assert.doesNotMatch(wsSource, /dw-idx-badge|dw-kbd-tag|shortcut-labels-visible|shortcutStore/);
   });
 
   await test('AC-4a: SmartHeader renders Folder Sidebar trigger and Workspace Sidebar toggle on ALL 6 tabs', async () => {

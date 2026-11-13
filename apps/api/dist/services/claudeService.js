@@ -1590,7 +1590,7 @@ export class ClaudeService {
                 : sanitizeRemoteWorkspacePath(targetCwd, server.user);
             const remoteCwd = cleanCwd === '~' ? '"$HOME"'
                 : cleanCwd.startsWith('~/') ? `"$HOME"/${shellEscape(cleanCwd.slice(2))}` : shellEscape(cleanCwd);
-            const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; (cd -- ${remoteCwd} 2>/dev/null || cd -- "$HOME") && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
+            const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; { cd -- ${remoteCwd} 2>/dev/null || cd -- "$HOME"; } && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
             const channel = await new Promise((resolve, reject) => {
                 let expired = false;
                 const timer = setTimeout(() => {
@@ -1831,7 +1831,7 @@ export class ClaudeService {
                 : sanitizeRemoteWorkspacePath(targetCwd, server.user);
             const remoteCwd = cleanCwd === '~' ? '"$HOME"'
                 : cleanCwd.startsWith('~/') ? `"$HOME"/${shellEscape(cleanCwd.slice(2))}` : shellEscape(cleanCwd);
-            const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; (cd -- ${remoteCwd} 2>/dev/null || cd -- "$HOME") && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
+            const command = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; { cd -- ${remoteCwd} 2>/dev/null || cd -- "$HOME"; } && exec env CLAUDE_CODE_CONFIG_PROBE=1 claude ${args.map(shellEscape).join(' ')}`;
             const channel = await new Promise((resolve, reject) => {
                 let expired = false;
                 const timer = setTimeout(() => {
@@ -2214,10 +2214,10 @@ export class ClaudeService {
         }
         else if (targetCwd.startsWith('~/')) {
             const sub = targetCwd.slice(2);
-            cdCmd = `(cd -- "$HOME"/${shellEscape(sub)} 2>/dev/null || cd -- "$HOME") && `;
+            cdCmd = `{ cd -- "$HOME"/${shellEscape(sub)} 2>/dev/null || cd -- "$HOME"; } && `;
         }
         else {
-            cdCmd = `(cd -- ${shellEscape(targetCwd)} 2>/dev/null || cd -- "$HOME") && `;
+            cdCmd = `{ cd -- ${shellEscape(targetCwd)} 2>/dev/null || cd -- "$HOME"; } && `;
         }
         const remoteCmd = `export PATH="$HOME/.local/bin:$HOME/.nvm/versions/node/$(ls -1 "$HOME/.nvm/versions/node" 2>/dev/null | tail -n 1)/bin:$HOME/.fnm/current/bin:$HOME/.local/share/fnm/current/bin:$HOME/.bun/bin:$HOME/.pnpm:$HOME/.local/share/pnpm:/usr/local/bin:$PATH"; ${cdCmd}claude ${escapedArgs}`;
         const stream = await sshPool.executeCommand(server, remoteCmd);

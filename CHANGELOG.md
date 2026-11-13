@@ -1,5 +1,21 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.19] - 2026-11-13
+
+Khắc phục lỗi **Claude Code trên máy chủ SSH remote luôn khởi chạy ở thư mục home thay vì thư mục của Project**, khi mở Project hoặc tạo phiên Claude mới từ Project.
+
+### Khắc phục lỗi
+
+- **Nguyên nhân gốc (`claudeService.ts`):** lệnh remote được ghép dạng `(cd -- <project> 2>/dev/null || cd -- "$HOME") && claude ...`. Dấu ngoặc `( )` chạy `cd` trong subshell nên thay đổi thư mục bị mất ngay khi subshell kết thúc, `claude` luôn chạy ở home của user SSH.
+- **Cách sửa:** đổi sang nhóm lệnh `{ cd -- <project> 2>/dev/null || cd -- "$HOME"; } && claude ...` chạy trong cùng shell. Áp dụng cho cả 4 điểm: chạy phiên chat, thăm dò cấu hình, thăm dò model và khởi chạy remote.
+- **Kiểm chứng:** trên SSH server thật, cùng một request trước đó chạy ở `/home/devops`, sau khi sửa chạy ở `/home/devops/test-proj`.
+
+### Test
+
+- Thêm `scripts/test_claude_remote_cwd.ts` (`npm run test:claude-remote-cwd`): chạy đúng lệnh được sinh ra qua shell thật, kiểm tra đường dẫn `~/...`, đường dẫn có khoảng trắng, thư mục không tồn tại quay về home, và chặn việc quay lại dạng subshell.
+
+---
+
 ## [v1.6.18] - 2026-11-13
 
 Bản phát hành khắc phục triệt để lỗi **vỡ giao diện Terminal Claude Code CLI (UI corruption / text overlap / staircase artifacts)** khi chuyển đổi qua lại giữa các phiên terminal trên nhiều máy chủ khác nhau, giới thiệu cơ chế **Multi-Session Terminal Pooling** và đồng bộ kích thước PTY trước khi phát lại bộ đệm.

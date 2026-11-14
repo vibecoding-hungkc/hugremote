@@ -1,5 +1,16 @@
 # 📋 Changelog — HugRemote
 
+## [v1.6.20] - 2026-11-13
+
+Thay hệ thống phím tắt và tag số ở Workspace bằng **một ô tìm kiếm nhanh kiểu Spotlight**.
+
+### Thay đổi
+
+- **Gỡ bỏ:** phím tắt Alt/Ctrl + số, tag số và nhãn phím trong cột Workspace, card Cài đặt phím tắt trong Settings và `shortcutStore`.
+- **Thêm Spotlight:** một phím tắt duy nhất, ⌘K trên Mac và Ctrl+Alt+K trên Windows/Linux, hoặc nút kính lúp ở đầu cột Workspace. Ô tìm kiếm liệt kê dự án, phiên Claude và phiên Terminal của mọi server trong Workspace.
+- **Tìm kiếm:** không phân biệt hoa thường và dấu tiếng Việt, xếp kết quả khớp tên lên trước, điều hướng bằng ↑/↓, Enter để mở, Esc để đóng. Không bắt Enter khi đang gõ dấu bằng Telex/VNI.
+- **Chuyển mục:** chọn mục sẽ đổi đúng server, project và tab, vẫn hỏi lưu nếu file đang sửa dở.
+
 ## [v1.6.19] - 2026-11-13
 
 Khắc phục lỗi **Claude Code trên máy chủ SSH remote luôn khởi chạy ở thư mục home thay vì thư mục của Project**, khi mở Project hoặc tạo phiên Claude mới từ Project.

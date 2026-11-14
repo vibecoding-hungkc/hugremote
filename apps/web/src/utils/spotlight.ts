@@ -3,6 +3,7 @@ export type SpotlightKind = 'project' | 'claude' | 'terminal';
 export interface SpotlightServerInput {
   id: string;
   name: string;
+  type?: string;
 }
 
 export interface SpotlightProjectInput {
@@ -28,6 +29,8 @@ export interface SpotlightItem {
   subtitle: string;
   serverId: string;
   serverName: string;
+  serverType: string;
+  serverIndex: number;
   projectId?: string;
   projectName: string;
 }
@@ -55,8 +58,15 @@ function trimSlash(path?: string): string {
   return (path || '').trim().replace(/\/+$/, '') || '/';
 }
 
+function describeLocation(name: string, rootPath: string): string {
+  const base = trimSlash(rootPath).split('/').pop() || '';
+  return !name || name === '~' || name === base ? rootPath : `${name} · ${rootPath}`;
+}
+
 export function buildSpotlightItems(input: BuildSpotlightInput): SpotlightItem[] {
   const serverName = new Map(input.servers.map(s => [s.id, s.name]));
+  const serverIndex = new Map(input.servers.map((s, i) => [s.id, i]));
+  const serverType = new Map(input.servers.map(s => [s.id, s.type || 'local']));
   const serverIds = new Set(input.servers.map(s => s.id));
   const projects = input.projects.filter(p => serverIds.has(p.serverId));
   const projectById = new Map(projects.map(p => [`${p.serverId}\u0000${p.id}`, p]));
@@ -77,9 +87,11 @@ export function buildSpotlightItems(input: BuildSpotlightInput): SpotlightItem[]
       kind: 'project',
       id: p.id,
       title: p.name,
-      subtitle: `${srv} · ${p.rootPath}`,
+      subtitle: p.rootPath,
       serverId: p.serverId,
       serverName: srv,
+      serverType: serverType.get(p.serverId) || 'local',
+      serverIndex: serverIndex.get(p.serverId) ?? 0,
       projectId: p.id,
       projectName: p.name,
     });
@@ -99,9 +111,11 @@ export function buildSpotlightItems(input: BuildSpotlightInput): SpotlightItem[]
         kind,
         id: s.id,
         title: s.name || (kind === 'claude' ? 'Claude' : 'Terminal'),
-        subtitle: `${srv} · ${project?.name || s.cwd || '~'}`,
+        subtitle: project ? describeLocation(project.name, project.rootPath) : s.cwd || '~',
         serverId: s.serverId,
         serverName: srv,
+        serverType: serverType.get(s.serverId) || 'local',
+        serverIndex: serverIndex.get(s.serverId) ?? 0,
         projectId: project?.id,
         projectName: project?.name || '',
       });
@@ -151,7 +165,11 @@ export function filterSpotlightItems(
   const kept = indexed.filter(r => r.score > 0);
   kept.sort((a, b) => {
     if (!q) {
-      return KIND_ORDER[a.item.kind] - KIND_ORDER[b.item.kind] || a.index - b.index;
+      return (
+        a.item.serverIndex - b.item.serverIndex ||
+        KIND_ORDER[a.item.kind] - KIND_ORDER[b.item.kind] ||
+        a.index - b.index
+      );
     }
     return b.score - a.score || KIND_ORDER[a.item.kind] - KIND_ORDER[b.item.kind] || a.index - b.index;
   });

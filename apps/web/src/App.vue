@@ -361,7 +361,7 @@ const spotlightItems = computed(() => {
   const projects = servers.flatMap(srv => projectStore.projectsForServer(srv.id));
   const serverIds = new Set(servers.map(s => s.id));
   const items = buildSpotlightItems({
-    servers: servers.map(s => ({ id: s.id, name: s.name })),
+    servers: servers.map(s => ({ id: s.id, name: s.name, type: s.type })),
     projects: projects.map(p => ({ id: p.id, serverId: p.serverId, name: p.name, rootPath: p.rootPath })),
     terminals: terminalStore.sessions.filter(s => serverIds.has(s.serverId)),
     claudes: claudeStore.sessions.filter(s => serverIds.has(s.serverId)),

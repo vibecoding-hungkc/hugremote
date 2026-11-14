@@ -39,10 +39,15 @@
           </div>
 
           <div id="spotlight-list" ref="listRef" class="spl-list" role="listbox">
-            <template v-for="group in groups" :key="group.kind">
-              <div class="spl-group-title">
+            <template v-for="group in groups" :key="group.kind === 'server' ? group.serverId : group.kind">
+              <div
+                class="spl-group-title"
+                :class="{ 'spl-group-server': group.kind === 'server' }"
+                :data-server-id="group.kind === 'server' ? group.serverId : undefined"
+              >
                 <i :class="group.icon"></i>
                 <span>{{ group.title }}</span>
+                <em v-if="group.kind === 'server'" class="spl-group-count">{{ group.rows.length }}</em>
               </div>
               <button
                 v-for="row in group.rows"
@@ -62,9 +67,20 @@
                 <span class="spl-row-icon"><i :class="kindIcon(row.item.kind)"></i></span>
                 <span class="spl-row-main">
                   <span class="spl-row-title">{{ row.item.title }}</span>
-                  <span class="spl-row-sub">{{ row.item.subtitle }}</span>
+                  <span class="spl-row-sub">
+                    <b v-if="group.kind === 'all'" class="spl-row-kind">{{ kindLabel(row.item.kind) }}</b>{{ row.item.subtitle }}
+                  </span>
                 </span>
                 <span v-if="row.item.isCurrent" class="spl-row-current">Đang mở</span>
+                <span
+                  v-if="group.kind === 'all'"
+                  class="spl-row-server"
+                  :data-server-id="row.item.serverId"
+                  :title="row.item.serverName"
+                >
+                  <i :class="row.item.serverType === 'ssh' ? 'ri-server-line' : 'ri-computer-line'"></i>
+                  <span class="spl-row-server-name">{{ row.item.serverName }}</span>
+                </span>
                 <i class="ri-corner-down-left-line spl-row-enter"></i>
               </button>
             </template>
@@ -112,11 +128,11 @@ const composing = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
 const listRef = ref<HTMLElement | null>(null);
 
-const GROUPS: Array<{ kind: SpotlightKind; title: string; icon: string }> = [
-  { kind: 'project', title: 'Dự án', icon: 'ri-folder-2-line' },
-  { kind: 'claude', title: 'Phiên Claude', icon: 'ri-sparkling-2-line' },
-  { kind: 'terminal', title: 'Phiên Terminal', icon: 'ri-terminal-box-line' },
-];
+const KIND_LABEL: Record<SpotlightKind, string> = {
+  project: 'Dự án',
+  claude: 'Claude',
+  terminal: 'Terminal',
+};
 
 const results = computed<SpotlightRowItem[]>(
   () => filterSpotlightItems(props.items, query.value) as SpotlightRowItem[]
@@ -136,19 +152,34 @@ const groups = computed(() => {
         }]
       : [];
   }
-  return GROUPS
-    .map(g => ({
-      ...g,
-      rows: list
-        .filter(item => item.kind === g.kind)
-        .map(item => ({ item, index: indexOf.get(item.key) as number })),
-    }))
-    .filter(g => g.rows.length > 0);
+  const order: string[] = [];
+  const byServer = new Map<string, SpotlightRowItem[]>();
+  for (const item of list) {
+    if (!byServer.has(item.serverId)) {
+      byServer.set(item.serverId, []);
+      order.push(item.serverId);
+    }
+    byServer.get(item.serverId)!.push(item);
+  }
+  return order.map(id => {
+    const members = byServer.get(id)!;
+    return {
+      kind: 'server' as const,
+      serverId: id,
+      title: members[0].serverName,
+      icon: members[0].serverType === 'ssh' ? 'ri-server-line' : 'ri-computer-line',
+      rows: members.map(item => ({ item, index: indexOf.get(item.key) as number })),
+    };
+  });
 });
 
 const activeDomId = computed(() =>
   results.value.length ? `spotlight-row-${activeIndex.value}` : undefined
 );
+
+function kindLabel(kind: SpotlightKind): string {
+  return KIND_LABEL[kind];
+}
 
 function kindIcon(kind: SpotlightKind): string {
   if (kind === 'project') return 'ri-folder-2-line';
@@ -396,6 +427,75 @@ watch(
   color: #a6a6a6;
 }
 
+.spl-row-server {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 38%;
+  padding: 3px 8px;
+  border-radius: 7px;
+  border: 1px solid #3d3d3d;
+  background: linear-gradient(180deg, #2a2a2a, #1d1d1d);
+  color: #cfcfcf;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.spl-row-server i {
+  font-size: 12px;
+  color: #9a9a9a;
+}
+
+.spl-row-server-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spl-row.active .spl-row-server {
+  border-color: #5a5a5a;
+  color: #ffffff;
+}
+
+.spl-group-server {
+  position: sticky;
+  top: -6px;
+  z-index: 2;
+  color: #cfcfcf;
+  font-size: 11px;
+  background: linear-gradient(180deg, #1c1c1c 80%, rgba(28, 28, 28, 0));
+}
+
+.spl-group-server:not(:first-child) {
+  margin-top: 8px;
+  padding-top: 14px;
+  box-shadow: 0 -1px 0 #2c2c2c;
+}
+
+.spl-group-count {
+  margin-left: auto;
+  font-style: normal;
+  font-family: monospace;
+  color: #6a6a6a;
+}
+
+.spl-row-kind {
+  display: inline-block;
+  min-width: 56px;
+  text-align: center;
+  margin-right: 8px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #262626;
+  border: 1px solid #383838;
+  color: #a8a8a8;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  color: #b4b4b4;
+}
+
 .spl-row-current {
   flex-shrink: 0;
   font-size: 10px;
@@ -488,6 +588,10 @@ watch(
 
   .spl-input {
     font-size: 16px;
+  }
+
+  .spl-row-server {
+    max-width: 34%;
   }
 
   .spl-footer .spl-hint {

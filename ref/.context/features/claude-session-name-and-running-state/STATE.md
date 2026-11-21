@@ -1,0 +1,14 @@
+# Feature State: `claude-session-name-and-running-state`
+
+| Timestamp | Step | Status | Notes |
+| --- | --- | --- | --- |
+| 2026-11-05T04:12:00Z | STEP_1_INVESTIGATE | DONE | Inspected `ClaudeView.vue`, `claudeStore.ts`, `claudeService.ts`, `SmartHeader.vue`, `WorkspaceSidebar.vue`; verified `claude` CLI `--name` flag and Stop button behavior |
+| 2026-11-05T04:13:00Z | STEP_2_PLAN | DONE | Wrote `PLAN.md` with AC-1, AC-2, AC-3 |
+| 2026-11-05T04:15:00Z | STEP_3_FAILING_TEST | DONE | Added failing assertions to `scripts/test_ui_workspace_sidebar.mjs` (RED confirmed) |
+| 2026-11-05T04:22:00Z | STEP_4_IMPLEMENT | DONE | Implemented CLI `--name` sync, `.hugremote-meta.json` / `.jsonl` sync, and Workspace running spinner + Stop button; passed `npm run build`, `test_ui_workspace_sidebar.mjs` (8/8), and `test_ui_monochrome_theme.mjs` |
+| 2026-11-05T04:33:00Z | STEP_5_REVIEW_AND_PROTOTYPE | PAUSED_FOR_USER_PROTOTYPE_REVIEW | Fixed all findings from independent code review (`deleg_edaf7d23`); updated `analysis/prototypes/prototype.html` with Multi-Repo Git tracking (up to 5 levels deep) and Claude Mic Speech-to-Text button (`#btn-claude-mic` next to `ri-shield-check-line` with temp file auto-cleanup) and verified in real browser |
+| 2026-11-05T04:45:00Z | STEP_6_PROTOTYPE_REFINEMENTS | DONE | Per user feedback: (1) Mic button shows only `recording` and `transcribing` states (no "đã điền" status); (2) Workspace Claude row shows only `.dw-claude-running.status-indicator` loading spinner without stop button; (3) Approved Option 1 (Web Speech API `vi-VN`) and full implementation of the prototype batch into main app |
+| 2026-11-05T06:55:00Z | STEP_7_IMPLEMENT_FULL_BATCH | DONE | Implemented Multi-Repo Git discovery & operations up to 5 levels (`gitService.ts`, `api.ts`, `gitStore.ts`, `QuickWorkspacePanel.vue`, `GitView.vue`), Vietnamese Web Speech API (`vi-VN`) Mic button `#btn-claude-mic` next to `#btn-claude-shield` (`ClaudeView.vue` & `prototype.html`), Workspace running indicator without stop button (`WorkspaceSidebar.vue`), and Claude `--name` CLI sync (`claudeService.ts`) |
+| 2026-11-05T06:58:00Z | STEP_8_TEST_AND_BUILD | DONE | Passed `npm run build`, `npm run test:ui`, `npm run test:git`, `npm run test:claude-resume`, `npm run test:claude-stream` |
+| 2026-11-05T07:01:00Z | STEP_9_BROWSER_VERIFICATION | DONE | Verified live `/remote/` app (`#btn-claude-mic` Vietnamese STT with 2 states, `#quick-git-repo-section` & `#git-multi-repo-bar` up to 5 levels, `.dw-claude-running.status-indicator` without stop button, custom session name in `SmartHeader`) and `prototype.html` via `browser_exec` |
+| 2026-11-05T07:02:00Z | STEP_10_COMPLETE | DONE | Merged `feat/claude-session-name-and-running-state` into `main`, pushed to `origin`, and synced live `hugremote.service` |

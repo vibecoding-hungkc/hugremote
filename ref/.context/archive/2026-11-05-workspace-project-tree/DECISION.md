@@ -1,0 +1,3 @@
+- Reuse project IDs as tree keys; existing session stores group by projectId, with Claude legacy cwd fallback only for sessions lacking explicit projectId. Selecting a session from another Project first switches scope, then selects the session.
+- Keep desktop width as parent App.vue reactive CSS variable so sidebar edge and main content move together. Mobile remains overlay with viewport cap.
+- Use one project-level guide line and one nested session-group guide line; active indicator is one dot per selected item, not colored cards.

@@ -1,0 +1,1 @@
+- Investigated image: paths `/home/aeh-acn-ttn/projects/kiennt/acn4e-viper` and `/home/aeh-acn-ttn/projects/dungbh/acn4e-viper` share first ten base64url characters `L2hvbWUvYW`; projectService.ts:118 forms ID using this prefix and project name. ProjectModal.vue compares row IDs, causing both checkmarks and ambiguous selection. No changes yet to production data or code.

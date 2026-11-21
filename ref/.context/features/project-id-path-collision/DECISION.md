@@ -1,0 +1,1 @@
+- Project identity must not depend on display name or a truncated path prefix. Preserve already-issued IDs when unique; migrate duplicate persisted IDs and dependent references only after enumerating all consumers.

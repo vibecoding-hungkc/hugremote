@@ -1,0 +1,4 @@
+# Progress
+- 2026-11-05 Research: prior prototype changed Git repo rows; current responsive grid stacks columns below 860px but does not navigate. Existing GitView.vue original file list has status, stage label, additions/deletions, but prototype only has simplified diff fixtures. User explicitly requests prototype-only mobile/tablet list → details; desktop unchanged.
+- 2026-11-05 Plan: ACs recorded in PLAN.md; proceed without another approval request because this is a proposed prototype for review.
+- 2026-11-05 Verification: browser 390/820/860 showed list first → selected repo details → back; empty repo displayed clear empty state; file click changed diff; status, stage, +/- counters visible. Browser 861/1280 retained simultaneous columns, no visible back/counters. No horizontal overflow at all five widths. node scripts/test_ui_monochrome_theme.mjs and node scripts/test_ui_workspace_git.mjs passed; git diff --check passed. Prototype only, production untouched.

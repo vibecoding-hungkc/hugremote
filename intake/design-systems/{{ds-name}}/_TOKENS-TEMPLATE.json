@@ -1,0 +1,67 @@
+{
+  "$comment": [
+    "ĐẶC TẢ ĐỊNH DẠNG — file này KHÔNG phải gói token thật, chỉ mô tả cấu trúc chuẩn",
+    "của intake/design-systems/<ds-name>/tokens.json để meta biết cách đọc drop thật.",
+    "Giữ nguyên, đừng sửa, đừng đổi tên thành tokens.json.",
+    "",
+    "GÓI NÀY LÀ HỢP ĐỒNG (VIPER.md §1.3). Pha V dịch nó sang context/DESIGN-SYSTEM.md §2",
+    "TRUNG THÀNH: không bịa token mới, không bỏ rơi token nào, không đổi giá trị.",
+    "Hook scripts/guard_ds.py chặn lúc ghi file; gate.py V đối chiếu lại toàn bộ.",
+    "",
+    "CÁCH ĐẶT TÊN: đường dẫn lồng nhau nối bằng dấu gạch ngang, thêm tiền tố --.",
+    "  color.text-muted  →  --color-text-muted        space.md  →  --space-md",
+    "  radius            →  --radius                  font.sans →  --font-sans",
+    "Tên phải là SEMANTIC (--color-danger), không theo màu (--color-red): đổi đỏ sang",
+    "cam thì tên vẫn đúng.",
+    "",
+    "KHOÁ GIÁ TRỊ: nhận cả \"$value\" (Design Token Format) lẫn \"value\" thuần, hoặc",
+    "chuỗi trần (\"radius\": \"8px\"). Mọi khoá bắt đầu bằng $ hoặc _ là metadata —",
+    "parser bỏ qua, nên $type/$description/$comment viết thoải mái.",
+    "",
+    "MÀU PHẢI LÀ MÃ HEX: gate.py tự tính tương phản WCAG AA từ đây. Giá trị không",
+    "phải hex (rgb(), tên màu CSS, tham chiếu {color.primary}) sẽ làm cặp tương phản",
+    "ở DESIGN-SYSTEM.md §3 không tính được → gate đỏ, fail-closed."
+  ],
+
+  "color": {
+    "bg":         { "$value": "#FFFFFF", "$type": "color", "$description": "nền trang" },
+    "surface":    { "$value": "#F7F8FA", "$type": "color", "$description": "nền thẻ / hàng danh sách nổi trên nền trang" },
+    "text":       { "$value": "#1A1A1A", "$type": "color", "$description": "chữ chính" },
+    "text-muted": { "$value": "#595959", "$type": "color", "$description": "chữ phụ, nhãn, chú thích" },
+    "primary":    { "$value": "#0B5FFF", "$type": "color", "$description": "hành động chính" },
+    "on-primary": { "$value": "#FFFFFF", "$type": "color", "$description": "chữ nằm TRÊN nền primary" },
+    "border":     { "$value": "#D4D7DD", "$type": "color", "$description": "viền input, đường kẻ chia" },
+    "danger":     { "$value": "#C0261B", "$type": "color", "$description": "lỗi, xoá, cảnh báo mất dữ liệu" }
+  },
+
+  "font": {
+    "sans": { "$value": "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif", "$type": "fontFamily", "$description": "họ chữ duy nhất" }
+  },
+
+  "text": {
+    "$comment": "Thang cỡ chữ 3–4 bậc. Nhiều bậc hơn chỉ tạo chỗ để phân vân.",
+    "sm":   { "$value": "14px", "$type": "dimension", "$description": "chú thích, nhãn phụ" },
+    "base": { "$value": "16px", "$type": "dimension", "$description": "chữ thường" },
+    "xl":   { "$value": "22px", "$type": "dimension", "$description": "tiêu đề màn hình" }
+  },
+
+  "space": {
+    "$comment": "Bội số cố định (4 hoặc 8). Mọi padding/margin lấy từ đây.",
+    "sm": { "$value": "8px",  "$type": "dimension" },
+    "md": { "$value": "16px", "$type": "dimension" },
+    "lg": { "$value": "32px", "$type": "dimension" }
+  },
+
+  "radius": { "$value": "8px", "$type": "dimension", "$description": "bo góc nút, thẻ, input — một giá trị dùng chung" },
+  "shadow": { "$value": "0 1px 3px rgba(0,0,0,.12)", "$type": "shadow", "$description": "đổ bóng thẻ nổi, chỉ một mức" },
+
+  "$breakpoints": {
+    "$comment": [
+      "Điểm gãy KHÔNG đặt dạng token: CSS media query không dùng được var(), nên",
+      "prototype viết số thật trong @media. Khoá này bắt đầu bằng $ nên parser bỏ qua",
+      "— gate sẽ không đòi nó xuất hiện trong prototype. Chép sang",
+      "context/DESIGN-SYSTEM.md §2.4 để tra."
+    ],
+    "narrow-to-wide": "768px"
+  }
+}

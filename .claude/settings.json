@@ -1,0 +1,92 @@
+{
+  "$comment": "VIPER — luật #2: sau pha V agent toàn quyền TRONG sandbox dự án. Thiết kế: 'Bash' TRẦN allow toàn bộ lệnh shell — liệt kê ~50 prefix thì vẫn thua (lệnh ghép 'cd x && npm i', thêm cờ 'curl -s', lệnh chưa liệt kê đều prompt; thực chiến đo được >1000 lần bấm Yes). An toàn vì thứ tự xét là deny → ask → allow và độ-cụ-thể KHÔNG đảo được thứ tự đó: 'git push'/'make deploy' trong 'ask' vẫn dừng hỏi dù Bash được allow toàn bộ. 'mcp__browser' allow mọi tool browser_* của phiên chính, 'mcp__mobile' mọi tool mobile_*, và 'mcp__pw-slot-k' allow trình duyệt riêng của TỪNG khe dogfood (3 server ở .mcp.json) — allow KHÔNG nhận wildcard ở tên server ('mcp__pw-*' bị bỏ qua), nên thêm khe là thêm một dòng. Thiếu rule thì dogfood prompt hàng trăm lần. LƯU Ý: thư mục chưa được trust (~/.claude.json projects[<path>].hasTrustDialogAccepted) thì Claude Code BỎ QUA toàn bộ 'allow' ở file này — mở Claude Code tương tác ở thư mục dự án một lần và chấp nhận hộp thoại trust. 'defaultMode: acceptEdits' tự nhận thao tác file trong thư mục làm việc. 'enableAllProjectMcpServers' duyệt sẵn server trong .mcp.json — chỉ có hiệu lực sau khi đã trust workspace (1 lần bấm khi mở dự án lần đầu, không tránh được). Ranh giới 'không đụng dự án khác' nằm ở cwd của phiên — ĐỪNG thêm additionalDirectories. Lưu ý: 'deny' là gờ giảm tốc chứ không phải hàng rào — Bash vẫn grep/sed đọc được file bị deny; thứ bảo vệ secret thật sự là .gitignore + không để secret trong code.",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Edit",
+      "Write",
+      "Bash",
+      "mcp__browser",
+      "mcp__mobile",
+      "mcp__pw-slot-1",
+      "mcp__pw-slot-2",
+      "mcp__pw-slot-3",
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:127.0.0.1)"
+    ],
+    "ask": [
+      "Bash(make deploy:*)",
+      "Bash(git push:*)",
+      "Bash(vercel:*)",
+      "Bash(railway:*)",
+      "Bash(fly:*)",
+      "Bash(flyctl:*)",
+      "Bash(render:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh release:*)",
+      "Bash(npm publish:*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.production)",
+      "Read(.env.staging)",
+      "Read(.env.*.local)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Bash(sudo:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard origin:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "$comment_hooks": "Bốn hook, bốn việc. (1) SessionStart matcher 'compact': compact làm phẳng ràng buộc thủ tục — reanchor.py đọc lại 8 luật + STATE.md từ FILE nhồi vào context. (2) PreToolUse matcher 'AskUserQuestion': guard_ask.py đọc pha từ STATE.md, pha ≠ V thì exit 2 → tool bị CHẶN, stderr nhắc luật #2. (3) PreToolUse matcher 'Bash': guard_bc.py chỉ soi LỆNH DEPLOY (make deploy, vercel/railway/fly/render dạng deploy) — vòng ≥2 mà BACKWARD-COMPATIBILITY-CHECKLIST.md §3 còn mục chưa tick thì exit 2 chặn: deploy phá hợp đồng schema với client/hệ thống ngoài là không thu hồi được. Lệnh Bash khác exit 0 ngay, không tốn gì. (4) PreToolUse matcher 'Write|Edit|MultiEdit': guard_ds.py chỉ soi file trong prototype/ và context/DESIGN-SYSTEM.md — chặn mã màu thô ngoài :root, token dùng mà chưa khai ở §2, và (đường intake) token bịa thêm / lệch giá trị so với intake/design-systems/<ds>/tokens.json. Design system chốt TRƯỚC prototype chỉ có tác dụng nếu prototype thật sự lắp từ token; gõ thẳng #hex cho nhanh là giết đúng cơ chế đó. File khác exit 0 ngay. Cấm bằng văn xuôi không giữ được luật, nhất là sau compact — nên ba luật này là hook; gate vẫn chỉ báo, không chặn. Tất cả dùng exec form (có 'args') để đường dẫn có dấu cách không bị shell tách nhầm. Trên Windows không có lệnh 'python3' — bootstrap.py tự đổi thành 'python' lúc tạo dự án; nếu copy template bằng tay thì tự sửa các chỗ 'command' bên dưới. Đo hiệu quả reanchor: python3 scripts/reanchor.py --audit",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/scripts/reanchor.py"]
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/scripts/guard_ask.py"]
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/scripts/guard_bc.py"]
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": ["${CLAUDE_PROJECT_DIR}/scripts/guard_ds.py"]
+          }
+        ]
+      }
+    ]
+  }
+}

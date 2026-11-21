@@ -1,0 +1,69 @@
+{
+  "$comment": "VIPER — server cho dùng thử. 'browser' (Playwright MCP) + 'mobile' (mobile-mcp): của PHIÊN CHÍNH khi meta tự tay dùng (/viper-dogfood Bước 2). 'pw-slot-1..3': MỖI KHE DOGFOOD (agent viper-user-1..3) MỘT TRÌNH DUYỆT RIÊNG — --isolated (profile trong bộ nhớ, không chung tab/cookie/localStorage/phiên đăng nhập), --output-dir riêng. Ba khe vì mỗi đợt dogfood tối đa 3 vai; vai là THẺ (.claude/skills/viper-roles/roles/<vai>.md) giao cho khe, nên thêm vai không phải thêm server. Khe được dùng lại qua nhiều đợt nên việc đầu tiên của khe là browser_close (mở lại trắng). Khe chặn 'browser' và hai khe kia bằng disallowedTools. VÌ SAO KHAI Ở ĐÂY MÀ KHÔNG INLINE trong frontmatter agent: Claude Code chỉ bật server inline của .claude/agents/ khi thư mục có hasTrustDialogAccepted (từ 2.1.238), và chỉ nhận dạng DANH SÁCH — bản 1.9 khai dạng map trùng tên 'browser' nên server inline không bao giờ bật, mọi vai rơi về trình duyệt của phiên chính (thăm dò thật: vai này đọc được localStorage vai kia ghi, lệnh mở trang bị huỷ ERR_ABORTED vì vai kia điều hướng cùng tab). Chromium chỉ bật khi khe gọi tool đầu tiên. 'browser' bật thêm --caps=devtools cho bộ quay VIDEO DEMO CUỐI VÒNG (browser_start_video · browser_video_show_actions · browser_video_chapter · browser_stop_video — pha R, VIPER.md §1.5): phiên chính quay, filename tương đối tính từ gốc dự án nên ghi thẳng demos/vong-<N>/<experience>.webm; ba khe dogfood không cần nên không bật. Mobile KHÔNG có isolation tương đương: simulator/emulator là MỘT thiết bị dùng chung, các vai trên app native chạy TUẦN TỰ qua server 'mobile' (xem .claude/skills/viper-mobile/SKILL.md). Dùng 'npm exec' thay 'npx' vì trên một số máy npx trong PATH là gói standalone đời cũ không hiểu -y. Sửa file này phải MỞ LẠI PHIÊN — server MCP chỉ nạp lúc mở phiên. Thêm/bớt khe thì sửa đồng bộ: server ở đây · allow 'mcp__pw-slot-k' ở .claude/settings.json · disallowedTools của mọi viper-user-k.",
+  "mcpServers": {
+    "browser": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "-y",
+        "--",
+        "@playwright/mcp@latest",
+        "--isolated",
+        "--viewport-size",
+        "1280,800",
+        "--caps=devtools"
+      ]
+    },
+    "mobile": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "-y",
+        "--",
+        "@mobilenext/mobile-mcp@latest"
+      ]
+    },
+    "pw-slot-1": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "-y",
+        "--",
+        "@playwright/mcp@latest",
+        "--isolated",
+        "--viewport-size",
+        "1280,800",
+        "--output-dir",
+        ".playwright-mcp/slot-1"
+      ]
+    },
+    "pw-slot-2": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "-y",
+        "--",
+        "@playwright/mcp@latest",
+        "--isolated",
+        "--viewport-size",
+        "1280,800",
+        "--output-dir",
+        ".playwright-mcp/slot-2"
+      ]
+    },
+    "pw-slot-3": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "-y",
+        "--",
+        "@playwright/mcp@latest",
+        "--isolated",
+        "--viewport-size",
+        "1280,800",
+        "--output-dir",
+        ".playwright-mcp/slot-3"
+      ]
+    }
+  }
+}

@@ -1,0 +1,71 @@
+# Secret — không bao giờ commit
+# `.env.*` bắt mọi biến thể (.env.local, .env.production, .env.staging...).
+# Chỉ deployment/.env.example được commit — nó chỉ có TÊN biến, không có giá trị thật.
+# Mẫu không có dấu / nên khớp ở MỌI cấp: deployment/local/.env cũng bị chặn.
+.env
+.env.*
+!deployment/.env.example
+*.pem
+*.key
+
+# OS
+.DS_Store
+**/.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Node
+node_modules/
+.next/
+.turbo/
+dist/
+build/
+out/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Go — chỉ bin/ ở GỐC repo (neo bằng "/"); stack khác cần commit thư mục bin/ thì xoá dòng này
+/bin/
+*.test
+
+# Java
+target/
+*.class
+
+# Test / coverage
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+
+# Dogfood — Playwright MCP ghi snapshot/ảnh vào đây mỗi lần duyệt
+.playwright-mcp/
+
+# Video demo cuối vòng (pha R, VIPER.md §1.5) — file nặng, không commit; vết trong git
+# là context/DEMOS.md. Bản ghi terminal demos/vong-<N>/*.log (backend-only) VẪN commit.
+demos/**/*.webm
+demos/**/*.mp4
+demos/**/*.mov
+
+# Nhật ký hook reanchor (dùng cho scripts/reanchor.py --audit)
+.viper/
+
+# Local database
+*.sqlite
+*.sqlite3
+*.db
+
+# Editor
+.idea/
+*.swp
+.vscode/*
+!.vscode/extensions.json

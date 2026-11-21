@@ -1,0 +1,31 @@
+{
+  "accept_edits": true,
+  "ask": [
+    "make deploy",
+    "git push",
+    "vercel",
+    "railway",
+    "fly",
+    "flyctl",
+    "render",
+    "gh repo create",
+    "gh release",
+    "npm publish"
+  ],
+  "deny": [
+    "sudo",
+    "rm -rf /",
+    "rm -rf ~",
+    "git push --force",
+    "git reset --hard origin"
+  ],
+  "deny_read": [
+    ".env",
+    ".env.local",
+    ".env.production",
+    ".env.staging",
+    ".env.*.local",
+    "~/.ssh/**",
+    "~/.aws/**"
+  ]
+}

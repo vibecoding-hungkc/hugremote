@@ -1,0 +1,21 @@
+{
+  "viper": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "command": "python3 ../scripts/kit/hookrun.py agy pre auto",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreInvocation": [
+      {
+        "command": "python3 ../scripts/kit/hookrun.py agy invocation reanchor",
+        "timeout": 30
+      }
+    ]
+  }
+}

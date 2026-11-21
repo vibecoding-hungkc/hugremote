@@ -1,0 +1,40 @@
+{
+  "description": "VIPER guards — sinh bởi viper-kit, đừng sửa tay (sửa nguồn VIPER rồi chạy lại viper-kit init codex; sửa hook phải trust lại qua /hooks)",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"$PWD\"; while [ \"$d\" != / ] && [ ! -f \"$d/scripts/kit/hookrun.py\" ]; do d=$(dirname \"$d\"); done; [ -f \"$d/scripts/kit/hookrun.py\" ] || exit 0; exec python3 \"$d/scripts/kit/hookrun.py\" codex pre auto",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"$PWD\"; while [ \"$d\" != / ] && [ ! -f \"$d/scripts/kit/hookrun.py\" ]; do d=$(dirname \"$d\"); done; [ -f \"$d/scripts/kit/hookrun.py\" ] || exit 0; exec python3 \"$d/scripts/kit/hookrun.py\" codex session reanchor",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "d=\"$PWD\"; while [ \"$d\" != / ] && [ ! -f \"$d/scripts/kit/hookrun.py\" ]; do d=$(dirname \"$d\"); done; [ -f \"$d/scripts/kit/hookrun.py\" ] || exit 0; exec python3 \"$d/scripts/kit/hookrun.py\" codex stop guard_ask",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

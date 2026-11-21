@@ -1,0 +1,39 @@
+{
+  "keep": [
+    ".claude/skills/viper-roles/roles"
+  ],
+  "rules": [
+    {
+      "re": "`?\\.claude/settings\\.json`?",
+      "to": "cấu hình permission của kit (`.agents/viper-settings.json` + `.viper-kit/policy.json`)"
+    },
+    {
+      "re": "\\.claude/skills/",
+      "to": ".agy/skills/"
+    },
+    {
+      "re": "\\.claude/agents/",
+      "to": ".agents/agents/"
+    },
+    {
+      "re": "\\.claude/commands/",
+      "to": ".agy/skills/"
+    },
+    {
+      "re": "\\.mcp\\.json",
+      "to": ".agents/mcp_config.json"
+    },
+    {
+      "re": "\\bAskUserQuestion\\b",
+      "to": "ask_question"
+    },
+    {
+      "re": "\\bmcp__([A-Za-z0-9-]+?)__",
+      "to": "$1/"
+    },
+    {
+      "re": "\\bmcp__([A-Za-z0-9-]+)",
+      "to": "$1"
+    }
+  ]
+}

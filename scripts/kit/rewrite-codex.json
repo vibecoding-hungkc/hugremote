@@ -1,0 +1,47 @@
+{
+  "keep": [
+    ".claude/skills/viper-roles/roles"
+  ],
+  "rules": [
+    {
+      "re": "\\b(mcp__[A-Za-z0-9_<>]*)-",
+      "to": "$1_"
+    },
+    {
+      "re": "\\b(mcp__[A-Za-z0-9_<>]*)-",
+      "to": "$1_"
+    },
+    {
+      "re": "\\b(mcp__[A-Za-z0-9_<>]*)-",
+      "to": "$1_"
+    },
+    {
+      "re": "`?\\.claude/settings\\.json`?",
+      "to": "cấu hình Codex của kit (`.codex/config.toml`, `.codex/rules/viper.rules`, `.codex/hooks.json`)"
+    },
+    {
+      "re": "\\.claude/skills/",
+      "to": ".codex/skills/"
+    },
+    {
+      "re": "\\.claude/agents/",
+      "to": ".codex/agents/"
+    },
+    {
+      "re": "\\.claude/commands/",
+      "to": ".codex/skills/"
+    },
+    {
+      "re": "\\.mcp\\.json",
+      "to": ".codex/config.toml"
+    },
+    {
+      "re": "\\bAskUserQuestion\\b",
+      "to": "request_user_input"
+    },
+    {
+      "re": "`?\\bdisallowedTools\\b`?",
+      "to": "hook `guard_agent` (`.viper-kit/agent-policy.json`)"
+    }
+  ]
+}

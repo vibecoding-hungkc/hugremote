@@ -1,0 +1,67 @@
+{
+  "viper-bug-hunter": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "allow_mcp": []
+  },
+  "viper-reviewer": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash"
+    ],
+    "allow_mcp": []
+  },
+  "viper-test-writer": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write",
+      "Edit"
+    ],
+    "allow_mcp": []
+  },
+  "viper-user-1": {
+    "deny": [
+      "Write",
+      "Edit",
+      "NotebookEdit"
+    ],
+    "deny_mcp": [
+      "browser",
+      "pw-slot-2",
+      "pw-slot-3"
+    ]
+  },
+  "viper-user-2": {
+    "deny": [
+      "Write",
+      "Edit",
+      "NotebookEdit"
+    ],
+    "deny_mcp": [
+      "browser",
+      "pw-slot-1",
+      "pw-slot-3"
+    ]
+  },
+  "viper-user-3": {
+    "deny": [
+      "Write",
+      "Edit",
+      "NotebookEdit"
+    ],
+    "deny_mcp": [
+      "browser",
+      "pw-slot-1",
+      "pw-slot-2"
+    ]
+  }
+}

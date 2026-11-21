@@ -1,0 +1,4 @@
+#!/bin/sh
+cd "$(dirname "$0")/../../.." || exit 1
+command -v codex >/dev/null 2>&1 || { echo "viper-codex: không thấy lệnh codex" >&2; exit 3; }
+exec codex "$@"

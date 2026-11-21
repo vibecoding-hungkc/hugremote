@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "browser": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "-y",
+        "--",
+        "@playwright/mcp@latest",
+        "--isolated",
+        "--viewport-size",
+        "1280,800",
+        "--caps=devtools"
+      ]
+    },
+    "mobile": {
+      "command": "npm",
+      "args": [
+        "exec",
+        "-y",
+        "--",
+        "@mobilenext/mobile-mcp@latest"
+      ]
+    }
+  }
+}

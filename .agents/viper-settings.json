@@ -1,0 +1,23 @@
+{
+  "agentMode": "accept-edits",
+  "permissions": {
+    "allow": [
+      "command(*)",
+      "mcp(*)"
+    ],
+    "deny": [
+      "command(sudo)",
+      "command(rm -rf /)",
+      "command(rm -rf ~)",
+      "command(git push --force)",
+      "command(git reset --hard origin)",
+      "read_file(.env)",
+      "read_file(.env.local)",
+      "read_file(.env.production)",
+      "read_file(.env.staging)",
+      "read_file(.env.*.local)",
+      "read_file(~/.ssh/**)",
+      "read_file(~/.aws/**)"
+    ]
+  }
+}

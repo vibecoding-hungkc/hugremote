@@ -1,0 +1,27 @@
+# sinh bởi viper-kit từ permissions + MCP của VIPER — đừng sửa tay
+# Chỉ có hiệu lực khi dự án được Codex trust (KIT.md).
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+
+[sandbox_workspace_write]
+network_access = true
+
+[mcp_servers.browser]
+command = "npm"
+args = ["exec", "-y", "--", "@playwright/mcp@latest", "--isolated", "--viewport-size", "1280,800", "--caps=devtools"]
+
+[mcp_servers.mobile]
+command = "npm"
+args = ["exec", "-y", "--", "@mobilenext/mobile-mcp@latest"]
+
+[mcp_servers.pw-slot-1]
+command = "npm"
+args = ["exec", "-y", "--", "@playwright/mcp@latest", "--isolated", "--viewport-size", "1280,800", "--output-dir", ".playwright-mcp/slot-1"]
+
+[mcp_servers.pw-slot-2]
+command = "npm"
+args = ["exec", "-y", "--", "@playwright/mcp@latest", "--isolated", "--viewport-size", "1280,800", "--output-dir", ".playwright-mcp/slot-2"]
+
+[mcp_servers.pw-slot-3]
+command = "npm"
+args = ["exec", "-y", "--", "@playwright/mcp@latest", "--isolated", "--viewport-size", "1280,800", "--output-dir", ".playwright-mcp/slot-3"]

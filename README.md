@@ -55,3 +55,4 @@ claude
 Có sẵn tài liệu MESH-render? Thả vào `intake/` (xem [intake/README.md](intake/README.md))
 trước khi chạy `/viper-validate` — pha V sẽ đi **đường intake**: dịch tài liệu thay cho
 phỏng vấn (`VIPER.md §1.3`).
+# hugremote-context

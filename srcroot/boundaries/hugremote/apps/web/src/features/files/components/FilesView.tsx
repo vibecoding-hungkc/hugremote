@@ -14,6 +14,7 @@ import { EmptyState, ErrorBox, Skeleton } from '../../../components/ui/States';
 import { ApiError } from '../../../lib/api-client';
 import { filesApi, type FsEntry } from '../api/files.api';
 import { isDirty, useFiles, type OpenFile } from '../files.store';
+import { useUi } from '../../../stores/ui.store';
 
 const IMG = /\.(png|jpe?g|gif|webp|svg|ico)$/i;
 const LOG = /\.(log|out)$|(^|\/)logs?\//i;
@@ -120,6 +121,14 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
     setCompare(false);
     toast(t('files.tookDisk'));
   };
+
+  // ⌘⇧F từ bất kỳ đâu → mở tab Tìm (AC-36)
+  const searchAt = useUi((s) => s.filesSearchAt);
+  useEffect(() => {
+    if (!searchAt || compact) return;
+    setSide('search');
+    useUi.getState().set({ filesSearchAt: 0 });
+  }, [searchAt, compact]);
 
   // ⌘S / ⌘F / ⌥W ở mức trang
   useEffect(() => {

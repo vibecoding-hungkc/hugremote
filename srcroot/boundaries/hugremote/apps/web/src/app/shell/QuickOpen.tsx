@@ -8,6 +8,8 @@ import { Skeleton } from '../../components/ui/States';
 import { filesApi } from '../../features/files/api/files.api';
 import { useFiles } from '../../features/files/files.store';
 
+const NO_FILES: never[] = [];
+
 /** Khớp mờ: các ký tự của truy vấn xuất hiện lần lượt trong đường dẫn. Điểm thấp hơn = khớp tốt hơn. */
 function fuzzy(path: string, q: string): number | null {
   const s = path.toLowerCase();
@@ -34,7 +36,7 @@ export function QuickOpen({ projectId, onPick, onClose, placeholder }: { project
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const list = useQuery({ queryKey: ['fsfiles', projectId], queryFn: () => filesApi.files(projectId), staleTime: 30_000 });
-  const open = useFiles((s) => s.byProject[projectId]?.open ?? []);
+  const open = useFiles((s) => s.byProject[projectId]?.open) ?? NO_FILES;
   const m = /:(\d+)$/.exec(q);
   const line = m ? Number(m[1]) : undefined;
   const query = q.replace(/:\d*$/, '').trim().toLowerCase();

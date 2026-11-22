@@ -13,6 +13,10 @@ import { startEvents } from '../../lib/events';
 import { midTrunc } from '../../lib/text';
 import { useUi } from '../../stores/ui.store';
 import { NotifBell } from './NotifBell';
+import { QuickOpen } from './QuickOpen';
+import { pbase } from './sessions';
+import { KeysDialog, Spotlight } from './Spotlight';
+import { useShortcuts } from './useShortcuts';
 import { ProjectTabs } from './ProjectTabs';
 import { WorkspaceTree } from './WorkspaceTree';
 
@@ -79,7 +83,7 @@ function Topbar() {
         </div>
         {inProject && <ProjectTabs hostId={hostId} projectId={projectId} />}
         {inProject && !/\/(terminal|claude)\//.test(loc.pathname) && <NotifBell hostId={hostId} projectId={projectId} />}
-        <Button variant="ghost" size="sm" iconOnly icon="search" label={t('nav.quickSwitch')} />
+        <Button variant="ghost" size="sm" iconOnly icon="search" label={`${t('nav.quickSwitch')} (⌘K)`} onClick={() => ui.set({ spot: true })} />
         <span className="only-desk">
           <Button variant="ghost" size="sm" iconOnly icon="cog" label={t('nav.settings')} onClick={() => nav('/settings')} />
         </span>
@@ -118,8 +122,10 @@ export function AppShell() {
   const ui = useUi();
   const qc = useQueryClient();
   const loc = useLocation();
-  const { projectId } = useParams();
+  const { hostId, projectId } = useParams();
+  const nav = useNavigate();
   const me = useMe();
+  useShortcuts();
   useEffect(
     () =>
       startEvents(qc, {
@@ -143,7 +149,7 @@ export function AppShell() {
             <Button variant="ghost" size="sm" iconOnly icon="x" label={t('common.close')} onClick={() => ui.set({ sideOpen: false })} />
           </span>
         </div>
-        <button className="search-btn">
+        <button className="search-btn" onClick={() => ui.set({ spot: true })}>
           <Icon name="search" />
           {t('nav.quickSwitch')}
           <kbd>⌘K</kbd>
@@ -166,6 +172,15 @@ export function AppShell() {
         <Outlet />
         {!projectId && <BottomBar />}
       </div>
+      {ui.spot && <Spotlight hostId={hostId} projectId={projectId} onClose={() => ui.set({ spot: false })} />}
+      {ui.keys && <KeysDialog onClose={() => ui.set({ keys: false })} />}
+      {ui.quick && projectId && hostId && (
+        <QuickOpen
+          projectId={projectId}
+          onClose={() => ui.set({ quick: false })}
+          onPick={(p, l) => nav(`${pbase(hostId, projectId)}/files/${p.split('/').map(encodeURIComponent).join('/')}${l ? `/${l}` : ''}`)}
+        />
+      )}
       <DialogHost />
       <ToastHost />
     </div>

@@ -9,6 +9,12 @@ interface UiState {
   ratio: number;
   /** Chế độ gọn của hội thoại Claude (C37). */
   claudeFocus: boolean;
+  /** Lớp nổi toàn cục: ⌘K chuyển nhanh, ⌘P mở nhanh file, ⌘/ bảng phím tắt. */
+  spot: boolean;
+  quick: boolean;
+  keys: boolean;
+  /** ⌘⇧F: yêu cầu mở tab Tìm ở Files (tiêu thụ xong đặt lại 0). */
+  filesSearchAt: number;
   toggle: (k: string, v?: boolean) => void;
   collapseAll: () => void;
   set: (p: Partial<UiState>) => void;
@@ -30,6 +36,10 @@ export const useUi = create<UiState>((set, get) => ({
   split: saved.split ?? null,
   ratio: saved.ratio ?? 55,
   claudeFocus: saved.claudeFocus ?? false,
+  spot: false,
+  quick: false,
+  keys: false,
+  filesSearchAt: 0,
   toggle: (k, v) => set({ open: { ...get().open, [k]: v ?? !get().open[k] } }),
   collapseAll: () => set({ open: {} }),
   set: (p) => set(p),

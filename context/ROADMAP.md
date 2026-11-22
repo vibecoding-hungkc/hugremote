@@ -76,7 +76,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-23 | ☑ | danh sách phiên CLI chưa gắn + Tiếp tục (`--resume`), cảnh báo phiên vừa dùng <2 phút; đổi tên gửi `--name` ở lượt kế tiếp |
 | AC-24 | ◐ | gợi ý `/` từ CLI, đính kèm qua Mở nhanh, mic Web Speech, IME; còn thử trên điện thoại |
 | AC-25 | ◐ | chip Hạn mức 5 giờ từ `rate_limit_event` (fake-claude); chưa đối chiếu CLI thật |
-| AC-26 | ☐ | |
+| AC-26 | ☑ | ⌘K / Ctrl+Alt+K (nút ở thanh bên + thanh trên): dự án, phiên, file của dự án hiện tại, lệnh; gõ không dấu; trống → phiên đang chạy/cần duyệt |
 | AC-27 | ☐ | |
 | AC-28 | ☐ | |
 | AC-29 | ☐ | |
@@ -86,7 +86,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-33 | ☐ | |
 | AC-34 | ☐ | |
 | AC-35 | ☑ | chia ô trái/phải: Claude/Terminal/Files/Git ở ô phải, kéo đổi tỉ lệ, giữ qua F5; Files/Git ô phải một cột; dưới 768px ẩn ô phải |
-| AC-36 | ☐ | |
+| AC-36 | ☑ | ⌘P khớp mờ + `:dòng`, trống → file đang mở; ⌘⇧F mở tab Tìm ở Files từ bất kỳ đâu |
 | AC-37 | ☐ | |
 | AC-38 | ◐ | chuông ở thanh phiên + thanh trên S8/S9, ✓/✗ tại chỗ, cập nhật qua events.v1 — đã thử desktop; còn mobile |
 | AC-39 | ☐ | |
@@ -99,7 +99,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-46 | ☐ | |
 | AC-47 | ☐ | |
 | AC-48 | ☐ | |
-| AC-49 | ☐ | |
+| AC-49 | ◐ | ⌘K ⌘P ⌘⇧F ⌘/ ⌘\\ ⌥1–9 Ctrl+Tab Ctrl+1/2/3 ⌥⇧N ⌥⇧T Esc ⇧Tab ⌥Y/⌥N ⌘S ⌘Enter; bắt ở pha capture để thắng phím editor; còn ⌥W đóng phiên terminal |
 
 Thời lượng vòng: `intake/loops/l1/_PROPOSAL.md` (~6 tuần công, gồm P1).
 

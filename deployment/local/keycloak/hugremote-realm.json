@@ -1,0 +1,39 @@
+{
+  "realm": "hugremote",
+  "enabled": true,
+  "sslRequired": "none",
+  "clients": [
+    {
+      "clientId": "hugremote",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "hugremote-dev-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:3000/*", "http://localhost:3999/*", "http://localhost:5173/*", "http://127.0.0.1:3000/*"],
+      "webOrigins": ["+"],
+      "attributes": { "pkce.code.challenge.method": "S256" }
+    }
+  ],
+  "users": [
+    {
+      "username": "an",
+      "email": "an@nhom.vn",
+      "firstName": "An",
+      "lastName": "Nguyễn",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "matkhau-thu", "temporary": false }]
+    },
+    {
+      "username": "binh",
+      "email": "binh@ngoai.vn",
+      "firstName": "Bình",
+      "lastName": "Trần",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "matkhau-thu", "temporary": false }]
+    }
+  ]
+}

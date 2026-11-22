@@ -4,11 +4,12 @@ import { Skeleton } from '../components/ui/States';
 import { useMe } from '../features/auth/hooks/useMe';
 import { AccountTab } from '../features/settings/components/AccountTab';
 import { AppearanceTab } from '../features/settings/components/AppearanceTab';
+import { TeamTab } from '../features/settings/components/TeamTab';
 import { SystemTab } from '../features/settings/components/SystemTab';
 
-type Tab = 'account' | 'appearance' | 'system';
+type Tab = 'account' | 'team' | 'appearance' | 'system';
 
-/** S7 — Cài đặt: Tài khoản & bảo mật · Giao diện · Hệ thống (owner). Nhóm SSO thêm ở lát SSO. */
+/** S7 — Cài đặt: Tài khoản & bảo mật · Nhóm (SSO) · Giao diện · Hệ thống — Nhóm và Hệ thống chỉ owner. */
 export function SettingsPage() {
   const { t } = useTranslation();
   const me = useMe().data;
@@ -22,7 +23,7 @@ export function SettingsPage() {
       </div>
     );
   const owner = me.role === 'owner';
-  const tabs: Tab[] = owner ? ['account', 'appearance', 'system'] : ['account', 'appearance'];
+  const tabs: Tab[] = owner ? ['account', 'team', 'appearance', 'system'] : ['account', 'appearance'];
   const cur = tabs.includes(tab) ? tab : 'account';
   return (
     <div className="content" data-screen="S7" aria-label={t('nav.settings')}>
@@ -35,6 +36,7 @@ export function SettingsPage() {
           ))}
         </div>
         {cur === 'account' && <AccountTab me={me} />}
+        {cur === 'team' && owner && <TeamTab />}
         {cur === 'appearance' && <AppearanceTab me={me} />}
         {cur === 'system' && owner && <SystemTab />}
       </div>

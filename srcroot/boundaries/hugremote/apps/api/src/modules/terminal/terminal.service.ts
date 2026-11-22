@@ -158,6 +158,10 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
     for (const t of await this.repo.all(userId)) this.ptys.kill(t.id);
   }
 
+  async runningOf(userId: string) {
+    return (await this.repo.all(userId)).filter((t) => t.status === 'running').length;
+  }
+
   runningCount() {
     return this.ptys.count;
   }

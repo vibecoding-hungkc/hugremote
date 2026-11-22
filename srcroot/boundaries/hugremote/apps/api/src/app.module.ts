@@ -17,6 +17,7 @@ import { TerminalModule } from './modules/terminal/terminal.module';
 import { EventsModule } from './modules/events/events.module';
 import { FilesModule } from './modules/files/files.module';
 import { GitModule } from './modules/git/git.module';
+import { SsoModule } from './modules/sso/sso.module';
 import { SystemModule } from './modules/system/system.module';
 import { ClaudeModule } from './modules/claude/claude.module';
 
@@ -48,6 +49,7 @@ import { ClaudeModule } from './modules/claude/claude.module';
     GitModule,
     ClaudeModule,
     SystemModule,
+    SsoModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

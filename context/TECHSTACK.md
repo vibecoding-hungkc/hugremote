@@ -82,7 +82,7 @@ cũng là web experience `hugremote`), `packages/shared` (`@app/shared`), `bin/`
 | Error tracking | Không dịch vụ ngoài: log JSON (pino) ra file `DATA_DIR/logs/` xoay vòng 7 ngày + lỗi hiện ở Cài đặt → Hệ thống | — | hugremote |
 | Analytics | Không — công cụ tự host, không gửi gì ra ngoài; nhật ký dùng cục bộ (đăng nhập, mở phiên) để Authority tự đọc ở pha R | — | hugremote |
 | Máy SSH thử | Container `sshd` (có `git` + `fake-claude` phát fixture stream-json) + `jump` (OpenSSH) trong `deployment/local/docker-compose.yml` | — | hugremote (dev, test, dogfood) |
-| IdP thử | Container Keycloak (realm `hugremote`, 2 người dùng thử) | — | hugremote (AC-32/33) |
+| IdP thử | Container Keycloak 26 (`deployment/local/keycloak/hugremote-realm.json`: realm `hugremote`, client `hugremote`, an@nhom.vn + binh@ngoai.vn / `matkhau-thu`, cổng 8180) | 26.0 | hugremote (AC-32/33) |
 | Kênh phát hành thử | Git repo cục bộ có 2 tag để thử cập nhật + quay lại | — | hugremote (AC-31) |
 | CI | GitHub Actions: `make check` + `make test` mỗi push | — | hugremote |
 

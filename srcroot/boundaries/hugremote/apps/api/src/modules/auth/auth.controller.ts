@@ -7,6 +7,7 @@ import { APP_CONFIG } from '../../config/app-config';
 import type { AppConfig } from '../../config/app-config';
 import { ErrorCode } from '@app/shared';
 import { AppError } from '../../common/app-error';
+import { clearRefreshCookie, REFRESH_COOKIE, setRefreshCookie } from './refresh-cookie';
 import { AllowPending, CurrentUser, Public } from '../../common/decorators';
 import type { AuthUser } from '../../common/auth-user';
 import { AuthService, ClientCtx, IssuedSession } from './auth.service';
@@ -25,8 +26,6 @@ import {
   VerifyTwoFactorDto,
 } from './dto/auth.dto';
 
-export const REFRESH_COOKIE = 'hr_refresh';
-
 @ApiTags('auth')
 @Controller()
 export class AuthController {
@@ -42,19 +41,13 @@ export class AuthController {
   /** Refresh token: cookie httpOnly, SameSite=Strict, chỉ gửi tới /api/auth (TECHSTACK §1). */
   private send(res: Response, s: IssuedSession): SessionResponseDto {
     if (s.refreshToken) {
-      res.cookie(REFRESH_COOKIE, s.refreshToken, {
-        httpOnly: true,
-        sameSite: 'strict',
-        secure: this.cfg.appUrl.startsWith('https://'),
-        path: `${this.cfg.basePath}/api/auth`,
-        maxAge: 14 * 86_400_000,
-      });
+      setRefreshCookie(res, s.refreshToken, this.cfg);
     }
     return s.body;
   }
 
   private clear(res: Response) {
-    res.clearCookie(REFRESH_COOKIE, { path: `${this.cfg.basePath}/api/auth` });
+    clearRefreshCookie(res, this.cfg);
   }
 
   @Public()

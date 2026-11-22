@@ -531,6 +531,10 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  async runningOf(userId: string) {
+    return (await this.repo.all(userId)).filter((s) => s.status === 'running' || s.status === 'awaiting_input').length;
+  }
+
   async stopAllOf(userId: string) {
     for (const s of await this.repo.all(userId)) this.live.get(s.id)?.turn?.kill();
   }

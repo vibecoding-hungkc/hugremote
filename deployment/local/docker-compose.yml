@@ -31,6 +31,20 @@ services:
     hostname: demo-behind
     networks: [inner]
 
+  # IdP thử cho SSO (AC-32/33/45): realm hugremote, client hugremote / hugremote-dev-secret,
+  # người dùng an@nhom.vn và binh@ngoai.vn, mật khẩu matkhau-thu. Issuer: http://localhost:8180/realms/hugremote
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev", "--import-realm", "--http-port=8180"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin-dev-123
+      KC_HOSTNAME: http://localhost:8180
+    volumes:
+      - ./keycloak/hugremote-realm.json:/opt/keycloak/data/import/hugremote-realm.json:ro
+    ports: ["127.0.0.1:8180:8180"]
+    networks: [edge]
+
 networks:
   edge: {}
   inner: { internal: true }

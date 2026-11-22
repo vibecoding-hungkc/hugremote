@@ -6,12 +6,37 @@ import { useAuthStore } from '../../../stores/auth.store';
 import { Button } from '../../../components/ui/Button';
 import { Field } from '../../../components/ui/Field';
 import { ErrorBox } from '../../../components/ui/States';
+import { Icon } from '../../../components/ui/Icon';
+import { env } from '../../../config/env';
 import { authApi } from '../api/auth.api';
+
+/** Sang nhà cung cấp SSO; mang theo hash đích đã lưu (G-11) để callback trả về đúng chỗ. */
+function ssoStartUrl(provider: string) {
+  let ret = '#/';
+  try {
+    ret = sessionStorage.getItem('hugremote:returnTo') ?? '#/';
+  } catch {
+    /* chế độ riêng tư */
+  }
+  return `${env.apiBase}/auth/sso/${provider}?return=${encodeURIComponent(ret)}`;
+}
 
 type Step = 'password' | 'code' | 'newpass';
 
 /** S1 — Đăng nhập: mật khẩu → (2FA) mã → (lần đầu) đặt mật khẩu mới. `onDone` trả về trang định mở. */
-export function LoginView({ initialStep = 'password', firstRun, onDone }: { initialStep?: Step; firstRun?: boolean; onDone: () => void }) {
+export function LoginView({
+  initialStep = 'password',
+  firstRun,
+  onDone,
+  sso,
+  ssoError,
+}: {
+  initialStep?: Step;
+  firstRun?: boolean;
+  onDone: () => void;
+  sso?: { provider: string; label: string } | null;
+  ssoError?: string | null;
+}) {
   const { t } = useTranslation();
   const setToken = useAuthStore((s) => s.setToken);
   const [step, setStep] = useState<Step>(initialStep);
@@ -139,6 +164,12 @@ export function LoginView({ initialStep = 'password', firstRun, onDone }: { init
             }
           />
         )}
+        {ssoError && (
+          <ErrorBox
+            title={t(`errors.${ssoError}`, { defaultValue: t('errors.SSO_FAILED') })}
+            body={ssoError === 'SSO_EMAIL_NOT_ALLOWED' ? t('auth.ssoNotAllowedBody') : t('auth.ssoFailedBody')}
+          />
+        )}
         <form onSubmit={submitPassword} style={{ display: 'grid', gap: 'var(--space-lg)' }}>
           <input type="text" name="username" autoComplete="username" defaultValue="owner" hidden />
           <Field
@@ -172,6 +203,15 @@ export function LoginView({ initialStep = 'password', firstRun, onDone }: { init
             {t('auth.login')}
           </Button>
         </form>
+        {sso && !firstRun && (
+          <>
+            <div className="or">{t('common.or')}</div>
+            <a className="btn block" href={ssoStartUrl(sso.provider)}>
+              <Icon name="shield" />
+              {t('auth.ssoButton', { label: sso.label })}
+            </a>
+          </>
+        )}
       </>
     );
   } else if (step === 'code') {

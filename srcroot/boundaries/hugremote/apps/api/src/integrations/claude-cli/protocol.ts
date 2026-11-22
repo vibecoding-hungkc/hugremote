@@ -94,7 +94,7 @@ export class Normalizer {
     const out: NormOp[] = [];
     const type = m.type as string;
     if (type === 'system' && m.subtype === 'init') {
-      out.push({ op: 'init', cliSessionId: String(m.session_id ?? ''), model: m.model as string | undefined });
+      out.push({ op: 'init', cliSessionId: typeof m.session_id === 'string' ? m.session_id : '', model: m.model as string | undefined });
     } else if (type === 'stream_event') {
       const ev = m.event as Record<string, unknown>;
       const et = ev?.type as string;
@@ -188,7 +188,9 @@ export class Normalizer {
           usage: { input: u.input_tokens ?? 0, output: u.output_tokens ?? 0, cacheRead: u.cache_read_input_tokens ?? 0 },
           costUsd: typeof m.total_cost_usd === 'number' ? m.total_cost_usd : undefined,
           filesChanged: [...this.filesChanged],
-          ...(isError ? { error: String(m.result ?? m.subtype ?? 'error').slice(0, 500) } : {}),
+          ...(isError
+            ? { error: (typeof m.result === 'string' ? m.result : typeof m.subtype === 'string' ? m.subtype : 'error').slice(0, 500) }
+            : {}),
         },
       });
     }

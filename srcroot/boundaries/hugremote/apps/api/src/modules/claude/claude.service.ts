@@ -206,7 +206,13 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     this.emit(s, ClaudeEvent.STATUS, { status });
     this.events.publish({
       type: 'session_status',
-      data: { sessionId: s.id, kind: 'claude', projectId: s.projectId, status, bypass: s.permissionMode === (PermissionMode.BYPASS as string) },
+      data: {
+        sessionId: s.id,
+        kind: 'claude',
+        projectId: s.projectId,
+        status,
+        bypass: s.permissionMode === (PermissionMode.BYPASS as string),
+      },
       ownerUserId: s.ownerUserId,
     });
   }

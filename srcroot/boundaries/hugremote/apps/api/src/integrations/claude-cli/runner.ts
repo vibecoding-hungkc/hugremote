@@ -63,7 +63,8 @@ export class ClaudeTurn {
     if (o.permissionMode === 'bypassPermissions') a.push('--allow-dangerously-skip-permissions');
     if (o.model) a.push('--model', o.model);
     if (o.effort) a.push('--effort', o.effort);
-    if (o.name && !o.resume) a.push('--name', o.name);
+    // mọi lượt đều gửi tên → đổi tên ở HugRemote đồng bộ sang CLI từ lượt kế tiếp (AC-23)
+    if (o.name) a.push('--name', o.name);
     return a;
   }
 

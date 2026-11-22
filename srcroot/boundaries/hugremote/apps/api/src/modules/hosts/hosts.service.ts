@@ -100,8 +100,8 @@ export class HostsService implements OnModuleInit, OnModuleDestroy {
   async list(user: AuthUser): Promise<HostListDto> {
     const { hosts, warnings } = this.sshHosts();
     const metas = new Map((await this.repo.allMeta()).map((m) => [m.hostId, m]));
-    const pins = await this.repo.pinsOf(user.id);
-    const pinPos = new Map(pins.map((p) => [p.hostId, p.position]));
+    const pinIds = await this.pins(user);
+    const pinPos = new Map(pinIds.map((id, i) => [id, i]));
     const out: HostDto[] = [
       {
         id: LOCAL_HOST_ID,
@@ -362,8 +362,10 @@ export class HostsService implements OnModuleInit, OnModuleDestroy {
 
   // ------------------------- ghim -------------------------
 
+  /** Chưa ghim gì bao giờ → "Máy này" được ghim sẵn để cây không trống ở lần đầu. */
   async pins(user: AuthUser): Promise<string[]> {
-    return (await this.repo.pinsOf(user.id)).map((p) => p.hostId);
+    const rows = await this.repo.pinsOf(user.id);
+    return rows.length ? rows.map((p) => p.hostId) : [LOCAL_HOST_ID];
   }
 
   async setPins(user: AuthUser, hostIds: string[]) {

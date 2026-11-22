@@ -70,3 +70,4 @@ demos/**/*.mov
 .vscode/*
 !.vscode/extensions.json
 deployment/local/releases.git/
+deployment/local/.dogfood/

@@ -22,6 +22,12 @@ export class AnswerDto {
   @IsIn(['allow', 'deny', 'always']) decision!: 'allow' | 'deny' | 'always';
 }
 
+export class PendingInteractionDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() tool!: string;
+  @ApiProperty() summary!: string;
+}
+
 export class ClaudeSessionDto {
   @ApiProperty() id!: string;
   @ApiProperty() projectId!: string;
@@ -35,6 +41,7 @@ export class ClaudeSessionDto {
   @ApiProperty() updatedAt!: string;
   @ApiProperty() queued!: number;
   @ApiProperty() pendingInteractions!: number;
+  @ApiProperty({ type: [PendingInteractionDto] }) pending!: PendingInteractionDto[];
 }
 
 export class SendResultDto {

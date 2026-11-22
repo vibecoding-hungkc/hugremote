@@ -29,6 +29,8 @@ interface Live {
   /** Mục đang stream chưa chốt (để `sync` gửi đủ phần đang dở). */
   partial: Map<string, ChatItem>;
   pending: Set<string>;
+  /** Mô tả yêu cầu quyền đang chờ (cho chuông C38). */
+  pendingInfo: Map<string, { tool: string; summary: string }>;
   stopping: boolean;
   turnStartedAt: number;
   /** Bộ đếm seq duy nhất của phiên (khởi từ claude_sessions.last_sequence). */
@@ -73,6 +75,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
         bus: new Subject(),
         partial: new Map(),
         pending: new Set(),
+        pendingInfo: new Map(),
         stopping: false,
         turnStartedAt: 0,
         chain: Promise.resolve(),
@@ -106,6 +109,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       updatedAt: s.updatedAt,
       queued: (await this.repo.queueOf(s.id)).length,
       pendingInteractions: this.live.get(s.id)?.pending.size ?? 0,
+      pending: [...(this.live.get(s.id)?.pendingInfo.entries() ?? [])].map(([id, v]) => ({ id, ...v })),
     };
   }
 
@@ -331,6 +335,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       this.emit(s, op.field === 'text' ? ClaudeEvent.TEXT_DELTA : ClaudeEvent.THINKING, { itemId: op.itemId, text: op.text });
     } else if (op.op === 'permission') {
       l.pending.add(op.requestId);
+      l.pendingInfo.set(op.requestId, { tool: op.item.tool, summary: summarize(op.item.tool, op.item.input) });
       await this.persist(s, op.item, ClaudeEvent.INTERACTION_REQUESTED);
       await this.setStatus(s, 'awaiting_input');
       this.events.publish({
@@ -365,6 +370,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     l.partial.clear();
     for (const iid of l.pending) this.emit(s, ClaudeEvent.INTERACTION_RESPONDED, { interactionId: iid, decision: 'cancelled' });
     l.pending.clear();
+    l.pendingInfo.clear();
     if (info.notInstalled) {
       await this.persist(s, { kind: 'note', id: `${crypto.randomUUID().slice(0, 8)}-n`, text: 'CLAUDE_NOT_INSTALLED' }, ClaudeEvent.ERROR);
       return this.setStatus(s, 'error');
@@ -428,6 +434,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     if (!l?.turn || !l.pending.has(iid) || !l.turn.answer(iid, decision !== 'deny'))
       throw AppError.conflict(ErrorCode.INTERACTION_ALREADY_ANSWERED);
     l.pending.delete(iid);
+    l.pendingInfo.delete(iid);
     const d = decision === 'deny' ? 'denied' : decision === 'always' ? 'always' : 'allowed';
     if (decision === 'always' && s.permissionMode === (PermissionMode.MANUAL as string)) {
       await this.repo.updateSession(id, { permissionMode: PermissionMode.ACCEPT_EDITS });

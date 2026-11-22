@@ -6,10 +6,10 @@
 Pha hiện tại : V
 Vòng          : 1
 Phase         : MVP · mở ở vòng 1
-Đường vào     : (chưa rõ — pha V Bước 0 xác định: phỏng vấn | intake)
-Pha vòng này  : V, I, P, E, R
+Đường vào     : intake
+Pha vòng này  : V, I, P (chỉ P1)
 Ngày          : D1
-Stack         : (chưa chốt — pha V)
+Stack         : stack-nestjs-react-fullstack (lệch: SQLite, Vite) — monorepo srcroot/boundaries/hugremote
 URL local     : (chưa có)
 URL production: (chưa có)
 ```
@@ -100,7 +100,15 @@ Meta ra câu hỏi khó dựa trên context, chấm PASS/FAIL. **Pha V**: 3–5 
 
 | Ngày | Pha | Câu hỏi | Phán quyết | Ghi chú |
 |---|---|---|---|---|
-| | | | | |
+| 2026-11-21 | V | Restart service giữa chừng thì phiên terminal đang chạy hiện ra sao, và người dùng có phải đăng nhập lại không? | PASS | ARCHITECTURE §6 `terminal_sessions` → `exited`; PRD AC-2 + DECISIONS (phiên terminal, refresh 14 ngày); l1 §2 bước 13 |
+| 2026-11-21 | V | Người đã nhập đúng mật khẩu nhưng chưa qua 2FA gọi thẳng `GET /api/hosts` thì sao? | PASS | PERSONAS §2 cột "chưa qua 2FA" ✗; SOLUTION G-1; contract 403 `TWO_FACTOR_REQUIRED` (l1 §10) |
+| 2026-11-21 | V | Sửa một máy khai trong file `Include` trong lúc file đó vừa bị sửa tay bên ngoài — ghi vào đâu, xử lý đụng độ thế nào? | PASS | ARCHITECTURE §6 (ghi đúng file chứa block; mtime đổi → 409 `SSH_CONFIG_CHANGED`); SOLUTION G-7; l1 §13 |
+| 2026-11-21 | V | Nút "Thử kết nối" ở S3 khi đang gửi trông thế nào, bấm hai lần thì sao? | PASS | DESIGN-SYSTEM §4 C1 trạng thái "đang gửi (khoá, chữ Đang …)"; prototype S3; ARCHITECTURE §6 gửi hai lần |
+| 2026-11-21 | V | Dogfood đòi mỗi vai một tài khoản trong khi vòng 1 chỉ có một tài khoản chủ — chạy song song 12 vai thế nào? | PASS | DECISIONS 2026-11-21 (mỗi vai một instance); DOGFOOD-PLAN §2 cổng 8101–8112; l1 §11 script instance |
+| 2026-11-21 | V | Member mở WebSocket terminal của phiên owner bằng vé hợp lệ của chính mình thì sao? | PASS | PERSONAS §2 (✓ chỉ phiên của mình); SOLUTION G-13 (kiểm chủ phiên lúc đổi vé); ARCHITECTURE §5 terminal-ws.v1 |
+| 2026-11-21 | V | Duyệt quyền Claude trên điện thoại trong khi desktop cũng bấm Từ chối cùng lúc — ai thắng, desktop thấy gì? | PASS | ARCHITECTURE §6 (trả lời đầu tiên thắng, 409 `INTERACTION_ALREADY_ANSWERED`); DESIGN-SYSTEM §4 C21 trạng thái "đã trả lời trên thiết bị khác" |
+| 2026-11-21 | V | Claude sửa file trong lúc người dùng đang sửa cùng file ở tab Files rồi bấm Lưu? | PASS | ARCHITECTURE §6 sửa file đồng thời (`baseMtime` → 409 `FILE_CHANGED`); SOLUTION G-15; prototype S8 trạng thái lỗi |
+| 2026-11-21 | V | Vòng ~30 ngày công trễ ở giữa thì cắt gì trước, cắt rồi đi đâu? | PASS | `l1/_PROPOSAL.md §20` thứ tự cắt (cập nhật → mic/hạn mức → lịch sử Git → SSO → sáng/en) → `ROADMAP.md §3` thành vòng 2 |
 
 ---
 

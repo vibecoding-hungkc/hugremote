@@ -1,7 +1,7 @@
 ---
 type: design-system
 tier: T0
-status: DRAFT
+status: ACTIVE
 last_reviewed: "2026-11-21"
 ---
 
@@ -10,7 +10,6 @@ last_reviewed: "2026-11-21"
 > **Nguồn sự thật cho hình thức** — ngang vai với `ARCHITECTURE.md` cho backend và
 > `PROTOTYPE.md` cho kiến trúc thông tin.
 > Điền ở pha V, SAU khi viết context, **TRƯỚC khi dựng prototype** (`PROTOTYPE.md §4`).
-> Xoá hết dấu `_CHƯA ĐIỀN_` khi điền xong — `python3 scripts/gate.py V` bắt dấu này.
 >
 > **Vì sao trước prototype, không phải sau.** Dựng prototype trước rồi mới rút token ra thì
 > token chỉ là bản mô tả những màu đã lỡ chọn — mỗi màn một sắc xám khác nhau, chữ phụ không
@@ -59,147 +58,184 @@ ví dụ màn quản trị nội bộ và app cho khách hàng không dùng chun
 
 ## 1. Ba tính từ + neo tham chiếu
 
-<!-- Ba tính từ lấy từ "giọng thương hiệu" đã hỏi ở INTERVIEW mục 11 và 13. Chúng là thứ để
-     cãi nhau khi phân vân giữa hai phương án — "cái nào 'gọn' hơn?" quyết nhanh hơn "cái nào
-     đẹp hơn?". Kèm 1–2 neo tham chiếu THẬT (sản phẩm Authority đang dùng và thấy dễ nhìn),
-     vì tính từ một mình vẫn quá rộng.
-
-     Ví dụ: Gọn · Rõ trong nắng · Không màu mè
-            Neo: giao diện Zalo (chữ to, ít màu) — Authority đang dùng hằng ngày
-            Tránh: dashboard nhiều biểu đồ kiểu Google Analytics — "nhìn là ngợp" -->
-
 | Mục | Nội dung |
 |---|---|
-| Ba tính từ | _CHƯA ĐIỀN_ |
-| Neo tham chiếu (thật) | _CHƯA ĐIỀN_ |
-| Cố tình tránh | _CHƯA ĐIỀN_ |
+| Ba tính từ | **Yên · Dày thông tin · Một lối tới** — tối (có chủ đề sáng), ít màu, nhiều thứ thấy cùng lúc nhưng mỗi thứ chỉ có một chỗ để bấm |
+| Neo tham chiếu (thật) | **Orca (orca.dev)** — Authority chốt theo bố cục: thanh bên cây repo/worktree/agent có chấm trạng thái + thời gian, vùng chính tab + chia ô, chủ đề tối "quiet dark". **HugRemote v1** — giữ phong cách: đơn sắc tối, màu nhấn theo khu vực (Files/Git xanh, Terminal tím, Claude đất nung), mobile-first với thanh phím cảm ứng |
+| Cố tình tránh | Bảy bề mặt điều hướng của v1 (header 2 hàng + dock + sidebar + panel nhanh); nút chỉ có icon cho hành động developer **không** nhận ra ngay (icon chỉ dùng cho thao tác quen tay của developer: fetch/pull/push, stage/unstage, bỏ thay đổi, sao chép, tải lên/xuống, gửi, dừng, đóng, sửa, chia ô — luôn kèm tooltip + `aria-label`); mỗi màn một sắc xám; chữ 10–11px; terminal bảng màu lệch phần còn lại |
 
 ## 2. Token
 
-> Đây là **toàn bộ** bảng màu / thang chữ / nhịp của sản phẩm. Giá trị nào không nằm ở đây thì
-> không được xuất hiện trong prototype lẫn code — hết đường "thêm một sắc xám nữa cho đẹp".
->
-> Token khai ở đây mà prototype **không dùng** sẽ làm gate đỏ: hoặc dùng nó, hoặc **xoá dòng đó
-> đi**. Bảng dưới là bộ khởi động tối thiểu, không phải hạn ngạch phải điền cho đủ.
->
-> **Nhiều design system** (§0): thêm cột cuối `DS` vào cả ba bảng dưới, giá trị là tên thư mục
-> gói. Một design system thì bỏ qua — không cần cột.
+> **Hai chủ đề, một bộ tên.** Component chỉ dùng token semantic `--color-*`. Chủ đề tối là giá trị mặc định
+> trong `:root`; chủ đề sáng khai ở các token `--light-*` và được **gán lại** cho token semantic khi
+> `data-theme="light"` (`:root[data-theme="light"] { --color-bg: var(--light-bg); … }`) — không component nào
+> dùng thẳng `--light-*`. Terminal giữ nền tối ở cả hai chủ đề, dùng bộ `--term-*` riêng (cũng là theme của xterm).
 
 ### 2.1 Màu
 
-<!-- Semantic, không đặt tên theo màu: `--color-danger`, không phải `--color-red` — đổi đỏ sang
-     cam thì tên vẫn đúng. Giá trị ghi mã hex, gate §3 đọc đúng ô này để tính tương phản.
-
-     Ví dụ:  | `--color-text` | `#1A1A1A` | chữ chính | -->
-
 | Token | Giá trị | Dùng cho |
 |---|---|---|
-| `--color-bg` | _CHƯA ĐIỀN_ | nền trang |
-| `--color-surface` | _CHƯA ĐIỀN_ | nền thẻ / hàng danh sách nổi trên nền trang |
-| `--color-text` | _CHƯA ĐIỀN_ | chữ chính |
-| `--color-text-muted` | _CHƯA ĐIỀN_ | chữ phụ, nhãn, chú thích |
-| `--color-primary` | _CHƯA ĐIỀN_ | hành động chính, thứ muốn người dùng bấm |
-| `--color-on-primary` | _CHƯA ĐIỀN_ | chữ nằm TRÊN nền `--color-primary` |
-| `--color-border` | _CHƯA ĐIỀN_ | viền input, đường kẻ chia |
-| `--color-danger` | _CHƯA ĐIỀN_ | lỗi, xoá, cảnh báo mất dữ liệu |
+| `--color-bg` | `#141414` | nền trang, vùng chính; chữ trên nút nguy hiểm |
+| `--color-surface` | `#1c1c1c` | thanh bên, thẻ, sheet, thanh tab, thanh dưới, bong bóng chat |
+| `--color-surface-raised` | `#262626` | hàng đang chọn/hover, ô nhập, nút phụ, khối code |
+| `--color-divider` | `#2a2a2a` | đường kẻ chia vùng (trang trí, không mang nghĩa) |
+| `--color-border` | `#6b6b6b` | viền ô nhập, viền nút phụ — thành phần cần thấy rõ |
+| `--color-text` | `#ededed` | chữ chính |
+| `--color-text-muted` | `#a3a3a3` | chữ phụ, nhãn, thời gian, đường dẫn |
+| `--color-primary` | `#38bdf8` | hành động chính, liên kết, focus, mục đang chọn; màu khu vực Files/Git; chấm **đang chạy** (nhấp nháy) |
+| `--color-on-primary` | `#0b1620` | chữ trên nền `--color-primary` |
+| `--color-danger` | `#f87171` | lỗi, xoá, host key đổi, dòng diff bị xoá |
+| `--color-success` | `#34d399` | **xong**, kết nối được, dòng diff thêm |
+| `--color-warning` | `#fbbf24` | đang nối / thử lại, Claude **cần duyệt**, Bypass |
+| `--color-accent-terminal` | `#c084fc` | biểu tượng phiên terminal (màu khu vực HugRemote) |
+| `--color-accent-claude` | `#d97757` | biểu tượng phiên Claude, tên "Claude" trong chat (màu khu vực HugRemote) |
+| `--color-scrim` | `#000000a6` | lớp phủ sau hộp thoại / sheet / hộp chuyển nhanh |
+| `--light-bg` | `#fafafa` | chủ đề sáng → `--color-bg` |
+| `--light-surface` | `#ffffff` | chủ đề sáng → `--color-surface` |
+| `--light-surface-raised` | `#f0f0f0` | chủ đề sáng → `--color-surface-raised` |
+| `--light-divider` | `#e5e5e5` | chủ đề sáng → `--color-divider` |
+| `--light-border` | `#8a8a8a` | chủ đề sáng → `--color-border` |
+| `--light-text` | `#171717` | chủ đề sáng → `--color-text` |
+| `--light-text-muted` | `#525252` | chủ đề sáng → `--color-text-muted` |
+| `--light-primary` | `#0369a1` | chủ đề sáng → `--color-primary` |
+| `--light-on-primary` | `#ffffff` | chủ đề sáng → `--color-on-primary` |
+| `--light-danger` | `#b91c1c` | chủ đề sáng → `--color-danger` |
+| `--light-success` | `#047857` | chủ đề sáng → `--color-success` |
+| `--light-warning` | `#a16207` | chủ đề sáng → `--color-warning` |
+| `--light-accent-terminal` | `#7e22ce` | chủ đề sáng → `--color-accent-terminal` |
+| `--light-accent-claude` | `#c2410c` | chủ đề sáng → `--color-accent-claude` |
+| `--term-bg` | `#0f0f0f` | nền terminal (cả hai chủ đề) |
+| `--term-text` | `#ededed` | chữ terminal |
+| `--term-muted` | `#a3a3a3` | ANSI xám |
+| `--term-green` | `#34d399` | ANSI xanh lá |
+| `--term-blue` | `#38bdf8` | ANSI xanh dương |
+| `--term-yellow` | `#fbbf24` | ANSI vàng |
+| `--term-red` | `#f87171` | ANSI đỏ |
 
 ### 2.2 Chữ
 
-<!-- Một họ chữ. Thang cỡ 3–4 bậc là đủ cho một tuần — nhiều bậc hơn chỉ tạo chỗ để phân vân.
-     Ví dụ:  | `--text-base` | `16px` | chữ thường trong nội dung | -->
-
 | Token | Giá trị | Dùng cho |
 |---|---|---|
-| `--font-sans` | _CHƯA ĐIỀN_ | họ chữ duy nhất (ưu tiên font hệ thống — không tải, không nháy chữ) |
-| `--text-sm` | _CHƯA ĐIỀN_ | chú thích, nhãn phụ |
-| `--text-base` | _CHƯA ĐIỀN_ | chữ thường |
-| `--text-xl` | _CHƯA ĐIỀN_ | tiêu đề màn hình |
+| `--font-sans` | `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif` | chữ giao diện — font hệ thống, đủ dấu tiếng Việt |
+| `--font-mono` | `"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace` | terminal, editor, diff, đường dẫn, vân tay, mã 2FA |
+| `--text-xs` | `12px` | thời gian, huy hiệu, chú thích |
+| `--text-sm` | `14px` | hàng cây, nhãn, terminal, editor, diff |
+| `--text-base` | `16px` | chữ thường, chat, ô nhập (16px để iOS không tự phóng to) |
+| `--text-xl` | `20px` | tiêu đề màn |
 
 ### 2.3 Nhịp · bo góc · đổ bóng
 
-<!-- Thang khoảng cách theo bội số cố định (4 hoặc 8). Mọi padding/margin lấy từ đây — đây là
-     thứ làm giao diện "trông có kỷ luật" mà không cần ai biết vì sao. -->
-
 | Token | Giá trị | Dùng cho |
 |---|---|---|
-| `--space-sm` | _CHƯA ĐIỀN_ | khoảng hẹp trong một khối |
-| `--space-md` | _CHƯA ĐIỀN_ | khoảng chuẩn giữa các khối |
-| `--space-lg` | _CHƯA ĐIỀN_ | khoảng giữa các vùng lớn của màn hình |
-| `--radius` | _CHƯA ĐIỀN_ | bo góc nút, thẻ, input — một giá trị dùng chung |
-| `--shadow` | _CHƯA ĐIỀN_ | đổ bóng thẻ nổi (chỉ một mức) |
+| `--space-xs` | `4px` | giữa chấm trạng thái và chữ, trong huy hiệu |
+| `--space-sm` | `8px` | khoảng hẹp trong một khối |
+| `--space-md` | `12px` | đệm hàng, đệm nút |
+| `--space-lg` | `16px` | khoảng chuẩn giữa các khối |
+| `--space-xl` | `24px` | khoảng giữa các vùng lớn, lề màn |
+| `--radius` | `8px` | nút, thẻ, ô nhập, sheet, bong bóng chat — một giá trị dùng chung |
+| `--radius-pill` | `999px` | chấm trạng thái, huy hiệu |
+| `--shadow` | `0 8px 24px #00000066` | sheet, hộp thoại, menu nổi, hộp chuyển nhanh (một mức) |
+| `--tap` | `44px` | chiều cao tối thiểu vùng chạm |
+| `--sidebar-w` | `280px` | độ rộng thanh bên desktop (kéo được 220–440) |
+| `--bar-h` | `48px` | chiều cao thanh trên, thanh tab, thanh dưới |
 
 ### 2.4 Điểm gãy
 
-<!-- CSS media query KHÔNG dùng được var(), nên breakpoint viết số thật trong @media và ghi
-     ở đây để tra. Cố tình không đặt dạng `--token` để gate không đòi nó xuất hiện trong prototype.
-     Mặc định: một điểm gãy là đủ. Thiết bị chính của persona (`PERSONAS.md §1`) quyết định
-     thiết kế cho bên nào trước. -->
-
 | Điểm gãy | Giá trị | Thiết kế trước cho |
 |---|---|---|
-| hẹp → rộng | _CHƯA ĐIỀN_ | _CHƯA ĐIỀN_ (điện thoại trước / máy tính trước) |
+| hẹp → vừa | `768px` | điện thoại trước (P-MOBILE): dưới mốc này cây toàn màn + thanh dưới, chia ô tắt |
+| vừa → rộng | `1024px` | desktop hạng nhất (P-DESK): từ mốc này thanh bên cố định + vùng chính tab/chia ô; 768–1023 thanh bên trượt ra phủ lên |
 
 ## 3. Tương phản — `gate.py V` tự tính
 
-<!-- Đây là chỗ MVP một tuần hay chết: chữ xám nhạt trên nền trắng, nhìn trên màn hình đẹp
-     trong phòng thì ổn, ra nắng hoặc trên điện thoại rẻ là không đọc được. Không cần công cụ
-     ngoài — gate đọc mã hex ở §2.1, tự tính tỉ lệ tương phản và báo đỏ nếu chưa đạt.
-
-     Ngưỡng WCAG AA:  chữ thường ≥ 4.5:1 · chữ lớn (≥24px, hoặc ≥19px in đậm) ≥ 3:1
-                      thành phần giao diện (viền input, icon) ≥ 3:1
-     Cột "Loại" nhận đúng ba giá trị: thường · lớn · thành phần.
-     Thêm cặp nào cũng được, miễn hai ô giữa là tên token có ở §2.1. Cặp nào không áp dụng
-     cho sản phẩm (vd không có input) thì xoá dòng — nhưng phải còn ít nhất một cặp.
-
-     NHIỀU DESIGN SYSTEM (§0): thêm cột cuối `DS`. Mỗi gói phải có bộ cặp của riêng nó —
-     chữ của gói A trên nền của gói B là cặp không tồn tại trên màn nào, gate giải token
-     trong đúng lát của gói nên cặp lai sẽ đỏ ở mục "không tính được". -->
-
 | Cặp | Token chữ / tiền cảnh | Token nền | Loại |
 |---|---|---|---|
-| Chữ chính trên nền trang | `--color-text` | `--color-bg` | thường |
-| Chữ phụ trên nền thẻ | `--color-text-muted` | `--color-surface` | thường |
-| Chữ trên nút chính | `--color-on-primary` | `--color-primary` | thường |
-| Chữ lỗi trên nền trang | `--color-danger` | `--color-bg` | thường |
-| Viền input trên nền trang | `--color-border` | `--color-bg` | thành phần |
+| Tối — chữ chính trên nền trang | `--color-text` | `--color-bg` | thường |
+| Tối — chữ chính trên hàng đang chọn | `--color-text` | `--color-surface-raised` | thường |
+| Tối — chữ phụ trên nền thẻ | `--color-text-muted` | `--color-surface` | thường |
+| Tối — chữ phụ trên hàng đang chọn | `--color-text-muted` | `--color-surface-raised` | thường |
+| Tối — chữ trên nút chính | `--color-on-primary` | `--color-primary` | thường |
+| Tối — liên kết trên nền trang | `--color-primary` | `--color-bg` | thường |
+| Tối — chữ lỗi trên nền trang | `--color-danger` | `--color-bg` | thường |
+| Tối — chữ trên nút nguy hiểm | `--color-bg` | `--color-danger` | thường |
+| Tối — chấm xong / kết nối được trên thẻ | `--color-success` | `--color-surface` | thành phần |
+| Tối — chấm đang chạy trên thẻ | `--color-primary` | `--color-surface` | thành phần |
+| Tối — chấm cần duyệt trên thẻ | `--color-warning` | `--color-surface` | thành phần |
+| Tối — biểu tượng terminal | `--color-accent-terminal` | `--color-surface` | thành phần |
+| Tối — chữ "Claude" trên thẻ | `--color-accent-claude` | `--color-surface` | thường |
+| Tối — viền ô nhập trên nền trang | `--color-border` | `--color-bg` | thành phần |
+| Tối — viền ô nhập trên thẻ | `--color-border` | `--color-surface` | thành phần |
+| Sáng — chữ chính trên nền trang | `--light-text` | `--light-bg` | thường |
+| Sáng — chữ chính trên hàng đang chọn | `--light-text` | `--light-surface-raised` | thường |
+| Sáng — chữ phụ trên thẻ | `--light-text-muted` | `--light-surface` | thường |
+| Sáng — chữ phụ trên hàng đang chọn | `--light-text-muted` | `--light-surface-raised` | thường |
+| Sáng — chữ trên nút chính | `--light-on-primary` | `--light-primary` | thường |
+| Sáng — liên kết trên nền trang | `--light-primary` | `--light-bg` | thường |
+| Sáng — chữ lỗi trên nền trang | `--light-danger` | `--light-bg` | thường |
+| Sáng — chữ trên nút nguy hiểm | `--light-bg` | `--light-danger` | thường |
+| Sáng — chấm xong / kết nối được trên thẻ | `--light-success` | `--light-surface` | thành phần |
+| Sáng — chấm đang chạy trên thẻ | `--light-primary` | `--light-surface` | thành phần |
+| Sáng — chấm cần duyệt trên thẻ | `--light-warning` | `--light-surface` | thường |
+| Sáng — biểu tượng terminal | `--light-accent-terminal` | `--light-surface` | thành phần |
+| Sáng — chữ "Claude" trên thẻ | `--light-accent-claude` | `--light-surface` | thường |
+| Sáng — viền ô nhập trên nền trang | `--light-border` | `--light-bg` | thành phần |
+| Sáng — viền ô nhập trên thẻ | `--light-border` | `--light-surface` | thành phần |
+| Terminal — chữ | `--term-text` | `--term-bg` | thường |
+| Terminal — xám | `--term-muted` | `--term-bg` | thường |
+| Terminal — xanh lá | `--term-green` | `--term-bg` | thường |
+| Terminal — xanh dương | `--term-blue` | `--term-bg` | thường |
+| Terminal — vàng | `--term-yellow` | `--term-bg` | thường |
+| Terminal — đỏ | `--term-red` | `--term-bg` | thường |
 
 ## 4. Kho component
 
-<!-- Danh sách ĐÓNG các khối được phép dùng. Prototype và pha I lắp từ đây; cần khối mới thì
-     thêm vào bảng này trước, không vẽ thẳng vào màn hình.
-
-     Cột "Dùng ở màn" trỏ tới mã màn hình ở `PROTOTYPE.md §1` (S1, S2…) — gate đòi mỗi
-     component phải có ít nhất một màn dùng nó. Component không màn nào dùng là component
-     tưởng tượng, xoá đi.
-
-     Cột "Trạng thái bắt buộc" là thứ hay bị quên nhất: nút không có trạng thái "đang gửi" thì
-     người dùng bấm hai lần, và đó chính là ca biên đã chốt ở `ARCHITECTURE.md §6`.
-     Đây cũng là bảng thẻ vai dogfood `picky` cầm đi soi trên app đã chạy.
-
-     NHIỀU DESIGN SYSTEM (§0): thêm cột cuối `DS`. Component của gói A mà lại dùng ở màn
-     thuộc experience mặc gói B → gate in cảnh báo (không đỏ, vì màn thuộc experience nào
-     chỉ suy được từ file prototype nào chứa mã màn — suy đoán thì không đủ chắc để chặn). -->
-
 | # | Component | Dùng ở màn | Trạng thái bắt buộc |
 |---|---|---|---|
-| C1 | Nút chính | _CHƯA ĐIỀN_ | mặc định · đang gửi (khoá lại) · bị vô hiệu |
-| C2 | Trường nhập | _CHƯA ĐIỀN_ | rỗng · đang gõ · sai (kèm câu báo lỗi tiếng Việt) |
-| C3 | Thẻ / hàng danh sách | _CHƯA ĐIỀN_ | mặc định · đang chọn · đang tải (khung xám) |
-| C4 | Khối trạng thái rỗng | _CHƯA ĐIỀN_ | một câu giải thích + đúng một nút hành động |
-| C5 | Khối báo lỗi | _CHƯA ĐIỀN_ | nói được làm gì tiếp · có đường thử lại |
-
-<!-- Thêm C6, C7… nếu bản đồ màn hình cần. Ít hơn 5 khối cũng được — xoá dòng không dùng. -->
+| C1 | Nút (chính · phụ · nguy hiểm · chỉ biểu tượng có nhãn ẩn + tooltip — dùng cho thao tác developer quen: pull/push kèm số commit, +/− stage, ↶ bỏ thay đổi, sao chép, gửi, dừng) | S1, S3, S4, S5, S6, S7, S8, S9, S10 | mặc định · focus (vòng `--color-primary`) · đang gửi (khoá, chữ "Đang …") · bị vô hiệu |
+| C2 | Trường nhập (chữ · mật khẩu · ô mã 6 số · ô chọn) | S1, S3, S7, S9 | rỗng · đang gõ · sai (viền + câu lỗi `--color-danger`) · bị vô hiệu |
+| C3 | Hàng danh sách (biểu tượng · tiêu đề · dòng phụ · hành động cuối) | S3, S5, S7, S8, S9 | mặc định · đang chọn · đang tải (khung xám) |
+| C4 | Khối trạng thái rỗng | S2, S3, S5, S6, S8, S9, S10 | một câu + đúng một nút hành động |
+| C5 | Khối báo lỗi | S1, S2, S3, S5, S6, S8, S9, S10 | nguyên nhân + làm gì tiếp · Thử lại · giữ dữ liệu đang nhập |
+| C6 | Sheet (mobile: từ đáy; desktop: panel phải 420px) | S3 | mở · đang lưu · lỗi lưu |
+| C7 | Breadcrumb phạm vi (`máy › dự án`, đường dẫn) | S2, S5, S6, S8 | thường · rút gọn giữa khi quá dài |
+| C8 | Thanh phiên: tab trộn Claude + terminal (Claude trước) · Đổi tên · Chia ô · **+** (menu chọn Phiên Claude mới / Terminal mới) | S6, S10 | tab đang xem · tab khác · tab đã kết thúc · menu + mở · vạch chia đang kéo |
+| C9 | Hộp thoại (xác nhận · cảnh báo nguy hiểm · đổi tên hiển thị) | S2, S3, S4, S6, S7, S8, S10 | mở · đang xử lý · biến thể cảnh báo đỏ · đổi tên (Enter lưu, Esc huỷ, an toàn IME) |
+| C10 | Thanh phím cảm ứng terminal + ngăn mở rộng | S6 | thu gọn · mở rộng · Ctrl đang giữ |
+| C11 | Hàng cây (máy · dự án · phiên — Claude trước, terminal sau) có chấm trạng thái + thời gian rút gọn; chỉ hai nút: **+** (dự án) và **⋯** (mở C23) — hiện khi hover/chọn trên desktop, luôn hiện trên mobile; đầu cây có Thu gọn tất cả + Thêm máy | S2 | thu/mở · đang chọn · máy lỗi · phiên đang chạy / cần duyệt / xong / đã kết thúc · dự án chưa có phiên (dòng "tạo phiên") · đang tải |
+| C12 | Thanh dưới mobile (3 mục có nhãn) | S2, S3, S7 | mục đang xem · mục khác |
+| C13 | Dải kết nối (mất kết nối / đang thử lại lần n · Thử ngay) — khi hiện, mọi nút ghi (Gửi, ✓/✗, Lưu, Commit, Push/Pull, Cập nhật) chuyển trạng thái *bị vô hiệu* của C1 kèm tooltip "Đang mất kết nối"; nháp và bản sửa giữ nguyên | S2, S6, S8, S9, S10 | đang thử lại (thao tác ghi khoá) · đã nối lại (mở khoá, không tự gửi) |
+| C14 | Huy hiệu trạng thái (chấm + nhãn) | S2, S3, S6, S7, S9, S10 | đang chạy (xanh dương nhấp nháy) · cần duyệt (viền + chữ cảnh báo trên nền thẻ) · xong (xanh lá) · đã kết thúc (xám) · kết nối được · lỗi · đang nối |
+| C15 | Thanh trên (phạm vi C7 · tab dự án · tìm · cài đặt) | S2, S6, S8, S9, S10 | desktop · mobile (nút ← khi ở trong dự án/phiên) |
+| C16 | Thanh tab dự án (Phiên · Files · Git) | S2, S6, S8, S9, S10 | tab đang xem · tab có huy hiệu (Phiên: số Claude cần duyệt; Git: số thay đổi) |
+| C17 | Editor (CodeMirror) + tab file đang mở + thanh phím phụ lập trình | S8, S6, S10 | xem · sửa · chưa lưu (chấm ở tab + huy hiệu) · đang lưu · xem trước Markdown/HTML · vạch dòng mới (`--color-success`) / đã sửa (`--color-primary`) ở cột số dòng · dòng được nhảy tới tô `--color-surface-raised` · không gộp ký tự (`=>` không thành mũi tên) |
+| C18 | Khối diff (dòng thêm/xoá, số dòng) | S9, S10 | thêm · xoá · ngữ cảnh · thu gọn khi dài |
+| C19 | Tin nhắn chat (người dùng · Claude, suy nghĩ thu gọn được, Markdown) | S10 | đang stream (con trỏ nháy) · xong · đã dừng · lỗi |
+| C20 | Thẻ công cụ (tên tool · tham số rút gọn · kết quả thu gọn) | S10 | đang chạy · xong · lỗi |
+| C21 | Thẻ duyệt quyền / câu hỏi của Claude | S10 | chờ (viền `--color-warning`) · đã cho phép · đã từ chối · đã trả lời trên thiết bị khác |
+| C23 | Menu nổi có mô tả (⋯ của hàng cây, + chọn Claude/Terminal, chia ô, model + effort, chế độ quyền) — vẽ ở lớp nổi, không bị vùng cuộn cắt | S2, S6, S7, S10 | đóng · mở · mục nguy hiểm (Bỏ, Xoá, Bypass — chữ đỏ) |
+| C24 | Hộp chuyển nhanh / mở nhanh file (ô tìm + kết quả nhóm) | S11, S12 | rỗng (gợi ý: phiên cần bạn / file đang mở + vừa đổi) · có kết quả · không thấy · đang tìm |
+| C25 | Thanh tiến độ (tải lên, cập nhật theo bước) | S7, S8 | đang chạy · xong · lỗi (nút Thử lại) |
+| C26 | Thẻ "Bắt đầu" 3 bước | S2 | bước chưa làm · bước hiện tại (đậm, **một** nút chính) · bước đã xong (dấu ✓, tính theo dữ liệu thật) · ẩn khi xong cả 3 |
+| C27 | Thông báo ngắn (toast) xác nhận việc vừa xong | S3, S8, S9, S10 | hiện 2,4 giây rồi tự ẩn · không chặn thao tác |
+| C28 | Thanh tìm/thay trong file (Tìm · Thay bằng · số kết quả · Thay · Thay tất cả · Tới dòng) | S8 | đóng · mở · có kết quả (chữ khớp tô `--color-warning`) · không có kết quả |
+| C29 | Kết quả tìm trong dự án (nhóm theo file, số dòng, chữ khớp tô sáng) | S8 | gợi ý (chưa đủ 2 ký tự) · có kết quả · không thấy · đang tìm |
+| C30 | Dải báo trong editor (Claude vừa sửa file — đã tự tải lại · Xem thay đổi · Đóng) | S8 | hiện · đã đóng |
+| C31 | Khung xem file đặc biệt (ảnh, log theo dõi, file quá lớn) | S8 | ảnh · log (Theo dõi bật/tắt) · quá lớn (Xem 1.000 dòng cuối / Tải xuống) |
+| C32 | Bộ chọn phiên trên mobile (tên phiên hiện tại · số phiên · mở danh sách nhóm Claude/Terminal) thay dải tab | S6, S10 | đóng · mở · phiên cần duyệt có chấm vàng |
+| C33 | Dòng tóm tắt cuối lượt Claude (thời gian · token · chi phí · file đã đổi bấm ra diff) | S10 | có file đổi · không đổi file |
+| C34 | Tin nhắn xếp hàng (gửi khi Claude đang chạy — mờ, có Huỷ) | S10 | đang chờ · đã gửi |
+| C35 | Danh sách quản trị (thiết bị đăng nhập · thành viên · lần SSO bị từ chối · nhật ký ứng dụng/cập nhật/SSH) | S7 | có dữ liệu · rỗng |
+| C36 | Ô soạn Claude gọn — **thay C22** (ô soạn cũ đã bỏ; mã C22 để trống, không dùng lại) (một khung: hàng 1 ô nhập + mic + quyền; hàng 2 đính kèm · nút **gọn** (target) · Context token đã dùng/sức chứa (vd `227k/1000k`, không hiện %) · Hạn mức 5 giờ · Model + mức suy nghĩ · Quyền · Dừng/Gửi; cấu hình riêng từng phiên, ⇧Tab xoay chế độ quyền; mobile: dải chip trượt ngang) | S10 | trống · đang gõ · Claude đang chạy (có Dừng; Gửi vẫn bật → tin xếp hàng C34, không có trạng thái khoá vì bận) · đang ghi âm · gợi ý `/` mở · Bypass (biểu tượng ⚠ đỏ) · mất kết nối (Gửi khoá) |
+| C37 | Chế độ gọn của hội thoại Claude: bật → chỉ hiện tin của bạn, trạng thái "Claude đang làm · <bước hiện tại>", kết quả, yêu cầu quyền và tóm tắt lượt; các bước công cụ gộp thành một dòng "n bước · sửa x file · chạy y lệnh" (bấm để xem đủ); tắt → toàn bộ suy nghĩ + thẻ công cụ | S10 | bật · tắt |
+| C38 | Nút thông báo (chuông, số phiên cần duyệt) — đặt ở **thanh phiên C8** trên S6/S10 (thay nút danh sách cạnh Sửa/Chia ô) và ở **thanh trên C15** trên S8/S9 (cả mobile): mở danh sách nổi — mỗi phiên cần duyệt một dòng (tên phiên · yêu cầu · máy › dự án) có ✓ Cho phép / ✗ Từ chối ngay tại chỗ; bấm vào dòng là vào phiên; phiên vừa xong lượt hiện nhãn "xong"; cuối danh sách có "Tất cả phiên của dự án này"; nguồn dữ liệu: `events.v1` | S6, S10, S8, S9 | không có gì · có phiên cần duyệt (chuông tô `--color-primary` + số) · vừa duyệt (dòng biến mất) · mất kết nối (✓/✗ khoá) |
 
 ## 5. Ba khuôn trạng thái dùng chung
 
-<!-- Nội dung cụ thể của từng màn nằm ở `PROTOTYPE.md §1` (cột "Rỗng / lỗi / đang tải").
-     Ở đây chỉ chốt KHUÔN — hình dạng chung, để năm màn hình không sinh ra năm kiểu báo lỗi. -->
-
 | Khuôn | Chốt |
 |---|---|
-| Rỗng | _CHƯA ĐIỀN_ (một câu nói vì sao trống + đúng một nút mở việc đầu tiên — không để trắng trơn) |
-| Lỗi | _CHƯA ĐIỀN_ (tiếng Việt, nói phải làm gì tiếp, giữ nguyên dữ liệu người dùng đang nhập) |
-| Đang tải | _CHƯA ĐIỀN_ (khung xám giữ đúng chỗ nội dung sắp hiện — không nhảy layout) |
+| Rỗng | C4 giữa vùng nội dung: một câu nói vì sao trống, chữ `--text-base` `--color-text-muted`, đúng một nút C1 chính mở việc đầu tiên ("Thêm máy", "Mở terminal", "Hỏi Claude", "Dự án mới") |
+| Lỗi | **Mỗi màn chỉ một khuôn lỗi**, hành động khắc phục nằm trong khối. C5: dòng đầu nói chuyện gì xảy ra bằng ngôn ngữ đang chọn (từ `errors.<CODE>`), dòng hai nói làm gì tiếp; nút Thử lại; ô nhập giữ nguyên giá trị; lỗi mạng toàn cục dùng C13 thay vì C5 |
+| Đang tải | Khung xám `--color-surface-raised` đúng kích thước hàng/khối sắp hiện (3 hàng cho danh sách), không spinner toàn màn, không nhảy layout |
 
 ## 6. Ràng buộc thực thi
 
@@ -225,3 +261,12 @@ Bốn ràng buộc này là thứ biến file trên thành hiệu lực thật, 
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
 | 2026-11-21 | Tạo từ template VIPER | — |
+| 2026-11-21 | Chốt design system vòng 1: bố cục Orca, màu HugRemote, chủ đề tối | Authority chọn ở pha V (DECISIONS 2026-11-21) |
+| 2026-11-21 | Thêm chủ đề sáng (`--light-*`), màu Claude, bộ `--term-*`, component C16–C26 | Gộp 6 vòng (DECISIONS 2026-11-21) |
+| 2026-11-21 | C8 tab phiên trộn + menu **+**; C16 còn Phiên · Files · Git; C9 thêm đổi tên; C11 có đổi tên | Phản hồi prototype lượt 1 của Authority |
+| 2026-11-21 | C11 gọn (+ và ⋯), C23 menu nổi, C14 tách đang chạy/xong, C26 một nút chính, thêm C27 toast; vùng chạm ≥44px trên mobile | Phản hồi lượt 2 + vai newbie/picky |
+| 2026-11-21 | C17 mở rộng (tab file, vạch dòng đổi), thêm C28–C31 cho làm việc với file kiểu developer; C24 dùng cho S12 | Phản hồi lượt 3: "thao tác với file chưa đủ để làm việc" |
+| 2026-11-21 | Thêm C32 bộ chọn phiên mobile, C33 tóm tắt lượt, C34 tin xếp hàng, C35 danh sách quản trị; C1 thêm nút chỉ biểu tượng + tooltip; C8 có × và ⚠ Bypass | Phản hồi lượt 4 + vai power/mobile/operator |
+| 2026-11-21 | C36 ô soạn gọn hai hàng **thay C22** (bỏ C22; bỏ trạng thái "khoá vì bận" — tin gửi khi đang chạy vào hàng chờ, DECISIONS D1); thêm C37 chế độ gọn | Phản hồi lượt 5 |
+| 2026-11-21 | C36 chip Context hiện `a/b` token (`227k/1000k`), không % | Phản hồi lượt 6 |
+| 2026-11-21 | Thêm C38 chuông thông báo (thanh phiên C8 ở S6/S10, thanh trên C15 ở S8/S9); C13 thêm trạng thái khoá thao tác ghi; xếp lại thứ tự C32..C38 | Phản hồi lượt 7 + rà soát reviewer (DECISIONS D4) |

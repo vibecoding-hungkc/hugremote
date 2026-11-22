@@ -1,117 +1,59 @@
 ---
 type: interview
 tier: T1
-status: DRAFT
+status: ACTIVE
 last_reviewed: "2026-11-21"
 ---
 
-# INTERVIEW — hugremote
+NGUỒN: INTAKE — render nhận ngày 2026-11-21
 
-> **Sổ phỏng vấn pha V của VÒNG 1 — ghi NGAY trong lúc hỏi, không ghi hồi tưởng.** PRD là
-> bản nén; sổ này giữ nguyên liệu thô để chi tiết không bị mất ngay lúc nén.
-> Mỗi mục phải có dòng `Bằng chứng:` không rỗng — `python3 scripts/gate.py V` kiểm đúng 14 dòng này.
->
-> **Đường intake vòng 1** (`VIPER.md §1.3`): không phỏng vấn — xoá 14 mục dưới, thay bằng dòng đầu
-> `NGUỒN: INTAKE — render nhận ngày <ISO>` (ngoài comment) + `## Truy vết intake → context`
-> + `## Lỗ hổng & cách xử`. Gate V khi đó kiểm bộ intake thay cho 14 dòng bằng chứng —
-> xem `/viper-validate` mục "Đường intake".
->
-> **Từ vòng 2 file này ĐÓNG BĂNG** — hiện vật của vòng 1, không sửa, gate không đọc nữa.
-> Phỏng vấn là công cụ mở rộng tư duy lúc khởi đầu; nguồn của vòng ≥2 nằm ở `intake/loops/l<N>/`:
-> đường phỏng vấn là tài liệu vòng Authority thả, đường intake là `_PROPOSAL.md` — kế hoạch
-> vòng lập sẵn từ vòng 1 (xem `VIPER.md §1.3–§1.4`).
->
-> **Marker `NGUỒN: INTAKE` là thứ quyết định chế độ của cả dự án**, không riêng vòng 1: nó ở
-> lại đây khi file đóng băng, và `gate.py` / `/viper-implement` đọc nó để biết đang đi đường
-> nào. Đừng xoá marker ở vòng sau — xoá là dự án tự rơi về luật của đường phỏng vấn.
+# INTERVIEW — hugremote (sổ dịch intake, vòng 1)
 
-<!-- BẰNG CHỨNG là gì: một CÂU CHUYỆN THẬT đã xảy ra (kèm thời điểm), một CON SỐ
-     (tần suất, chi phí, số người), hoặc một HIỆN VẬT (ảnh cuốn sổ, file Excel đang dùng,
-     tin nhắn Zalo). Diễn đạt lại câu trả lời KHÔNG phải bằng chứng.
-     Với mục thuần quyết định (đăng nhập, tên/domain, deploy): Bằng chứng = ràng buộc thật
-     khiến chọn phương án đó ("đội chỉ có tài khoản Vercel", "khách quen đăng nhập Google").
+> Đường intake (`VIPER.md §1.3`): không phỏng vấn 14 mục. Nguồn hiểu sản phẩm là bộ tài liệu ở
+> `intake/` (PRD, ARCHITECTURE, TECHSTACK, ROADMAP — không có gói design system). Sổ này ghi mục nào
+> của `context/` lấy từ đâu, và lỗ hổng nào đã được vá ra sao. Từ vòng 2 file này đóng băng; marker
+> ở dòng đầu giữ nguyên.
 
-     Ví dụ mục 1:
-     Trả lời: Chủ gara ghi lịch bằng sổ giấy + Zalo, trùng lịch thường xuyên
-     Bằng chứng: "Thứ 3 tuần trước 2 khách cùng đặt 9h sáng, mất gần 1 tiếng gọi xếp lại" —
-                 trùng 2-3 lần/tuần, mỗi lần ~1 giờ; đã xem ảnh cuốn sổ thật
--->
+## Truy vết intake → context
 
-## 1. Pain point
+| Mục context | Nguồn intake |
+|---|---|
+| `PRD.md §1` Pain point | `intake/PRD.md §1` (đoạn status quo + bảy điểm đau + nợ bảo mật) |
+| `PRD.md §2` Đối tượng | `intake/PRD.md §2` (P-MOBILE, P-DESK, P-HOST, P-TEAM) |
+| `PRD.md §3` AC vòng 1 | `intake/PRD.md §3` (30 capability) + `intake/ROADMAP.md §W1–§W6` (features_in_scope + exit_signal) |
+| `PRD.md §4` Ưu tiên | `intake/PRD.md §4` + `intake/ROADMAP.md §2 Wave Inventory` |
+| `PRD.md §5` Out-of-scope | `intake/PRD.md §5` + phần W2–W6 của `intake/ROADMAP.md` |
+| `PRD.md §6` Metric | `intake/PRD.md §6` — H-1 (≤3 thao tác, AC-26), H-3, H-4, H-5 (pentest, AC-34) kiểm bằng test trong vòng 1; H-2 (dùng thay v1 ≥7 ngày) đọc ở pha R vòng 1 từ nhật ký dùng cục bộ; rủi ro R-1..R-3 → `EXPERIMENTS.md` |
+| `PRD.md §7` Quyết định | `intake/TECHSTACK.md §1` (auth, lưu trữ) + `intake/ARCHITECTURE.md §6` + chốt của Authority ở pha V |
+| `PERSONAS.md` | `intake/PRD.md §2` — giữ mã P-…; ma trận vai suy từ CAP-ACCESS-01..03, CAP-AI-07 |
+| `CAPABILITIES-MAP.md` | `intake/PRD.md §3` — đủ 31 capability, giữ mã CAP-… |
+| `TECHSTACK.md` | `intake/TECHSTACK.md §1–§2` — giữ nguyên Choice + Reason, khối "Sai khác so với skill" |
+| `ARCHITECTURE.md §1–§3` | `intake/ARCHITECTURE.md §1–§3` (target `hugremote`, experience `hugremote`, không mobile native) |
+| `ARCHITECTURE.md §4` | `intake/ARCHITECTURE.md §4` Topology |
+| `ARCHITECTURE.md §5` | `intake/ARCHITECTURE.md §5` (11 contract api ↔ web) + bổ sung ở pha V (`files-watch.v1`, `events.v1`, tách terminal REST/WS, update, CLI) → 16 contract |
+| `ARCHITECTURE.md §6` | `intake/ARCHITECTURE.md §1` (bảng SQLite) + §6 (ràng buộc kế thừa) |
+| `ARCHITECTURE.md §7` | `intake/ARCHITECTURE.md §7` Luồng lõi |
+| `ARCHITECTURE.md §8` | `intake/ARCHITECTURE.md §1` cây thư mục + `.claude/skills/stack-nestjs-react-fullstack §3` |
+| `ROADMAP.md §1` + `intake/loops/l1/_PROPOSAL.md` | `intake/ROADMAP.md §2` (W1–W6 gộp làm vòng 1 theo Authority; thứ tự wave = thứ tự triển khai §21) |
+| `SOLUTION.md` phần A | `intake/ARCHITECTURE.md §6` (giữ/sửa) + `intake/ROADMAP.md §Cadence` (rủi ro) + `intake/PRD.md §6` |
+| `DESIGN-SYSTEM.md` | Không có gói trong `intake/design-systems/` → dựng ở pha V từ chốt của Authority (Orca + màu HugRemote) và palette v1 ghi ở `intake/ARCHITECTURE.md §2` |
 
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
+## Lỗ hổng & cách xử
 
-## 2. Persona + năng lực được cấp
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 3. Tiêu chí chấp nhận (AC)
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 4. Out-of-scope
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 5. Success metric
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 6. Đăng nhập
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 7. Thu tiền
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 8. Mô hình dữ liệu + ca biên
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 9. Trạng thái rỗng và lỗi
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 10. Dữ liệu mẫu
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 11. Tên, domain, giọng, nơi deploy
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 12. Giao diện
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 13. Phong cách thị giác
-
-<!-- Nuôi context/DESIGN-SYSTEM.md §1. Hỏi bằng HIỆN VẬT, không hỏi thẩm mỹ suông:
-     "app nào anh dùng hằng ngày thấy dễ nhìn — mở lên cho tôi xem?", "cái nào nhìn là ngợp?".
-     Backend-only (mục 12 đã chốt KHÔNG CÓ UI): ghi "KHÔNG CÓ UI" vào cả hai dòng. -->
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
-
-## 14. Legacy & tương thích
-
-<!-- Sổ này chỉ dùng vòng 1 nên ghi "Vòng 1 — chưa có legacy" vào cả hai dòng.
-     Từ vòng 2, legacy là HỢP ĐỒNG (VIPER.md §1.2) và chuyện phá được Authority chốt
-     trong tài liệu vòng intake/loops/l<N>/ (mục "Legacy được phép phá") — không quay
-     lại sửa sổ này. Phá legacy chưa chốt ở đó = ngoại lệ "hỏi thật" của luật #2. -->
-
-Trả lời: _CHƯA ĐIỀN_
-Bằng chứng: _CHƯA ĐIỀN_
+| Lỗ hổng | Cách xử |
+|---|---|
+| Chia mấy vòng | Hỏi Authority → "gộp vào thành 1 loop": một vòng giao toàn bộ 30 capability. DECISIONS 2026-11-21 (gộp 6 vòng) |
+| Vòng nào deploy / đo / quyết (P/E/R) | Hỏi Authority → "chỉ chạy local nên chỉ chạy P1", P1 ở vòng 1. DECISIONS 2026-11-21 (kế hoạch 6 vòng) |
+| `make deploy` khi không có PaaS | Tự quyết: cài user service trên máy local — DECISIONS 2026-11-21 (`make deploy` vòng 1) |
+| Phong cách giao diện (không có gói design system) | Hỏi Authority → theo Orca, giữ phong cách HugRemote, mobile + desktop đều tốt. DECISIONS 2026-11-21 (Giao diện) |
+| Tab Files mở ở đâu | Hỏi Authority → gốc dự án. DECISIONS 2026-11-21 (Tab Files) |
+| 2FA vòng nào | Hỏi Authority → vòng 1. DECISIONS 2026-11-21 (2FA) |
+| Tài khoản, mật khẩu khởi tạo, thời hạn phiên | Tự quyết — DECISIONS 2026-11-21 (Đăng nhập vòng 1) |
+| Dogfood "mỗi vai một tài khoản" với sản phẩm một chủ | Tự quyết: mỗi vai một instance — DECISIONS 2026-11-21 (Dogfood) |
+| Thu tiền | Không thu tiền — công cụ tự host miễn phí (`intake/PRD.md §1` không nhắc doanh thu) |
+| Success metric + ngưỡng go/pivot/kill | Vòng 1 không chạy E → tiêu chí xong là AC; metric của Phase MVP ghi ở `PRD.md §6`, đo ở cuối vòng 1 (pha R) bằng nhật ký dùng của Authority (H-2) |
+| Dữ liệu mẫu cho dogfood | Tự quyết: container SSH thử + jump host trong `deployment/local/`, thư mục dự án mẫu có repo git; `~/.ssh/config` mẫu có `Include` — ghi `PRD.md §7` |
+| Phiên terminal khi restart service | Tự quyết — DECISIONS 2026-11-21 (Phiên terminal) |
+| Mã hoá bí mật SSH | Tự quyết — DECISIONS 2026-11-21 (Bí mật SSH) |
+| Chủ đề sáng | Có ngay vòng 1 sau khi gộp — DECISIONS 2026-11-21 (hai chủ đề) |
+| IdP thử cho SSO, Claude CLI cho test | Tự quyết: Keycloak container + `fake-claude` phát fixture — `TECHSTACK.md §2` |

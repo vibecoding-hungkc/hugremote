@@ -39,7 +39,11 @@ last_reviewed: "2026-11-21"
 
 | Vòng | Phase | Phạm vi | Pha chạy | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
-| _CHƯA ĐIỀN_ | MVP | | | | |
+| 1 | MVP | **Toàn bộ HugRemote mới** — 30 capability của intake (W1–W6 gộp): đăng nhập + 2FA + SSO, máy & dự án, terminal, Files, Git (cả lịch sử), Claude chat (stream, chạy nền, duyệt quyền, model, phiên CLI, giọng nói, đính kèm, hạn mức), chuyển nhanh, design system tối/sáng + vi/en, installer, nhập dữ liệu v1, tự cập nhật, nền bảo mật + pentest; + checklist P1 | V, I, P | — | đang chạy |
+
+Authority gộp 6 vòng của kế hoạch cũ thành một vòng (DECISIONS 2026-11-21). Thứ tự 6 wave của
+`intake/ROADMAP.md §2` giữ làm **thứ tự triển khai bên trong vòng** (`intake/loops/l1/_PROPOSAL.md §21`).
+Không chạy E (chỉ chạy local); P chỉ phần P1. CAP-OPS-05 (app macOS, Phase 3) ngoài kế hoạch.
 
 ## 2. Vòng này — bám AC
 
@@ -50,21 +54,54 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-1 | ☐ | |
 | AC-2 | ☐ | |
 | AC-3 | ☐ | |
+| AC-4 | ☐ | |
+| AC-5 | ☐ | |
+| AC-6 | ☐ | |
+| AC-7 | ☐ | |
+| AC-8 | ☐ | |
+| AC-9 | ☐ | |
+| AC-10 | ☐ | |
+| AC-11 | ☐ | |
+| AC-12 | ☐ | |
+| AC-13 | ☐ | |
+| AC-14 | ☐ | |
+| AC-15 | ☐ | |
+| AC-16 | ☐ | |
+| AC-17 | ☐ | |
+| AC-18 | ☐ | |
+| AC-19 | ☐ | |
+| AC-20 | ☐ | |
+| AC-21 | ☐ | |
+| AC-22 | ☐ | |
+| AC-23 | ☐ | |
+| AC-24 | ☐ | |
+| AC-25 | ☐ | |
+| AC-26 | ☐ | |
+| AC-27 | ☐ | |
+| AC-28 | ☐ | |
+| AC-29 | ☐ | |
+| AC-30 | ☐ | |
+| AC-31 | ☐ | |
+| AC-32 | ☐ | |
+| AC-33 | ☐ | |
+| AC-34 | ☐ | |
+| AC-35 | ☐ | |
+| AC-36 | ☐ | |
+| AC-37 | ☐ | |
+| AC-38 | ☐ | |
+| AC-39 | ☐ | |
+| AC-40 | ☐ | |
+| AC-41 | ☐ | |
+| AC-42 | ☐ | |
+| AC-43 | ☐ | |
+| AC-44 | ☐ | |
+| AC-45 | ☐ | |
+| AC-46 | ☐ | |
+| AC-47 | ☐ | |
+| AC-48 | ☐ | |
+| AC-49 | ☐ | |
 
-<!-- ĐƯỜNG PHỎNG VẤN — nhịp một tuần, bảng dưới là lịch chuẩn. ĐƯỜNG INTAKE không dùng
-     bảng này: thời lượng mỗi vòng khai ở intake/loops/l<N>/_PROPOSAL.md theo cadence
-     của wave tương ứng, và vòng nào chạy pha nào cũng đã ghi ở §1. Xoá bảng nếu đi
-     đường intake. -->
-
-Lịch (đường phỏng vấn):
-
-| Ngày | Đích | Bắt buộc? |
-|---|---|---|
-| D1 sáng | Pha V — chốt PRD + persona + stack + kiến trúc (+ prototype Authority chốt, nếu có UI), khoá scope | Có |
-| D1 chiều | Pha I — chạy được ở local, đã dogfood | Có |
-| D2 | Pha P — prod-ready 4 nhóm + deploy | Khuyến nghị |
-| D2–D5 | Pha E — đo, fix, tối ưu, thử nghiệm | Tuỳ chọn |
-| Cuối tuần | Pha R — go / pivot / kill | Có |
+Thời lượng vòng: `intake/loops/l1/_PROPOSAL.md` (~6 tuần công, gồm P1).
 
 ---
 
@@ -75,7 +112,8 @@ Lịch (đường phỏng vấn):
 
 | Ngày | Việc | Vì sao không làm vòng này | Kích hoạt lại khi |
 |---|---|---|---|
-| | | | |
+| 2026-11-21 | Tính năng kiểu Orca: git worktree riêng cho mỗi phiên Claude, chạy song song nhiều agent một task, so sánh/gộp kết quả | Authority chỉ lấy UI của Orca ở bản này; ngoài 31 capability của intake | Authority thả tài liệu vòng / sau Phase 2 |
+| 2026-11-21 | Deploy production thật (P2) và đo số liệu (E) | Công cụ chỉ chạy local (Authority) | Khi có người dùng ngoài Authority |
 
 ---
 
@@ -85,7 +123,9 @@ Lịch (đường phỏng vấn):
 
 | Ngày | Việc | Lý do bỏ |
 |---|---|---|
-| | | |
+| 2026-11-21 | Bot Telegram | Không bảo trì từ v1.1, chạy lệnh shell tuỳ ý (`intake/PRD.md §5`) |
+| 2026-11-21 | Target Docker/container như một loại máy | Container truy cập qua SSH như mọi host (`intake/PRD.md §5`) |
+| 2026-11-21 | Panel nhanh thứ hai (editor + Git riêng) | Gộp vào màn chính; desktop dùng chia ô (`intake/PRD.md §5`) |
 
 ---
 
@@ -94,3 +134,6 @@ Lịch (đường phỏng vấn):
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
 | 2026-11-21 | Tạo từ template VIPER | — |
+| 2026-11-21 | Lập kế hoạch 6 vòng từ intake W1–W6 | Pha V vòng 1, đường intake |
+| 2026-11-21 | Gộp 6 vòng thành 1 vòng | Authority chốt ở pha V |
+| 2026-11-21 | §2 theo dõi 49 AC (thêm AC-36..AC-49) | Prototype lượt 3–7 + rà soát reviewer |

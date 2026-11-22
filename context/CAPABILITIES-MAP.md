@@ -1,56 +1,65 @@
 ---
 type: capabilities-map
 tier: T0
-status: DRAFT
+status: ACTIVE
 last_reviewed: "2026-11-21"
 ---
 
 # CAPABILITIES MAP — hugremote
 
-> Bản đồ năng lực sản phẩm, tách từ `intake/PRD.md §3` ở **đường intake** của pha V
-> ([VIPER.md §1.3](../VIPER.md)). Trả lời: sản phẩm làm được những gì, cho persona nào,
-> vòng nào giao cái nào, phần còn lại nằm đâu.
->
-> **Bắt buộc ở đường intake, MỌI VÒNG** — không chỉ vòng 1. Đây là nguồn truy vết
-> thay cho trần 7 AC: đường intake không giới hạn số AC, đổi lại `gate.py V` đòi mọi `AC-n`
-> trong `PRD.md §3` phải có mặt ở cột "AC vòng này" bên dưới. Bảng này cũng là bản đồ để
-> lập kế hoạch chia vòng ở `ROADMAP.md §1` ([VIPER.md §1.4](../VIPER.md)).
->
-> Đường phỏng vấn không dùng thì để nguyên, không cần xoá.
-> Xoá hết dấu `_CHƯA ĐIỀN_` khi điền xong.
+> Bản đồ năng lực, tách từ `intake/PRD.md §3` (đường intake, `VIPER.md §1.3`). Giữ nguyên mã `CAP-…`.
+> Cột "Vòng giao" khớp `ROADMAP.md §1`; cột "AC vòng này" khớp `PRD.md §3`.
 
 ---
 
 ## 1. Bảng năng lực
 
-<!-- Mỗi dòng = một capability từ intake/PRD.md §3, GIỮ NGUYÊN mã CAP-… của intake
-     để truy vết ngược được về nguồn. Cột "Personas" ghi mã P-… (đã dịch sang
-     context/PERSONAS.md). Cột "Vòng giao": vòng nào trong kế hoạch (ROADMAP.md §1) giao
-     capability này — chưa xếp vòng nào thì ghi "—". Cột "AC vòng này": capability thuộc
-     lát cắt của vòng HIỆN TẠI thì ghi AC-n tương ứng trong PRD.md §3, ngược lại ghi "—".
-     Cột "Trạng thái": vòng này · chờ vòng N · đã giao (vòng N) · bỏ hẳn.
-
-     Ví dụ:
-     | CAP-BOOK-01 — Đặt lịch hẹn | MVP | P-OWNER | 2 | AC-1, AC-2 | vòng này |
-     | CAP-BOOK-02 — Nhắc lịch qua Zalo | Phase 2 | P-OWNER | 3 | — | chờ vòng 3 |
-     | CAP-AUTH-01 — Đăng nhập | MVP | P-OWNER, P-MECH | 1 | — | đã giao (vòng 1) |
--->
-
 | Capability | Phase (intake) | Personas | Vòng giao | AC vòng này | Trạng thái |
 |---|---|---|---|---|---|
-| _CHƯA ĐIỀN_ | _CHƯA ĐIỀN_ | _CHƯA ĐIỀN_ | _CHƯA ĐIỀN_ | _CHƯA ĐIỀN_ | _CHƯA ĐIỀN_ |
+| CAP-ACCESS-01 — Đăng nhập mật khẩu, bắt đổi mật khẩu mặc định, đăng xuất, phiên bền qua restart | MVP | P-MOBILE, P-DESK, P-HOST | 1 | AC-1, AC-2, AC-44, AC-47, AC-48 | vòng này |
+| CAP-ACCESS-02 — 2FA TOTP + mã khôi phục, giới hạn thử | MVP | P-MOBILE, P-DESK, P-HOST | 1 | AC-3 | vòng này |
+| CAP-ACCESS-03 — SSO Google / OIDC, cấu hình chỉ khi đã đăng nhập | Phase 2 | P-MOBILE, P-DESK, P-HOST, P-TEAM | 1 | AC-32, AC-45 | vòng này |
+| CAP-HOST-01 — Danh sách máy từ `~/.ssh/config` + local, không lộ bí mật | MVP | P-MOBILE, P-DESK, P-HOST | 1 | AC-4 | vòng này |
+| CAP-HOST-02 — Thêm/sửa/xoá máy SSH, thử kết nối | MVP | P-MOBILE, P-DESK, P-HOST | 1 | AC-5 | vòng này |
+| CAP-HOST-03 — Kiểm host key SSH | MVP | P-HOST | 1 | AC-6 | vòng này |
+| CAP-PROJ-01 — Dự án + một phạm vi hiện hành cho mọi tab | MVP | P-MOBILE, P-DESK | 1 | AC-7 | vòng này |
+| CAP-PROJ-02 — Chuyển nhanh toàn cục | MVP | P-MOBILE, P-DESK | 1 | AC-26 | vòng này |
+| CAP-PROJ-03 — Máy đã ghim, đồng bộ giữa thiết bị | MVP | P-MOBILE, P-DESK | 1 | AC-8 | vòng này |
+| CAP-TERM-01 — Phiên PTY chạy nền, nối lại, lưu phía server | MVP | P-MOBILE, P-DESK | 1 | AC-9, AC-10 | vòng này |
+| CAP-TERM-02 — Bàn phím cảm ứng cho terminal + `visualViewport` | MVP | P-MOBILE | 1 | AC-11 | vòng này |
+| CAP-FILE-01 — Duyệt, sửa, xem trước file của dự án | MVP | P-MOBILE, P-DESK | 1 | AC-16, AC-36, AC-37 | vòng này |
+| CAP-FILE-02 — Tạo/đổi tên/xoá, tải lên/xuống, zip | MVP | P-MOBILE, P-DESK | 1 | AC-17 | vòng này |
+| CAP-GIT-01 — Trạng thái, diff, stage, commit, pull/push, nhánh | MVP | P-MOBILE, P-DESK | 1 | AC-18 | vòng này |
+| CAP-GIT-02 — Lịch sử commit + diff theo commit | Phase 2 | P-MOBILE, P-DESK | 1 | AC-19 | vòng này |
+| CAP-AI-01 — Phiên Claude stream, chạy nền, nối lại, dừng | MVP | P-MOBILE, P-DESK | 1 | AC-20, AC-40, AC-41, AC-42 | vòng này |
+| CAP-AI-02 — Thẻ duyệt quyền + menu chế độ quyền | MVP | P-MOBILE, P-DESK | 1 | AC-21, AC-38, AC-39 | vòng này |
+| CAP-AI-03 — Model/effort từ CLI + context usage | MVP | P-MOBILE, P-DESK | 1 | AC-22, AC-39 | vòng này |
+| CAP-AI-04 — Một danh sách phiên Claude (gộp CLI) | MVP | P-MOBILE, P-DESK | 1 | AC-23 | vòng này |
+| CAP-AI-05 — Slash command, đính kèm, giọng nói, IME | Phase 2 | P-MOBILE, P-DESK | 1 | AC-24 | vòng này |
+| CAP-AI-06 — Hạn mức dùng Claude | Phase 2 | P-MOBILE, P-DESK | 1 | AC-25 | vòng này |
+| CAP-AI-07 — Phân quyền chủ phiên cho người dùng SSO | Phase 2 | P-TEAM | 1 | AC-33, AC-45 | vòng này |
+| CAP-UX-01 — Vỏ ứng dụng + một mô hình điều hướng + deep link | MVP | P-MOBILE, P-DESK | 1 | AC-12, AC-35, AC-49 | vòng này |
+| CAP-UX-02 — Design system, tối/sáng, AA, i18n vi/en đủ | MVP | P-MOBILE, P-DESK, P-HOST | 1 | AC-13, AC-27 | vòng này |
+| CAP-UX-03 — Lần đầu dùng + trạng thái rỗng/tải/lỗi | MVP | P-MOBILE, P-DESK, P-HOST | 1 | AC-28, AC-43 | vòng này |
+| CAP-OPS-01 — CLI, `.env`, installer stable/beta, systemd, `BASE_PATH` | MVP | P-HOST | 1 | AC-29, AC-47 | vòng này |
+| CAP-OPS-02 — Nhập dữ liệu từ v1.x | MVP | P-HOST | 1 | AC-30 | vòng này |
+| CAP-OPS-03 — Tự cập nhật trong app có quay lại | Phase 2 | P-HOST | 1 | AC-31 | vòng này |
+| CAP-OPS-04 — `/api/health` + `hugremote doctor` | MVP | P-HOST | 1 | AC-15, AC-46 | vòng này |
+| CAP-OPS-05 — Ứng dụng macOS đóng gói, notarize | Phase 3 | P-DESK, P-HOST | — | — | ngoài kế hoạch (Phase 3) |
+| CAP-SEC-01 — Nền bảo mật xuyên suốt | MVP | P-MOBILE, P-DESK, P-HOST, P-TEAM | 1 | AC-14, AC-34 | vòng này |
 
 ## 2. Lát cắt vòng này
 
-<!-- Một đoạn ngắn: vì sao chọn đúng các capability này cho vòng hiện tại (thường = một
-     wave của intake/ROADMAP.md), và ranh giới với phần để lại vòng sau. Đây là căn cứ
-     khi challenge hỏi "vì sao làm cái này trước".
-     Cập nhật MỖI VÒNG — bản của vòng trước nằm ở context/archive/. -->
-
-_CHƯA ĐIỀN_
+Authority gộp 6 vòng làm một (DECISIONS 2026-11-21): vòng 1 giao **toàn bộ 30 capability** của intake —
+cả MVP lẫn Phase 2 — để có ngay một HugRemote mới đủ thay v1, kể cả Claude chat, Git (cả lịch sử), Files,
+SSO và tự cập nhật. Thứ tự 6 wave của intake giữ làm thứ tự triển khai bên trong vòng
+(`intake/loops/l1/_PROPOSAL.md §21`). Ranh giới duy nhất: CAP-OPS-05 (app macOS) là Phase 3, ngoài kế hoạch.
 
 ## 3. Change log
 
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
 | 2026-11-21 | Tạo từ template VIPER | — |
+| 2026-11-21 | Tách 31 capability từ intake, xếp 6 vòng | Pha V vòng 1 |
+| 2026-11-21 | Gộp: 30 capability giao ở vòng 1 | Authority chốt ở pha V |
+| 2026-11-21 | Cột AC thêm AC-36..AC-49 (49 AC); không thêm capability | Prototype lượt 3–7 + rà soát reviewer (DECISIONS D1–D17) |

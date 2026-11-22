@@ -149,7 +149,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
 
   async patch(u: AuthUser, id: string, d: { name?: string; permissionMode?: string; model?: string; effort?: string; confirm?: boolean }) {
     const s = await this.owned(u, id);
-    if (d.permissionMode === PermissionMode.BYPASS && s.permissionMode !== PermissionMode.BYPASS && !d.confirm)
+    if (d.permissionMode === PermissionMode.BYPASS && s.permissionMode !== (PermissionMode.BYPASS as string) && !d.confirm)
       throw AppError.badRequest(ErrorCode.CONFIRM_REQUIRED);
     const patch: Partial<ClaudeSessionEntity> = {};
     if (d.name) patch.name = d.name.trim();
@@ -206,7 +206,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     this.emit(s, ClaudeEvent.STATUS, { status });
     this.events.publish({
       type: 'session_status',
-      data: { sessionId: s.id, kind: 'claude', projectId: s.projectId, status, bypass: s.permissionMode === PermissionMode.BYPASS },
+      data: { sessionId: s.id, kind: 'claude', projectId: s.projectId, status, bypass: s.permissionMode === (PermissionMode.BYPASS as string) },
       ownerUserId: s.ownerUserId,
     });
   }
@@ -281,8 +281,12 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     l.turnStartedAt = Date.now();
     l.partial.clear();
     const turn = new ClaudeTurn(turnId, {
-      onOp: (op) => (l.chain = l.chain.then(() => this.onOp(s, l, op)).catch((e: Error) => this.log.error(e.stack))),
-      onExit: (info) => (l.chain = l.chain.then(() => this.onExit(s, l, info)).catch((e: Error) => this.log.error(e.stack))),
+      onOp: (op) => {
+        l.chain = l.chain.then(() => this.onOp(s, l, op)).catch((e: Error) => this.log.error(e.stack));
+      },
+      onExit: (info) => {
+        l.chain = l.chain.then(() => this.onExit(s, l, info)).catch((e: Error) => this.log.error(e.stack));
+      },
     });
     l.turn = turn;
     await this.setStatus(s, 'running');
@@ -419,7 +423,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       throw AppError.conflict(ErrorCode.INTERACTION_ALREADY_ANSWERED);
     l.pending.delete(iid);
     const d = decision === 'deny' ? 'denied' : decision === 'always' ? 'always' : 'allowed';
-    if (decision === 'always' && s.permissionMode === PermissionMode.MANUAL) {
+    if (decision === 'always' && s.permissionMode === (PermissionMode.MANUAL as string)) {
       await this.repo.updateSession(id, { permissionMode: PermissionMode.ACCEPT_EDITS });
       s.permissionMode = PermissionMode.ACCEPT_EDITS;
       l.turn.setPermissionMode(PermissionMode.ACCEPT_EDITS);

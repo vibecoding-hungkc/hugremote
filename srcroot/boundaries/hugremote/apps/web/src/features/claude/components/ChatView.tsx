@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/Button';
 import { Icon, type IconName } from '../../../components/ui/Icon';
 import { StatusBadge } from '../../../components/ui/Status';
+import { relToProject } from '../../../lib/text';
 import type { QueueItem } from '../api/claude.api';
 
 type Tool = Extract<ChatItem, { kind: 'tool' }>;
@@ -49,17 +50,7 @@ const filePath = (input: Record<string, unknown>) => (input.file_path ?? input.n
 const toolTarget = (input: Record<string, unknown>) =>
   filePath(input) ?? (typeof input.command === 'string' ? input.command : typeof input.pattern === 'string' ? input.pattern : typeof input.url === 'string' ? input.url : '');
 
-/** Đường dẫn CLI (tuyệt đối trên máy đích) → tương đối với gốc dự án nếu nằm trong dự án. */
-export function relToProject(p: string, root: string): string {
-  const r = root.replace(/\/+$/, '');
-  if (p.startsWith(r + '/')) return p.slice(r.length + 1);
-  if (r.startsWith('~/')) {
-    const tail = r.slice(1) + '/';
-    const i = p.indexOf(tail);
-    if (i >= 0) return p.slice(i + tail.length);
-  }
-  return p;
-}
+export { relToProject };
 
 const fmtK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}k` : String(n));
 function fmtDur(ms: number, lang: string) {

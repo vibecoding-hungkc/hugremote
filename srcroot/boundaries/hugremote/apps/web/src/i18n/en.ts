@@ -191,6 +191,7 @@ export const en: Messages = {
     grpScroll: 'Scroll',
   },
   files: {
+    claudeEdited: 'Claude just edited this file — reloaded the latest version from the machine.',
     tree: 'Files',
     search: 'Search',
     searchProject: 'Search in project',

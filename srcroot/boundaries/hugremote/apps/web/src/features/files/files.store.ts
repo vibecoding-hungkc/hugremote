@@ -9,6 +9,8 @@ export interface OpenFile {
   /** Bản đang sửa (khác `base` = chưa lưu). */
   buf: string;
   conflictMtime?: number;
+  /** Claude vừa sửa file này và đã tự tải lại (AC-37) — hiện dải báo tới khi người dùng đóng. */
+  claudeTouched?: boolean;
 }
 
 interface FilesState {
@@ -19,6 +21,7 @@ interface FilesState {
   saved: (projectId: string, path: string, mtime: number, content: string) => void;
   reload: (projectId: string, path: string, content: string, mtime: number) => void;
   conflict: (projectId: string, path: string, mtime?: number) => void;
+  touched: (projectId: string, path: string, on: boolean) => void;
   close: (projectId: string, path: string) => void;
   rename: (projectId: string, from: string, to: string) => void;
 }
@@ -34,6 +37,7 @@ export const useFiles = create<FilesState>((set) => ({
   edit: (pid, path, buf) => set((s) => upd(s, pid, (p) => ({ ...p, open: p.open.map((x) => (x.path === path ? { ...x, buf } : x)) }))),
   saved: (pid, path, mtime, content) => set((s) => upd(s, pid, (p) => ({ ...p, open: p.open.map((x) => (x.path === path ? { ...x, base: content, buf: content, mtime, conflictMtime: undefined } : x)) }))),
   reload: (pid, path, content, mtime) => set((s) => upd(s, pid, (p) => ({ ...p, open: p.open.map((x) => (x.path === path ? { ...x, base: content, buf: content, mtime, conflictMtime: undefined } : x)) }))),
+  touched: (pid, path, on) => set((s) => upd(s, pid, (p) => ({ ...p, open: p.open.map((x) => (x.path === path ? { ...x, claudeTouched: on } : x)) }))),
   conflict: (pid, path, mtime) => set((s) => upd(s, pid, (p) => ({ ...p, open: p.open.map((x) => (x.path === path ? { ...x, conflictMtime: mtime } : x)) }))),
   close: (pid, path) =>
     set((s) =>

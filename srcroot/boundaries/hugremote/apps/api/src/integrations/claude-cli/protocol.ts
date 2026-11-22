@@ -16,7 +16,9 @@ export type NormOp =
   | { op: 'permission'; requestId: string; item: Extract<ChatItem, { kind: 'interaction' }> }
   | { op: 'result'; item: Extract<ChatItem, { kind: 'summary' }>; isError: boolean }
   | { op: 'control_response'; requestId: string; response: Record<string, unknown> }
-  | { op: 'rate_limit'; info: RateLimitInfo };
+  | { op: 'rate_limit'; info: RateLimitInfo }
+  /** Công cụ sửa file vừa chạy xong không lỗi — để Files tự tải lại file đang mở (AC-37). */
+  | { op: 'file_written'; path: string };
 
 /** Hạn mức dùng Claude do CLI báo (`rate_limit_event`) — chip "Hạn mức 5 giờ" (AC-25). */
 export interface RateLimitInfo {
@@ -148,7 +150,10 @@ export class Normalizer {
         for (const b of msg.content) {
           if (b.type !== 'tool_result' || !b.tool_use_id) continue;
           const fp = this.pendingFiles.get(b.tool_use_id);
-          if (fp && !b.is_error) this.filesChanged.add(fp);
+          if (fp && !b.is_error) {
+            this.filesChanged.add(fp);
+            out.push({ op: 'file_written', path: fp });
+          }
           this.pendingFiles.delete(b.tool_use_id);
           const result =
             typeof b.content === 'string'

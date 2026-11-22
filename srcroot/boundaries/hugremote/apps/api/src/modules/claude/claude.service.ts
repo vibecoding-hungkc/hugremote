@@ -386,6 +386,11 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async onOp(s: ClaudeSessionEntity, l: Live, op: NormOp) {
+    if (op.op === 'file_written') {
+      // không gắn chủ: ai đang mở file này trong dự án cũng cần biết (G-13 chỉ áp cho phiên)
+      this.events.publish({ type: 'file_changed', data: { projectId: s.projectId, path: op.path, by: 'claude', sessionId: s.id } });
+      return;
+    }
     if (op.op === 'rate_limit') {
       if (op.info.kind === 'other') return;
       const project = await this.ws.get(s.projectId);

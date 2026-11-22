@@ -105,6 +105,8 @@ Thời lượng vòng: `intake/loops/l1/_PROPOSAL.md` (~6 tuần công, gồm P1
 
 ---
 
+- [ ] `files-watch`: theo dõi file đổi ngoài Claude (terminal, công cụ khác) để tự tải lại — vòng sau (DECISIONS 2026-11-22 AC-37)
+
 ## 3. Backlog — ngoài scope vòng này
 
 > Agent tự append vào đây khi gặp việc ngoài scope. Format: ngày · việc · vì sao bị đẩy ra · ai/cái gì kích hoạt lại.

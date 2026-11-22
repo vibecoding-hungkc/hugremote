@@ -16,6 +16,7 @@ import { NotifBell } from './NotifBell';
 import { QuickOpen } from './QuickOpen';
 import { pbase } from './sessions';
 import { KeysDialog, Spotlight } from './Spotlight';
+import { onFileChanged } from './useFileEvents';
 import { useShortcuts } from './useShortcuts';
 import { usePreferences } from '../usePreferences';
 import { ProjectTabs } from './ProjectTabs';
@@ -134,6 +135,7 @@ export function AppShell() {
         interaction_requested: () => void qc.invalidateQueries({ queryKey: ['claude'] }),
         interaction_answered: () => void qc.invalidateQueries({ queryKey: ['claude'] }),
         turn_finished: () => void qc.invalidateQueries({ queryKey: ['claude'] }),
+        file_changed: (d) => void onFileChanged(qc, d),
       }),
     [qc],
   );

@@ -380,6 +380,16 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
               {editable && <Button variant={dirty ? 'primary' : 'ghost'} size="sm" iconOnly icon="save" write label={`${t('common.save')} (⌘S)`} onClick={() => void save()} />}
             </div>
           )}
+          {active?.claudeTouched && !active.conflictMtime && (
+            <div className="notice">
+              <Icon name="claude" className="claude-ic" />
+              <span className="grow">{t('files.claudeEdited')}</span>
+              <Button variant="ghost" size="sm" onClick={() => setDiffMode(true)}>
+                {t('files.viewChanges')}
+              </Button>
+              <Button variant="ghost" size="sm" iconOnly icon="x" label={t('common.close')} onClick={() => store.touched(projectId, active.path, false)} />
+            </div>
+          )}
           {active?.conflictMtime && (
             <div className="notice danger">
               <Icon name="warn" className="warn-ic" />

@@ -199,6 +199,7 @@ export const vi = {
     grpScroll: 'Cuộn',
   },
   files: {
+    claudeEdited: 'Claude vừa sửa file này — đã tải lại bản mới trên máy.',
     tree: 'File',
     search: 'Tìm',
     searchProject: 'Tìm trong dự án',

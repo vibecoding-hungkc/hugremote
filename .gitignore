@@ -69,3 +69,4 @@ demos/**/*.mov
 *.swp
 .vscode/*
 !.vscode/extensions.json
+deployment/local/releases.git/

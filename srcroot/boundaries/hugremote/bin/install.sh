@@ -4,6 +4,7 @@
 #   curl -fsSL <địa chỉ>/beta.sh | bash               (kênh beta)
 # Không tương tác: HUGREMOTE_REPO=… HUGREMOTE_PORT=8099 HUGREMOTE_HOST=127.0.0.1 HUGREMOTE_BASE=/remote bash install.sh --yes
 # Tuỳ chọn: --beta · --yes (không hỏi) · --no-service (chạy nền bằng pidfile, không cài systemd/launchd)
+# HUGREMOTE_TAG=v1.2.3 cài đúng một bản (mặc định: bản mới nhất của kênh)
 set -euo pipefail
 
 CHANNEL=stable; YES=0
@@ -48,7 +49,7 @@ else # chạy qua `curl | bash`: lấy thư viện từ chính kho phát hành
   tmpd="$(mktemp -d)"; git clone --quiet --depth 1 "$UPDATE_REPO" "$tmpd/src"; . "$tmpd/src/bin/lib/release.sh"; . "$tmpd/src/bin/lib/service.sh"
 fi
 
-TAG="$(latest_tag "$CHANNEL")"
+TAG="${HUGREMOTE_TAG:-$(latest_tag "$CHANNEL")}"
 [ -n "$TAG" ] || die "Không thấy bản phát hành ($CHANNEL) ở $UPDATE_REPO"
 UPGRADE=0; [ -L "$INSTALL_ROOT/current" ] && UPGRADE=1
 say "HugRemote $TAG ($CHANNEL)$([ $UPGRADE = 1 ] && echo ' — đã có bản cài, sẽ nâng cấp')"

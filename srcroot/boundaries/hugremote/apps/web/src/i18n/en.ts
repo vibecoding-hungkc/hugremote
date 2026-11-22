@@ -701,6 +701,7 @@ export const en: Messages = {
     reconnecting: 'Reconnecting the Claude stream…',
   },
   errors: {
+    BODY_TOO_LARGE: 'The request is too large',
     NETWORK: 'Connection lost — you can do this once reconnected',
     VALIDATION_FAILED: 'Some input is not valid',
     UNAUTHORIZED: 'Your session expired — sign in again',

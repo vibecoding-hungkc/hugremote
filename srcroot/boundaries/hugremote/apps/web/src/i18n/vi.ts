@@ -709,6 +709,7 @@ export const vi = {
     reconnecting: 'Đang nối lại luồng Claude…',
   },
   errors: {
+    BODY_TOO_LARGE: 'Dữ liệu gửi lên quá lớn',
     NETWORK: 'Đang mất kết nối — làm được khi nối lại',
     VALIDATION_FAILED: 'Thông tin nhập chưa hợp lệ',
     UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn — đăng nhập lại',

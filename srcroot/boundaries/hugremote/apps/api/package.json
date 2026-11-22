@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "typeorm-ts-node-commonjs -d src/infra/database/data-source.ts",
     "migrate": "node dist/infra/database/migrate.js",
-    "dev:all": "nest start --watch --preserveWatchOutput"
+    "dev:all": "nest start --watch --preserveWatchOutput",
+    "test:security": "node --test test/security.e2e.mjs"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

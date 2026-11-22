@@ -22,6 +22,13 @@ async function bootstrap() {
   app.useWebSocketAdapter(new WsAdapter(app));
   app.set('trust proxy', cfg.trustProxy ? 1 : false);
   app.disable('x-powered-by');
+  // header bảo mật tối thiểu (AC-34): không đoán MIME, không cho nhúng iframe, không rò referrer
+  app.use((_req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'same-origin');
+    next();
+  });
   app.use(cookieParser());
   app.setGlobalPrefix(`${cfg.basePath}/api`.replace(/^\//, ''));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));

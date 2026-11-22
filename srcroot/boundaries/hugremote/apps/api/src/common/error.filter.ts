@@ -29,6 +29,12 @@ export class ErrorFilter implements ExceptionFilter {
       const details = typeof body === 'object' && Array.isArray(body.message) ? { fields: body.message } : undefined;
       return res.status(status).json({ code: STATUS_CODE[status] ?? ErrorCode.INTERNAL, ...(details ? { details } : {}) });
     }
+    // lỗi của body-parser (JSON hỏng, body quá lớn) mang `status` 4xx — không phải lỗi server
+    const st = (err as { status?: unknown; statusCode?: unknown })?.status ?? (err as { statusCode?: unknown })?.statusCode;
+    if (typeof st === 'number' && st >= 400 && st < 500) {
+      const code = st === 413 ? ErrorCode.BODY_TOO_LARGE : (STATUS_CODE[st] ?? ErrorCode.VALIDATION_FAILED);
+      return res.status(st).json({ code });
+    }
     this.log.error(err instanceof Error ? err.stack : String(err));
     return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ code: ErrorCode.INTERNAL });
   }

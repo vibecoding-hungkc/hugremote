@@ -1,0 +1,15 @@
+{
+  "screen": "_ds",
+  "name": "Trang mẫu component C1–C38",
+  "route": "#/_ds",
+  "source": "prototype/hugremote/index.html",
+  "images": {
+    "desktop-dark": "ds-gallery.desktop.dark.png",
+    "desktop-light": "ds-gallery.desktop.light.png",
+    "mobile-dark": "ds-gallery.mobile.dark.png",
+    "mobile-light": "ds-gallery.mobile.light.png"
+  },
+  "fullPage": true,
+  "purpose": "Ảnh chuẩn cho test so ảnh pha I (G-16): route #/_ds của apps/web phải khớp từng mục",
+  "captured": "2026-11-22"
+}

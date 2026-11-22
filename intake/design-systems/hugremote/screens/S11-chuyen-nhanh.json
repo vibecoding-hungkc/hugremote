@@ -1,0 +1,25 @@
+{
+  "screen": "S11",
+  "name": "Chuyển nhanh",
+  "route": "… + openSpot()",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S11-chuyen-nhanh.desktop.png",
+    "mobile": "S11-chuyen-nhanh.mobile.png"
+  },
+  "components": [
+    "C24"
+  ],
+  "captured": "2026-11-22"
+}

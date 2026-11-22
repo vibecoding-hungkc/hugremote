@@ -1,0 +1,41 @@
+{
+  "screen": "S8",
+  "name": "Files",
+  "route": "#/s/demo-sshd/p/demo-api/files",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S8-files.desktop.png",
+    "mobile": "S8-files.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C3",
+    "C4",
+    "C5",
+    "C7",
+    "C9",
+    "C13",
+    "C15",
+    "C16",
+    "C17",
+    "C25",
+    "C27",
+    "C28",
+    "C29",
+    "C30",
+    "C31",
+    "C38"
+  ],
+  "captured": "2026-11-22"
+}

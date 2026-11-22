@@ -1,0 +1,34 @@
+{
+  "screen": "S3",
+  "name": "Máy",
+  "route": "#/hosts",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S3-may.desktop.png",
+    "mobile": "S3-may.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C9",
+    "C12",
+    "C14",
+    "C27"
+  ],
+  "captured": "2026-11-22"
+}

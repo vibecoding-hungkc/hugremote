@@ -63,8 +63,10 @@
   --shadow: 0 8px 24px #00000066;
   --tap: 44px;
   --sidebar-w: 280px;
-  --bar-h: 48px;
+  --bar-h: 36px;
+  --bar-h-touch: 44px;
 }
+@media (max-width: 1023px) { :root { --bar-h: var(--bar-h-touch); } }
 :root[data-theme="light"] {
   --color-bg: var(--light-bg);
   --color-surface: var(--light-surface);
@@ -114,7 +116,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .topbar { height: var(--bar-h); flex: none; display: flex; align-items: center; gap: var(--space-sm); padding: 0 var(--space-sm) 0 var(--space-sm); border-bottom: 1px solid var(--color-divider); background: var(--color-bg); }
 .ptabs { display: flex; gap: var(--space-xs); }
-.ptab { display: flex; align-items: center; gap: var(--space-xs); padding: 0 var(--space-md); min-height: 36px; border-radius: var(--radius); border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; font-size: var(--text-sm); }
+.ptab { display: flex; align-items: center; gap: var(--space-xs); padding: 0 var(--space-md); min-height: 28px; border-radius: var(--radius); border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; font-size: var(--text-sm); }
 .ptab.on { background: var(--color-surface-raised); color: var(--color-text); }
 .cnt { font-size: var(--text-xs); min-width: 18px; padding: 0 var(--space-xs); border-radius: var(--radius-pill); background: var(--color-warning); color: var(--color-bg); text-align: center; }
 .ptabs-m { display: none; }
@@ -416,6 +418,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .chip b { color: var(--color-text); font-weight: 500; }
 .chip.warn { border-color: var(--color-warning); color: var(--color-warning); }
 .chip.warn b { color: var(--color-warning); }
+.chip.danger, .chip.danger b { border-color: var(--color-danger); color: var(--color-danger); }
 .attach { display: inline-flex; gap: var(--space-xs); align-items: center; font-size: var(--text-xs); padding: 2px var(--space-xs) 2px var(--space-sm); border-radius: var(--radius-pill); background: var(--color-surface-raised); }
 .slash { border: 1px solid var(--color-divider); border-radius: var(--radius); background: var(--color-bg); padding: var(--space-xs); }
 .slash .mi { display: flex; gap: var(--space-md); align-items: center; }
@@ -436,6 +439,39 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .proto .pb div { display: flex; flex-wrap: wrap; gap: var(--space-xs); align-items: center; }
 .proto button { font-size: var(--text-xs); padding: 2px var(--space-sm); border-radius: var(--radius); border: 1px solid var(--color-divider); background: var(--color-bg); cursor: pointer; }
 .proto button.on { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* trang mẫu component #/_ds (không thuộc sản phẩm) — chỉ bố cục, mọi kiểu component dùng lại class ở trên */
+.ds-page { height: 100dvh; overflow: auto; padding: var(--space-xl); }
+.ds-head { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; margin-bottom: var(--space-sm); }
+.ds-head h1 { margin: 0; font-size: var(--text-xl); }
+.ds-toc { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin: var(--space-lg) 0; }
+.ds-sec { border-top: 1px solid var(--color-divider); padding: var(--space-xl) 0; }
+.ds-sec > h2 { margin: 0 0 var(--space-xs); font-size: var(--text-xl); }
+.ds-sec > p { margin: 0 0 var(--space-lg); color: var(--color-text-muted); font-size: var(--text-sm); }
+.ds-sec > h3 { margin: var(--space-lg) 0 var(--space-sm); font-size: var(--text-base); }
+.ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: var(--space-lg); align-items: start; }
+.ds-grid.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); }
+.ds-grid.one { grid-template-columns: minmax(0, 1fr); }
+.ds-grid.sm {grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
+.ds-cell { min-width: 0; display: grid; gap: var(--space-xs); align-content: start; }
+.ds-box { min-width: 0; overflow: auto; border: 1px dashed var(--color-divider); border-radius: var(--radius); padding: var(--space-md); }
+.ds-box.flush { padding: 0; }
+.ds-stage { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; border: 1px dashed var(--color-divider); border-radius: var(--radius); background: var(--color-bg); }
+.ds-lbl { font-size: var(--text-xs); color: var(--color-text-muted); }
+.ds-sw { display: flex; gap: var(--space-sm); align-items: center; font-size: var(--text-xs); min-width: 0; }
+.ds-sw i { width: 40px; height: 40px; border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--color-border); flex: none; }
+.ds-phone { max-width: 390px; }
+/* khung điện thoại: chép đúng luật của @media (max-width: 767px) cho các khối chỉ có trên mobile */
+.ds-phone { --bar-h: var(--bar-h-touch); }
+.ds-phone .bottombar { display: grid; grid-template-columns: repeat(3, 1fr); height: calc(var(--bar-h) + 8px); background: var(--color-surface); border-top: 1px solid var(--color-divider); }
+.ds-phone .bottombar button { border: 0; background: transparent; display: grid; place-items: center; gap: 2px; font-size: var(--text-xs); color: var(--color-text-muted); cursor: pointer; padding-top: var(--space-xs); }
+.ds-phone .bottombar button.on { color: var(--color-primary); }
+.ds-phone .keybar { display: block; }
+.ds-phone .edkeys { display: flex; gap: var(--space-xs); overflow-x: auto; padding: var(--space-xs); border-top: 1px solid var(--color-divider); background: var(--color-surface); }
+.ds-phone .tabbar .tabs, .ds-phone .ptabs-d { display: none; }
+.ds-phone .sesspick { display: flex; flex: 1; min-width: 0; align-items: center; gap: var(--space-sm); padding: 0 var(--space-md); background: transparent; border: 0; cursor: pointer; font-size: var(--text-sm); }
+.ds-phone .ptabs-m { display: flex; flex: none; justify-content: space-around; border-bottom: 1px solid var(--color-divider); background: var(--color-surface); padding: var(--space-xs); }
+@media (max-width: 767px) { .ds-page { padding: var(--space-lg); } }
 
 @media (max-width: 1023px) {
   .shell { grid-template-columns: 1fr; }
@@ -470,8 +506,6 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
   .term { white-space: pre-wrap; word-break: break-all; }
   .chat { padding: var(--space-md); }
   .grid2 { grid-template-columns: 1fr; }
-  .composer .opts { display: none; }
-  .composer .opts.open { display: flex; }
   .askbar { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm); border-radius: var(--radius); box-shadow: inset 0 0 0 1px var(--color-warning); background: var(--color-bg); font-size: var(--text-sm); }
   .cmp { grid-template-columns: 1fr; }
   .proto { bottom: calc(var(--bar-h) + var(--space-xl)); }
@@ -652,13 +686,16 @@ const pbase = (h, p) => `#/s/${h}/p/${p}`;
 const offline = () => ui.state === 'offline';
 const OFF = () => offline() ? 'disabled title="Đang mất kết nối — làm được khi nối lại"' : '';
 const gitOf = (h, p) => D.git[h + '/' + p];
-function toast(msg) { ui.toast = msg; renderOverlay(); clearTimeout(window.__tt); window.__tt = setTimeout(() => { ui.toast = null; renderOverlay(); }, 2600); }
+/* C7 rút gọn GIỮA: giữ đầu (gốc) và đuôi (thư mục/file đang ở) — phần người dùng cần nhận ra */
+const midTrunc = (s, n) => s.length <= n ? s : s.slice(0, Math.ceil((n - 1) / 2)) + '…' + s.slice(s.length - Math.floor((n - 1) / 2));
+function toast(msg) { ui.toast = msg; renderOverlay(); clearTimeout(window.__tt); window.__tt = setTimeout(() => { ui.toast = null; renderOverlay(); }, 2400); }
 const shortAgo = s => s.status === 'awaiting' ? 'duyệt' : s.status === 'exited' ? s.ago : ({ '3 phút': '3p', '8 phút': '8p', 'hôm qua': '1 ngày', '2 giờ': '2g', '35 phút': '35p', '1 giờ': '1g', '12 phút': '12p', 'vừa mở': 'mới', 'vừa gửi': 'mới' }[s.ago] || s.ago);
 const durLabel = s => ({ running: 'đang chạy', awaiting: 'cần duyệt', done: 'xong', exited: 'kết thúc', stopped: 'đã dừng' }[s.status] + ' · ' + s.ago);
 
 function route() {
   const p = (location.hash.replace(/^#/, '') || '/').split('/').filter(Boolean);
   if (p[0] === 'login') return { name: 'login' };
+  if (p[0] === '_ds') return { name: 'ds' };
   if (p[0] === 'hosts') return { name: 'hosts' };
   if (p[0] === 'settings') return { name: 'settings', sub: p[1] };
   if (p[0] === 's' && p[1]) {
@@ -800,8 +837,9 @@ function topbar(r, title) {
     <span class="only-desk">${ib('sidebar', (ui.noside ? 'Hiện' : 'Ẩn') + ' không gian làm việc (⌘\\)', 'ui.noside=!ui.noside;render()')}</span>
     <span class="only-narrow hide-mobile">${ib('menu', 'Mở không gian làm việc', 'ui.sideOpen=!ui.sideOpen;render()')}</span>
     ${backTo ? `<span class="only-mobile">${ib('back', 'Về không gian làm việc', `go('${backTo}')`)}</span>` : ''}
-    <div class="grow">${h ? `<nav class="crumb" aria-label="Phạm vi hiện hành">${ic(h.kind === 'local' ? 'home' : 'server')}<b>${esc(h.name)}</b>${p ? `<span class="sep">›</span><b>${esc(p.name)}</b><span class="muted mono xs hide-mobile ell">${p.path}</span>` : ''}</nav>` : `<b>${title}</b>`}</div>
+    <div class="grow">${h ? `<nav class="crumb" aria-label="Phạm vi hiện hành">${ic(h.kind === 'local' ? 'home' : 'server')}<b>${esc(h.name)}</b>${p ? `<span class="sep">›</span><b>${esc(p.name)}</b><span class="muted mono xs hide-mobile" title="${p.path}">${midTrunc(p.path, 40)}</span>` : ''}</nav>` : `<b>${title}</b>`}</div>
     ${inProject(r) ? projTabs(r, 'ptabs-d') : ''}
+    ${inProject(r) && !['term', 'claude'].includes(r.name) ? notifBtn(r) : ''}
     ${ib('search', 'Chuyển nhanh (⌘K)', 'openSpot()')}
     <span class="hide-mobile">${ib('keyi', 'Phím tắt (⌘/)', "ui.dialog={k:'keys'};renderOverlay()")}</span>
     <span class="only-desk">${ib('cog', 'Cài đặt', "go('#/settings')")}</span>
@@ -1081,7 +1119,7 @@ function saveFile() {
 }
 function onEdit(el) {
   ui.buf[ui.fileOpen] = el.innerText.replace(/\n$/, '');
-  const d = isDirty(ui.fileOpen), b = document.getElementById('dirty'); if (b) b.hidden = !d;
+  const d = isDirty(ui.fileOpen), b = document.getElementById('savebtn'); if (b) { b.classList.toggle('primary', d); b.classList.toggle('ghost', !d); }
   const t = document.querySelector(`.tab[data-f="${CSS.escape(ui.fileOpen)}"] .dirtydot`); if (t) t.hidden = !d;
   const g = document.getElementById('gut'); if (g) g.innerHTML = gutter(ui.fileOpen);
 }
@@ -1131,13 +1169,13 @@ function S8(r) {
         return `<div class="node ${x.ign ? 'ign' : ''} ${ui.fileOpen === x.n ? 'sel' : ''}" style="padding-left:calc(var(--space-md) + ${depth} * var(--space-lg))" tabindex="0" onclick="${x.d ? `ui.fopen['${x.n}']=!ui.fopen['${x.n}'];render()` : `openFile('${x.n}')`}" oncontextmenu="openRowMenu(event,'file','${r.host}','${r.proj}','${x.n}')">${x.d ? ic('chev', 'chev ' + (ui.fopen[x.n] ? 'open' : '')) : ''}${ic(x.d ? 'folder' : 'file')}<span class="nm">${name}</span>${x.m ? `<span class="meta ${x.m === 'A' ? 'add' : ''}" title="${x.m === 'A' ? 'Mới thêm' : 'Đã sửa'}">${x.m}</span>` : ''}${ib('more', 'Thao tác với ' + name, `openRowMenu(event,'file','${r.host}','${r.proj}','${x.n}')`, 'act')}</div>`; }).join('')}`;
   const ftabs = ui.openFiles.length ? `<div class="tabbar"><div class="tabs">${ui.openFiles.map(pth => `<div class="tab ${pth === ui.fileOpen ? 'on' : ''}" data-f="${pth}" tabindex="0" title="${pth}" onclick="openFile('${pth}')"><span class="tn">${pth.split('/').pop()}</span><span class="dot warn dirtydot" title="Chưa lưu" ${isDirty(pth) ? '' : 'hidden'}></span>${ib('x', 'Đóng ' + pth.split('/').pop() + ' (' + A + 'W)', `event.stopPropagation();closeFile('${pth}')`)}</div>`).join('')}</div><div class="tools">${ib('list', 'Các file đang mở', "openQuick()")}${ib('search', 'Mở nhanh file (⌘P)', 'openQuick()')}</div></div>` : '';
   const name = ui.fileOpen ? ui.fileOpen.split('/').pop() : '', dir = ui.fileOpen ? p.path + '/' + ui.fileOpen.split('/').slice(0, -1).join('/') : '';
-  const head = ui.fileOpen ? `<div class="ehead"><span class="only-mobile">${ib('back', 'Danh sách file', "ui.fview='tree';render()")}</span><span class="fname">${name}</span><span class="fdir" title="${p.path}/${ui.fileOpen} — bấm để sao chép" onclick="toast('Đã sao chép ${p.path}/${ui.fileOpen}')">&lrm;${dir}&lrm;</span><span id="dirty" class="badge warn" ${dirty ? '' : 'hidden'}><span class="dot warn"></span>chưa lưu</span>
+  const head = ui.fileOpen ? `<div class="ehead"><span class="only-mobile">${ib('back', 'Danh sách file', "ui.fview='tree';render()")}</span><span class="fname">${name}</span><span class="fdir" title="${p.path}/${ui.fileOpen} — bấm để sao chép" onclick="toast('Đã sao chép ${p.path}/${ui.fileOpen}')">&lrm;${dir}&lrm;</span>
       ${editable ? ib('search', 'Tìm / thay trong file (⌘F)', 'ui.findOpen=!ui.findOpen;render();setTimeout(()=>{const i=document.getElementById(\'fq\');if(i)i.focus()})', ui.findOpen ? 'on-primary' : '') + ib('wrapi', ui.wrap ? 'Tắt xuống dòng' : 'Bật xuống dòng', 'ui.wrap=!ui.wrap;render()', ui.wrap ? 'on-primary' : '') : ''}
       ${f.kind === 'md' ? ib(ui.filePreview ? 'edit' : 'eye', ui.filePreview ? 'Sửa' : 'Xem trước', 'ui.filePreview=!ui.filePreview;render()') : ''}
       ${f.kind === 'log' ? ib('refresh', ui.follow ? 'Đang theo dõi (tail -f) — bấm để dừng' : 'Theo dõi (tail -f)', 'ui.follow=!ui.follow;render()', ui.follow ? 'on-primary' : '') : ''}
       ${(FT.find(x => x.n === ui.fileOpen) || {}).m ? ib('git', ui.diffMode ? 'Quay lại sửa' : 'Xem thay đổi so với commit', 'ui.diffMode=!ui.diffMode;render()', ui.diffMode ? 'on-primary' : '') : ''}
       ${ib('more', 'Thao tác khác', `openRowMenu(event,'file','${r.host}','${r.proj}','${ui.fileOpen}')`)}
-      ${editable ? `<button class="btn primary sm" title="Lưu (⌘S)" ${OFF()} onclick="saveFile()">${ic('save')}<span class="hide-mobile">Lưu</span></button>` : ''}</div>` : '';
+      ${editable ? `<button class="btn ${dirty ? 'primary' : 'ghost'} sm icon" id="savebtn" title="Lưu (⌘S)" aria-label="Lưu" ${OFF()} onclick="saveFile()">${ic('save')}</button>` : ''}</div>` : '';
   const conflict = ui.state === 'error' && dirty ? `<div class="notice danger">${ic('warn', 'warn-ic')}<span class="grow">Claude vừa sửa file này lúc 10:43 trong khi bạn đang sửa dở. Không bản nào bị ghi đè cho tới khi bạn chọn.</span><button class="btn ghost sm ${ui.compare ? 'on-primary' : ''}" onclick="ui.compare=!ui.compare;render()">${ui.compare ? 'Đóng so sánh' : 'So sánh'}</button><button class="btn ghost sm" onclick="delete ui.buf[ui.fileOpen];ui.compare=false;setState('normal');toast('Đã lấy bản trên máy')">Lấy bản trên máy</button><button class="btn ghost sm on-danger" onclick="ui.compare=false;FC[ui.fileOpen].lines=ui.buf[ui.fileOpen].split('\\n');delete ui.buf[ui.fileOpen];setState('normal');toast('Đã ghi đè bằng bản của bạn')">Giữ bản của tôi</button></div>` : '';
   const notice = !conflict && ui.fileOpen === 'src/bookings/bookings.service.ts' && ui.claudeEdited ? `<div class="notice">${ic('claude', 'claude-ic')}<span class="grow">Claude vừa sửa file này — đã tự tải lại (bạn chưa sửa gì).</span><button class="btn ghost sm" onclick="ui.diffMode=true;ui.claudeEdited=false;render()">Xem thay đổi</button>${ib('x', 'Đóng thông báo', 'ui.claudeEdited=false;render()')}</div>` : '';
   const cnt = ui.findQ ? linesOf(ui.fileOpen).join('\n').toLowerCase().split(ui.findQ.toLowerCase()).length - 1 : 0;
@@ -1303,10 +1341,10 @@ function composer(r, c, compact) {
         ${ib('mic', ui.recording ? 'Dừng ghi âm' : 'Nói thay vì gõ', 'ui.recording=!ui.recording;render()', ui.recording ? 'on-primary' : '')}${ib(mode === 'Bypass' ? 'warn' : 'shield', 'Quyền của phiên: ' + MODES[mode][0] + ' — ⇧Tab để đổi', `ui.menu=ui.menu==='mode-${sid}'?null:'mode-${sid}';render()`, mode === 'Bypass' ? 'on-danger' : '')}</div>
       <div class="crow tools">${menu}
         ${ib('clip', 'Đính kèm file của dự án', 'openQuick()')}${ib('target', ui.focus ? 'Chế độ gọn đang bật: chỉ hiện trạng thái và kết quả — bấm để xem toàn bộ quá trình' : 'Bật chế độ gọn: chỉ hiện trạng thái và kết quả', 'ui.focus=!ui.focus;render()', ui.focus ? 'on-primary' : '', `aria-pressed="${!!ui.focus}"`)}
-        <span class="cscroll"><span class="chip ${c && c.ctx > 80 ? 'warn' : ''}" title="Token context đã dùng / sức chứa context window của model — gõ /compact để nén">Context <b class="mono">${ctxTxt}</b></span><span class="chip ${ui.state === 'error' ? 'warn' : ''}" title="Hạn mức 5 giờ 81% — reset lúc 14:00 · Hạn mức tuần 46% — reset thứ Hai 07:00">Hạn mức 5 giờ <b>81%</b><span class="hide-mobile"> · tuần <b>46%</b></span></span>
+        <span class="cscroll"><span class="chip ${c && c.ctx > 80 ? 'warn' : ''}" title="Token context đã dùng / sức chứa context window của model — gõ /compact để nén">Context <b class="mono">${ctxTxt}</b></span><span class="chip ${81 >= 80 ? 'warn' : ''}" title="Hạn mức 5 giờ 81% — reset lúc 14:00 · Hạn mức tuần 46% — reset thứ Hai 07:00">Hạn mức 5 giờ <b>81%</b><span class="hide-mobile"> · tuần <b>46%</b></span></span>
         <button class="chip" title="Model và mức suy nghĩ của phiên này" onclick="ui.menu=ui.menu==='model-${sid}'?null:'model-${sid}';render()">Model <b>${c ? c.model + ' · ' + c.effort : 'Opus 4.8 · Cao'}</b> ▾</button>
-        <button style="margin-left:auto" class="chip ${mode === 'Bypass' ? 'warn' : ''}" title="${MODES[mode][1]} — ⇧Tab để đổi" onclick="ui.menu=ui.menu==='mode-${sid}'?null:'mode-${sid}';render()">${ic(modeIc)}Quyền <b>${MODES[mode][0]}</b> ▾</button></span>
-        ${running ? `<button class="btn danger sm icon" title="Dừng Claude (Esc)" aria-label="Dừng Claude" onclick="stopClaude('${r.host}','${r.proj}','${sid}')">${ic('stop')}</button>` : ''}<button class="btn primary sm icon" title="${running ? 'Xếp hàng tin nhắn' : 'Gửi'} (Enter)" aria-label="Gửi" ${OFF()} onclick="sendPrompt(route(),'${sid}')">${ic('up')}</button></div>
+        <button style="margin-left:auto" class="chip ${mode === 'Bypass' ? 'danger' : ''}" title="${MODES[mode][1]} — ⇧Tab để đổi" onclick="ui.menu=ui.menu==='mode-${sid}'?null:'mode-${sid}';render()">${ic(modeIc)}Quyền <b>${MODES[mode][0]}</b> ▾</button></span>
+        ${running ? `<button class="btn danger sm icon" title="Dừng Claude (Esc)" aria-label="Dừng Claude" ${OFF()} onclick="stopClaude('${r.host}','${r.proj}','${sid}')">${ic('stop')}</button>` : ''}<button class="btn primary sm icon" title="${running ? 'Xếp hàng tin nhắn' : 'Gửi'} (Enter)" aria-label="Gửi" ${OFF()} onclick="sendPrompt(route(),'${sid}')">${ic('up')}</button></div>
     </div></div></div>`;
 }
 function S10(r) {
@@ -1444,9 +1482,275 @@ function renderOverlay() {
   else { const rn = document.getElementById('rn'); if (rn) { rn.focus(); rn.select(); } const hc = document.getElementById('hkcancel'); if (hc && ui.hostkeyChanged) hc.focus(); }
 }
 
+/* ================= TRANG MẪU COMPONENT #/_ds — chuẩn hình ảnh cho pha I (không thuộc sản phẩm) =================
+   Gọi lại đúng hàm vẽ của các màn với dữ liệu tĩnh cục bộ: dsWith() tạm đổi ui/D rồi trả lại nguyên trạng.
+   Lớp nổi (menu, hộp thoại, sheet, hộp chuyển nhanh, toast) vẽ tĩnh trong khung .ds-stage, không phủ trang. */
+function dsWith(patch, data, fn) {
+  const saved = {}; for (const k in patch) saved[k] = ui[k];
+  const savedD = D; Object.assign(ui, patch); D = data;
+  try { return fn(); } finally { Object.assign(ui, saved); D = savedD; }
+}
+const dsNoId = h => h.replace(/\sid="[^"]*"/g, '');
+const dsScrim = h => dsNoId(h).replace('class="scrim"', 'class="scrim" style="position:absolute;z-index:1"');
+const dsMenu = h => { const s = h.indexOf('<div class="menu"'); return s < 0 ? '' : dsNoId(h.slice(s, h.lastIndexOf('</div>'))).replace('style="left:', 'style="position:static;max-width:100%;left:'); };
+const dsPhone = h => h.replace(/class="only-mobile"/g, 'class=""').replace(/class="(only-desk|only-narrow hide-mobile|hide-mobile)"/g, 'hidden');
+const dsDesk = h => h.replace(/class="(only-mobile|only-narrow hide-mobile)"/g, 'hidden').replace(/class="(only-desk|hide-mobile)"/g, 'class=""');
+function dsTokens(prefix) {
+  const out = [];
+  for (const sh of document.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; }
+    for (const ru of rs) if (ru.selectorText === ':root') for (const p of Array.from(ru.style)) if (p.startsWith(prefix) && !out.includes(p)) out.push(p); }
+  return out;
+}
+function DSPage() {
+  const r = { name: 'claude', host: 'demo-sshd', proj: 'demo-api', sid: 'c1' }, P1 = 'src/bookings/bookings.controller.ts', P2 = 'src/bookings/bookings.service.ts';
+  const DD = () => { const d = clone(DEMO); d.pins.push('staging-vps'); return d; };
+  const B = { role: 'owner', state: 'normal', focus: false, menu: null, rowMenu: null, dialog: null, slash: false, recording: false, split: null, sheet: null, spot: false, quick: false, findOpen: false, findQ: '', hlLine: null, diffMode: false, compare: false, buf: {}, showHidden: false, sCase: false, sRegex: false, sGlob: false, ctrl: false, keyDrawer: false, follow: true, logLevel: 'all', logQ: '', wrap: false, filePreview: false, fileOpen: P1, openFiles: [P1, P2], open: {}, lastTab: { 'demo-sshd/demo-api': 'claude/c1' } };
+  const W = (patch, fn, data) => dsWith({ ...B, ...patch }, data || DD(), fn);
+  const cell = (lbl, html, cls = '') => `<div class="ds-cell"><div class="ds-box ${cls}">${html}</div><div class="ds-lbl">${lbl}</div></div>`;
+  const stage = (lbl, html, h = 360) => `<div class="ds-cell"><div class="ds-stage" style="height:${h}px">${html}</div><div class="ds-lbl">${lbl}</div></div>`;
+  const phone = (lbl, html) => cell(lbl, `<div class="ds-phone">${html}</div>`, 'flush');
+  const sec = (n, name, note, cells, cls = '') => `<section class="ds-sec" id="c${n}" aria-label="C${n} ${name}"><h2>C${n} — ${name}</h2><p>${note}</p><div class="ds-grid ${cls}">${cells}</div></section>`;
+  const FOC = 'style="outline:2px solid var(--color-primary);outline-offset:2px"';
+  let k = 0; const CS = o => ({ id: 'ds' + (++k), name: 'Thêm API đặt lịch', status: 'done', ago: '3 phút', owner: ME, mode: 'Manual', model: 'Opus 4.8', effort: 'Cao', ctx: 23, msgs: [], draft: '', queue: [], attach: [], ...o });
+  const chat = (c, p = {}) => W(p, () => dsNoId(chatBody(r, c, false)));
+  const comp = (c, p = {}) => W(p, () => dsNoId(composer(r, c, false)));
+  const menu = (kind, p = {}, data) => W({ rowMenu: { kind, h: 'demo-sshd', p: 'demo-api', x: 0, y: 0 }, ...p }, () => dsMenu(rowMenu()), data);
+  const fld = (lbl, inner, msg = '') => `<div class="field" style="margin:0"><label>${lbl}</label>${inner}${msg}</div>`;
+  const gap = '<div style="height:var(--space-md)"></div>';
+  const U = { t: 'user', text: 'Thêm API POST /bookings để đặt lịch, chặn trùng khung giờ, viết luôn test.' };
+
+  /* §2 token */
+  const cs = getComputedStyle(document.documentElement), val = t => esc(cs.getPropertyValue(t).trim());
+  const sw = t => `<div class="ds-sw"><i style="background:var(${t})"></i><span style="min-width:0;overflow-wrap:anywhere"><span class="mono">${t}</span><br><span class="muted">${val(t)}</span></span></div>`;
+  const tokens = `<section class="ds-sec" id="ds-tokens" aria-label="Token"><h2>§2 — Token</h2><p>Đọc thẳng từ <span class="mono">:root</span> của prototype; giá trị hiện theo chủ đề đang bật (Tối/Sáng). Terminal giữ nền tối ở cả hai chủ đề.</p>
+    <h3>Màu semantic <span class="mono xs muted">--color-*</span></h3><div class="ds-grid sm">${dsTokens('--color-').map(sw).join('')}</div>
+    <h3>Terminal <span class="mono xs muted">--term-*</span></h3><div class="ds-grid sm">${dsTokens('--term-').map(sw).join('')}</div>
+    <h3>Thang chữ <span class="mono xs muted">--text-*</span></h3><div class="ds-grid">${dsTokens('--text-').map(t => `<div class="ds-cell"><div style="font-size:var(${t})">Điều khiển máy từ xa — Claude, terminal, Git</div><div class="ds-lbl"><span class="mono">${t}</span> · ${val(t)}</div></div>`).join('')}
+      <div class="ds-cell"><div class="mono sm" style="font-variant-ligatures:none">const ok = a =&gt; a === b; // --font-mono</div><div class="ds-lbl"><span class="mono">--font-mono</span> · <span class="mono">--font-sans</span> (chữ giao diện)</div></div></div>
+    <h3>Khoảng cách <span class="mono xs muted">--space-*</span></h3><div class="ds-grid sm">${dsTokens('--space-').map(t => `<div class="ds-cell"><i style="display:block;height:var(--space-md);width:var(${t});background:var(--color-primary);border-radius:var(--radius-pill)"></i><div class="ds-lbl"><span class="mono">${t}</span> · ${val(t)}</div></div>`).join('')}</div></section>`;
+
+  /* C1–C5 */
+  const c1 = sec(1, 'Nút', 'Chính · phụ · nguy hiểm · chỉ biểu tượng (nhãn ẩn + tooltip, rê chuột để thấy).',
+    cell('mặc định — chính · phụ · nguy hiểm', `<div class="btns"><button class="btn primary">${ic('plus')}Thêm máy</button><button class="btn">${ic('plug')}Thử kết nối</button><button class="btn danger">${ic('trash')}Xoá máy</button></div>`)
+    + cell('mặc định — chỉ biểu tượng: pull · push kèm số commit · + / − stage · ↶ bỏ thay đổi · sao chép · gửi · dừng', `<div class="btns">${ib('pull', 'Pull (chỉ fast-forward)', '')}<button class="btn sm primary" title="Push lên origin/main" aria-label="Push">${ic('push')}<span class="num">2</span></button>${ib('plus', 'Thêm vào commit (stage)', '')}${ib('minus', 'Bỏ khỏi commit (unstage)', '')}${ib('undo', 'Bỏ thay đổi chưa commit', '')}${ib('copy', 'Sao chép đường dẫn', '')}<button class="btn primary sm icon" title="Gửi (Enter)" aria-label="Gửi">${ic('up')}</button><button class="btn danger sm icon" title="Dừng Claude (Esc)" aria-label="Dừng Claude">${ic('stop')}</button></div>`)
+    + cell('focus (vòng --color-primary)', `<div class="btns"><button class="btn primary" ${FOC}>Lưu</button><button class="btn" ${FOC}>Huỷ</button><button class="btn ghost sm icon" ${FOC} title="Sao chép" aria-label="Sao chép">${ic('copy')}</button></div>`)
+    + cell('đang gửi (khoá, chữ "Đang …") — nút cuối bấm thử được', `<div class="btns"><button class="btn primary" disabled>Đang lưu…</button><button class="btn" disabled>Đang kết nối…</button><button class="btn sm" onclick="sending(this,'Đang gửi…',()=>render())">Bấm thử</button></div>`)
+    + cell('bị vô hiệu (tooltip "Đang mất kết nối")', W({ state: 'offline' }, () => `<div class="btns"><button class="btn primary" ${OFF()}>${ic('commit')}Commit 2 file</button><button class="btn" ${OFF()}>Lưu</button><button class="btn danger" ${OFF()}>Xoá máy</button><button class="btn primary sm icon" aria-label="Gửi" ${OFF()}>${ic('up')}</button></div>`)));
+  const otp = (vals, err, f) => `<div class="otp">${vals.map((v, i) => `<input class="input ${err ? 'err' : ''}" inputmode="numeric" maxlength="1" value="${v}" aria-label="Chữ số ${i + 1}" ${i === f ? FOC : ''}>`).join('')}</div>`;
+  const c2 = sec(2, 'Trường nhập', 'Chữ · mật khẩu · ô mã 6 số · ô chọn. Cỡ chữ ô nhập 16px để iOS không tự phóng to.',
+    cell('chữ — rỗng', fld('Tên gọi (alias trong ~/.ssh/config)', '<input class="input" placeholder="ví dụ: may-cong-ty">'))
+    + cell('chữ — đang gõ (focus)', fld('Tên gọi (alias trong ~/.ssh/config)', `<input class="input" value="may-cong-ty" ${FOC}>`))
+    + cell('chữ — sai (viền + câu lỗi --color-danger)', fld('Địa chỉ máy (IP hoặc tên miền)', '<input class="input mono err" value="10.0.0.">', '<span class="msg">Địa chỉ chưa đúng — nhập IP hoặc tên miền</span>'))
+    + cell('chữ — bị vô hiệu', fld('Tên hiển thị của dự án', '<input class="input" value="demo-api" disabled>'))
+    + cell('mật khẩu — rỗng · đang gõ', fld('Mật khẩu', '<input class="input" type="password">', '<span class="hint">Quên mật khẩu? Trên máy chạy HugRemote: <span class="mono">hugremote reset-password</span></span>') + gap + fld('Mật khẩu mới', `<input class="input" type="password" value="matkhau-dai-10" ${FOC}>`, '<span class="hint">Ít nhất 10 ký tự</span>'))
+    + cell('mật khẩu — sai · bị vô hiệu (bị khoá)', fld('Mật khẩu', '<input class="input err" type="password" value="sai">', '<span class="msg">Mật khẩu chưa đúng — còn 3 lần thử</span>') + gap + fld('Mật khẩu', '<input class="input" type="password" disabled>'))
+    + cell('ô mã 6 số — rỗng · đang gõ', fld('Mã xác thực', otp(['', '', '', '', '', ''], 0, -1)) + gap + fld('Mã xác thực', otp(['4', '8', '1', '', '', ''], 0, 3), '<span class="hint">Mã đổi sau mỗi 30 giây</span>'))
+    + cell('ô mã 6 số — sai', fld('Mã xác thực', otp(['4', '8', '1', '9', '0', '2'], 1, -1), '<span class="msg">Mã chưa đúng — thử mã mới trên app xác thực</span>'))
+    + cell('ô chọn — mặc định · bị vô hiệu', fld('Khoá', '<select class="input mono"><option>Dùng ssh-agent</option><option>~/.ssh/id_ed25519</option></select>') + gap + fld('Qua máy trung gian (jump host)', '<select class="input mono" disabled><option>Không</option></select>')));
+  const lrow = (sel, h) => `<div class="row ${sel ? 'sel' : ''}">${ic(h.kind === 'local' ? 'home' : 'server')}<div class="t"><div class="t1">${esc(h.name)}</div><div class="t2 mono">${h.addr}</div></div>${statusBadge(h.status)}${ib('more', 'Thao tác với ' + h.name, '')}</div>`;
+  const c3 = sec(3, 'Hàng danh sách', 'Biểu tượng · tiêu đề · dòng phụ · hành động cuối.',
+    cell('mặc định', `<div class="list">${lrow(0, DEMO.hosts[1])}${lrow(0, DEMO.hosts[4])}</div>`)
+    + cell('đang chọn', `<div class="list">${lrow(1, DEMO.hosts[1])}${lrow(0, DEMO.hosts[4])}</div>`)
+    + cell('đang tải (khung xám đúng kích thước, 3 hàng)', skel(3)));
+  const c4 = sec(4, 'Khối trạng thái rỗng', 'Một câu nói vì sao trống + đúng một nút chính mở việc đầu tiên.',
+    cell('một câu + đúng một nút hành động', empty('server', 'Mới có máy này. Thêm máy SSH để điều khiển máy khác từ điện thoại hoặc máy tính.', `<button class="btn primary">${ic('plus')}Thêm máy</button>`))
+    + cell('một câu + đúng một nút hành động (khác ngữ cảnh)', empty('claude', 'Chưa hỏi Claude gì trong dự án này.', `<button class="btn primary">${ic('claude')}Hỏi Claude</button>`)));
+  const c5 = sec(5, 'Khối báo lỗi', 'Dòng đầu nói chuyện gì xảy ra, dòng hai nói làm gì tiếp; nút Thử lại nằm trong khối.',
+    cell('nguyên nhân + làm gì tiếp · Thử lại · giữ dữ liệu đang nhập', fld('Tên gọi', '<input class="input" value="staging-vps">') + gap + errorBox('Không kết nối được máy này', 'Hết thời gian chờ khi tới 203.0.113.7:2222. Kiểm tra máy còn bật, cổng SSH mở ra ngoài, rồi thử lại.', `<button class="btn sm">${ic('refresh')}Thử lại</button>`))
+    + cell('lỗi không thử lại được (chỉ hướng dẫn)', errorBox('Thư mục này nằm ngoài phạm vi được phép', 'Chỉ duyệt được bên trong <span class="mono">~</span> trên demo-sshd.', `<button class="btn sm">Về thư mục gốc</button>`)));
+
+  /* C6–C10 */
+  const hf = { alias: 'may-cong-ty', host: '10.0.0.20', user: 'dev', port: 22, jump: '', dir: '~', auth: 'key', key: 'ssh-agent' };
+  const sheet = p => W({ sheet: true, form: { ...hf }, formTested: false, formErr: '', ...p }, () => dsScrim(S3sheet()));
+  const c6 = sec(6, 'Sheet', 'Mobile: trượt từ đáy; desktop: panel phải 420px.',
+    stage('mở', sheet({}), 620)
+    + stage('đang lưu (Lưu khoá, chữ "Đang lưu…")', sheet({}).replace('onclick="saveHost()">Lưu</button>', 'disabled>Đang lưu…</button>'), 620)
+    + stage('lỗi lưu (giữ dữ liệu đang nhập; khung tự cuộn tới câu lỗi)', sheet({ formErr: 'Không ghi được ~/.ssh/config (file chỉ đọc) — thông tin bạn nhập vẫn giữ. Sửa quyền file rồi bấm Lưu lại.' }).replace('class="sheet-body"', 'class="sheet-body" data-ds-end'), 620), 'wide');
+  const c7 = sec(7, 'Breadcrumb phạm vi', '<span class="mono">máy › dự án</span> và đường dẫn.',
+    cell('thường', `<nav class="crumb">${ic('server')}<b>demo-sshd</b><span class="sep">›</span><b>demo-api</b><span class="muted mono xs ell">~/projects/demo-api</span></nav>`)
+    + cell('rút gọn giữa khi quá dài', `<nav class="crumb" style="max-width:280px">${ic('server')}<b>demo-behind-jump</b><span class="sep">›</span><span class="muted">…</span><span class="sep">›</span><b title="~/projects/khach-hang/gara-oto/api-dat-lich">api-dat-lich</b></nav>${gap}<div class="ehead" style="max-width:320px"><span class="fname">bookings.controller.ts</span><span class="fdir" title="~/projects/khach-hang/gara-oto/api-dat-lich/src/bookings">&lrm;~/projects/khach-hang/gara-oto/api-dat-lich/src/bookings&lrm;</span></div>`));
+  const c8 = sec(8, 'Thanh phiên', 'Tab trộn Claude + terminal (Claude trước) · Đổi tên · Chia ô · + · chuông thông báo (C38). Dưới 768px dải tab đổi thành bộ chọn phiên C32.',
+    cell('tab đang xem (Thêm API đặt lịch) · tab khác · tab đã kết thúc (migrate, gạch ngang)', W({}, () => dsNoId(sessionBar(r, 'c1'))), 'flush')
+    + cell('menu + mở (Phiên Claude mới / Terminal mới)', menu('plus'))
+    + stage('vạch chia đang kéo', `<div class="panes"><div class="pane"><pre class="term">${TERM.t2}</pre></div><div class="splitter drag" style="display:block"></div><div class="pane"><pre class="term">${TERM.t3}</pre></div></div>`, 200), 'wide');
+  const dlg = d => W({ dialog: d }, () => dsScrim(dialogs()));
+  const closeD = { k: 'close', h: 'demo-sshd', p: 'demo-api', sid: 't2' };
+  const c9 = sec(9, 'Hộp thoại', 'Xác nhận · cảnh báo nguy hiểm · đổi tên hiển thị.',
+    stage('mở (xác nhận)', dlg(closeD), 340)
+    + stage('đang xử lý', dlg(closeD).replace('>Đóng phiên</button>', ' disabled>Đang đóng…</button>'), 340)
+    + stage('biến thể cảnh báo đỏ', dlg({ k: 'discard', f: P2 }), 340)
+    + stage('đổi tên (Enter lưu, Esc huỷ, an toàn IME)', dlg({ k: 'rename', kind: 'session', h: 'demo-sshd', p: 'demo-api', sid: 'c1', val: 'Thêm API đặt lịch' }), 380), 'wide');
+  const c10 = sec(10, 'Thanh phím cảm ứng terminal + ngăn mở rộng', 'Chỉ có trên mobile — vẽ trong khung điện thoại 390px.',
+    phone('thu gọn', W({}, keybar)) + phone('mở rộng (Ctrl, F1–F12, ký tự shell, lệnh nhanh, cuộn)', W({ keyDrawer: true }, keybar)) + phone('Ctrl đang giữ', W({ ctrl: true }, keybar)));
+
+  /* C11–C16 */
+  const c11 = sec(11, 'Hàng cây', 'Máy · dự án · phiên (Claude trước, terminal sau), chấm trạng thái + thời gian rút gọn; chỉ hai nút + và ⋯; đầu cây có Thu gọn tất cả + Thêm máy.',
+    cell('thu/mở (demo-sshd mở · Máy này, demo-behind-jump, staging-vps thu) · đang chọn (Thêm API đặt lịch) · máy lỗi (staging-vps, chữ đỏ) · phiên đang chạy / cần duyệt / xong / đã kết thúc (migrate) · dự án chưa có phiên (demo-web, dòng "tạo phiên")', W({ open: { 'demo-sshd': true, 'demo-sshd/demo-api': true, 'demo-sshd/demo-web': true } }, () => `<div class="list" style="max-width:var(--sidebar-w)">${treeHead()}<nav class="tree">${tree(r)}</nav></div>`))
+    + cell('đang tải', `<div style="max-width:var(--sidebar-w)">${skel(3)}</div>`));
+  const c12 = sec(12, 'Thanh dưới mobile', 'Ba mục có nhãn — chỉ dưới 768px, vẽ trong khung điện thoại.',
+    phone('mục đang xem (Không gian) · mục khác', bottombar({ name: 'home' })) + phone('mục đang xem (Máy) · mục khác', bottombar({ name: 'hosts' })));
+  const wbtns = off => `<div class="btns" style="padding:var(--space-md)"><button class="btn primary sm" ${off}>${ic('up')}Gửi</button><button class="btn sm" ${off}>${ic('check')}Cho phép</button><button class="btn sm" ${off}>${ic('save')}Lưu</button><button class="btn sm" ${off}>${ic('commit')}Commit</button><button class="btn sm" ${off}>${ic('push')}Push</button></div>`;
+  const c13 = sec(13, 'Dải kết nối', 'Khi hiện, mọi nút ghi chuyển trạng thái bị vô hiệu của C1 kèm tooltip "Đang mất kết nối"; nháp và bản sửa giữ nguyên.',
+    cell('đang thử lại (thao tác ghi khoá)', W({ state: 'offline' }, () => connBar() + wbtns(OFF())), 'flush')
+    + cell('đã nối lại (mở khoá, không tự gửi)', `<div class="conn" role="status"><span class="dot ok"></span><span class="grow">Đã nối lại với HugRemote — thao tác ghi đã mở khoá. Nháp vẫn giữ, chưa tự gửi.</span></div>${wbtns('')}`, 'flush'), 'wide');
+  const c14 = sec(14, 'Huy hiệu trạng thái', 'Chấm + nhãn, trên nền thẻ <span class="mono">--color-surface</span>.',
+    [['running', 'đang chạy (xanh dương nhấp nháy)'], ['awaiting', 'cần duyệt (viền + chữ cảnh báo trên nền thẻ)'], ['done', 'xong (xanh lá)'], ['exited', 'đã kết thúc (xám)'], ['ok', 'kết nối được'], ['err', 'lỗi'], ['connecting', 'đang nối']].map(([s, l]) => `<div class="ds-cell"><div class="ds-box" style="background:var(--color-surface)">${statusBadge(s)}</div><div class="ds-lbl">${l}</div></div>`).join(''), 'sm');
+  const tb = W({}, () => topbar(r, ''));
+  const c15 = sec(15, 'Thanh trên', 'Phạm vi C7 · tab dự án C16 · tìm · cài đặt.',
+    cell('desktop', dsDesk(tb), 'flush') + phone('mobile (nút ← khi ở trong dự án/phiên; tab dự án xuống dải dưới)', dsPhone(tb)), 'wide');
+  const c16 = sec(16, 'Thanh tab dự án', 'Phiên · Files · Git (Ctrl+1 · 2 · 3).',
+    cell('tab đang xem (Phiên) · tab có huy hiệu (Phiên: 1 Claude cần duyệt; Git: 3 thay đổi)', W({}, () => `<div class="topbar">${projTabs(r, '')}</div>`), 'flush')
+    + cell('tab đang xem (Git)', W({}, () => `<div class="topbar">${projTabs({ ...r, name: 'git' }, '')}</div>`), 'flush')
+    + phone('mobile — dải tab dưới thanh trên', W({}, () => projTabs(r, 'ptabs-m'))));
+
+  /* C17 editor + C28 C30 C31 */
+  const fdir = '~/projects/demo-api/src/bookings';
+  const eh = (name, extra = '', dir = fdir) => `<div class="ehead"><span class="fname">${name}</span><span class="fdir" title="${dir}/${name}">&lrm;${dir}&lrm;</span>${extra}</div>`;
+  const saveBtn = busy => `<button class="btn primary sm icon" title="${busy ? 'Đang lưu…' : 'Lưu (⌘S)'}" aria-label="${busy ? 'Đang lưu' : 'Lưu'}" ${busy ? 'disabled' : ''}>${ic(busy ? 'refresh' : 'save')}</button>`;
+  const dirtyB = '';
+  const ftabs = dirty => `<div class="tabbar"><div class="tabs">${[P1, P2].map((p, i) => `<div class="tab ${i ? '' : 'on'}" tabindex="0" title="${p}"><span class="tn">${p.split('/').pop()}</span><span class="dot warn" title="Chưa lưu" ${dirty && !i ? '' : 'hidden'}></span>${ib('x', 'Đóng ' + p.split('/').pop(), '')}</div>`).join('')}</div></div>`;
+  const ed = inner => `<section class="editor" style="flex:1">${inner}</section>`;
+  const code = (p = {}, ro = true) => W(p, () => dsNoId(codeView(ro)).replace('oninput="onEdit(this)"', ''));
+  const buf = { [P1]: FC[P1].lines.join('\n') + '\n// ghi chú tôi đang viết dở' };
+  const lig = `<div class="codewrap"><div class="gutter"><div>1</div><div>2</div></div><div class="code"><div>${hlCode('const ok = (a, b) => a === b && a !== null;')}</div><div>${hlCode('const f = x => x >= 1 ? x <= 9 : -1;')}</div></div></div><div class="edkeys">${['Tab', '↶', '◄', '►', '{ }', '( )', '=>', '===', 'const', 'return'].map(x => `<button class="key">${esc(x)}</button>`).join('')}</div>`;
+  const c17 = sec(17, 'Editor', 'CodeMirror + tab file đang mở + thanh phím phụ lập trình. Dưới 768px dải tab file ẩn (chuyển file bằng ⌘P/danh sách).',
+    stage('xem · vạch dòng mới (--color-success) / đã sửa (--color-primary) ở cột số dòng · dòng được nhảy tới (dòng 10) tô --color-surface-raised', ed(ftabs(0) + eh('bookings.controller.ts', ib('search', 'Tìm / thay trong file (⌘F)', '') + saveBtn(0)) + code({ hlLine: 10 })), 360)
+    + stage('sửa (gõ được, con trỏ trong vùng code)', ed(ftabs(0) + eh('bookings.controller.ts', saveBtn(0)) + code({}, false)), 360)
+    + stage('chưa lưu (chấm màu trên tên tab, nút Lưu tô màu)', ed(ftabs(1) + eh('bookings.controller.ts', dirtyB + saveBtn(0)) + code({ buf })), 360)
+    + stage('đang lưu', ed(ftabs(1) + eh('bookings.controller.ts', dirtyB + saveBtn(1)) + code({ buf })), 360)
+    + stage('xem trước Markdown/HTML', ed(eh('README.md', ib('edit', 'Sửa', '') + saveBtn(0), '~/projects/demo-api') + W({ fileOpen: 'README.md', filePreview: true }, () => dsNoId(fileBody()))), 300)
+    + phone('không gộp ký tự (=> không thành mũi tên, === giữ 3 ký tự) · thanh phím phụ lập trình (mobile)', lig), 'wide');
+  const dl = DIFF.split('\n'), dline = l => `<div class="${l.startsWith('+') ? 'a' : l.startsWith('-') ? 'd' : l.startsWith('@@') ? 'h' : ''}">${esc(l) || ' '}</div>`;
+  const c18 = sec(18, 'Khối diff', 'Dòng thêm/xoá, số dòng trong đầu khối.',
+    cell('thêm (xanh lá) · xoá (đỏ) · ngữ cảnh (không tô)', diffView(), 'flush')
+    + cell('thu gọn khi dài', `<div class="diff">${dl.slice(0, 4).map(dline).join('')}<div class="h" role="button" tabindex="0" style="cursor:pointer">⋯ 42 dòng không đổi — bấm để mở</div>${dl.slice(-3).map(dline).join('')}</div>`, 'flush'), 'wide');
+
+  /* C19–C21 chat */
+  const who = `<div class="who">${ic('claude')}Claude</div>`;
+  const c19 = sec(19, 'Tin nhắn chat', 'Người dùng (bong bóng phải) · Claude (tên màu --color-accent-claude), suy nghĩ thu gọn được.',
+    stage('đang stream (con trỏ nháy)', `<div class="chat"><div class="col"><div class="msg user">${esc(U.text)}</div><div class="msg">${who}<div>Mình sẽ thêm controller và service cho đặt lịch, rồi chạy <span class="caret"></span></div></div></div></div>`, 260)
+    + stage('xong (bấm "Suy nghĩ" để mở)', chat(CS({ msgs: [U, { t: 'claude', think: 'Cần controller + service, kiểm tra trùng bằng ràng buộc unique (thợ, khung giờ) rồi bắt lỗi trả 409…', text: 'Đã thêm controller và service cho đặt lịch. Test trùng giờ đã xanh.' }] })), 260)
+    + stage('đã dừng', chat(CS({ status: 'stopped', msgs: [U, { t: 'claude', text: 'Mình sẽ thêm controller và service cho đặt lịch.' }, { t: 'note', text: 'Bạn đã dừng Claude lúc 10:44' }] })), 260)
+    + stage('lỗi', `<div class="chat"><div class="col"><div class="msg user">${esc(U.text)}</div><div class="msg">${who}${errorBox('Claude dừng giữa lượt vì lỗi', 'Máy chủ Claude đang quá tải. Bấm Thử lại để chạy lại lượt này — tin nhắn của bạn vẫn giữ.', `<button class="btn sm">${ic('refresh')}Thử lại</button>`)}</div></div></div>`, 260), 'wide');
+  const c20 = sec(20, 'Thẻ công cụ', 'Tên tool · tham số rút gọn (đường dẫn bấm được tới đúng dòng) · kết quả thu gọn.',
+    stage('đang chạy', chat(CS({ msgs: [{ t: 'tool', kind: 'bash', label: 'Chạy lệnh', cmd: 'pnpm test bookings', status: 'running' }] })), 140)
+    + stage('xong', chat(CS({ msgs: [{ t: 'tool', kind: 'edit', label: 'Sửa file', path: P1, line: 7, status: 'done', detail: '+14 −2 dòng' }] })), 170)
+    + stage('lỗi', chat(CS({ msgs: [clone(C1MSGS[3])] })), 190));
+  const ask = d => ({ t: 'ask', id: 'a1', what: 'Claude muốn ghi file', path: P2, extra: '+38 dòng', decision: d, at: '10:44' });
+  const c21 = sec(21, 'Thẻ duyệt quyền / câu hỏi của Claude', 'Cho phép · Từ chối · Cho phép mọi lần trong phiên (⌥Y / ⌥N).',
+    stage('chờ (viền --color-warning)', chat(CS({ status: 'awaiting', msgs: [ask(null)] })), 240)
+    + stage('đã cho phép', chat(CS({ msgs: [ask('allowed')] })), 110)
+    + stage('đã từ chối', chat(CS({ msgs: [ask('denied')] })), 110)
+    + stage('đã trả lời trên thiết bị khác', `<div class="chat"><div class="col"><div class="note">${ic('check')}Đã cho phép trên thiết bị khác (Safari · iPhone 15) · ghi <span class="mono">bookings.service.ts</span> · 10:44</div></div></div>`, 110));
+
+  /* C23–C27 */
+  const modeMenu = W({ menu: 'mode-ds-m' }, () => { const h = composer(r, CS({ id: 'ds-m' }), false), s = h.indexOf('<div class="menu inline">'); return h.slice(s, h.indexOf('\n', s)).replace('class="menu inline"', 'class="menu" style="position:static;max-width:100%"'); });
+  const c23 = sec(23, 'Menu nổi có mô tả', 'Vẽ ở lớp nổi (ở đây vẽ tĩnh trong khung); ↑↓ chọn, Enter mở, Esc đóng.',
+    cell('đóng (nút ⋯ của hàng cây, nút +)', `<div class="btns">${ib('more', 'Thao tác với dự án demo-api', '')}${ib('plus', 'Phiên mới: Claude hoặc Terminal', '')}${ib('split', 'Chia ô', '')}</div>`)
+    + cell('mở (+ chọn Claude / Terminal)', menu('plus'))
+    + cell('mở · mục nguy hiểm (Bỏ — chữ đỏ)', menu('project'))
+    + cell('mở · có mô tả · mục nguy hiểm (Bypass — chữ đỏ)', modeMenu)
+    + cell('mở (chia ô)', menu('split')));
+  const spotS = h => h.replace('class="spot"', 'class="spot" style="margin-top:var(--space-lg)"');
+  const spot = q => W({ spot: true, spotQ: q }, () => spotS(dsScrim(S11())));
+  const c24 = sec(24, 'Hộp chuyển nhanh / mở nhanh file', 'S11 (⌘K) và S12 (⌘P): ô tìm + kết quả nhóm; không cần gõ dấu.',
+    stage('rỗng — gợi ý: phiên cần bạn / đang chạy (⌘K)', spot(''), 440)
+    + stage('rỗng — gợi ý: file đang mở + vừa đổi (⌘P)', W({ quick: true, quickQ: '' }, () => spotS(dsScrim(S12()))), 440)
+    + stage('có kết quả ("dat lich")', spot('dat lich'), 440)
+    + stage('không thấy', spot('zzz'), 300)
+    + stage('đang tìm', W({ spot: true, spotQ: 'dat lich' }, () => spotS(dsScrim(S11().split(spotResults()).join(`<div class="grp">Đang tìm “dat lich”…</div>${skel(3)}`)))), 360), 'wide');
+  const stepRow = ([l, d]) => `<div class="step"><span class="dot ${d}"></span>${l}</div>`;
+  const c25 = sec(25, 'Thanh tiến độ', 'Tải lên và cập nhật theo bước.',
+    cell('đang chạy', `<div class="xs" style="display:grid;gap:var(--space-xs)"><span>Đang tải lên <b>assets/</b> — 14/32 file</span><div class="prog"><i style="width:44%"></i></div></div>${gap}<div class="steps">${[['Tải mã nguồn', 'ok'], ['Cài thư viện', 'ok'], ['Biên dịch — đang chạy', 'run'], ['Chuyển bản + khởi động lại (~10 giây)', '']].map(stepRow).join('')}</div>${gap}<div class="prog"><i style="width:55%"></i></div>`)
+    + cell('xong', `<div class="steps">${[['Tải mã nguồn', 'ok'], ['Cài thư viện', 'ok'], ['Biên dịch', 'ok'], ['Chuyển bản + khởi động lại', 'ok']].map(stepRow).join('')}</div>${gap}<div class="prog"><i style="width:100%"></i></div>${gap}<div class="check"><span class="dot ok"></span>Đã cập nhật lên <b class="mono">2.1.0</b></div>`)
+    + cell('lỗi (nút Thử lại)', `<div class="steps">${[['Tải mã nguồn', 'ok'], ['Cài thư viện', 'err']].map(stepRow).join('')}</div>${gap}<div class="prog"><i style="width:30%;background:var(--color-danger)"></i></div>${gap}${errorBox('Tải lên bị ngắt ở file 14/32', 'Mất kết nối tới demo-sshd khi đang ghi assets/logo@2x.png. 13 file đã lên vẫn giữ — bấm Thử lại để tải tiếp phần còn lại.', `<button class="btn sm">${ic('refresh')}Thử lại</button>`)}`));
+  const half = () => { const d = clone(FRESH); d.hosts = clone(DEMO.hosts); return d; };
+  const c26 = sec(26, 'Thẻ "Bắt đầu" 3 bước', 'Tính theo dữ liệu thật; một nút chính cho bước hiện tại.',
+    cell('bước đã xong (1, dấu ✓) · bước hiện tại (2, đậm, một nút chính) · bước chưa làm (3)', W({}, startCard, half()))
+    + cell('mới cài — bước 1 là bước hiện tại', W({}, startCard, clone(FRESH)))
+    + cell('ẩn khi xong cả 3', W({}, startCard) || '<p class="muted sm" style="margin:0">(thẻ không vẽ — đã có máy, dự án và phiên)</p>'));
+  const c27 = sec(27, 'Thông báo ngắn (toast)', 'Xác nhận việc vừa xong; đáy giữa màn hình.',
+    cell('hiện 2,4 giây rồi tự ẩn · không chặn thao tác (bấm "Phát thử" để xem thật)', `<div class="toast" role="status" style="position:static;transform:none">${ic('check')}Đã lưu bookings.controller.ts</div>${gap}<button class="btn sm" onclick="toast(ic('check')+'Đã commit 9e41c07 · 2 file')">Phát thử</button>`));
+
+  const fq = 'booking', fcnt = FC[P1].lines.join('\n').toLowerCase().split(fq).length - 1;
+  const findbar = (q, n) => `<div class="findbar"><input class="input" placeholder="Tìm trong file" value="${q}" ${q ? '' : FOC}><input class="input" placeholder="Thay bằng…"><span class="xs muted">${q ? (n ? n + ' kết quả' : 'Không có kết quả') : ''}</span><button class="btn ghost sm">Thay</button><button class="btn ghost sm">Thay tất cả</button><button class="btn ghost sm" title="Tới dòng (Ctrl+G)">Tới dòng…</button>${ib('x', 'Đóng (Esc)', '')}</div>`;
+  const ehFind = on => eh('bookings.controller.ts', ib('search', 'Tìm / thay trong file (⌘F)', '', on ? 'on-primary' : '') + saveBtn(0));
+  const c28 = sec(28, 'Thanh tìm/thay trong file', 'Tìm · Thay bằng · số kết quả · Thay · Thay tất cả · Tới dòng (⌘F, Ctrl+G).',
+    stage('đóng', ed(ehFind(0) + code()), 240)
+    + stage('mở (chưa gõ)', ed(ehFind(1) + findbar('', 0) + code()), 270)
+    + stage('có kết quả (chữ khớp tô --color-warning)', ed(ehFind(1) + findbar(fq, fcnt) + code({ findOpen: true, findQ: fq })), 270)
+    + stage('không có kết quả', ed(ehFind(1) + findbar('zzz', 0) + code({ findOpen: true, findQ: 'zzz' })), 270), 'wide');
+  const fside = q => `<div class="fside"><input class="input" placeholder="Tìm trong dự án… (⌘⇧F)" value="${q}"></div>`;
+  const sr = q => W({ searchQ: q }, searchResults);
+  const c29 = sec(29, 'Kết quả tìm trong dự án', 'Nhóm theo file, số dòng, chữ khớp tô sáng; bấm dòng mở đúng chỗ.',
+    cell('gợi ý (chưa đủ 2 ký tự)', fside('b') + sr('b'), 'flush')
+    + cell('có kết quả', fside(fq) + sr(fq), 'flush')
+    + cell('không thấy', fside('zzzz') + sr('zzzz'), 'flush')
+    + cell('đang tìm', fside(fq) + `<div class="sres"><div class="legend">Đang tìm “${fq}”…</div></div><div style="padding:0 var(--space-md) var(--space-md)">${skel(3)}</div>`, 'flush'));
+  const notice = `<div class="notice">${ic('claude', 'claude-ic')}<span class="grow">Claude vừa sửa file này — đã tự tải lại (bạn chưa sửa gì).</span><button class="btn ghost sm">Xem thay đổi</button>${ib('x', 'Đóng thông báo', '')}</div>`;
+  const c30 = sec(30, 'Dải báo trong editor', 'Claude vừa sửa file — đã tự tải lại · Xem thay đổi · Đóng.',
+    stage('hiện', ed(eh('bookings.service.ts') + notice + code({ fileOpen: P2 })), 260)
+    + stage('đã đóng', ed(eh('bookings.service.ts') + code({ fileOpen: P2 })), 260), 'wide');
+  const fb = p => W(p, () => dsNoId(fileBody()));
+  const c31 = sec(31, 'Khung xem file đặc biệt', 'Ảnh, log theo dõi, file quá lớn.',
+    stage('ảnh', ed(eh('logo.png', '', '~/projects/demo-api/docs') + fb({ fileOpen: 'docs/logo.png' })), 360)
+    + stage('log — Theo dõi bật (tail -f)', ed(eh('app.log', ib('refresh', 'Đang theo dõi (tail -f) — bấm để dừng', '', 'on-primary'), '~/projects/demo-api/logs') + fb({ fileOpen: 'logs/app.log', follow: true })), 300)
+    + stage('log — Theo dõi tắt', ed(eh('app.log', ib('refresh', 'Theo dõi (tail -f)', ''), '~/projects/demo-api/logs') + fb({ fileOpen: 'logs/app.log', follow: false })), 300)
+    + stage('quá lớn (Xem 1.000 dòng cuối / Tải xuống)', ed(eh('bundle.js', '', '~/projects/demo-api/dist') + fb({ fileOpen: 'dist/bundle.js' })), 260), 'wide');
+
+  /* C32–C38 */
+  const c32 = sec(32, 'Bộ chọn phiên trên mobile', 'Thay dải tab C8 dưới 768px: tên phiên hiện tại · số phiên · mở danh sách nhóm Claude/Terminal.',
+    phone('đóng', W({}, () => dsNoId(sessionBar(r, 'c2'))))
+    + cell('mở (nhóm Claude / Terminal, phím ⌥1…⌥9)', menu('sessions'))
+    + phone('phiên cần duyệt có chấm vàng', W({}, () => dsNoId(sessionBar(r, 'c1')))));
+  const sum = files => ({ t: 'summary', dur: '2 phút 14 giây', tokens: '18,2k', cost: '$0,21', files });
+  const c33 = sec(33, 'Dòng tóm tắt cuối lượt Claude', 'Thời gian · token · chi phí · file đã đổi (bấm ra diff).',
+    stage('có file đổi', chat(CS({ msgs: [sum([P1, P2])] })), 150) + stage('không đổi file', chat(CS({ msgs: [sum([])] })), 120), 'wide');
+  const Q = 'Viết thêm test cho trường hợp huỷ lịch';
+  const c34 = sec(34, 'Tin nhắn xếp hàng', 'Gửi khi Claude đang chạy — mờ, có Huỷ; tự gửi khi Claude xong lượt.',
+    stage('đang chờ', chat(CS({ status: 'running', msgs: [U, { t: 'claude', text: 'Mình sẽ thêm controller và service cho đặt lịch.' }], queue: [Q] })), 300)
+    + stage('đã gửi', chat(CS({ status: 'running', msgs: [U, { t: 'claude', text: 'Đã thêm controller và service.' }, sum([P1]), { t: 'user', text: Q }] })), 300), 'wide');
+  const arow = (icon, t1, t2, end) => `<div class="row" style="cursor:default">${ic(icon)}<div class="t"><div class="t1 sm">${t1}</div><div class="t2 xs">${t2}</div></div>${end}</div>`;
+  const logs = ['10:41:02 INFO  Khởi động HugRemote 2.0.0 trên 127.0.0.1:8099', '10:42:11 WARN  Hết thời gian chờ SSH staging-vps (203.0.113.7:2222)', '10:42:11 ERROR staging-vps: connect ETIMEDOUT 203.0.113.7:2222', '10:43:05 INFO  an@nhom.vn đăng nhập bằng SSO'];
+  const c35 = sec(35, 'Danh sách quản trị', 'Thiết bị đăng nhập · thành viên · lần SSO bị từ chối · nhật ký ứng dụng/cập nhật/SSH.',
+    cell('có dữ liệu', `<div class="card"><h3>Thiết bị đang đăng nhập</h3><div class="list">${DEMO.devices.map(d => arow(d.name.includes('iPhone') ? 'kb' : 'server', d.name, `${d.ip} · ${d.last}`, d.me ? '<span class="badge">thiết bị này</span>' : '<button class="btn sm">Đăng xuất</button>')).join('')}</div></div>
+      <div class="card"><h3>Thành viên</h3><div class="list">${DEMO.members.map(m => arow('shield', m.email, `Đăng nhập lần cuối ${m.last} · ${m.running} phiên đang chạy`, '<button class="btn sm on-danger">Thu hồi…</button>')).join('')}</div></div>
+      <div class="card"><h3>Lần đăng nhập bị từ chối</h3><div class="list">${DEMO.denied.map(d => arow('x', d.email, `${d.at} · ${d.why}`, `<button class="btn sm">${ic('plus')}Cho phép</button>`)).join('')}</div></div>
+      <div class="card" style="margin:0"><h3>Nhật ký</h3><div class="seg"><button class="on">Ứng dụng</button><button>Cập nhật</button><button>SSH</button></div><pre class="logv">${logs.map(l => esc(l).replace(/(ERROR.*)/, '<span class="r">$1</span>').replace(/(WARN.*)/, '<span class="y">$1</span>')).join('\n')}</pre></div>`)
+    + cell('rỗng', `<div class="card"><h3>Thành viên</h3><p class="muted sm">Chưa ai đăng nhập bằng SSO.</p></div><div class="card"><h3>Lần đăng nhập bị từ chối</h3><p class="muted sm">Không có.</p></div><div class="card" style="margin:0"><h3>Nhật ký</h3><pre class="logv"><span class="m">Chưa có dòng nhật ký nào.</span></pre></div>`), 'wide');
+  const slashC = CS({ draft: '/' });
+  const c36 = sec(36, 'Ô soạn Claude gọn (thay C22)', 'Một khung: hàng 1 ô nhập + mic + quyền; hàng 2 đính kèm · nút gọn · Context đã dùng/sức chứa · Hạn mức 5 giờ · Model + mức suy nghĩ · Quyền · Dừng/Gửi. Mobile: dải chip trượt ngang.',
+    cell('trống', comp(CS({})), 'flush')
+    + cell('đang gõ (khung viền --color-primary, có file đính kèm)', comp(CS({ draft: 'Thêm kiểm tra ngày đặt lịch không được ở quá khứ', attach: [P1] })).replace('class="cbox"', 'class="cbox" style="border-color:var(--color-primary)"'), 'flush')
+    + cell('Claude đang chạy (có Dừng; Gửi vẫn bật → tin xếp hàng C34)', comp(CS({ status: 'running', ctx: 62 })), 'flush')
+    + cell('đang ghi âm', comp(CS({}), { recording: true }), 'flush')
+    + cell('gợi ý / mở', comp(slashC, { slash: slashC.id }), 'flush')
+    + cell('Bypass (biểu tượng ⚠ đỏ)', comp(CS({ mode: 'Bypass' })), 'flush')
+    + cell('mất kết nối (Gửi khoá)', comp(CS({ draft: 'Chạy lại test bookings' }), { state: 'offline' }), 'flush'), 'one');
+  const c37m = () => CS({ status: 'awaiting', msgs: clone(C1MSGS) });
+  const c37 = sec(37, 'Chế độ gọn của hội thoại Claude', 'Nút gọn (target) ở ô soạn C36 bật/tắt.',
+    stage('bật — chỉ tin của bạn, kết quả, yêu cầu quyền; bước công cụ gộp "n bước · sửa x file · chạy y lệnh"', chat(c37m(), { focus: true }), 440)
+    + stage('tắt — toàn bộ suy nghĩ + thẻ công cụ', chat(c37m(), { focus: false }), 440), 'wide');
+  const DN = () => { const d = DD(); d.claudes['demo-sshd/demo-api'][0].msgs.find(m => m.t === 'ask').decision = 'allowed'; return d; };
+  const DV = () => { const d = DN(); Object.assign(d.claudes['demo-sshd/demo-api'][0], { status: 'done', ago: 'vừa xong' }); return d; };
+  const bell = (data, p = {}) => W(p, () => `<div class="btns" style="margin-bottom:var(--space-sm)">${notifBtn(r)}</div>`, data) + menu('notif', p, data);
+  const c38 = sec(38, 'Nút thông báo', 'Chuông ở thanh phiên C8 (S6/S10) và thanh trên C15 (S8/S9): mỗi phiên cần duyệt một dòng có ✓ Cho phép / ✗ Từ chối ngay tại chỗ.',
+    cell('không có gì', bell(DN())) + cell('có phiên cần duyệt (chuông tô --color-primary + số)', bell(DD())) + cell('vừa duyệt (dòng biến mất; phiên vừa xong hiện nhãn "xong")', bell(DV())) + cell('mất kết nối (✓/✗ khoá)', bell(DD(), { state: 'offline' })));
+
+  const IDS = [...Array(38).keys()].map(i => i + 1).filter(i => i !== 22);
+  const dark = document.documentElement.dataset.theme !== 'light';
+  return `<main class="ds-page" aria-label="Trang mẫu component"><div class="ds-head"><span class="logo-dot"></span><h1 class="grow">Trang mẫu component — HugRemote</h1>
+    <div class="seg" role="group" aria-label="Chủ đề"><button class="${dark ? 'on' : ''}" onclick="setTheme('dark')">Tối</button><button class="${dark ? '' : 'on'}" onclick="setTheme('light')">Sáng</button></div>
+    <a class="btn sm" href="#/">${ic('back')}Về prototype</a></div>
+    <p class="muted sm" style="margin:0">Chuẩn hình ảnh cho pha I: kho component C1–C38 (C22 đã bỏ) của <span class="mono">DESIGN-SYSTEM.md §4</span>, mỗi trạng thái bắt buộc một ô có nhãn. Vẽ bằng đúng class và hàm của prototype; lớp nổi (menu, hộp thoại, sheet, toast) vẽ tĩnh trong khung. Khối chỉ có trên điện thoại vẽ trong khung 390px.</p>
+    <nav class="ds-toc" aria-label="Mục lục"><button class="chip" onclick="document.getElementById('ds-tokens').scrollIntoView()">§2 Token</button>${IDS.map(n => `<button class="chip" onclick="document.getElementById('c${n}').scrollIntoView()">C${n}</button>`).join('')}</nav>
+    ${tokens}${c1}${c2}${c3}${c4}${c5}${c6}${c7}${c8}${c9}${c10}${c11}${c12}${c13}${c14}${c15}${c16}${c17}${c18}${c19}${c20}${c21}${c23}${c24}${c25}${c26}${c27}${c28}${c29}${c30}${c31}${c32}${c33}${c34}${c35}${c36}${c37}${c38}</main>`;
+}
+
 /* ================= KHUNG ================= */
 function render() {
   const r = route(), app = document.getElementById('app');
+  if (r.name === 'ds') { app.innerHTML = DSPage(); document.querySelectorAll('[data-ds-end]').forEach(e => e.scrollTop = e.scrollHeight); renderProto(r); renderOverlay(); return; }
   if (r.name === 'proj') return openProject(r.host, r.proj);
   if (r.name === 'files') syncFileRoute(r);
   if (['term', 'claude', 'files', 'git'].includes(r.name) && r.sid !== 'new') ui.lastTab[r.host + '/' + r.proj] = location.hash.split('/p/' + r.proj + '/')[1];
@@ -1486,6 +1790,7 @@ function renderProto(r) {
   const P = '#/s/demo-sshd/p/demo-api';
   d.innerHTML = `<summary>Prototype vòng 1 — bảng điều khiển</summary><div class="pb">
     <div>Màn: ${b('S1', r.name === 'login', "go('#/login')")}${b('S2', r.name === 'home', "go('#/')")}${b('S3', r.name === 'hosts', "go('#/hosts')")}${b('S4', ui.dialog && ui.dialog.k === 'hostkey', "ui.hostkeyChanged=false;ui.dialog={k:'hostkey'};renderOverlay()")}${b('S5', r.name === 'newproj', "go('#/s/demo-sshd/new-project')")}${b('S6', r.name === 'term', `go('${P}/terminal/t1')`)}${b('S7', r.name === 'settings', "go('#/settings')")}${b('S8', r.name === 'files', `go('${P}/files')`)}${b('S9', r.name === 'git', `go('${P}/git')`)}${b('S10', r.name === 'claude', `go('${P}/claude/c1')`)}${b('S11', ui.spot, 'openSpot()')}${b('S12', ui.quick, 'openQuick()')}</div>
+    <div>Design system: ${b('Trang mẫu component', r.name === 'ds', "go('#/_ds')")}</div>
     <div>Dữ liệu: ${b('Đang dùng (demo)', !ui.fresh, "setState('demo')")}${b('Instance mới tinh', ui.fresh, "setState('fresh')")}</div>
     <div>Trạng thái: ${[['normal', 'Bình thường'], ['error', 'Lỗi'], ['offline', 'Mất kết nối'], ['loading', 'Đang tải']].map(([k, l]) => b(l, ui.state === k, `setState('${k}')`)).join('')}</div>
     <div>Vai: ${b('Quản trị (owner)', ui.role === 'owner', "ui.role='owner';render()")}${b('Thành viên (member)', ui.role === 'member', "ui.role='member';render()")} · Chủ đề: ${b('Tối', ui.theme === 'dark', "setTheme('dark')")}${b('Sáng', ui.theme === 'light', "setTheme('light')")}</div>

@@ -21,7 +21,7 @@ last_reviewed: "2026-11-21"
 ```text
 srcroot/boundaries/hugremote/
 ├── apps/api/        @app/api — NestJS (modules/, integrations/{ssh,pty,claude-cli,git,oidc,updater}, infra/database, health/)
-├── apps/web/        @app/web — React + Vite (pages/, features/<domain>/, components/, stores/, types/api.d.ts)
+├── apps/web/        @app/web — React + Vite (pages/, features/<domain>/, components/ui/ (C1–C38), styles/tokens.css (sinh từ gói DS), stores/, types/api.d.ts, dev/ds (route #/_ds))
 ├── packages/shared/ @app/shared — enum, hằng số, mã lỗi, hàm thuần
 ├── bin/             CLI hugremote (doctor [--fix], update, import-v1, reset-password, restart), install.sh, beta.sh, updater cô lập, cài user service
 ├── pnpm-workspace.yaml · package.json · Makefile
@@ -182,7 +182,9 @@ F. Cài đặt & cập nhật
 | `apps/api/src/common/` | guard JWT, guard Origin, exception filter → khuôn lỗi, crypto (AES-GCM, PBKDF2, TOTP) | mọi module | Không nghiệp vụ |
 | `apps/api/src/infra/database/` | DataSource SQLite, migrations | repository | — |
 | `apps/web/src/features/<domain>/` (`auth`, `hosts`, `workspace`, `terminal`, `files`, `git`, `claude`, `search`, `settings`) | components · hooks (TanStack Query) · api | trang | Feature không import feature khác; component không `fetch` |
-| `apps/web/src/components/` | Kho component C1–C… của `DESIGN-SYSTEM.md §4` | feature, trang | Không gọi API; không giá trị màu/cỡ ngoài token |
+| `apps/web/src/components/ui/` | Kho component C1–C38 — mỗi file theo `intake/design-systems/hugremote/components/c<NN>-….md` (props, trạng thái bắt buộc) | feature, trang | Không gọi API; không giá trị màu/cỡ ngoài token; không component ngoài danh sách gói |
+| `apps/web/src/styles/tokens.css` | Biến CSS sinh từ `intake/design-systems/hugremote/tokens.json` (tối trong `:root`, sáng gán lại khi `data-theme="light"`) | toàn app, Tailwind `@theme`, theme xterm | Không sửa tay — sửa gói rồi sinh lại |
+| `apps/web/src/dev/ds/` | Route `#/_ds` dựng lại trang mẫu `prototype/hugremote/index.html#/_ds` cho test so ảnh (chỉ bản dev/test) | test e2e | Không lên bản build production |
 | `apps/web/src/pages/` + `app/router.tsx` | Ghép feature theo route | router | Không gọi API trực tiếp |
 | `apps/web/src/lib/` | `api-client.ts` (base path, token, tự refresh), `ws-client.ts` | features | — |
 | `packages/shared/` | Enum (`HostKind`, `SessionStatus`, `ErrorCode`), hằng số (giới hạn), hàm thuần (chuẩn hoá đường dẫn `~/…`) | api, web | Không import Nest/React/Node/DOM |

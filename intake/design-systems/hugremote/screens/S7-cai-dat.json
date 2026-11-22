@@ -1,0 +1,33 @@
+{
+  "screen": "S7",
+  "name": "Cài đặt",
+  "route": "#/settings",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S7-cai-dat.desktop.png",
+    "mobile": "S7-cai-dat.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C2",
+    "C3",
+    "C9",
+    "C12",
+    "C14",
+    "C23",
+    "C25",
+    "C35"
+  ],
+  "captured": "2026-11-22"
+}

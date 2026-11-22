@@ -1,0 +1,27 @@
+{
+  "screen": "S1",
+  "name": "Đăng nhập",
+  "route": "#/login",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S1-dang-nhap.desktop.png",
+    "mobile": "S1-dang-nhap.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C2",
+    "C5"
+  ],
+  "captured": "2026-11-22"
+}

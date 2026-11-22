@@ -1,0 +1,36 @@
+{
+  "screen": "S9",
+  "name": "Git",
+  "route": "#/s/demo-sshd/p/demo-api/git",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S9-git.desktop.png",
+    "mobile": "S9-git.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C18",
+    "C27",
+    "C38"
+  ],
+  "captured": "2026-11-22"
+}

@@ -55,7 +55,7 @@ cũng là web experience `hugremote`), `packages/shared` (`@app/shared`), `bin/`
 | SSE client | `EventSource` với vé `?ticket=`, tự nối lại kèm `Last-Event-ID` | — | Khớp `@Sse()` |
 | Giọng nói | Web Speech API theo ngôn ngữ giao diện | — | Không phụ thuộc thêm |
 | Terminal UI | `@xterm/xterm` + `addon-fit` + `addon-web-links`, một instance mỗi phiên | 5.x/6.x | Giữ cách v1 |
-| UI kit | Không thư viện component ngoài; kho component riêng theo `DESIGN-SYSTEM.md §4`; CSS custom properties từ token + Tailwind CSS 4 đọc biến đó | Tailwind 4 | Token là hợp đồng design system |
+| UI kit | Không thư viện component ngoài; kho component riêng `apps/web/src/components/ui/` dựng theo gói `intake/design-systems/hugremote/components/` (C1–C38, props ở dòng "Hiện thực pha I"); `apps/web/src/styles/tokens.css` sinh từ `tokens.json` của gói, Tailwind CSS 4 `@theme` đọc các biến đó; route dev `#/_ds` + test so ảnh Playwright với `screens/` (G-16) | Tailwind 4 | Token là hợp đồng design system |
 | Icons | Remix Icon đóng gói cùng bundle (không CDN) | 4.6 | CSP chặt |
 | i18n | `i18next` + `react-i18next`; `vi` mặc định + `en` đủ 100% khoá | — | Test bắt chuỗi cứng + khoá thiếu |
 | Test runner | Jest + supertest (api), Vitest + Testing Library (web), Playwright (e2e, gốc monorepo) | — | Skill §4 |

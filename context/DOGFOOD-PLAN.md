@@ -51,7 +51,7 @@ Vòng: 1
 | `smoke` | 0 | P-MOBILE | `smoke@inst-8101` | localhost:8101 · 1440×900 rồi 390×844 | đi hết §3 |
 | `newbie` | 1 | P-HOST | `newbie@inst-8102` | localhost:8102 · instance trống | `install.sh` trong container sạch → mật khẩu khởi tạo → đổi mật khẩu → thẻ Bắt đầu (AC-28) → thêm máy → dự án → hỏi Claude, không đọc tài liệu |
 | `edge` | 1 | P-MOBILE | `edge@inst-8103` | localhost:8103 · Slow 4G, tắt `sshd`/`keycloak` giữa chừng | rỗng · lỗi · đang tải ở S2/S3/S5/S6/S8/S9/S10; mất WS/SSE → C13 + nối lại; Claude CLI không có; file >10MB |
-| `picky` | 1 | P-DESK | `picky@inst-8104` | localhost:8104 · 1440×900 + 390×844, tối và sáng | S1–S12 so với `DESIGN-SYSTEM.md §2/§4`: màu, chữ, nhịp, trạng thái bắt buộc C1–C38, hai chủ đề |
+| `picky` | 1 | P-DESK | `picky@inst-8104` | localhost:8104 · 1440×900 + 390×844, tối và sáng | S1–S12 so với gói `intake/design-systems/hugremote/` (ảnh `screens/`, đặc tả `components/`, trang mẫu `#/_ds`): màu, chữ, nhịp, trạng thái bắt buộc C1–C38, hai chủ đề |
 | `mobile` | 2 | P-MOBILE | `mobile@inst-8105` | localhost:8105 · 390×844, 360×740 | thanh phím terminal, phím phụ editor, duyệt quyền Claude bằng một tay, Git danh sách → chi tiết, ô soạn + mic, sheet thêm máy |
 | `locale` | 2 | P-MOBILE | `locale@inst-8106` | localhost:8106 · English rồi Tiếng Việt | AC-27 không chuỗi chưa dịch; ⌘K "viet" khớp "Việt"; gõ Telex trong ô soạn Claude + chuyển nhanh không gửi sớm; giờ commit/phiên đúng định dạng |
 | `power` | 2 | P-DESK | `power@inst-8107` | localhost:8107 · 1440×900 | vòng việc developer ở `PERSONAS §1.1` bằng bàn phím (⌘P, ⌘⇧F, ⌘F, ⌘S, ⌘K); 10 phiên terminal + 5 phiên Claude, chia ô Claude+Git / Terminal+Files, ⌘K; đếm thao tác tới phiên cần duyệt (≤3) |

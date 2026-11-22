@@ -1,0 +1,46 @@
+{
+  "screen": "S10",
+  "name": "Phiên — Claude",
+  "route": "#/s/demo-sshd/p/demo-api/claude/c1",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S10-phien-claude.desktop.png",
+    "mobile": "S10-phien-claude.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C4",
+    "C5",
+    "C8",
+    "C9",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C18",
+    "C19",
+    "C20",
+    "C21",
+    "C23",
+    "C27",
+    "C32",
+    "C33",
+    "C34",
+    "C36",
+    "C37",
+    "C38"
+  ],
+  "captured": "2026-11-22"
+}

@@ -23,7 +23,7 @@ last_reviewed: "2026-11-21"
 
 Phase: MVP
 Vòng đầu của Phase: 1
-Authority chốt Phase: _CHƯA ĐIỀN_
+Authority chốt Phase: 2026-11-22
 
 <!-- Ba dòng trên là dòng máy đọc. `Phase` và `Vòng đầu của Phase` phải khớp dòng `Phase` trong
      STATE.md. `Authority chốt Phase: <ngày ISO>` — ghi khi Authority đọc phần A và đồng ý (đang pha
@@ -87,6 +87,7 @@ rồi bỏ máy đi và duyệt quyền từ điện thoại, xem file/diff và 
 | G-13 | Mọi truy vấn phiên terminal/Claude theo id lọc thêm `owner_user_id` khi người gọi là `member`; route owner-only gắn `@Roles('owner')`; WS/SSE kiểm chủ phiên lúc đổi vé | apps/api | breaker + operator |
 | G-14 | Tác vụ Claude chạy độc lập với kết nối: mọi sự kiện có `sequence` tăng dần, ghi `claude_messages` trước khi phát; client nối lại chỉ bằng `after=<sequence>` | apps/api, apps/web | integration + concurrent |
 | G-15 | Ghi file từ editor luôn kèm `baseMtime`; không ghi đè im lặng | api, web | concurrent |
+| G-16 | Màn hình chỉ lắp từ `apps/web/src/components/ui/` — mỗi component C<n> của gói `intake/design-systems/hugremote/components/` một file, props theo dòng "Hiện thực pha I"; không style riêng trong `features/` (chỉ bố cục). Route dev `#/_ds` dựng lại trang mẫu `prototype/hugremote/index.html#/_ds`; test Playwright so ảnh chụp từng mục C<n> (1440 và 390, tối và sáng) với ảnh ở `intake/design-systems/hugremote/screens/`, chạy trong `make check` | apps/web | picky + test so ảnh |
 
 ### A4. Yêu cầu phi chức năng — có số
 

@@ -364,7 +364,7 @@ Lát cắt dọc theo đúng thứ tự wave của intake — mỗi lát chạy 
 
 | Bước | Lát cắt | Target chạm | Cỡ | Xong khi |
 |---|---|---|:--:|---|
-| 1 | Scaffold monorepo + compose (shared/api/web/sshd/jump/keycloak) + 6 lệnh + health + vỏ app có token tối/sáng | hugremote | 1 | `make dev` mở vỏ app; `/api/health` 200 |
+| 1 | Scaffold monorepo + compose (shared/api/web/sshd/jump/keycloak) + 6 lệnh + health + vỏ app có token tối/sáng + **bộ `components/ui` C1–C38 từ gói `intake/design-systems/hugremote/` + route `#/_ds` + test so ảnh với `screens/` (G-16)** | hugremote | 2 | `make dev` mở vỏ app; `/api/health` 200; `#/_ds` khớp ảnh trang mẫu |
 | 2 | Đăng nhập + đổi mật khẩu + refresh + đăng xuất + 2FA + guard + Origin + vé stream | hugremote | 2 | AC-1..AC-3, AC-14 |
 | 3 | Máy local → dự án Home → terminal WS (pool xterm) → SSH (parser, ssh2, ProxyJump, fallback, host key) + CRUD máy + ghim + cây + chia đôi + thanh phím | hugremote | 5 | AC-4..AC-12, demo §2 bước 5–6, 15 |
 | 4 | Files + Git working tree | hugremote | 5 | AC-16..AC-18, demo bước 12–13 |

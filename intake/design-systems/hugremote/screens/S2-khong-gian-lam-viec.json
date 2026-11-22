@@ -1,0 +1,36 @@
+{
+  "screen": "S2",
+  "name": "Không gian làm việc",
+  "route": "#/",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S2-khong-gian-lam-viec.desktop.png",
+    "mobile": "S2-khong-gian-lam-viec.mobile.png"
+  },
+  "components": [
+    "C4",
+    "C5",
+    "C7",
+    "C9",
+    "C11",
+    "C12",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C23",
+    "C26"
+  ],
+  "captured": "2026-11-22"
+}

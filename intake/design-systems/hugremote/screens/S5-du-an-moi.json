@@ -1,0 +1,29 @@
+{
+  "screen": "S5",
+  "name": "Chọn thư mục — dự án mới",
+  "route": "#/s/demo-sshd/new-project/~",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S5-du-an-moi.desktop.png",
+    "mobile": "S5-du-an-moi.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C3",
+    "C4",
+    "C5",
+    "C7"
+  ],
+  "captured": "2026-11-22"
+}

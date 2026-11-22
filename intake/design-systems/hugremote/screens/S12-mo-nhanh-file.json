@@ -1,0 +1,25 @@
+{
+  "screen": "S12",
+  "name": "Mở nhanh file",
+  "route": "#/…/files + openQuick()",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S12-mo-nhanh-file.desktop.png",
+    "mobile": "S12-mo-nhanh-file.mobile.png"
+  },
+  "components": [
+    "C24"
+  ],
+  "captured": "2026-11-22"
+}

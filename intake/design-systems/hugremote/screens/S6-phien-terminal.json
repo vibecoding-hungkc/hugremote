@@ -1,0 +1,39 @@
+{
+  "screen": "S6",
+  "name": "Phiên — Terminal",
+  "route": "#/s/demo-sshd/p/demo-api/terminal/t1",
+  "source": "prototype/hugremote/index.html",
+  "theme": "dark",
+  "viewports": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "images": {
+    "desktop": "S6-phien-terminal.desktop.png",
+    "mobile": "S6-phien-terminal.mobile.png"
+  },
+  "components": [
+    "C1",
+    "C4",
+    "C5",
+    "C7",
+    "C8",
+    "C9",
+    "C10",
+    "C13",
+    "C14",
+    "C15",
+    "C16",
+    "C17",
+    "C23",
+    "C32",
+    "C38"
+  ],
+  "captured": "2026-11-22"
+}

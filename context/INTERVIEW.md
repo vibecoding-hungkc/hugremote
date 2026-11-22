@@ -36,7 +36,7 @@ NGUỒN: INTAKE — render nhận ngày 2026-11-21
 | `ARCHITECTURE.md §8` | `intake/ARCHITECTURE.md §1` cây thư mục + `.claude/skills/stack-nestjs-react-fullstack §3` |
 | `ROADMAP.md §1` + `intake/loops/l1/_PROPOSAL.md` | `intake/ROADMAP.md §2` (W1–W6 gộp làm vòng 1 theo Authority; thứ tự wave = thứ tự triển khai §21) |
 | `SOLUTION.md` phần A | `intake/ARCHITECTURE.md §6` (giữ/sửa) + `intake/ROADMAP.md §Cadence` (rủi ro) + `intake/PRD.md §6` |
-| `DESIGN-SYSTEM.md` | Không có gói trong `intake/design-systems/` → dựng ở pha V từ chốt của Authority (Orca + màu HugRemote) và palette v1 ghi ở `intake/ARCHITECTURE.md §2` |
+| `DESIGN-SYSTEM.md` | `intake/design-systems/hugremote/` (DESIGN-SYSTEM.md + tokens.json + components/ + screens/) — gói lập ở pha V từ chốt của Authority (Orca + màu HugRemote) và 7 lượt góp ý prototype, rồi thành hợp đồng; `context/DESIGN-SYSTEM.md` dịch trung thành (gate đối chiếu 53 token) |
 
 ## Lỗ hổng & cách xử
 

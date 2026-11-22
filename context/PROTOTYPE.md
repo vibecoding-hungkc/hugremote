@@ -166,6 +166,11 @@ prototype thật sự lắp từ token — gõ thẳng `#hex` cho nhanh là gi�
 **Prototype là tài liệu, không phải code nền.** Pha I scaffold từ stack skill và làm lại UI
 theo bản đồ §1 — không phát triển tiếp file này, không copy nguyên khối vào codebase.
 
+**Trang mẫu component** `prototype/hugremote/index.html#/_ds` (mở từ bảng điều khiển prototype): mọi
+component C1–C38 ở mọi trạng thái bắt buộc, tối/sáng, desktop/mobile — vẽ bằng chính CSS và hàm của các
+màn nên không lệch. Ảnh chụp của nó và của S1–S12 nằm ở `intake/design-systems/hugremote/screens/` — chuẩn
+cho test so ảnh pha I (G-16).
+
 ## 5. Chốt của Authority
 
 <!-- Ghi từng LƯỢT phản hồi (lượt ở đây là một vòng bấm-thử-rồi-sửa, không phải "vòng"
@@ -183,5 +188,8 @@ theo bản đồ §1 — không phát triển tiếp file này, không copy nguy
 | 5 | 2026-11-21 | "Đóng gọn lại khung chat Claude tương tự [ảnh]. Bổ sung nút target trong chat Claude: bật lên chat hiển thị trạng thái working và kết quả, tắt thì thấy toàn bộ quá trình Claude reasoning." | Ô soạn S10 làm lại thành một khung hai hàng theo ảnh (C36): ô nhập + mic + quyền; đính kèm · nút **gọn** (target) · Context token đã dùng/sức chứa (vd `227k/1000k`, không hiện %) · Hạn mức 5 giờ · Model + mức suy nghĩ · Quyền · Dừng/Gửi (mũi tên lên) — **giữ đủ mọi nút cũ, chỉ đổi cách trình bày** (Authority nhắc lại); trên điện thoại hàng nút trượt ngang, ô soạn giữ hai hàng. Thêm chế độ gọn (C37), nhớ theo người dùng, mặc định tắt |
 | 6 | 2026-11-21 | "Context tôi muốn hiển thị a/b số lượng token, ví dụ 227k/1000k, không hiển thị theo %." | Chip Context ở S10 hiện token đã dùng / sức chứa context window của model đang chọn (`227k/1000k`); chuyển vàng khi vượt 80% |
 | 7 | 2026-11-21 | "Icon list cạnh nút edit và chia chuyển thành nút thông báo và có thẻ duyệt hoặc từ chối trong drop list khi mở; click vào item thì đi vào session, click v là duyệt, x là từ chối." | Thay nút danh sách bằng nút thông báo C38 (chuông + số phiên cần duyệt, lấy từ mọi dự án mình được thấy). ✓/✗ duyệt ngay trong danh sách, không rời màn đang làm; bấm dòng vào phiên. Danh sách mọi phiên vẫn có ở cuối danh sách thông báo và ở bộ chọn phiên trên mobile |
+| 8 | 2026-11-22 | "Tôi thấy bạn chưa sinh component. Không có DS thì pha I có thể đạt được UI như prototype không?" → "Hãy làm đầy đủ và sinh component vào `intake/design-systems/hugremote` theo template." | Lập gói design system theo template: `tokens.json` (53 token, khớp §2), `components/` C1–C38 (mỗi file: giải phẫu, trạng thái, token, biến thể, a11y, không được làm, hiện thực prototype + props pha I), `screens/` ảnh chụp; thêm route `#/_ds` trang mẫu component trong prototype; quy ước G-16 + lát 1 pha I dựng `components/ui` và so ảnh |
+| 9 | 2026-11-22 | "Thanh tab của session chiều cao đang cao quá, chiếm nhiều chiều dài, cả phần header. Các nút lưu vẫn chưa dùng icon, vẫn còn label. Badge trạng thái chưa lưu — đã có icon màu trên tab name nên không cần badge nữa." | Token `--bar-h` 48→36px trên desktop (thanh trên, thanh tab phiên/file, đầu editor — kiểu Orca), token mới `--bar-h-touch` 44px gán lại dưới 1024px để giữ vùng chạm; nút Lưu file chỉ còn icon (mờ khi sạch, tô màu khi có thay đổi); bỏ huy hiệu "chưa lưu" — chấm màu trên tab là chỉ báo duy nhất. Sửa ở gói trước (`tokens.json`, C1/C8/C15/C17) rồi dịch sang context |
+| 10 | 2026-11-22 | "Oke. Cập nhật component và prototype, context, prototype html rồi sang validate pha I đi." | Rà lần cuối: gói `intake/design-systems/hugremote/` (54 token, 37 component, ảnh `screens/`), `context/DESIGN-SYSTEM.md`, `PROTOTYPE.md`, `prototype/hugremote/index.html` khớp nhau. **Authority chốt** prototype + gói design system + `SOLUTION.md` phần A; khoá scope |
 
-Chốt bởi Authority: (chờ Authority bấm thử)
+Chốt bởi Authority: 2026-11-22

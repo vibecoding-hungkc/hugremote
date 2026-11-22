@@ -11,9 +11,31 @@
       "secret": "hugremote-dev-secret",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost:3000/*", "http://localhost:3999/*", "http://localhost:5173/*", "http://127.0.0.1:3000/*"],
-      "webOrigins": ["+"],
-      "attributes": { "pkce.code.challenge.method": "S256" }
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://localhost:3999/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:3000/*",
+        "http://localhost:8101/*",
+        "http://localhost:8102/*",
+        "http://localhost:8103/*",
+        "http://localhost:8104/*",
+        "http://localhost:8105/*",
+        "http://localhost:8106/*",
+        "http://localhost:8107/*",
+        "http://localhost:8108/*",
+        "http://localhost:8109/*",
+        "http://localhost:8110/*",
+        "http://localhost:8111/*",
+        "http://localhost:8112/*",
+        "http://localhost:8121/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
     }
   ],
   "users": [
@@ -24,7 +46,13 @@
       "lastName": "Nguyễn",
       "emailVerified": true,
       "enabled": true,
-      "credentials": [{ "type": "password", "value": "matkhau-thu", "temporary": false }]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "matkhau-thu",
+          "temporary": false
+        }
+      ]
     },
     {
       "username": "binh",
@@ -33,7 +61,13 @@
       "lastName": "Trần",
       "emailVerified": true,
       "enabled": true,
-      "credentials": [{ "type": "password", "value": "matkhau-thu", "temporary": false }]
+      "credentials": [
+        {
+          "type": "password",
+          "value": "matkhau-thu",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

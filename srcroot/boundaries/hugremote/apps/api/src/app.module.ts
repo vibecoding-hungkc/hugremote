@@ -15,6 +15,8 @@ import { HostsModule } from './modules/hosts/hosts.module';
 import { WorkspaceModule } from './modules/workspace/workspace.module';
 import { TerminalModule } from './modules/terminal/terminal.module';
 import { EventsModule } from './modules/events/events.module';
+import { FilesModule } from './modules/files/files.module';
+import { GitModule } from './modules/git/git.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { EventsModule } from './modules/events/events.module';
     WorkspaceModule,
     EventsModule,
     TerminalModule,
+    FilesModule,
+    GitModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

@@ -62,6 +62,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/ssh2": "^1.15.6",

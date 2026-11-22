@@ -51,54 +51,54 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 
 | AC | Trạng thái | Ghi chú |
 |---|---|---|
-| AC-1 | ☐ | |
-| AC-2 | ☐ | |
-| AC-3 | ☐ | |
-| AC-4 | ☐ | |
-| AC-5 | ☐ | |
-| AC-6 | ☐ | |
-| AC-7 | ☐ | |
-| AC-8 | ☐ | |
-| AC-9 | ☐ | |
+| AC-1 | ☑ | mật khẩu khởi tạo → bắt đổi (≥10 ký tự, khác cũ) trước khi dùng |
+| AC-2 | ☑ | đăng xuất; refresh token xoay vòng bền qua restart (thử bằng trình duyệt + security.e2e); lỗi hạ tầng không xoá cookie |
+| AC-3 | ☑ | S7: bật 2FA (QR + khoá, mã 6 số) → 10 mã khôi phục hiện một lần; tạo bộ mới / tắt cần mã hiện tại; đăng nhập bằng TOTP hoặc mã khôi phục |
+| AC-4 | ☑ | S3 máy local + `~/.ssh/config` (Include, wildcard), trạng thái kết nối |
+| AC-5 | ☑ | thêm/sửa/xoá máy SSH ghi ssh config nguyên tử, Thử kết nối, đổi địa chỉ phải thử lại |
+| AC-6 | ☑ | lần đầu phải tin host key (vân tay); đổi khoá → HOST_KEY_CHANGED chặn (security.e2e) |
+| AC-7 | ☑ | S5 cây thư mục máy → tạo dự án (trùng → mở dự án cũ), phạm vi hiện hành ở thanh trên |
+| AC-8 | ☑ | ghim/bỏ/sắp thứ tự máy lưu ở server theo người dùng (đồng bộ thiết bị), bỏ dự án = xoá cho cả nhóm + dừng phiên |
+| AC-9 | ☑ | nhiều terminal/dự án, chạy nền, nối lại phát lại buffer, local + SSH qua jump |
 | AC-10 | ☑ | chia ô Terminal + Terminal (ô phải chọn terminal khác), đổi tên/đóng ở thanh phiên + cây |
-| AC-11 | ☐ | |
-| AC-12 | ☐ | |
-| AC-13 | ☐ | |
-| AC-14 | ☐ | |
-| AC-15 | ☐ | |
-| AC-16 | ☐ | |
-| AC-17 | ☐ | |
-| AC-18 | ☐ | |
-| AC-19 | ☐ | |
-| AC-20 | ◐ | S10 stream + sync khi nối lại, Dừng (Esc) "Đã dừng" — thử trên demo-behind-jump với fake-claude; còn agent con, local |
-| AC-21 | ◐ | thẻ Cho phép/Từ chối/mọi lần + chấm "duyệt" ở cây; menu quyền có mô tả + xác nhận Bypass; còn chọn phương án (AskUserQuestion) |
-| AC-22 | ◐ | options qua `initialize`, Context a/b từ `summary.context`, chip model/effort; còn thử đổi model trên giao diện |
+| AC-11 | ◐ | thanh phím cảm ứng (Ctrl, F1–F12, ký tự shell, lệnh nhanh) đã có; chưa thử trên điện thoại thật/giả lập (dogfood vai mobile) |
+| AC-12 | ◐ | một mô hình điều hướng cây → dự án → tab; mobile: S2 + thanh dưới + bộ chọn phiên; chưa dogfood mobile |
+| AC-13 | ◐ | token/component từ gói DS, chuỗi qua i18n vi/en; chưa có visual regression so screens/ (G-16) và route `#/_ds` |
+| AC-14 | ☑ | JwtAuthGuard toàn cục, @Public tối thiểu; security.e2e 18/18 |
+| AC-15 | ☑ | `/api/health`, `hugremote doctor [--fix]`, S7 Hệ thống tình trạng |
+| AC-16 | ☑ | Files: cây (.gitignore mờ, git M/A), CodeMirror tô màu, ⌘S, ⌘F/Ctrl+G, vạch dòng đổi, ảnh/markdown/log, xung đột khi file đổi trên máy |
+| AC-17 | ☑ | menu ⋯/chuột phải: mới, đổi tên, sao chép, xoá, tải lên/xuống zip, mở terminal ở đây, gửi cho Claude |
+| AC-18 | ☑ | S9: thay đổi staged/chưa, diff, stage all, discard, commit ⌘Enter, fetch/pull/push |
+| AC-19 | ☑ | lịch sử commit + chi tiết từng commit, tải thêm 50 |
+| AC-20 | ◐ | S10 stream + sync khi nối lại, Dừng (Esc) "Đã dừng" — thử với fake-claude trên demo-behind-jump; còn hiển thị agent con |
+| AC-21 | ◐ | thẻ Cho phép/Từ chối/mọi lần ghi + chấm "duyệt" ở cây, menu quyền có mô tả, Bypass xác nhận lần hai; còn "chọn phương án" (AskUserQuestion của Claude) |
+| AC-22 | ◐ | model/effort/slash từ `initialize`, Context a/b từ `get_context_usage` sau mỗi lượt; còn thử đổi model trên giao diện với CLI thật |
 | AC-23 | ☑ | danh sách phiên CLI chưa gắn + Tiếp tục (`--resume`), cảnh báo phiên vừa dùng <2 phút; đổi tên gửi `--name` ở lượt kế tiếp |
-| AC-24 | ◐ | gợi ý `/` từ CLI, đính kèm qua Mở nhanh, mic Web Speech, IME; còn thử trên điện thoại |
+| AC-24 | ◐ | gợi ý `/`, đính kèm qua Mở nhanh, mic Web Speech, IME không gửi sớm; còn dogfood điện thoại |
 | AC-25 | ◐ | chip Hạn mức 5 giờ từ `rate_limit_event` (fake-claude); chưa đối chiếu CLI thật |
 | AC-26 | ☑ | ⌘K / Ctrl+Alt+K (nút ở thanh bên + thanh trên): dự án, phiên, file của dự án hiện tại, lệnh; gõ không dấu; trống → phiên đang chạy/cần duyệt |
-| AC-27 | ☐ | |
-| AC-28 | ☐ | |
-| AC-29 | ☐ | |
-| AC-30 | ☐ | |
-| AC-31 | ☐ | |
-| AC-32 | ☐ | |
-| AC-33 | ☐ | |
-| AC-34 | ☐ | |
+| AC-27 | ☑ | Chủ đề Tối/Sáng/Theo hệ thống + Tiếng Việt/English lưu theo người dùng, áp ngay, giữ qua F5 |
+| AC-28 | ☑ | thẻ Bắt đầu 3 bước ở S2 (owner) tự đánh dấu, bỏ qua bước 1 được; rỗng/đang tải/lỗi theo khuôn §5 ở các màn đã dựng |
+| AC-29 | ◐ | install.sh/beta.sh + CLI `-p -h -b --version doctor update restart import-v1`; thử trên macOS bằng kênh giả + `--no-service`, chạy đúng dưới `/remote`; còn Linux sạch (container) + cài service thật |
+| AC-30 | ◐ | `hugremote import-v1`: sao lưu, chỉ đọc, nhập mật khẩu + 2FA + mã khôi phục + dự án + phiên Claude + mật khẩu SSH, chạy lại không trùng, báo cáo S7; định dạng v1 là giả định — cần đối chiếu file v1 thật |
+| AC-31 | ☑ | S7: bản mới → xác nhận nêu số phiên sẽ dừng → Cập nhật ngay / Khi rảnh → 5 bước; bấm lại 409; bản hỏng tự quay về (đã thử kênh giả) |
+| AC-32 | ☑ | SSO OIDC (Keycloak thử) + Google: PKCE S256 + state + nonce, `id_token` kiểm JWKS, allowlist email/@tên-miền, link sâu giữ qua SSO |
+| AC-33 | ◐ | member: 403 với phiên/máy/hệ thống/SSO của owner, cây/chuông/⌘K lọc theo người dùng; chưa dogfood 2 người dùng song song (operator/concurrent) |
+| AC-34 | ☑ | `apps/api/test/security.e2e.mjs` trong `make test`: 18/18 PASS (gồm 4 ca mới); sửa 413/400 cho lỗi body-parser, header bảo mật |
 | AC-35 | ☑ | chia ô trái/phải: Claude/Terminal/Files/Git ở ô phải, kéo đổi tỉ lệ, giữ qua F5; Files/Git ô phải một cột; dưới 768px ẩn ô phải |
 | AC-36 | ☑ | ⌘P khớp mờ + `:dòng`, trống → file đang mở; ⌘⇧F mở tab Tìm ở Files từ bất kỳ đâu |
-| AC-37 | ☐ | |
-| AC-38 | ◐ | chuông ở thanh phiên + thanh trên S8/S9, ✓/✗ tại chỗ, cập nhật qua events.v1 — đã thử desktop; còn mobile |
-| AC-39 | ☐ | |
+| AC-37 | ☑ | `file:dòng` mở đúng dòng; Claude sửa file đang mở → tự tải lại + dải báo / xung đột khi đang sửa; file đổi ngoài Claude bắt ở lúc lưu (watcher → backlog) |
+| AC-38 | ◐ | chuông ở thanh phiên + thanh trên, ✓/✗ tại chỗ, cập nhật qua events.v1 — đã thử desktop; còn mobile |
+| AC-39 | ◐ | model/effort/quyền lưu theo phiên, ⚠ Bypass ở cây/tab/ô soạn, ⇧Tab, nháp + đính kèm riêng từng phiên; chưa thử F5 với 2 phiên khác cấu hình |
 | AC-40 | ☑ | hàng chờ server (mờ, Huỷ), Esc/Dừng giữ hàng chờ, lượt lỗi/dừng → "Gửi tiếp" — thử trên trình duyệt 2026-11-22 |
 | AC-41 | ☑ | tóm tắt lượt: thời gian · token · USD · file đổi (chỉ file ghi thành công), bấm file → Git `?file=` |
 | AC-42 | ☑ | nút gọn (target) gom bước thành "N bước · sửa x file · chạy y lệnh"; bấm → xem đầy đủ |
-| AC-43 | ☐ | |
-| AC-44 | ☐ | |
-| AC-45 | ☐ | |
-| AC-46 | ☐ | |
-| AC-47 | ☐ | |
-| AC-48 | ☐ | |
+| AC-43 | ☑ | dải mất kết nối ngay (offline + heartbeat), khoá nút + phím tắt ghi, mã NETWORK, nháp/bản sửa/commit message giữ, nối lại không tự gửi |
+| AC-44 | ☑ | S7 thiết bị đang đăng nhập: đăng xuất từng cái / mọi thiết bị khác / thiết bị này |
+| AC-45 | ☑ | S7 Nhóm: thành viên + Thu hồi (đăng xuất mọi nơi, dừng phiên, chặn đăng nhập) + Cho vào lại; lần bị từ chối + Cho phép; Tắt SSO |
+| AC-46 | ◐ | S7 Hệ thống: tình trạng + nhật ký Ứng dụng/SSH/Cập nhật, tải/sao chép; lọc SSH dựa vào ngữ cảnh log |
+| AC-47 | ☑ | `hugremote reset-password` đặt mật khẩu tạm, bắt đổi, đăng xuất mọi thiết bị, giữ 2FA |
+| AC-48 | ☑ | link sâu khi chưa đăng nhập về đúng chỗ (cả 2FA, SSO); bị khoá thấy đếm ngược |
 | AC-49 | ☑ | ⌘K ⌘P ⌘⇧F ⌘/ ⌘\ ⌥1–9 Ctrl+Tab Ctrl+1/2/3 ⌥⇧N ⌥⇧T ⌥W Esc ⇧Tab ⌥Y/⌥N ⌘S ⌘Enter; bắt ở pha capture để thắng phím editor; PWA dùng ⌘ thay ⌥ |
 
 Thời lượng vòng: `intake/loops/l1/_PROPOSAL.md` (~6 tuần công, gồm P1).

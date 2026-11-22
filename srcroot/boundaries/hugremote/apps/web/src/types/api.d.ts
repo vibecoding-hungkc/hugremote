@@ -1132,6 +1132,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SystemController_info"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SystemController_checks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Nhật ký trong app: `app` · `ssh` (lọc từ app.log) · `update` (AC-46). */
+        get: operations["SystemController_logs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1167,6 +1216,7 @@ export interface components {
             email?: string;
             mustChangePassword: boolean;
             twoFactorEnabled: boolean;
+            recoveryCodesLeft: number;
             preferences: components["schemas"]["PreferencesDto"];
         };
         ChangePasswordDto: {
@@ -1472,6 +1522,28 @@ export interface components {
         AnswerDto: {
             /** @enum {string} */
             decision: "allow" | "deny" | "always";
+        };
+        SystemInfoDto: {
+            version: string;
+            channel: string;
+            node: string;
+            address: string;
+            basePath: string;
+            appUrl: string;
+            dataDir: string;
+            startedAt: string;
+        };
+        CheckDto: {
+            name: string;
+            ok: boolean;
+            required?: boolean;
+            detail: string;
+            hint?: string;
+        };
+        LogsDto: {
+            /** @enum {string} */
+            kind: "app" | "ssh" | "update";
+            lines: string[];
         };
     };
     responses: never;
@@ -3298,6 +3370,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    SystemController_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemInfoDto"];
+                };
+            };
+        };
+    };
+    SystemController_checks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckDto"][];
+                };
+            };
+        };
+    };
+    SystemController_logs: {
+        parameters: {
+            query?: {
+                kind?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogsDto"];
                 };
             };
         };

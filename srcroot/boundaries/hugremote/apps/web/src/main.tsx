@@ -5,7 +5,10 @@ import { RouterProvider } from 'react-router-dom';
 import './i18n';
 import './styles/app.css';
 import { router } from './app/router';
+import { applyCachedPreferences } from './app/usePreferences';
 import { refreshAccessToken } from './lib/api-client';
+
+applyCachedPreferences();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },

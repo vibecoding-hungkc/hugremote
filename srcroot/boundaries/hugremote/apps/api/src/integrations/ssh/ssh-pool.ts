@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -82,6 +83,7 @@ interface PoolEntry {
  * khác → HOST_KEY_CHANGED (kèm vân tay) — không bao giờ tự tin khoá (AC-6).
  */
 export class SshPool {
+  private readonly log = new Logger('Ssh');
   private readonly entries = new Map<string, PoolEntry>();
   private readonly timer: NodeJS.Timeout;
 
@@ -134,7 +136,10 @@ export class SshPool {
       const drop = () => {
         if (this.entries.get(t.id) === entry) this.entries.delete(t.id);
       };
-      client.on('close', drop);
+      client.on('close', () => {
+        if (this.entries.get(t.id) === entry) this.log.log(`${t.id}: đóng kết nối SSH`);
+        drop();
+      });
       client.on('error', drop);
       return client;
     });
@@ -268,8 +273,12 @@ export class SshPool {
       });
     } catch (e) {
       jump?.end();
+      this.log.warn(
+        `${t.id}: không nối được ${t.hostName}:${t.port}${jump ? ' (qua máy trung gian)' : ''} — ${(e as SshError).kind ?? (e as Error).message}`,
+      );
       throw e;
     }
+    this.log.log(`${t.id}: đã nối ${t.user}@${t.hostName}:${t.port}${jump ? ' qua máy trung gian' : ''}`);
     return { client, jump };
   }
 }

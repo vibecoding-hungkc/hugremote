@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import i18n from '../../i18n';
 import type { Status } from '../../components/ui/Status';
 import { useClaudeSessions } from '../../features/claude/hooks/useClaude';
 import { useTerminals } from '../../features/workspace/hooks/useWorkspace';
@@ -64,9 +65,10 @@ export function useSessions() {
 export function shortAgo(iso: string, now = Date.now()) {
   const d = new Date(iso);
   const m = Math.floor((now - d.getTime()) / 60_000);
-  if (m < 1) return 'vừa';
-  if (m < 60) return `${m}p`;
-  if (m < 24 * 60) return `${Math.floor(m / 60)}g`;
-  if (m < 7 * 24 * 60) return `${Math.floor(m / 1440)} ngày`;
+  const en = i18n.language.startsWith('en');
+  if (m < 1) return en ? 'now' : 'vừa';
+  if (m < 60) return `${m}${en ? 'm' : 'p'}`;
+  if (m < 24 * 60) return `${Math.floor(m / 60)}${en ? 'h' : 'g'}`;
+  if (m < 7 * 24 * 60) return `${Math.floor(m / 1440)}${en ? 'd' : ' ngày'}`;
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 }

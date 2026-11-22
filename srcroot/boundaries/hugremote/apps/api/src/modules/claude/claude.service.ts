@@ -332,6 +332,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       },
     });
     l.turn = turn;
+    this.log.log(`"${s.name}": bắt đầu lượt trên ${project.hostId} (${s.permissionMode}${s.model ? `, ${s.model}` : ''})`);
     await this.setStatus(s, 'running');
     const bin = this.bin(project.hostId);
     await turn.start(
@@ -445,6 +446,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     l.pending.clear();
     l.pendingInfo.clear();
     if (info.notInstalled) {
+      this.log.warn(`"${s.name}": chưa cài Claude Code trên máy của dự án`);
       await this.persist(s, { kind: 'note', id: `${crypto.randomUUID().slice(0, 8)}-n`, text: 'CLAUDE_NOT_INSTALLED' }, ClaudeEvent.ERROR);
       return this.setStatus(s, 'error');
     }
@@ -462,9 +464,11 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
           },
           ClaudeEvent.FINISH,
         );
+      this.log.log(`"${s.name}": người dùng dừng lượt`);
       return this.setStatus(s, 'cancelled'); // dừng không xoá hàng chờ, không tự gửi tin kế (AC-40)
     }
     if (!info.gotResult || info.code) {
+      this.log.error(`"${s.name}": lượt lỗi (exit ${info.code}) ${info.stderr.trim().split('\n').pop()?.slice(0, 200) ?? ''}`);
       await this.persist(
         s,
         { kind: 'note', id: `${crypto.randomUUID().slice(0, 8)}-n`, text: info.stderr.trim().slice(-800) || `exit ${info.code}` },
@@ -472,6 +476,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       );
       return this.setStatus(s, 'error'); // lượt lỗi → không tự gửi tin kế, hiện "Gửi tiếp"
     }
+    this.log.log(`"${s.name}": xong lượt sau ${Math.round((Date.now() - l.turnStartedAt) / 1000)} giây`);
     await this.setStatus(s, 'done');
     const next = (await this.repo.queueOf(s.id))[0];
     if (next) {

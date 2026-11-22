@@ -20,6 +20,7 @@ export const router = createHashRouter([
     children: [
       { path: '/', element: <WorkspacePage /> },
       { path: '/hosts', element: <HostsPage /> },
+      { path: '/settings', lazy: () => import('../pages/SettingsPage').then((m) => ({ Component: m.SettingsPage })) },
       { path: '/s/:hostId/new-project/:path?', element: <NewProjectPage /> },
       {
         path: '/s/:hostId/p/:projectId',

@@ -17,6 +17,7 @@ import { QuickOpen } from './QuickOpen';
 import { pbase } from './sessions';
 import { KeysDialog, Spotlight } from './Spotlight';
 import { useShortcuts } from './useShortcuts';
+import { usePreferences } from '../usePreferences';
 import { ProjectTabs } from './ProjectTabs';
 import { WorkspaceTree } from './WorkspaceTree';
 
@@ -126,6 +127,7 @@ export function AppShell() {
   const nav = useNavigate();
   const me = useMe();
   useShortcuts();
+  usePreferences(me.data?.preferences);
   useEffect(
     () =>
       startEvents(qc, {

@@ -113,9 +113,11 @@ export class AuthService implements OnModuleInit {
     const owner = await this.repo.findOwner();
     if (!owner?.passwordHash || !owner.passwordSalt || !this.crypto.verifyPassword(password, owner.passwordHash, owner.passwordSalt)) {
       const remaining = await this.recordFail(key);
+      this.log.warn(`Đăng nhập sai mật khẩu từ ${ctx.ip ?? '?'} (còn ${remaining} lần)`);
       throw AppError.unauthorized(ErrorCode.INVALID_CREDENTIALS, { remaining });
     }
     await this.repo.clearAttempt(key);
+    this.log.log(`Owner đăng nhập bằng mật khẩu từ ${ctx.ip ?? '?'}`);
     const tfa = await this.repo.getTwoFactor(owner.id);
     if (tfa?.enabled) {
       const pendingToken = await this.jwt.signAsync(
@@ -275,6 +277,7 @@ export class AuthService implements OnModuleInit {
       email: user.email ?? undefined,
       mustChangePassword: !!user.mustChangePassword,
       twoFactorEnabled: !!tfa?.enabled,
+      recoveryCodesLeft: tfa?.enabled ? (JSON.parse(tfa.recoveryCodeHashes || '[]') as string[]).length : 0,
       preferences: this.parsePrefs(user.preferences),
     };
   }
@@ -401,7 +404,9 @@ export class AuthService implements OnModuleInit {
     const user = await this.repo.findUser(u.id);
     if (!user) throw AppError.unauthorized();
     const cur = this.parsePrefs(user.preferences);
-    const next: PreferencesDto = { ...cur, ...patch };
+    // DTO đã qua ValidationPipe có sẵn mọi trường = undefined → chỉ ghép trường thật sự gửi lên
+    const given = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)) as PreferencesPatchDto;
+    const next: PreferencesDto = { ...cur, ...given };
     if (patch.lastTab) next.lastTab = { ...(cur.lastTab ?? {}), ...patch.lastTab };
     await this.repo.updateUser(u.id, { preferences: JSON.stringify(next) });
     return next;

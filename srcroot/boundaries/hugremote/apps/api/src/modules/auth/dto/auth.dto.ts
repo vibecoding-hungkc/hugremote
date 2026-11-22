@@ -49,6 +49,7 @@ export class MeResponseDto {
   @ApiPropertyOptional() email?: string;
   @ApiProperty() mustChangePassword!: boolean;
   @ApiProperty() twoFactorEnabled!: boolean;
+  @ApiProperty() recoveryCodesLeft!: number;
   @ApiProperty({ type: PreferencesDto }) preferences!: PreferencesDto;
 }
 

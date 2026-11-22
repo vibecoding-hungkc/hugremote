@@ -1,7 +1,7 @@
 import type { ChatItem } from '@app/shared';
 import DOMPurify from 'dompurify';
 import { Marked, type TokenizerAndRendererExtension } from 'marked';
-import { Fragment, useEffect, useMemo, useRef, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/Button';
 import { Icon, type IconName } from '../../../components/ui/Icon';
@@ -64,10 +64,119 @@ function fmtDur(ms: number, lang: string) {
 export interface ChatHandlers {
   openFile: (path: string, line?: number) => void;
   openDiff: (path: string) => void;
-  answer: (iid: string, decision: 'allow' | 'deny' | 'always') => void;
+  answer: (iid: string, decision: 'allow' | 'deny' | 'always', answers?: Record<string, string>) => void;
   unqueue: (qid: string) => void;
   resumeQueue: () => void;
   toggleFocus: () => void;
+}
+
+interface AskOption {
+  label: string;
+  description?: string;
+}
+interface AskQuestion {
+  question: string;
+  header?: string;
+  multiSelect?: boolean;
+  options?: AskOption[];
+}
+
+function parseQuestions(a: Ask): AskQuestion[] | null {
+  if (a.tool !== 'AskUserQuestion' || !Array.isArray(a.input.questions)) return null;
+  const qs = (a.input.questions as AskQuestion[]).filter((q) => q && typeof q.question === 'string' && q.question.trim());
+  return qs.length ? qs : null;
+}
+
+/** Thẻ chọn phương án của Claude (`AskUserQuestion`, AC-21) — không chọn hộ, gửi map `answers`. */
+function QuestionAsk({ item, questions, onAnswer }: { item: Ask; questions: AskQuestion[]; onAnswer: ChatHandlers['answer'] }) {
+  const { t } = useTranslation();
+  const [picked, setPicked] = useState<Record<number, string[]>>({});
+  const [other, setOther] = useState<Record<number, string>>({});
+
+  const toggle = (qi: number, label: string, multi: boolean) =>
+    setPicked((cur) => {
+      const prev = cur[qi] ?? [];
+      if (!multi) return { ...cur, [qi]: [label] };
+      return { ...cur, [qi]: prev.includes(label) ? prev.filter((x) => x !== label) : [...prev, label] };
+    });
+
+  const valueOf = (qi: number) => {
+    const custom = (other[qi] ?? '').trim();
+    const sel = picked[qi] ?? [];
+    if (questions[qi].multiSelect) return [...sel, ...(custom ? [custom] : [])].join(', ');
+    return custom || sel[0] || '';
+  };
+
+  const ready = questions.every((_, i) => valueOf(i).length > 0);
+  const submit = () => {
+    if (!ready) return;
+    const answers: Record<string, string> = {};
+    questions.forEach((q, i) => {
+      answers[q.question] = valueOf(i);
+    });
+    onAnswer(item.id, 'allow', answers);
+  };
+
+  return (
+    <div className="ask" id={`ask-${item.id}`} role="group" aria-label={t('claude.askQuestionGroup')}>
+      <div className="h">
+        <Icon name="claude" />
+        {t('claude.askQuestionTitle')}
+      </div>
+      {questions.map((q, qi) => {
+        const sel = picked[qi] ?? [];
+        const multi = !!q.multiSelect;
+        return (
+          <div key={qi} className="qblk">
+            <div className="sm">
+              {q.header && <span className="badge" style={{ marginRight: 'var(--space-xs)' }}>{q.header}</span>}
+              <b>{q.question}</b>
+            </div>
+            {!!q.options?.length && (
+              <div className="qopts">
+                {q.options.map((o) => {
+                  const on = sel.includes(o.label) && !(other[qi] ?? '').trim();
+                  return (
+                    <button
+                      key={o.label}
+                      type="button"
+                      className={`qopt ${on ? 'on' : ''}`}
+                      aria-pressed={on}
+                      onClick={() => {
+                        if (!multi) setOther((c) => ({ ...c, [qi]: '' }));
+                        toggle(qi, o.label, multi);
+                      }}
+                    >
+                      <b>{o.label}</b>
+                      {o.description && <span className="xs muted">{o.description}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <input
+              className="input"
+              placeholder={t('claude.askOtherPh')}
+              value={other[qi] ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                setOther((c) => ({ ...c, [qi]: v }));
+                if (!multi && v.trim()) setPicked((c) => ({ ...c, [qi]: [] }));
+              }}
+            />
+          </div>
+        );
+      })}
+      <div className="btns">
+        <Button variant="primary" icon="check" write disabled={!ready} onClick={submit}>
+          {t('claude.askSubmit')}
+        </Button>
+        <Button icon="x" write title={`${t('claude.deny')} (⌥N)`} onClick={() => onAnswer(item.id, 'deny')}>
+          {t('claude.deny')}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 /** C19 tin nhắn · C20 thẻ công cụ · C21 thẻ xin quyền · C33 tóm tắt lượt · C34 tin xếp hàng · C37 chế độ gọn. */
@@ -111,29 +220,51 @@ export function ChatView({
     h.openFile(rel(a.dataset.path!), Number(a.dataset.line) || undefined);
   };
 
+  // Gom các bước của agent con (parentId) vào thẻ công cụ cha (AC-20)
+  const { childMap, childIds } = useMemo(() => {
+    const parents = new Set(items.filter((m) => m.kind === 'tool').map((m) => m.id));
+    const map = new Map<string, ChatItem[]>();
+    const ids = new Set<string>();
+    for (const m of items) {
+      const pid = (m.kind === 'tool' || m.kind === 'assistant') ? m.parentId : undefined;
+      if (!pid || !parents.has(pid)) continue;
+      ids.add(m.id);
+      const arr = map.get(pid);
+      if (arr) arr.push(m);
+      else map.set(pid, [m]);
+    }
+    return { childMap: map, childIds: ids };
+  }, [items]);
+
   const toolLabel = (name: string) => (TOOL_LABEL[name] ? t(`claude.${TOOL_LABEL[name]}`) : name);
   const askWhat = (a: Ask) => {
+    const qs = parseQuestions(a);
+    if (qs) return qs[0].question;
     const fp = filePath(a.input);
     if (EDIT_TOOLS.has(a.tool) && fp) return `${t('claude.askWrite')} ${fp.split('/').pop()}`;
     if (a.tool === 'Bash' && typeof a.input.command === 'string') return `${t('claude.askRun')} ${a.input.command.slice(0, 80)}`;
     return t('claude.askUse', { tool: a.tool });
   };
 
-  const renderTool = (m: Tool) => {
+  const renderTool = (m: Tool): ReactNode => {
     const fp = filePath(m.input);
     const st = m.isError ? 'err' : m.done ? 'done' : running ? 'running' : 'stopped';
-    const icon: IconName = FILE_TOOLS.has(m.name) ? 'file' : m.name === 'Bash' ? 'term' : 'bolt';
+    const isSub = m.name === 'Agent' || m.name === 'Task' || childMap.has(m.id);
+    const subType = isSub && typeof m.input.subagent_type === 'string' ? m.input.subagent_type : '';
+    const subDesc = isSub && typeof m.input.description === 'string' ? m.input.description : '';
+    const children = childMap.get(m.id) ?? [];
+    const icon: IconName = isSub ? 'claude' : FILE_TOOLS.has(m.name) ? 'file' : m.name === 'Bash' ? 'term' : 'bolt';
     return (
       <div className="tool" key={m.id}>
         <div className="th">
-          <Icon name={icon} />
-          <b className="sm">{toolLabel(m.name)}</b>
+          <Icon name={icon} className={isSub ? 'claude-ic' : undefined} />
+          <b className="sm">{subType ? `${toolLabel(m.name)} · ${subType}` : toolLabel(m.name)}</b>
           {fp ? (
             <button className="linkp mono xs grow ell" title={t('claude.openAt', { line: 1 })} onClick={() => h.openFile(rel(fp))}>
               {rel(fp)}
             </button>
           ) : (
-            <span className="mono xs muted grow ell">{toolTarget(m.input)}</span>
+            <span className={`${isSub ? 'xs' : 'mono xs'} muted grow ell`}>{subDesc || toolTarget(m.input)}</span>
           )}
           {st === 'err' ? (
             <span className="badge">
@@ -144,15 +275,42 @@ export function ChatView({
             <StatusBadge status={st} />
           )}
         </div>
+        {children.length > 0 && (
+          <details className="subagent" open={!m.done}>
+            <summary className="xs muted">{t('claude.subSteps', { count: children.length })}</summary>
+            <div className="substeps">
+              {children.map((c) =>
+                c.kind === 'tool' ? (
+                  renderTool(c)
+                ) : c.kind === 'assistant' && c.text ? (
+                  <div className="xs muted" key={c.id}>
+                    {c.text}
+                  </div>
+                ) : null,
+              )}
+            </div>
+          </details>
+        )}
         {m.result && m.name !== 'Read' && <div className="tb">{m.result.length > 1200 ? `${m.result.slice(0, 1200)}…` : m.result}</div>}
       </div>
     );
   };
 
   const renderAsk = (m: Ask) => {
+    const qs = parseQuestions(m);
     const open = !m.decision && pending.includes(m.id);
     if (!open) {
       const d = m.decision ?? 'cancelled';
+      if (qs && d === 'allowed' && m.answers) {
+        const vals = Object.values(m.answers).join(' · ');
+        return (
+          <div className="note" key={m.id}>
+            <Icon name="check" />
+            {t('claude.decidedAnswered', { answer: vals })}
+            {m.at && ` · ${new Date(m.at).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}`}
+          </div>
+        );
+      }
       const key = d === 'allowed' ? 'decidedAllowed' : d === 'denied' ? 'decidedDenied' : d === 'always' ? 'decidedAlways' : 'decidedCancelled';
       return (
         <div className="note" key={m.id}>
@@ -162,9 +320,10 @@ export function ChatView({
         </div>
       );
     }
+    if (qs) return <QuestionAsk key={m.id} item={m} questions={qs} onAnswer={h.answer} />;
     const fp = filePath(m.input);
     return (
-      <div className="ask" role="group" aria-label={t('claude.askGroup')} key={m.id}>
+      <div className="ask" id={`ask-${m.id}`} role="group" aria-label={t('claude.askGroup')} key={m.id}>
         <div className="h">
           <Icon name="shield" />
           {t('claude.askTitle', { what: askWhat(m) })}
@@ -266,7 +425,8 @@ export function ChatView({
 
   // Chế độ gọn (C37): gom thẻ công cụ + lời dẫn giữa các bước thành một dòng "N bước · …"; bấm → tắt chế độ gọn.
   const body = useMemo(() => {
-    if (!focus) return items.map((m) => renderItem(m, { thinking: true }));
+    const top = items.filter((m) => !childIds.has(m.id));
+    if (!focus) return top.map((m) => renderItem(m, { thinking: true }));
     const out: ReactNode[] = [];
     let steps: Tool[] = [];
     let held: ChatItem[] = [];
@@ -286,7 +446,7 @@ export function ChatView({
       }
       steps = [];
     };
-    items.forEach((m, i) => {
+    top.forEach((m, i) => {
       if (m.kind === 'tool') {
         held = []; // lời dẫn trước công cụ là bước trung gian → ẩn
         steps.push(m);
@@ -305,7 +465,7 @@ export function ChatView({
     if (!running) flush('end');
     for (const x of held) out.push(renderItem(x, { thinking: false }));
     return out;
-  }, [items, focus, pending, running, i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [items, childIds, focus, pending, running, i18n.language]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const lastTool = [...items].reverse().find((m): m is Tool => m.kind === 'tool' && !m.done);
   // lượt lỗi hoặc bị dừng → server không tự gửi tin kế (AC-40), người dùng bấm Gửi tiếp

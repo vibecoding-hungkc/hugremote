@@ -407,11 +407,15 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       }
     } else if (op.op === 'delta') {
       const cur = l.partial.get(op.itemId) as Extract<ChatItem, { kind: 'assistant' }> | undefined;
-      const item = cur ?? { kind: 'assistant' as const, id: op.itemId, text: '' };
+      const item = cur ?? { kind: 'assistant' as const, id: op.itemId, text: '', ...(op.parentId ? { parentId: op.parentId } : {}) };
       if (op.field === 'text') item.text += op.text;
       else item.thinking = (item.thinking ?? '') + op.text;
       l.partial.set(op.itemId, item);
-      this.emit(s, op.field === 'text' ? ClaudeEvent.TEXT_DELTA : ClaudeEvent.THINKING, { itemId: op.itemId, text: op.text });
+      this.emit(s, op.field === 'text' ? ClaudeEvent.TEXT_DELTA : ClaudeEvent.THINKING, {
+        itemId: op.itemId,
+        text: op.text,
+        ...(op.parentId ? { parentId: op.parentId } : {}),
+      });
     } else if (op.op === 'permission') {
       l.pending.add(op.requestId);
       l.pendingInfo.set(op.requestId, { tool: op.item.tool, summary: summarize(op.item.tool, op.item.input) });
@@ -511,11 +515,15 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Trả lời đầu tiên thắng; lần sau → 409 INTERACTION_ALREADY_ANSWERED (ARCHITECTURE §6). */
-  async answer(u: AuthUser, id: string, iid: string, decision: 'allow' | 'deny' | 'always') {
+  async answer(u: AuthUser, id: string, iid: string, decision: 'allow' | 'deny' | 'always', rawAnswers?: Record<string, string>) {
     const s = await this.owned(u, id);
     const l = this.live.get(id);
-    if (!l?.turn || !l.pending.has(iid) || !l.turn.answer(iid, decision !== 'deny'))
-      throw AppError.conflict(ErrorCode.INTERACTION_ALREADY_ANSWERED);
+    const info = l?.pendingInfo.get(iid);
+    if (!l?.turn || !l.pending.has(iid) || !info) throw AppError.conflict(ErrorCode.INTERACTION_ALREADY_ANSWERED);
+    const answers = cleanAnswers(rawAnswers);
+    if (info.tool === 'AskUserQuestion' && decision !== 'deny' && !answers)
+      throw AppError.badRequest(ErrorCode.VALIDATION_FAILED, { field: 'answers' });
+    if (!l.turn.answer(iid, decision !== 'deny', answers)) throw AppError.conflict(ErrorCode.INTERACTION_ALREADY_ANSWERED);
     l.pending.delete(iid);
     l.pendingInfo.delete(iid);
     const d = decision === 'deny' ? 'denied' : decision === 'always' ? 'always' : 'allowed';
@@ -524,7 +532,16 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       s.permissionMode = PermissionMode.ACCEPT_EDITS;
       l.turn.setPermissionMode(PermissionMode.ACCEPT_EDITS);
     }
-    const item: ChatItem = { kind: 'interaction', id: iid, tool: '', input: {}, decision: d, by: u.email ?? u.role, at: now() };
+    const item: ChatItem = {
+      kind: 'interaction',
+      id: iid,
+      tool: '',
+      input: {},
+      decision: d,
+      ...(answers ? { answers } : {}),
+      by: u.email ?? u.role,
+      at: now(),
+    };
     await this.serial(id, async () => {
       await this.persist(s, item, ClaudeEvent.INTERACTION_RESPONDED);
       if (!l.pending.size) await this.setStatus(s, 'running');
@@ -595,8 +612,26 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   }
 }
 
-/** Câu ngắn cho chuông / thẻ duyệt: "Write src/x.ts", "Bash: pnpm test". */
+/** Làm sạch bản đồ câu trả lời của AskUserQuestion — chặn khoá prototype và giới hạn kích thước. */
+function cleanAnswers(raw?: Record<string, string>): Record<string, string> | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const out: Record<string, string> = {};
+  let n = 0;
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+    if (typeof v !== 'string' || !v.trim()) continue;
+    if (++n > 16) break;
+    out[k.slice(0, 500)] = v.trim().slice(0, 2000);
+  }
+  return n ? out : undefined;
+}
+
+/** Câu ngắn cho chuông / thẻ duyệt: "Write src/x.ts", "Bash: pnpm test", hoặc câu hỏi AskUserQuestion. */
 export function summarize(tool: string, input: Record<string, unknown>) {
+  if (tool === 'AskUserQuestion' && Array.isArray(input.questions)) {
+    const q = (input.questions[0] as { question?: string } | undefined)?.question;
+    if (typeof q === 'string' && q.trim()) return q.trim().slice(0, 140);
+  }
   const fp = (input.file_path ?? input.notebook_path ?? input.path) as string | undefined;
   if (fp) return `${tool} ${fp}`;
   if (typeof input.command === 'string') return `${tool}: ${input.command.slice(0, 120)}`;

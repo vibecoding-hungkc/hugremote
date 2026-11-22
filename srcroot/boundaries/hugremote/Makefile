@@ -23,6 +23,7 @@ check:
 test:
 	pnpm --filter @app/shared build
 	pnpm --filter @app/api test
+	pnpm --filter @app/web test
 	pnpm --filter @app/api build
 	pnpm --filter @app/api test:security
 

@@ -93,18 +93,25 @@ export function NotifBell({ hostId, projectId, onAllSessions }: { hostId?: strin
                     </span>
                     {ask ? (
                       <>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          iconOnly
-                          icon="check"
-                          write
-                          label={`${t('claude.allow')} (⌥Y)`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void answer(s.id, ask.id, 'allow');
-                          }}
-                        />
+                        {ask.tool === 'AskUserQuestion' ? (
+                          <span className="badge">
+                            <span className="dot warn" />
+                            {t('claude.askPick')}
+                          </span>
+                        ) : (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            iconOnly
+                            icon="check"
+                            write
+                            label={`${t('claude.allow')} (⌥Y)`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void answer(s.id, ask.id, 'allow');
+                            }}
+                          />
+                        )}
                         <Button
                           size="sm"
                           iconOnly

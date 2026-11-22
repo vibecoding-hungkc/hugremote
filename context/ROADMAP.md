@@ -63,15 +63,15 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-10 | ☑ | chia ô Terminal + Terminal (ô phải chọn terminal khác), đổi tên/đóng ở thanh phiên + cây |
 | AC-11 | ◐ | thanh phím cảm ứng (Ctrl, F1–F12, ký tự shell, lệnh nhanh) đã có; chưa thử trên điện thoại thật/giả lập (dogfood vai mobile) |
 | AC-12 | ◐ | một mô hình điều hướng cây → dự án → tab; mobile: S2 + thanh dưới + bộ chọn phiên; chưa dogfood mobile |
-| AC-13 | ◐ | token/component từ gói DS, chuỗi qua i18n vi/en; chưa có visual regression so screens/ (G-16) và route `#/_ds` |
+| AC-13 | ◐ | token/component từ gói DS, route `#/_ds` đã dựng, test tự động i18n/token (`design-and-i18n.test.ts`) PASS; còn vai `picky` đối chiếu `screens/` trên app thật |
 | AC-14 | ☑ | JwtAuthGuard toàn cục, @Public tối thiểu; security.e2e 18/18 |
 | AC-15 | ☑ | `/api/health`, `hugremote doctor [--fix]`, S7 Hệ thống tình trạng |
 | AC-16 | ☑ | Files: cây (.gitignore mờ, git M/A), CodeMirror tô màu, ⌘S, ⌘F/Ctrl+G, vạch dòng đổi, ảnh/markdown/log, xung đột khi file đổi trên máy |
 | AC-17 | ☑ | menu ⋯/chuột phải: mới, đổi tên, sao chép, xoá, tải lên/xuống zip, mở terminal ở đây, gửi cho Claude |
 | AC-18 | ☑ | S9: thay đổi staged/chưa, diff, stage all, discard, commit ⌘Enter, fetch/pull/push |
 | AC-19 | ☑ | lịch sử commit + chi tiết từng commit, tải thêm 50 |
-| AC-20 | ◐ | S10 stream + sync khi nối lại, Dừng (Esc) "Đã dừng" — thử với fake-claude trên demo-behind-jump; còn hiển thị agent con |
-| AC-21 | ◐ | thẻ Cho phép/Từ chối/mọi lần ghi + chấm "duyệt" ở cây, menu quyền có mô tả, Bypass xác nhận lần hai; còn "chọn phương án" (AskUserQuestion của Claude) |
+| AC-20 | ☑ | S10 stream + sync khi nối lại, Dừng (Esc) "Đã dừng", agent con (`parent_tool_use_id`) lồng trong thẻ Agent — thử với fake-claude + unit/component test |
+| AC-21 | ☑ | thẻ Cho phép/Từ chối/mọi lần ghi + chọn phương án (`AskUserQuestion`, gửi `answers`, không chọn hộ qua ⌥Y/chuông), menu quyền có mô tả, Bypass xác nhận lần hai |
 | AC-22 | ◐ | model/effort/slash từ `initialize`, Context a/b từ `get_context_usage` sau mỗi lượt; còn thử đổi model trên giao diện với CLI thật |
 | AC-23 | ☑ | danh sách phiên CLI chưa gắn + Tiếp tục (`--resume`), cảnh báo phiên vừa dùng <2 phút; đổi tên gửi `--name` ở lượt kế tiếp |
 | AC-24 | ◐ | gợi ý `/`, đính kèm qua Mở nhanh, mic Web Speech, IME không gửi sớm; còn dogfood điện thoại |

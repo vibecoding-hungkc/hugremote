@@ -53,8 +53,10 @@ function reduce(s: ChatState, a: Ev | { type: 'reset' } | { type: 'live'; on: bo
     case 'text_delta':
     case 'thinking': {
       const id = String(d.itemId);
+      const parentId = typeof d.parentId === 'string' ? d.parentId : undefined;
       const cur = s.items.find((x) => x.id === id);
-      const base: Extract<ChatItem, { kind: 'assistant' }> = cur?.kind === 'assistant' ? cur : { kind: 'assistant', id, text: '' };
+      const base: Extract<ChatItem, { kind: 'assistant' }> =
+        cur?.kind === 'assistant' ? cur : { kind: 'assistant', id, text: '', ...(parentId ? { parentId } : {}) };
       const upd = a.type === 'text_delta' ? { ...base, text: base.text + String(d.text) } : { ...base, thinking: (base.thinking ?? '') + String(d.text) };
       n.items = cur ? s.items.map((x) => (x.id === id ? upd : x)) : [...s.items, upd];
       break;

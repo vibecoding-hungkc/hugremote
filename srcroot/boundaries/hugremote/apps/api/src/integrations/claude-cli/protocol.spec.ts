@@ -1,4 +1,4 @@
-import { JsonlDecoder, Normalizer, parseRateLimit } from './protocol';
+import { JsonlDecoder, Normalizer, parseRateLimit, permissionResponse } from './protocol';
 import { parseInit } from './probe';
 
 describe('JsonlDecoder', () => {
@@ -81,6 +81,57 @@ describe('Normalizer', () => {
   it('result lỗi mang thông điệp lỗi', () => {
     const [op] = new Normalizer('t1').feed({ type: 'result', subtype: 'error_during_execution', is_error: true, result: 'hỏng' });
     expect(op).toMatchObject({ op: 'result', isError: true, item: { error: 'hỏng' } });
+  });
+
+  it('agent con (parent_tool_use_id) giữ parentId và không trộn delta vào stream chính (AC-20)', () => {
+    const n = new Normalizer('t1');
+    n.feed(tool('sub1', 'Agent', { subagent_type: 'Explore', description: 'Đọc cấu trúc' }));
+    // agent chính mở block text
+    n.feed({ type: 'stream_event', event: { type: 'message_start' } });
+    n.feed({ type: 'stream_event', event: { type: 'content_block_start', index: 0, content_block: { type: 'text' } } });
+    // agent con mở block text song song
+    n.feed({ type: 'stream_event', parent_tool_use_id: 'sub1', event: { type: 'message_start' } });
+    n.feed({
+      type: 'stream_event',
+      parent_tool_use_id: 'sub1',
+      event: { type: 'content_block_start', index: 0, content_block: { type: 'text' } },
+    });
+    const [dMain] = n.feed({
+      type: 'stream_event',
+      event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Chính' } },
+    });
+    const [dSub] = n.feed({
+      type: 'stream_event',
+      parent_tool_use_id: 'sub1',
+      event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Phụ' } },
+    });
+    expect(dMain).toMatchObject({ op: 'delta', text: 'Chính' });
+    expect((dMain as { parentId?: string }).parentId).toBeUndefined();
+    expect(dSub).toMatchObject({ op: 'delta', text: 'Phụ', parentId: 'sub1' });
+    expect((dSub as { itemId: string }).itemId).not.toBe((dMain as { itemId: string }).itemId);
+
+    const subOps = n.feed({
+      type: 'assistant',
+      parent_tool_use_id: 'sub1',
+      message: { content: [{ type: 'tool_use', id: 'st1', name: 'Read', input: { file_path: 'README.md' } }] },
+    });
+    expect(subOps[0]).toMatchObject({ op: 'upsert', item: { kind: 'tool', id: 'st1', parentId: 'sub1' } });
+    const [subRes] = n.feed({
+      type: 'user',
+      parent_tool_use_id: 'sub1',
+      message: { content: [{ type: 'tool_result', tool_use_id: 'st1', content: 'ok' }] },
+    });
+    expect(subRes).toMatchObject({ op: 'upsert', item: { kind: 'tool', id: 'st1', parentId: 'sub1', done: true } });
+  });
+
+  it('permissionResponse nhúng answers vào updatedInput cho AskUserQuestion (AC-21)', () => {
+    const raw = permissionResponse('q1', true, { questions: [{ question: 'Chọn DB?' }] }, { 'Chọn DB?': 'SQLite' });
+    const parsed = JSON.parse(raw) as { response: { response: { behavior: string; updatedInput: Record<string, unknown> } } };
+    expect(parsed.response.response.behavior).toBe('allow');
+    expect(parsed.response.response.updatedInput).toEqual({
+      questions: [{ question: 'Chọn DB?' }],
+      answers: { 'Chọn DB?': 'SQLite' },
+    });
   });
 });
 

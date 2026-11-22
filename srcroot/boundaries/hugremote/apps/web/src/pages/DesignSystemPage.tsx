@@ -47,7 +47,26 @@ const CHAT: ChatItem[] = [
   { kind: 'assistant', id: 'a1', text: 'Mình xem cấu trúc dự án và chạy test trước.', thinking: 'Người dùng muốn thêm API…' },
   { kind: 'tool', id: 't1', name: 'Bash', input: { command: 'pnpm test bookings' }, result: 'PASS bookings.spec.ts\n  ✓ đặt lịch (12 ms)', done: true },
   { kind: 'tool', id: 't2', name: 'Edit', input: { file_path: '/home/dev/projects/demo-api/src/bookings.service.ts' }, isError: true, result: 'File chưa đọc', done: true },
+  { kind: 'tool', id: 'sub1', name: 'Agent', input: { subagent_type: 'Explore', description: 'Quét cấu trúc dự án' }, result: 'Đã tìm thấy 3 module chính', done: true },
+  { kind: 'tool', id: 'sub1-r', parentId: 'sub1', name: 'Read', input: { file_path: '/home/dev/projects/demo-api/README.md' }, done: true },
   { kind: 'interaction', id: 'i1', tool: 'Write', input: { file_path: '/home/dev/projects/demo-api/src/bookings.controller.ts' } },
+  {
+    kind: 'interaction',
+    id: 'i3',
+    tool: 'AskUserQuestion',
+    input: {
+      questions: [
+        {
+          question: 'Ưu tiên phương án nào?',
+          header: 'Phương án',
+          options: [
+            { label: 'Giữ đơn giản', description: 'Ít thay đổi, ra nhanh' },
+            { label: 'Tách mô-đun', description: 'Gọn về sau' },
+          ],
+        },
+      ],
+    },
+  },
   { kind: 'interaction', id: 'i2', tool: 'Bash', input: { command: 'rm -rf dist' }, decision: 'denied', at: new Date().toISOString() },
   { kind: 'assistant', id: 'a2', text: 'Xong. Kiểm tra: `src/bookings/bookings.controller.ts:3`' },
   { kind: 'summary', id: 's1', durationMs: 134_000, usage: { input: 18_200, output: 900, cacheRead: 4000 }, costUsd: 0.21, filesChanged: ['/home/dev/projects/demo-api/src/bookings.controller.ts'], context: { used: 227_000, max: 1_000_000 } },
@@ -173,7 +192,7 @@ export function DesignSystemPage() {
             <ChatView
               items={CHAT}
               status="awaiting_input"
-              pending={['i1']}
+              pending={['i1', 'i3']}
               queue={[{ id: 'q1', text: 'nhớ cập nhật README', createdAt: new Date().toISOString() }]}
               focus={focus}
               rootPath="~/projects/demo-api"

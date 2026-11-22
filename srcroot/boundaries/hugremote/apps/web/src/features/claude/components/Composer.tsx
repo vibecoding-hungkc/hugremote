@@ -29,7 +29,7 @@ export interface ComposerProps {
   hostName: string;
   focus: boolean;
   /** Yêu cầu quyền đang chờ — dải duyệt nhanh trên điện thoại (C36). */
-  ask?: { id: string; what: string } | null;
+  ask?: { id: string; what: string; isQuestion?: boolean } | null;
   initialAttach?: string[];
   onToggleFocus: () => void;
   onMode: (mode: string) => void;
@@ -167,9 +167,15 @@ export function Composer(p: ComposerProps) {
           <div className="askbar">
             <span className="dot warn" />
             <span className="grow ell">{p.ask.what}</span>
-            <Button variant="primary" size="sm" icon="check" write onClick={() => p.onAnswer(p.ask!.id, 'allow')}>
-              {t('claude.allow')}
-            </Button>
+            {p.ask.isQuestion ? (
+              <Button variant="primary" size="sm" onClick={() => document.getElementById(`ask-${p.ask!.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>
+                {t('claude.askPick')}
+              </Button>
+            ) : (
+              <Button variant="primary" size="sm" icon="check" write onClick={() => p.onAnswer(p.ask!.id, 'allow')}>
+                {t('claude.allow')}
+              </Button>
+            )}
             <Button size="sm" iconOnly icon="x" write label={t('claude.deny')} onClick={() => p.onAnswer(p.ask!.id, 'deny')} />
           </div>
         )}

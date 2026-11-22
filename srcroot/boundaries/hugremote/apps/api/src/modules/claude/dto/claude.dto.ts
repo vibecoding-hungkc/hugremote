@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsOptional, IsString, IsUUID, Length, MaxLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsObject, IsOptional, IsString, IsUUID, Length, MaxLength } from 'class-validator';
 import { ClaudeStatus, PermissionMode } from '@app/shared';
 
 export class CreateClaudeDto {
@@ -32,6 +32,11 @@ export class SendMessageDto {
 
 export class AnswerDto {
   @IsIn(['allow', 'deny', 'always']) decision!: 'allow' | 'deny' | 'always';
+  /** Câu trả lời cho `AskUserQuestion` (AC-21): map `question -> nhãn đã chọn`. */
+  @ApiPropertyOptional({ type: 'object', additionalProperties: { type: 'string' } })
+  @IsOptional()
+  @IsObject()
+  answers?: Record<string, string>;
 }
 
 export class PendingInteractionDto {

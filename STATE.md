@@ -60,10 +60,10 @@ URL production: (chưa có)
 
 **I — Implement**
 - [x] Challenge PASS (ghi ở §Challenge log dưới)
-- [ ] `make dev` · `make check` · `make migrate` đã hiện thực
-- [ ] Đã có commit code ngoài commit khởi tạo
+- [x] `make dev` · `make check` · `make migrate` đã hiện thực
+- [x] Đã có commit code ngoài commit khởi tạo
 - [ ] Luồng lõi end-to-end bấm được ở local
-- [ ] `make check` xanh
+- [x] `make check` xanh
 - [ ] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
 
 **P1 — sẵn sàng deploy lần đầu** (`gate.py P1`)
@@ -110,6 +110,7 @@ Meta ra câu hỏi khó dựa trên context, chấm PASS/FAIL. **Pha V**: 3–5 
 | 2026-11-21 | V | Claude sửa file trong lúc người dùng đang sửa cùng file ở tab Files rồi bấm Lưu? | PASS | ARCHITECTURE §6 sửa file đồng thời (`baseMtime` → 409 `FILE_CHANGED`); SOLUTION G-15; prototype S8 trạng thái lỗi |
 | 2026-11-21 | V | Vòng ~30 ngày công trễ ở giữa thì cắt gì trước, cắt rồi đi đâu? | PASS | `l1/_PROPOSAL.md §20` thứ tự cắt (cập nhật → mic/hạn mức → lịch sử Git → SSO → sáng/en) → `ROADMAP.md §3` thành vòng 2 |
 | 2026-11-22 | I | Lát 1–2 trước khi code: owner đang chạy phiên Claude A, member B (SSO) mở đúng URL phiên A rồi gửi tin trong lúc A đang `running` và lượt đó kết thúc bằng lỗi — server làm gì với tin của B, với hàng chờ của A, và B thấy gì? | PASS | B: G-13 → `POST /:id/messages` trả 403 `NOT_SESSION_OWNER` trước cả kiểm `running`; route web chặn về S2 (AC-33, AC-48). Hàng chờ của A: lượt lỗi → **không** tự gửi tin kế, hiện C5 + "Gửi tiếp" (SOLUTION B1 AC-40), tin vẫn nằm trong `claude_queue`. Hệ quả code: guard chủ phiên đặt ở service trước mọi nhánh, runner chỉ rút hàng chờ khi `finish` thành công |
+| 2026-11-22 | I | Trước khi hoàn thiện AC-20/21/13: agent con (`parent_tool_use_id`) phát stream song song + gọi `AskUserQuestion`, người dùng bấm `⌥Y` hoặc hai thiết bị trả lời cùng lúc thì xử lý thế nào? | PASS | Normalizer tách `blocks`/`assistantId` theo `parentId` để không trộn stream chính và gắn `parentId` để ChatView lồng trong thẻ cha (chế độ gọn gộp chung). `AskUserQuestion` bắt chọn phương án (C21 không chọn hộ): `⌥Y` và ✓ nhanh ở chuông/askbar không gửi allow rỗng; API chặn `allow` thiếu `answers` (400). Hai thiết bị trả lời cùng lúc → `pending.delete` đầu tiên thắng, người sau 409 `INTERACTION_ALREADY_ANSWERED` |
 
 ---
 

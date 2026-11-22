@@ -127,12 +127,12 @@ export class ClaudeTurn {
     return !!this.proc && !this.ended;
   }
 
-  /** Trả lời yêu cầu quyền. false nếu yêu cầu không còn chờ (đã trả lời ở thiết bị khác). */
-  answer(requestId: string, allow: boolean): boolean {
+  /** Trả lời yêu cầu quyền hoặc AskUserQuestion. false nếu yêu cầu không còn chờ (đã trả lời ở thiết bị khác). */
+  answer(requestId: string, allow: boolean, answers?: Record<string, string>): boolean {
     const input = this.pending.get(requestId);
     if (!this.proc || this.ended || input === undefined) return false;
     this.pending.delete(requestId);
-    this.proc.stdin.write(permissionResponse(requestId, allow, input));
+    this.proc.stdin.write(permissionResponse(requestId, allow, input, answers));
     return true;
   }
 

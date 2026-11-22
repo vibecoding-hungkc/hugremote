@@ -17,3 +17,13 @@
 .files.compact.open .ftree, .git.compact.open .gleft { display: none; }
 .files.compact:not(.open) .editor, .git.compact:not(.open) .gright { display: none; }
 .files.compact .only-mobile, .git.compact .only-mobile { display: inline-flex !important; }
+
+/* Agent con (AC-20) và câu hỏi chọn phương án (AC-21) — 100% token DS */
+.subagent { border-top: 1px solid var(--color-divider); padding: var(--space-xs) var(--space-md) var(--space-sm); }
+.subagent > summary { cursor: pointer; padding: var(--space-xs) 0; }
+.substeps { display: grid; gap: var(--space-xs); padding-left: var(--space-md); margin-top: var(--space-xs); box-shadow: inset 2px 0 0 var(--color-divider); }
+.qblk { display: grid; gap: var(--space-sm); }
+.qopts { display: grid; gap: var(--space-xs); }
+.qopt { text-align: left; display: grid; gap: 2px; padding: var(--space-sm) var(--space-md); min-height: var(--tap); border-radius: var(--radius); border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text); font-size: var(--text-sm); cursor: pointer; }
+.qopt:hover { background: var(--color-surface-raised); }
+.qopt.on { border-color: var(--color-primary); background: var(--color-surface-raised); }

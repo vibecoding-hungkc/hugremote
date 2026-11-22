@@ -1717,6 +1717,9 @@ export interface components {
         AnswerDto: {
             /** @enum {string} */
             decision: "allow" | "deny" | "always";
+            answers?: {
+                [key: string]: string;
+            };
         };
         UpdateStepDto: {
             name: string;

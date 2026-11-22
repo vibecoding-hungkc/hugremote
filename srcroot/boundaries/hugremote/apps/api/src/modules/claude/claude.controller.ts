@@ -113,7 +113,7 @@ export class ClaudeController {
   @Post('claude/sessions/:id/interactions/:iid')
   @HttpCode(204)
   async answer(@CurrentUser() u: AuthUser, @Param('id') id: string, @Param('iid') iid: string, @Body() dto: AnswerDto) {
-    await this.claude.answer(u, id, iid, dto.decision);
+    await this.claude.answer(u, id, iid, dto.decision, dto.answers);
   }
 
   /** SSE — vé 30s (EventSource không gửi được header); `after` hoặc `Last-Event-ID` để phát lại phần thiếu. */

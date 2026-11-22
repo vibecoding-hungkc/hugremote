@@ -69,16 +69,16 @@ export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: str
 
   const fail = (e: unknown) => toast(t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') }));
   const refresh = () => qc.invalidateQueries({ queryKey: ck.sessions });
-  const answer = (iid: string, d: 'allow' | 'deny' | 'always') =>
+  const answer = (iid: string, d: 'allow' | 'deny' | 'always', answers?: Record<string, string>) =>
     blockedOffline(toast, t('net.offlineTip'))
       ? Promise.resolve()
-      : claudeApi.answer(sid, iid, d).then(refresh, (e: unknown) => {
-      fail(e);
-      void refresh();
-    });
+      : claudeApi.answer(sid, iid, d, answers).then(refresh, (e: unknown) => {
+          fail(e);
+          void refresh();
+        });
   const stop = () => !blockedOffline(toast, t('net.offlineTip')) && void claudeApi.cancel(sid).catch(fail);
 
-  // Esc dừng lượt; ⌥Y / ⌥N trả lời yêu cầu quyền đầu tiên (AC-40, AC-49)
+  // Esc dừng lượt; ⌥Y / ⌥N trả lời yêu cầu quyền đầu tiên (AskUserQuestion không cho ⌥Y mù — C21)
   useEffect(() => {
     if (embed) return;
     const on = (e: KeyboardEvent) => {
@@ -87,6 +87,7 @@ export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: str
         e.preventDefault();
         stop();
       } else if (e.altKey && firstAsk && (e.code === 'KeyY' || e.code === 'KeyN')) {
+        if (e.code === 'KeyY' && firstAsk.tool === 'AskUserQuestion') return;
         e.preventDefault();
         void answer(firstAsk.id, e.code === 'KeyY' ? 'allow' : 'deny');
       }
@@ -168,7 +169,18 @@ export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: str
       limits={limits.data}
       hostName={hostName}
       focus={focus}
-      ask={firstAsk ? { id: firstAsk.id, what: `${firstAsk.tool} ${String(firstAsk.input.file_path ?? firstAsk.input.command ?? '').split('/').pop()}` } : null}
+      ask={
+        firstAsk
+          ? {
+              id: firstAsk.id,
+              isQuestion: firstAsk.tool === 'AskUserQuestion',
+              what:
+                firstAsk.tool === 'AskUserQuestion' && Array.isArray(firstAsk.input.questions)
+                  ? String((firstAsk.input.questions[0] as { question?: string } | undefined)?.question ?? firstAsk.tool)
+                  : `${firstAsk.tool} ${String(firstAsk.input.file_path ?? firstAsk.input.command ?? '').split('/').pop()}`,
+            }
+          : null
+      }
       initialAttach={isNew && search.get('attach') ? [search.get('attach')!] : undefined}
       onToggleFocus={() => setUi({ claudeFocus: !focus })}
       onMode={(m) => void patch({ permissionMode: m as PermissionMode })}
@@ -276,7 +288,7 @@ export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: str
             h={{
               openFile: (p, l) => nav(`${base}/files/${p.split('/').map(encodeURIComponent).join('/')}${l ? `/${l}` : ''}`),
               openDiff: (p) => nav(`${base}/git?file=${encodeURIComponent(relToProject(p, project.rootPath))}`),
-              answer: (iid, d) => void answer(iid, d),
+              answer: (iid, d, ans) => void answer(iid, d, ans),
               unqueue: (qid) => void claudeApi.unqueue(sid, qid).catch(fail),
               resumeQueue: () => void claudeApi.resumeQueue(sid).catch(fail),
               toggleFocus: () => setUi({ claudeFocus: !focus }),

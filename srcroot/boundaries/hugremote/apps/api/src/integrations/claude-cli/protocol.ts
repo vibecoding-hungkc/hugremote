@@ -12,7 +12,7 @@ export type { ChatItem };
 export type NormOp =
   | { op: 'init'; cliSessionId: string; model?: string }
   | { op: 'upsert'; item: ChatItem; final: boolean }
-  | { op: 'delta'; itemId: string; field: 'text' | 'thinking'; text: string }
+  | { op: 'delta'; itemId: string; field: 'text' | 'thinking'; text: string; parentId?: string }
   | { op: 'permission'; requestId: string; item: Extract<ChatItem, { kind: 'interaction' }> }
   | { op: 'result'; item: Extract<ChatItem, { kind: 'summary' }>; isError: boolean }
   | { op: 'control_response'; requestId: string; response: Record<string, unknown> }
@@ -83,51 +83,72 @@ const FILE_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
  * Tên công cụ sửa file gom vào `filesChanged` cho dòng tóm tắt (AC-41).
  */
 export class Normalizer {
-  private blocks = new Map<number, { itemId: string; type: 'text' | 'thinking' | 'tool' }>();
+  /** Tách theo parentId ('' = agent chính, <tool_use_id> = agent con) để stream song song không lẫn (AC-20). */
+  private blocks = new Map<string, Map<number, { itemId: string; type: 'text' | 'thinking' | 'tool' }>>();
   private msgCounter = 0;
-  private currentAssistantId: string | null = null;
+  private currentAssistantId = new Map<string, string>();
   readonly filesChanged = new Set<string>();
   private toolNames = new Map<string, string>();
+  private toolParents = new Map<string, string>();
   /** Công cụ sửa file đang chờ kết quả → chỉ tính vào `filesChanged` khi trả về không lỗi. */
   private pendingFiles = new Map<string, string>();
 
   constructor(private readonly turnId: string) {}
 
-  private newAssistantId() {
-    this.currentAssistantId = `${this.turnId}-a${++this.msgCounter}`;
-    return this.currentAssistantId;
+  private newAssistantId(parentKey: string) {
+    const id = `${this.turnId}-a${++this.msgCounter}`;
+    this.currentAssistantId.set(parentKey, id);
+    return id;
+  }
+
+  private blockMap(parentKey: string) {
+    let m = this.blocks.get(parentKey);
+    if (!m) {
+      m = new Map();
+      this.blocks.set(parentKey, m);
+    }
+    return m;
   }
 
   feed(m: Record<string, unknown>): NormOp[] {
     const out: NormOp[] = [];
     const type = m.type as string;
+    const parentId = typeof m.parent_tool_use_id === 'string' && m.parent_tool_use_id ? m.parent_tool_use_id : undefined;
+    const pk = parentId ?? '';
     if (type === 'system' && m.subtype === 'init') {
       out.push({ op: 'init', cliSessionId: typeof m.session_id === 'string' ? m.session_id : '', model: m.model as string | undefined });
     } else if (type === 'stream_event') {
       const ev = m.event as Record<string, unknown>;
       const et = ev?.type as string;
-      if (et === 'message_start') this.newAssistantId();
+      const bm = this.blockMap(pk);
+      if (et === 'message_start') this.newAssistantId(pk);
       else if (et === 'content_block_start') {
         const idx = Number(ev.index);
         const cb = ev.content_block as Block;
-        const aid = this.currentAssistantId ?? this.newAssistantId();
-        if (cb.type === 'text' || cb.type === 'thinking') this.blocks.set(idx, { itemId: aid, type: cb.type });
+        const aid = this.currentAssistantId.get(pk) ?? this.newAssistantId(pk);
+        if (cb.type === 'text' || cb.type === 'thinking') bm.set(idx, { itemId: aid, type: cb.type });
         else if (cb.type === 'tool_use' && cb.id) {
-          this.blocks.set(idx, { itemId: cb.id, type: 'tool' });
+          bm.set(idx, { itemId: cb.id, type: 'tool' });
           this.toolNames.set(cb.id, cb.name ?? '');
-          out.push({ op: 'upsert', item: { kind: 'tool', id: cb.id, name: cb.name ?? '', input: {} }, final: false });
+          if (parentId) this.toolParents.set(cb.id, parentId);
+          out.push({
+            op: 'upsert',
+            item: { kind: 'tool', id: cb.id, name: cb.name ?? '', input: {}, ...(parentId ? { parentId } : {}) },
+            final: false,
+          });
         }
       } else if (et === 'content_block_delta') {
-        const b = this.blocks.get(Number(ev.index));
+        const b = bm.get(Number(ev.index));
         const d = ev.delta as { type: string; text?: string; thinking?: string };
-        if (b && d.type === 'text_delta' && d.text) out.push({ op: 'delta', itemId: b.itemId, field: 'text', text: d.text });
+        if (b && d.type === 'text_delta' && d.text)
+          out.push({ op: 'delta', itemId: b.itemId, field: 'text', text: d.text, ...(parentId ? { parentId } : {}) });
         if (b && d.type === 'thinking_delta' && d.thinking)
-          out.push({ op: 'delta', itemId: b.itemId, field: 'thinking', text: d.thinking });
+          out.push({ op: 'delta', itemId: b.itemId, field: 'thinking', text: d.thinking, ...(parentId ? { parentId } : {}) });
       }
     } else if (type === 'assistant') {
       // Bản đầy đủ của tin nhắn — nguồn sự thật để lưu (delta chỉ để hiển thị nhanh)
       const msg = m.message as { content?: Block[] };
-      const aid = this.currentAssistantId ?? this.newAssistantId();
+      const aid = this.currentAssistantId.get(pk) ?? this.newAssistantId(pk);
       let text = '';
       let thinking = '';
       for (const b of msg?.content ?? []) {
@@ -135,15 +156,24 @@ export class Normalizer {
         else if (b.type === 'thinking') thinking += b.thinking ?? '';
         else if (b.type === 'tool_use' && b.id) {
           this.toolNames.set(b.id, b.name ?? '');
+          if (parentId) this.toolParents.set(b.id, parentId);
           const fp = (b.input?.file_path ?? b.input?.notebook_path) as string | undefined;
           if (FILE_TOOLS.has(b.name ?? '') && fp) this.pendingFiles.set(b.id, fp);
-          out.push({ op: 'upsert', item: { kind: 'tool', id: b.id, name: b.name ?? '', input: b.input ?? {} }, final: false });
+          out.push({
+            op: 'upsert',
+            item: { kind: 'tool', id: b.id, name: b.name ?? '', input: b.input ?? {}, ...(parentId ? { parentId } : {}) },
+            final: false,
+          });
         }
       }
       if (text || thinking)
-        out.unshift({ op: 'upsert', item: { kind: 'assistant', id: aid, text, ...(thinking ? { thinking } : {}) }, final: true });
-      this.currentAssistantId = null;
-      this.blocks.clear();
+        out.unshift({
+          op: 'upsert',
+          item: { kind: 'assistant', id: aid, text, ...(thinking ? { thinking } : {}), ...(parentId ? { parentId } : {}) },
+          final: true,
+        });
+      this.currentAssistantId.delete(pk);
+      this.blocks.delete(pk);
     } else if (type === 'user') {
       const msg = m.message as { content?: Block[] | string };
       if (Array.isArray(msg?.content)) {
@@ -161,6 +191,7 @@ export class Normalizer {
               : Array.isArray(b.content)
                 ? (b.content as Block[]).map((x) => x.text ?? '').join('')
                 : '';
+          const p = parentId ?? this.toolParents.get(b.tool_use_id);
           out.push({
             op: 'upsert',
             item: {
@@ -171,6 +202,7 @@ export class Normalizer {
               result: result.slice(0, 20_000),
               isError: !!b.is_error,
               done: true,
+              ...(p ? { parentId: p } : {}),
             },
             final: true,
           });
@@ -227,9 +259,15 @@ export function userLine(text: string, sessionId: string): string {
   );
 }
 
-/** Dòng stdin: trả lời yêu cầu quyền (`can_use_tool`). */
-export function permissionResponse(requestId: string, allow: boolean, input: Record<string, unknown>): string {
-  const response = allow ? { behavior: 'allow', updatedInput: input } : { behavior: 'deny', message: 'Người dùng từ chối trên HugRemote' };
+/** Dòng stdin: trả lời yêu cầu quyền (`can_use_tool`) hoặc câu hỏi chọn phương án (`AskUserQuestion`, AC-21). */
+export function permissionResponse(
+  requestId: string,
+  allow: boolean,
+  input: Record<string, unknown>,
+  answers?: Record<string, string>,
+): string {
+  const updatedInput = answers && Object.keys(answers).length ? { ...input, answers } : input;
+  const response = allow ? { behavior: 'allow', updatedInput } : { behavior: 'deny', message: 'Người dùng từ chối trên HugRemote' };
   return JSON.stringify({ type: 'control_response', response: { subtype: 'success', request_id: requestId, response } }) + '\n';
 }
 

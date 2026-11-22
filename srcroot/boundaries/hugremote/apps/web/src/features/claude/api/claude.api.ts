@@ -15,5 +15,7 @@ export const claudeApi = {
   cancel: (id: string) => api<void>(`/claude/sessions/${id}/cancel`, { method: 'POST' }),
   answer: (id: string, iid: string, decision: 'allow' | 'deny' | 'always') =>
     api<void>(`/claude/sessions/${id}/interactions/${iid}`, { body: { decision } }),
+  options: (projectId: string) => api<S['ClaudeOptionsDto']>(`/projects/${projectId}/claude/options`),
+  limits: (projectId: string) => api<S['ClaudeLimitsDto']>(`/projects/${projectId}/claude/limits`),
   ticket: () => api<{ ticket: string }>('/auth/stream-ticket', { method: 'POST' }),
 };

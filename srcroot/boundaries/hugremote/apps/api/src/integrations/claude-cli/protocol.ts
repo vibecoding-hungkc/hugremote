@@ -86,6 +86,8 @@ export class Normalizer {
   private currentAssistantId: string | null = null;
   readonly filesChanged = new Set<string>();
   private toolNames = new Map<string, string>();
+  /** Công cụ sửa file đang chờ kết quả → chỉ tính vào `filesChanged` khi trả về không lỗi. */
+  private pendingFiles = new Map<string, string>();
 
   constructor(private readonly turnId: string) {}
 
@@ -132,7 +134,7 @@ export class Normalizer {
         else if (b.type === 'tool_use' && b.id) {
           this.toolNames.set(b.id, b.name ?? '');
           const fp = (b.input?.file_path ?? b.input?.notebook_path) as string | undefined;
-          if (FILE_TOOLS.has(b.name ?? '') && fp) this.filesChanged.add(fp);
+          if (FILE_TOOLS.has(b.name ?? '') && fp) this.pendingFiles.set(b.id, fp);
           out.push({ op: 'upsert', item: { kind: 'tool', id: b.id, name: b.name ?? '', input: b.input ?? {} }, final: false });
         }
       }
@@ -145,6 +147,9 @@ export class Normalizer {
       if (Array.isArray(msg?.content)) {
         for (const b of msg.content) {
           if (b.type !== 'tool_result' || !b.tool_use_id) continue;
+          const fp = this.pendingFiles.get(b.tool_use_id);
+          if (fp && !b.is_error) this.filesChanged.add(fp);
+          this.pendingFiles.delete(b.tool_use_id);
           const result =
             typeof b.content === 'string'
               ? b.content

@@ -19,6 +19,16 @@ function Boot() {
   return <RouterProvider router={router} />;
 }
 
+// Bản mới vừa cài (hash chunk đổi) mà trang còn giữ bản cũ → tải lại một lần thay vì màn lỗi trắng.
+window.addEventListener('vite:preloadError', (e) => {
+  const k = 'hugremote:reloaded';
+  if (sessionStorage.getItem(k)) return;
+  e.preventDefault();
+  sessionStorage.setItem(k, '1');
+  location.reload();
+});
+window.addEventListener('load', () => setTimeout(() => sessionStorage.removeItem('hugremote:reloaded'), 10_000));
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

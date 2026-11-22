@@ -100,6 +100,7 @@ while not got_prompt.wait(0.2):
     if stdin_closed.is_set(): sys.exit(0)
 prompt = prompts[0]
 t0 = time.time()
+TID_LS = 'toolu_ls_' + uuid.uuid4().hex[:8]; TID_W = 'toolu_w_' + uuid.uuid4().hex[:8]
 emit({'type': 'system', 'subtype': 'init', 'session_id': session_id, 'model': model, 'cwd': os.getcwd(), 'permissionMode': mode, 'tools': ['Bash', 'Read', 'Write', 'Edit']})
 emit({'type': 'rate_limit_event', 'session_id': session_id, 'rate_limit_info': {'status': 'allowed_warning', 'rateLimitType': 'five_hour', 'utilization': 0.81, 'resetsAt': int(time.time()) + 2 * 3600}})
 emit({'type': 'rate_limit_event', 'session_id': session_id, 'rate_limit_info': {'status': 'allowed', 'rateLimitType': 'seven_day', 'utilization': 0.46, 'resetsAt': int(time.time()) + 4 * 86400}})
@@ -120,25 +121,25 @@ think = 'Người dùng muốn tôi làm việc trong dự án. Tôi sẽ xem c�
 stream_text(think, 'thinking', 0, delay)
 txt = 'Mình xem cấu trúc dự án và chạy test trước.'
 stream_text(txt, 'text', 1, delay)
-assistant([{'type': 'thinking', 'thinking': think}, {'type': 'text', 'text': txt}, {'type': 'tool_use', 'id': 'toolu_ls', 'name': 'Bash', 'input': {'command': 'ls && git status --short'}}])
+assistant([{'type': 'thinking', 'thinking': think}, {'type': 'text', 'text': txt}, {'type': 'tool_use', 'id': TID_LS, 'name': 'Bash', 'input': {'command': 'ls && git status --short'}}])
 if interrupted.is_set(): finish(True, 'interrupted')
 out = os.popen('ls 2>&1; git status --short 2>&1').read()[:2000]
 time.sleep(delay * 4)
-emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': 'toolu_ls', 'content': out, 'is_error': False}]}})
+emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': TID_LS, 'content': out, 'is_error': False}]}})
 if 'lỗi' in prompt or 'loi' in prompt: finish(True, 'Giả lập lỗi khi chạy lượt')
 target = 'NOTES-claude.md'
 content = f'# Ghi chú từ Claude (giả)\n\nYêu cầu: {prompt}\n\nThời điểm: {time.strftime("%Y-%m-%d %H:%M:%S")}\n'
 emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'message_start', 'message': {'role': 'assistant'}}})
 txt2 = f'Mình sẽ ghi kết quả vào {target}.'
 stream_text(txt2, 'text', 0, delay)
-assistant([{'type': 'text', 'text': txt2}, {'type': 'tool_use', 'id': 'toolu_w', 'name': 'Write', 'input': {'file_path': os.path.join(os.getcwd(), target), 'content': content}}])
+assistant([{'type': 'text', 'text': txt2}, {'type': 'tool_use', 'id': TID_W, 'name': 'Write', 'input': {'file_path': os.path.join(os.getcwd(), target), 'content': content}}])
 ok = ask('Write', {'file_path': os.path.join(os.getcwd(), target), 'content': content})
 if interrupted.is_set(): finish(True, 'interrupted')
 if ok:
     open(target, 'w').write(content); files.append(target)
-    emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': 'toolu_w', 'content': f'File created successfully at: {target}'}]}})
+    emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': TID_W, 'content': f'File created successfully at: {target}'}]}})
 else:
-    emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': 'toolu_w', 'content': 'Người dùng đã từ chối', 'is_error': True}]}})
+    emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': TID_W, 'content': 'Người dùng đã từ chối', 'is_error': True}]}})
 emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'message_start', 'message': {'role': 'assistant'}}})
 final = f'Xong. {"Đã ghi " + target if ok else "Không ghi file vì bị từ chối"}. Kiểm tra: src/bookings/bookings.controller.ts:3'
 stream_text(final, 'text', 0, delay)

@@ -5,8 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { ConfirmDialog, RenameDialog, useDialogs } from '../../components/ui/Dialogs';
 import { Menu, toast, type MenuItem } from '../../components/ui/Overlay';
+import { Icon } from '../../components/ui/Icon';
 import { TreeNode } from '../../components/ui/TreeNode';
 import { useMe } from '../../features/auth/hooks/useMe';
+import { claudeApi } from '../../features/claude/api/claude.api';
+import { ck } from '../../features/claude/hooks/useClaude';
 import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk, useHosts, usePins, useProjectsOf, useSetPins } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
@@ -108,7 +111,8 @@ export function WorkspaceTree() {
             initial={s.name}
             onSave={async (name) => {
               if (s.kind === 'terminal') await workspaceApi.renameTerminal(s.id, name);
-              await qc.invalidateQueries({ queryKey: qk.terminals });
+              else await claudeApi.patch(s.id, { name });
+              await qc.invalidateQueries({ queryKey: s.kind === 'terminal' ? qk.terminals : ck.sessions });
             }}
           />,
         ),
@@ -125,10 +129,11 @@ export function WorkspaceTree() {
   const closeSession = (s: SessionItem) => {
     const run = async () => {
       if (s.kind === 'terminal') await workspaceApi.closeTerminal(s.id);
-      await qc.invalidateQueries({ queryKey: qk.terminals });
+      else await claudeApi.remove(s.id);
+      await qc.invalidateQueries({ queryKey: s.kind === 'terminal' ? qk.terminals : ck.sessions });
       if (curSid === s.id) nav(curHost && curProject ? `${pbase(curHost, curProject)}/sessions` : '/');
     };
-    if (s.status !== 'running') return void run();
+    if (s.status !== 'running' && s.status !== 'awaiting') return void run();
     openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t('session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
 
@@ -208,6 +213,7 @@ export function WorkspaceTree() {
                             metaWarn={s.status === 'awaiting'}
                             status={s.status}
                             statusTitle={t(`status.${s.status}`)}
+                            extra={s.bypass ? <span title={t('claude.mode_bypassPermissions_d')}><Icon name="warn" className="warn-ic" /></span> : undefined}
                             onClick={() => nav(sessionHref(h.id, s))}
                             onMore={(e) => pop(e, sessionItems(s))}
                             moreLabel={t('tree.sessionActions', { name: s.name })}

@@ -22,15 +22,16 @@ const disp = (f: string) => {
 };
 
 /** S9 — Git: nhánh + ahead/behind, fetch/pull/push (icon + số), thay đổi staged/chưa, diff, commit ⌘Enter, lịch sử. */
-export function GitView({ projectId, history, onHistory, onOpenFile }: { projectId: string; history: boolean; onHistory: (on: boolean) => void; onOpenFile: (path: string) => void }) {
+export function GitView({ projectId, history, onHistory, onOpenFile, focusPath }: { projectId: string; history: boolean; onHistory: (on: boolean) => void; onOpenFile: (path: string) => void; focusPath?: string }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const online = useConnection((s) => s.online);
   const openDialog = useDialogs((s) => s.open);
   const key = ['git', projectId] as const;
   const st = useQuery({ queryKey: key, queryFn: () => gitApi.status(projectId), refetchInterval: 15_000 });
-  const [sel, setSel] = useState<{ path: string; staged: boolean } | null>(null);
-  const [pane, setPane] = useState(false);
+  // mở từ tóm tắt lượt Claude (`?file=`) → chọn sẵn file đó, mở ô diff trên điện thoại (AC-41)
+  const [sel, setSel] = useState<{ path: string; staged: boolean } | null>(focusPath ? { path: focusPath, staged: false } : null);
+  const [pane, setPane] = useState(!!focusPath);
   const [msg, setMsg] = useState(() => sessionStorage.getItem(`commitmsg:${projectId}`) ?? '');
   const [busy, setBusy] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ rect: DOMRect; items: MenuItem[] } | null>(null);

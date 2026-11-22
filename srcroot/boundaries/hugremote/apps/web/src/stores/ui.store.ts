@@ -7,6 +7,8 @@ interface UiState {
   sideOpen: boolean;
   split: { kind: 'terminal' | 'claude' | 'files' | 'git'; id?: string } | null;
   ratio: number;
+  /** Chế độ gọn của hội thoại Claude (C37). */
+  claudeFocus: boolean;
   toggle: (k: string, v?: boolean) => void;
   collapseAll: () => void;
   set: (p: Partial<UiState>) => void;
@@ -27,6 +29,7 @@ export const useUi = create<UiState>((set, get) => ({
   sideOpen: false,
   split: null,
   ratio: saved.ratio ?? 55,
+  claudeFocus: saved.claudeFocus ?? false,
   toggle: (k, v) => set({ open: { ...get().open, [k]: v ?? !get().open[k] } }),
   collapseAll: () => set({ open: {} }),
   set: (p) => set(p),
@@ -34,7 +37,7 @@ export const useUi = create<UiState>((set, get) => ({
 
 useUi.subscribe((s) => {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ open: s.open, noSide: s.noSide, ratio: s.ratio }));
+    localStorage.setItem(KEY, JSON.stringify({ open: s.open, noSide: s.noSide, ratio: s.ratio, claudeFocus: s.claudeFocus }));
   } catch {
     /* chế độ riêng tư */
   }

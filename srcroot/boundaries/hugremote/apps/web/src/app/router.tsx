@@ -28,6 +28,7 @@ export const router = createHashRouter([
           { index: true, element: <Navigate to="sessions" replace /> },
           { path: 'sessions', element: <SessionsPage /> },
           { path: 'terminal/:sid', lazy: () => import('../pages/project/TerminalPage').then((m) => ({ Component: m.TerminalPage })) },
+          { path: 'claude/:sid', lazy: () => import('../pages/project/ClaudePage').then((m) => ({ Component: m.ClaudePage })) },
           { path: 'files/*', lazy: () => import('../pages/project/FilesPage').then((m) => ({ Component: m.FilesPage })) },
           { path: 'git', lazy: () => import('../pages/project/GitPage').then((m) => ({ Component: m.GitPage })) },
           { path: 'git/history', lazy: () => import('../pages/project/GitPage').then((m) => ({ Component: m.GitPage })) },

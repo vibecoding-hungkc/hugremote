@@ -12,6 +12,7 @@ import { useConnection } from '../../lib/connection';
 import { startEvents } from '../../lib/events';
 import { midTrunc } from '../../lib/text';
 import { useUi } from '../../stores/ui.store';
+import { NotifBell } from './NotifBell';
 import { ProjectTabs } from './ProjectTabs';
 import { WorkspaceTree } from './WorkspaceTree';
 
@@ -77,6 +78,7 @@ function Topbar() {
           )}
         </div>
         {inProject && <ProjectTabs hostId={hostId} projectId={projectId} />}
+        {inProject && !/\/(terminal|claude)\//.test(loc.pathname) && <NotifBell hostId={hostId} projectId={projectId} />}
         <Button variant="ghost" size="sm" iconOnly icon="search" label={t('nav.quickSwitch')} />
         <span className="only-desk">
           <Button variant="ghost" size="sm" iconOnly icon="cog" label={t('nav.settings')} onClick={() => nav('/settings')} />
@@ -118,7 +120,15 @@ export function AppShell() {
   const loc = useLocation();
   const { projectId } = useParams();
   const me = useMe();
-  useEffect(() => startEvents(qc), [qc]);
+  useEffect(
+    () =>
+      startEvents(qc, {
+        interaction_requested: () => void qc.invalidateQueries({ queryKey: ['claude'] }),
+        interaction_answered: () => void qc.invalidateQueries({ queryKey: ['claude'] }),
+        turn_finished: () => void qc.invalidateQueries({ queryKey: ['claude'] }),
+      }),
+    [qc],
+  );
   useEffect(() => ui.set({ sideOpen: false }), [loc.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className={`shell ${ui.sideOpen ? 'side-open' : ''} ${ui.noSide ? 'noside' : ''}`}>

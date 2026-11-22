@@ -7,9 +7,12 @@ import { ConfirmDialog, RenameDialog, useDialogs } from '../../components/ui/Dia
 import { Icon } from '../../components/ui/Icon';
 import { Menu, type MenuItem } from '../../components/ui/Overlay';
 import { StatusDot } from '../../components/ui/Status';
+import { claudeApi } from '../../features/claude/api/claude.api';
+import { ck } from '../../features/claude/hooks/useClaude';
 import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk } from '../../features/workspace/hooks/useWorkspace';
 import { useNewSession } from './actions';
+import { NotifBell } from './NotifBell';
 import { pbase, useSessions, type SessionItem } from './sessions';
 
 /** C8 thanh phiên (tab trộn Claude trước, terminal sau) + C32 bộ chọn phiên trên mobile. Dùng chung S6/S10. */
@@ -27,13 +30,14 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const close = (s: SessionItem) => {
     const run = async () => {
       if (s.kind === 'terminal') await workspaceApi.closeTerminal(s.id);
-      await qc.invalidateQueries({ queryKey: qk.terminals });
+      else await claudeApi.remove(s.id);
+      await qc.invalidateQueries({ queryKey: s.kind === 'terminal' ? qk.terminals : ck.sessions });
       if (s.id === currentId) {
         const next = list.find((x) => x.id !== s.id);
         nav(next ? `${base}/${next.kind}/${next.id}` : `${base}/sessions`);
       }
     };
-    if (s.status !== 'running') return void run();
+    if (s.status !== 'running' && s.status !== 'awaiting') return void run();
     openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t('session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
   const plus = (e: MouseEvent<HTMLElement>) =>
@@ -72,7 +76,9 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
           >
             <Icon name={s.kind === 'claude' ? 'claude' : 'term'} className={s.kind === 'claude' ? 'claude-ic' : 'term-ic'} />
             <span className="tn">{s.name}</span>
+            {s.bypass && <Icon name="warn" className="warn-ic" />}
             <StatusDot status={s.status} />
+            {s.kind === 'terminal' ? (
             <Button
               variant="ghost"
               size="sm"
@@ -84,6 +90,9 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
                 close(s);
               }}
             />
+            ) : (
+              <span style={{ width: 'var(--space-xs)' }} />
+            )}
           </div>
         ))}
       </div>
@@ -97,6 +106,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
         <Icon name="chevd" />
       </button>
       <div className="tools">
+        <NotifBell hostId={hostId} projectId={projectId} />
         {cur && (
           <Button
             variant="ghost"
@@ -111,7 +121,8 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
                   initial={cur.name}
                   onSave={async (name) => {
                     if (cur.kind === 'terminal') await workspaceApi.renameTerminal(cur.id, name);
-                    await qc.invalidateQueries({ queryKey: qk.terminals });
+                    else await claudeApi.patch(cur.id, { name });
+                    await qc.invalidateQueries({ queryKey: cur.kind === 'terminal' ? qk.terminals : ck.sessions });
                   }}
                 />,
               )

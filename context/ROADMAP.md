@@ -70,12 +70,12 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-17 | ☐ | |
 | AC-18 | ☐ | |
 | AC-19 | ☐ | |
-| AC-20 | ☐ | |
-| AC-21 | ☐ | |
-| AC-22 | ☐ | |
+| AC-20 | ◐ | S10 stream + sync khi nối lại, Dừng (Esc) "Đã dừng" — thử trên demo-behind-jump với fake-claude; còn agent con, local |
+| AC-21 | ◐ | thẻ Cho phép/Từ chối/mọi lần + chấm "duyệt" ở cây; menu quyền có mô tả + xác nhận Bypass; còn chọn phương án (AskUserQuestion) |
+| AC-22 | ◐ | options qua `initialize`, Context a/b từ `summary.context`, chip model/effort; còn thử đổi model trên giao diện |
 | AC-23 | ☐ | |
-| AC-24 | ☐ | |
-| AC-25 | ☐ | |
+| AC-24 | ◐ | gợi ý `/` từ CLI, đính kèm qua Mở nhanh, mic Web Speech, IME; còn thử trên điện thoại |
+| AC-25 | ◐ | chip Hạn mức 5 giờ từ `rate_limit_event` (fake-claude); chưa đối chiếu CLI thật |
 | AC-26 | ☐ | |
 | AC-27 | ☐ | |
 | AC-28 | ☐ | |
@@ -88,11 +88,11 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-35 | ☐ | |
 | AC-36 | ☐ | |
 | AC-37 | ☐ | |
-| AC-38 | ☐ | |
+| AC-38 | ◐ | chuông ở thanh phiên + thanh trên S8/S9, ✓/✗ tại chỗ, cập nhật qua events.v1 — đã thử desktop; còn mobile |
 | AC-39 | ☐ | |
-| AC-40 | ☐ | |
-| AC-41 | ☐ | |
-| AC-42 | ☐ | |
+| AC-40 | ☑ | hàng chờ server (mờ, Huỷ), Esc/Dừng giữ hàng chờ, lượt lỗi/dừng → "Gửi tiếp" — thử trên trình duyệt 2026-11-22 |
+| AC-41 | ☑ | tóm tắt lượt: thời gian · token · USD · file đổi (chỉ file ghi thành công), bấm file → Git `?file=` |
+| AC-42 | ☑ | nút gọn (target) gom bước thành "N bước · sửa x file · chạy y lệnh"; bấm → xem đầy đủ |
 | AC-43 | ☐ | |
 | AC-44 | ☐ | |
 | AC-45 | ☐ | |

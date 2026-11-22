@@ -18,19 +18,32 @@ export class ApiError extends Error {
 
 let refreshing: Promise<string | null> | null = null;
 
-/** Một lần refresh dùng chung cho mọi request cùng lúc bị 401. */
+/**
+ * Một lần refresh dùng chung cho mọi request cùng lúc bị 401.
+ * Chỉ 401 mới là "đã đăng xuất"; mất mạng / 5xx (dịch vụ đang khởi động lại) giữ nguyên trạng thái đăng nhập
+ * và thử lại sau (AC-2, AC-43).
+ */
 export function refreshAccessToken(): Promise<string | null> {
   refreshing ??= fetch(`${env.apiBase}/auth/refresh`, { method: 'POST', credentials: 'same-origin' })
     .then(async (r) => {
-      if (!r.ok) return null;
+      if (r.status === 401 || r.status === 403) return null;
+      if (!r.ok) throw new Error(`refresh ${r.status}`);
       const b = (await r.json()) as { accessToken?: string };
       return b.accessToken ?? null;
     })
-    .catch(() => null)
-    .then((t) => {
-      useAuthStore.getState().setToken(t);
-      return t;
-    })
+    .then(
+      (t) => {
+        useAuthStore.getState().setToken(t);
+        return t;
+      },
+      () => {
+        connection.reportNetworkError();
+        const st = useAuthStore.getState();
+        // lúc mở trang mà dịch vụ chưa lên → thử lại, không đẩy về màn đăng nhập
+        if (st.status === 'unknown') setTimeout(() => void refreshAccessToken(), 2000);
+        return st.accessToken;
+      },
+    )
     .finally(() => {
       refreshing = null;
     });

@@ -10,10 +10,11 @@ import { AuthService } from '../auth/auth.service';
 import { ClaudeService } from './claude.service';
 import {
   ClaudeLimitsDto,
+  CliSessionDto,
+  CreateClaudeSessionDto,
   ClaudeOptionsDto,
   AnswerDto,
   ClaudeSessionDto,
-  CreateClaudeDto,
   PatchClaudeDto,
   QueueItemDto,
   SendMessageDto,
@@ -40,6 +41,12 @@ export class ClaudeController {
     return this.claude.options(id);
   }
 
+  /** Phiên Claude CLI có sẵn trong thư mục dự án, chưa gắn với phiên nào ở HugRemote (AC-23). */
+  @Get('projects/:id/claude/cli-sessions')
+  cliSessions(@Param('id') id: string): Promise<CliSessionDto[]> {
+    return this.claude.cliSessions(id);
+  }
+
   /** Hạn mức 5 giờ / tuần do CLI báo; CLI không báo → rỗng, web ẩn chip (AC-25). */
   @Get('projects/:id/claude/limits')
   limits(@Param('id') id: string): Promise<ClaudeLimitsDto> {
@@ -52,7 +59,7 @@ export class ClaudeController {
   }
 
   @Post('projects/:id/claude/sessions')
-  create(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: CreateClaudeDto): Promise<ClaudeSessionDto> {
+  create(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: CreateClaudeSessionDto): Promise<ClaudeSessionDto> {
     return this.claude.create(u, id, dto);
   }
 

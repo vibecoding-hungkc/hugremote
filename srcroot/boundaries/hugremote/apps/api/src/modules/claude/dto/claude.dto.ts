@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsOptional, IsString, IsUUID, Length, MaxLength } from 'class-validator';
 import { ClaudeStatus, PermissionMode } from '@app/shared';
 
 export class CreateClaudeDto {
@@ -12,6 +12,18 @@ export class CreateClaudeDto {
 }
 
 export class PatchClaudeDto extends CreateClaudeDto {}
+
+export class CreateClaudeSessionDto extends CreateClaudeDto {
+  /** Tiếp tục một phiên tạo từ Claude CLI (AC-23). */
+  @IsOptional() @IsUUID() resumeCliId?: string;
+}
+
+export class CliSessionDto {
+  @ApiProperty() id!: string;
+  @ApiProperty() title!: string;
+  @ApiProperty() updatedAt!: string;
+  @ApiProperty() recent!: boolean;
+}
 
 export class SendMessageDto {
   @IsString() @Length(1, 100_000) text!: string;

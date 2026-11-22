@@ -952,6 +952,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/claude/cli-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Phiên Claude CLI có sẵn trong thư mục dự án, chưa gắn với phiên nào ở HugRemote (AC-23). */
+        get: operations["ClaudeController_cliSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/projects/{id}/claude/limits": {
         parameters: {
             query?: never;
@@ -1402,6 +1419,12 @@ export interface components {
             models: components["schemas"]["CliModelDto"][];
             commands: components["schemas"]["CliCommandDto"][];
         };
+        CliSessionDto: {
+            id: string;
+            title: string;
+            updatedAt: string;
+            recent: boolean;
+        };
         LimitWindowDto: {
             pct: number;
             resetAt?: string | null;
@@ -1410,7 +1433,12 @@ export interface components {
             fiveHour?: components["schemas"]["LimitWindowDto"];
             weekly?: components["schemas"]["LimitWindowDto"];
         };
-        CreateClaudeDto: {
+        CreateClaudeSessionDto: {
+            /**
+             * Format: uuid
+             * @description Tiếp tục một phiên tạo từ Claude CLI (AC-23).
+             */
+            resumeCliId?: string;
             name?: string;
             /** @enum {string} */
             permissionMode?: "manual" | "acceptEdits" | "auto" | "plan" | "bypassPermissions";
@@ -2980,7 +3008,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateClaudeDto"];
+                "application/json": components["schemas"]["CreateClaudeSessionDto"];
             };
         };
         responses: {
@@ -3011,6 +3039,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClaudeOptionsDto"];
+                };
+            };
+        };
+    };
+    ClaudeController_cliSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CliSessionDto"][];
                 };
             };
         };

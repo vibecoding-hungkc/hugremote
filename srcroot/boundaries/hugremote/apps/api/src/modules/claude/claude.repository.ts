@@ -50,7 +50,7 @@ export class ClaudeRepository {
     return this.messages.find({ where: { sessionId }, order: { seq: 'ASC' } });
   }
   async hasTurns(sessionId: string) {
-    return (await this.messages.count({ where: { sessionId, role: In(['assistant', 'summary']) } })) > 0;
+    return (await this.messages.count({ where: { sessionId, role: In(['assistant', 'summary', 'cli_resume']) } })) > 0;
   }
 
   queueOf(sessionId: string) {

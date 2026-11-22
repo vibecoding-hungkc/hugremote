@@ -7,6 +7,7 @@ import type { AppConfig } from '../../config/app-config';
 import { AppError } from '../../common/app-error';
 import type { AuthUser } from '../../common/auth-user';
 import type { ChatItem, NormOp } from '../../integrations/claude-cli/protocol';
+import { listCliSessions, type CliSession } from '../../integrations/claude-cli/cli-sessions';
 import { probeCli, type CliOptions } from '../../integrations/claude-cli/probe';
 import type { RateLimitInfo } from '../../integrations/claude-cli/protocol';
 import { ClaudeTurn } from '../../integrations/claude-cli/runner';
@@ -134,9 +135,14 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   async create(
     u: AuthUser,
     projectId: string,
-    d: { name?: string; permissionMode?: string; model?: string; effort?: string; confirm?: boolean },
+    d: { name?: string; permissionMode?: string; model?: string; effort?: string; confirm?: boolean; resumeCliId?: string },
   ) {
     await this.ws.get(projectId);
+    if (d.resumeCliId) {
+      // một phiên CLI chỉ gắn với một phiên HugRemote — đã gắn thì trả phiên cũ (không tạo trùng)
+      const had = (await this.repo.byProject(projectId)).find((x) => x.cliSessionId === d.resumeCliId);
+      if (had) return this.dto(had);
+    }
     if (d.permissionMode === PermissionMode.BYPASS && !d.confirm) throw AppError.badRequest(ErrorCode.CONFIRM_REQUIRED);
     const n = (await this.repo.byProject(projectId)).length + 1;
     const s: ClaudeSessionEntity = Object.assign(new ClaudeSessionEntity(), {
@@ -144,7 +150,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       projectId,
       ownerUserId: u.id,
       name: d.name?.trim() || `Claude ${n}`,
-      cliSessionId: crypto.randomUUID(),
+      cliSessionId: d.resumeCliId ?? crypto.randomUUID(),
       model: d.model ?? null,
       effort: d.effort ?? null,
       permissionMode: d.permissionMode ?? PermissionMode.MANUAL,
@@ -154,8 +160,28 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       updatedAt: now(),
     });
     await this.repo.insertSession(s);
+    if (d.resumeCliId) {
+      // đánh dấu đã có lượt trên CLI → lượt đầu ở HugRemote dùng `--resume` thay vì `--session-id`
+      const seq = this.nextSeq(s);
+      const item: ChatItem = { kind: 'note', id: `${s.id.slice(0, 8)}-cli`, text: 'CLI_RESUMED' };
+      await this.repo.insertMessage({ sessionId: s.id, seq, role: 'cli_resume', content: JSON.stringify(item), createdAt: now() });
+      await this.repo.updateSession(s.id, { lastSequence: s.lastSequence });
+    }
     this.status(s, 'idle');
     return this.dto(s);
+  }
+
+  /** Phiên Claude CLI có sẵn trong thư mục dự án mà chưa gắn với phiên HugRemote nào (AC-23). */
+  async cliSessions(projectId: string) {
+    const { project, rt } = await this.ws.context(projectId);
+    const abs = await rt.realpath(project.rootPath);
+    const linked = new Set((await this.repo.byProject(projectId)).map((x) => x.cliSessionId));
+    const list = await listCliSessions(rt, abs).catch((e: Error): CliSession[] => {
+      this.log.warn(`cli sessions ${project.hostId}: ${e.message}`);
+      return [];
+    });
+    // sửa trong 2 phút gần đây → có thể đang chạy ở terminal khác (cảnh báo trước khi tiếp tục)
+    return list.filter((c) => !linked.has(c.id)).map((c) => ({ ...c, recent: Date.now() - Date.parse(c.updatedAt) < 120_000 }));
   }
 
   async patch(u: AuthUser, id: string, d: { name?: string; permissionMode?: string; model?: string; effort?: string; confirm?: boolean }) {

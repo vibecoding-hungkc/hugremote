@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { QuickOpen } from '../../app/shell/QuickOpen';
 import { SessionBar } from '../../app/shell/SessionBar';
-import { pbase } from '../../app/shell/sessions';
+import { pbase, shortAgo } from '../../app/shell/sessions';
+import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { ConfirmDialog, useDialogs } from '../../components/ui/Dialogs';
 import { toast } from '../../components/ui/Overlay';
@@ -41,6 +42,7 @@ export function ClaudePage() {
   const openDialog = useDialogs((s) => s.open);
   const opts = useQuery({ queryKey: ['claudeopts', projectId], queryFn: () => claudeApi.options(projectId), staleTime: 5 * 60_000, retry: false });
   const limits = useQuery({ queryKey: ['claudelimits', projectId], queryFn: () => claudeApi.limits(projectId), refetchInterval: 60_000 });
+  const cli = useQuery({ queryKey: ['claudecli', projectId], queryFn: () => claudeApi.cliSessions(projectId), enabled: isNew, staleTime: 15_000 });
   const [quick, setQuick] = useState<((p: string) => void) | null>(null);
   // cấu hình của phiên mới (chưa có trên server)
   const [draftCfg, setDraftCfg] = useState<{ permissionMode: string; model?: string; effort?: string; confirm?: boolean }>({ permissionMode: PermissionMode.MANUAL });
@@ -113,6 +115,20 @@ export function ClaudePage() {
         onConfirm={() => patch({ permissionMode: PermissionMode.BYPASS, confirm: true })}
       />,
     );
+  const resumeCli = (c: { id: string; title: string; recent: boolean }) => {
+    const go = async () => {
+      try {
+        const s = await claudeApi.create(projectId, { resumeCliId: c.id, name: c.title });
+        await refresh();
+        void qc.invalidateQueries({ queryKey: ['claudecli', projectId] });
+        nav(`${base}/claude/${s.id}`);
+      } catch (e) {
+        fail(e);
+      }
+    };
+    if (!c.recent) return void go();
+    openDialog(<ConfirmDialog title={t('claude.cliRecentTitle', { name: c.title })} body={<p>{t('claude.cliRecentBody')}</p>} confirmLabel={t('claude.resume')} onConfirm={go} />);
+  };
   const draftSid = isNew ? `new:${projectId}` : sid;
   const send = async (text: string, attachments: string[]) => {
     try {
@@ -190,6 +206,26 @@ export function ClaudePage() {
                 </Button>
               ))}
             />
+            {!!cli.data?.length && (
+              <>
+                <div className="section-title">{t('claude.cliResume')}</div>
+                <div className="list">
+                  {cli.data.map((c) => (
+                    <div key={c.id} className="row" role="button" tabIndex={0} onClick={() => resumeCli(c)} onKeyDown={(e) => e.key === 'Enter' && resumeCli(c)}>
+                      <Icon name="claude" className="claude-ic" />
+                      <div className="t">
+                        <div className="t1">{c.title}</div>
+                        <div className="t2">
+                          {shortAgo(c.updatedAt)}
+                          {c.recent && ` · ${t('claude.cliRecent')}`}
+                        </div>
+                      </div>
+                      <span className="btn sm">{t('claude.resume')}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
         {composer}

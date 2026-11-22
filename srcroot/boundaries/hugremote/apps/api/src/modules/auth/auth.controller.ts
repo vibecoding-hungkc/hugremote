@@ -5,6 +5,8 @@ import type { Request, Response } from 'express';
 import { Inject } from '@nestjs/common';
 import { APP_CONFIG } from '../../config/app-config';
 import type { AppConfig } from '../../config/app-config';
+import { ErrorCode } from '@app/shared';
+import { AppError } from '../../common/app-error';
 import { AllowPending, CurrentUser, Public } from '../../common/decorators';
 import type { AuthUser } from '../../common/auth-user';
 import { AuthService, ClientCtx, IssuedSession } from './auth.service';
@@ -85,7 +87,8 @@ export class AuthController {
         await this.auth.refresh((req.cookies as Record<string, string | undefined> | undefined)?.[REFRESH_COOKIE], this.ctx(req)),
       );
     } catch (e) {
-      this.clear(res);
+      // chỉ xoá cookie khi token thật sự hỏng; lỗi hạ tầng (DB đang đóng lúc tắt dịch vụ…) giữ cookie để thử lại (AC-2)
+      if (e instanceof AppError && e.code === ErrorCode.REFRESH_INVALID) this.clear(res);
       throw e;
     }
   }

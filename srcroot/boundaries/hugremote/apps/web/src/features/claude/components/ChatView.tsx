@@ -266,8 +266,8 @@ export function ChatView({
       case 'note':
         return (
           <div className="note" key={m.id}>
-            <Icon name="stop" />
-            {m.text === 'CLAUDE_NOT_INSTALLED' ? t('claude.notInstalled', { host: hostName }) : m.text}
+            <Icon name={m.text === 'CLI_RESUMED' ? 'claude' : 'stop'} />
+            {m.text === 'CLAUDE_NOT_INSTALLED' ? t('claude.notInstalled', { host: hostName }) : m.text === 'CLI_RESUMED' ? t('claude.cliResumed') : m.text}
           </div>
         );
     }

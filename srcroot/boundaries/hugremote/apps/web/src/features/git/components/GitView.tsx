@@ -22,7 +22,7 @@ const disp = (f: string) => {
 };
 
 /** S9 — Git: nhánh + ahead/behind, fetch/pull/push (icon + số), thay đổi staged/chưa, diff, commit ⌘Enter, lịch sử. */
-export function GitView({ projectId, history, onHistory, onOpenFile, focusPath }: { projectId: string; history: boolean; onHistory: (on: boolean) => void; onOpenFile: (path: string) => void; focusPath?: string }) {
+export function GitView({ projectId, history, onHistory, onOpenFile, focusPath, compact }: { projectId: string; history: boolean; onHistory: (on: boolean) => void; onOpenFile: (path: string) => void; focusPath?: string; compact?: boolean }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const online = useConnection((s) => s.online);
@@ -300,7 +300,7 @@ export function GitView({ projectId, history, onHistory, onOpenFile, focusPath }
   return (
     <div className="content flush" data-screen="S9" aria-label="Git">
       {!online && null}
-      <div className={`git ${pane ? 'open' : ''}`}>
+      <div className={`git ${pane ? 'open' : ''} ${compact ? 'compact' : ''}`}>
         <aside className="gleft">{left}</aside>
         <section className="pane gright">{right}</section>
       </div>

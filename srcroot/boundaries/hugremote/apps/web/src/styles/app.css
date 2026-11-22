@@ -11,3 +11,9 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 }
+
+/* Ô phải khi chia ô (AC-35): Files/Git dùng bố cục một cột như điện thoại — danh sách, bấm mới xem nội dung */
+.files.compact, .git.compact { grid-template-columns: minmax(0, 1fr); }
+.files.compact.open .ftree, .git.compact.open .gleft { display: none; }
+.files.compact:not(.open) .editor, .git.compact:not(.open) .gright { display: none; }
+.files.compact .only-mobile, .git.compact .only-mobile { display: inline-flex !important; }

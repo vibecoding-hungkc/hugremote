@@ -60,7 +60,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-7 | ☐ | |
 | AC-8 | ☐ | |
 | AC-9 | ☐ | |
-| AC-10 | ☐ | |
+| AC-10 | ☑ | chia ô Terminal + Terminal (ô phải chọn terminal khác), đổi tên/đóng ở thanh phiên + cây |
 | AC-11 | ☐ | |
 | AC-12 | ☐ | |
 | AC-13 | ☐ | |
@@ -85,7 +85,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-32 | ☐ | |
 | AC-33 | ☐ | |
 | AC-34 | ☐ | |
-| AC-35 | ☐ | |
+| AC-35 | ☑ | chia ô trái/phải: Claude/Terminal/Files/Git ở ô phải, kéo đổi tỉ lệ, giữ qua F5; Files/Git ô phải một cột; dưới 768px ẩn ô phải |
 | AC-36 | ☐ | |
 | AC-37 | ☐ | |
 | AC-38 | ◐ | chuông ở thanh phiên + thanh trên S8/S9, ✓/✗ tại chỗ, cập nhật qua events.v1 — đã thử desktop; còn mobile |

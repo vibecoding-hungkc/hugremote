@@ -20,16 +20,21 @@ import { useClaudeStream } from '../../features/claude/hooks/useClaudeStream';
 import { useHosts, useProject } from '../../features/workspace/hooks/useWorkspace';
 import { ApiError } from '../../lib/api-client';
 import { useUi } from '../../stores/ui.store';
+import { SplitView } from './SplitView';
 
 const INSTALL_CMD = 'npm i -g @anthropic-ai/claude-code';
 
-/** S10 — Claude: `…/claude/new` (phiên mới, `?attach=` đính kèm sẵn) và `…/claude/<phiên>`. */
-export function ClaudePage() {
+/**
+ * S10 — Claude: `…/claude/new` (phiên mới, `?attach=` đính kèm sẵn) và `…/claude/<phiên>`.
+ * `embed` → chỉ vẽ ô hội thoại (dùng ở ô phải khi chia ô, AC-35); phím tắt toàn trang chỉ gắn ở ô chính.
+ */
+export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: string; sid: string } } = {}) {
   const { t } = useTranslation();
   const nav = useNavigate();
   const qc = useQueryClient();
   const [search] = useSearchParams();
-  const { hostId = '', projectId = '', sid = '' } = useParams();
+  const params = useParams();
+  const { hostId = '', projectId = '', sid = '' } = embed ?? params;
   const isNew = sid === 'new';
   const me = useMe().data;
   const project = useProject(projectId).data;
@@ -71,6 +76,7 @@ export function ClaudePage() {
 
   // Esc dừng lượt; ⌥Y / ⌥N trả lời yêu cầu quyền đầu tiên (AC-40, AC-49)
   useEffect(() => {
+    if (embed) return;
     const on = (e: KeyboardEvent) => {
       if (document.querySelector('.scrim')) return;
       if (e.key === 'Escape' && running && !isNew) {
@@ -233,9 +239,7 @@ export function ClaudePage() {
       </div>
     );
 
-  return (
-    <div className="content flush" data-screen="S10" aria-label={t('claude.title')}>
-      <SessionBar hostId={hostId} projectId={projectId} currentId={sid} />
+  const pane = (
       <div className="pane">
         {notInstalled && (
           <div style={{ padding: 'var(--space-md) var(--space-md) 0' }}>
@@ -283,7 +287,16 @@ export function ClaudePage() {
           />
         )}
         {composer}
+        {embed && quickBox}
       </div>
+  );
+  if (embed) return pane;
+  return (
+    <div className="content flush" data-screen="S10" aria-label={t('claude.title')}>
+      <SessionBar hostId={hostId} projectId={projectId} currentId={sid} />
+      <SplitView hostId={hostId} projectId={projectId} currentId={sid}>
+        {pane}
+      </SplitView>
       {quickBox}
     </div>
   );

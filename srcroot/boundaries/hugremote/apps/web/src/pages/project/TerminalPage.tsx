@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button';
 import { ErrorBox, Skeleton } from '../../components/ui/States';
 import { KeyBar } from '../../features/terminal/components/KeyBar';
 import { TerminalPane } from '../../features/terminal/components/TerminalPane';
+import { SplitView } from './SplitView';
 import type { PooledTerm } from '../../features/terminal/components/terminal-pool';
 
 /** S6 — Phiên terminal: thanh phiên, xterm, thanh phím cảm ứng (mobile). */
@@ -32,9 +33,9 @@ export function TerminalPage() {
   return (
     <div className="content flush" data-screen="S6" aria-label={t('term.title')}>
       <SessionBar hostId={hostId} projectId={projectId} currentId={sid} />
-      <div className="panes">
+      <SplitView hostId={hostId} projectId={projectId} currentId={sid}>
         <TerminalPane key={sid} sessionId={sid} exited={cur.status === 'exited'} onNew={() => void newSession('terminal', hostId, projectId)} onKeyTarget={(p) => (target.current = p)} />
-      </div>
+      </SplitView>
       <KeyBar
         send={(d) => {
           target.current?.sock?.send(d);

@@ -11,6 +11,7 @@ import { claudeApi } from '../../features/claude/api/claude.api';
 import { ck } from '../../features/claude/hooks/useClaude';
 import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk } from '../../features/workspace/hooks/useWorkspace';
+import { useUi } from '../../stores/ui.store';
 import { useNewSession } from './actions';
 import { NotifBell } from './NotifBell';
 import { pbase, useSessions, type SessionItem } from './sessions';
@@ -26,6 +27,8 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const openDialog = useDialogs((s) => s.open);
   const [menu, setMenu] = useState<{ rect: DOMRect; items: MenuItem[] } | null>(null);
   const base = pbase(hostId, projectId);
+  const split = useUi((s) => s.split);
+  const setUi = useUi((s) => s.set);
   const pop = (e: MouseEvent<HTMLElement>, items: MenuItem[]) => setMenu({ rect: e.currentTarget.getBoundingClientRect(), items });
   const close = (s: SessionItem) => {
     const run = async () => {
@@ -128,6 +131,28 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
               )
             }
           />
+        )}
+        {cur && (
+          <span className="hide-mobile">
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              icon="split"
+              tone={split ? 'primary' : undefined}
+              label={split ? t('split.change') : t('split.open')}
+              onClick={(e) =>
+                pop(e, [
+                  ...(['claude', 'terminal', 'files', 'git'] as const).map((k) => ({
+                    icon: (k === 'terminal' ? 'term' : k === 'files' ? 'file' : k) as 'claude' | 'term' | 'file' | 'git',
+                    label: t('split.right', { what: t(`split.k_${k}`) }),
+                    onSelect: () => setUi({ split: { kind: k } }),
+                  })),
+                  ...(split ? [{ icon: 'x' as const, label: t('split.close'), onSelect: () => setUi({ split: null }) }] : []),
+                ])
+              }
+            />
+          </span>
         )}
         <Button variant="ghost" size="sm" iconOnly icon="plus" label={t('tree.newSession')} onClick={plus} />
       </div>

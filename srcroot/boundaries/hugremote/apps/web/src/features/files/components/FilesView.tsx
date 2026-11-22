@@ -25,7 +25,7 @@ export interface FilesActions {
 }
 
 /** S8 — Files làm theo việc hằng ngày của developer (PERSONAS §1.1, AC-16/17/36/37). */
-export function FilesView({ projectId, rootPath, path: routePath, line, onRoute, actions }: { projectId: string; rootPath: string; path?: string; line?: number; onRoute: (path?: string, line?: number) => void; actions: FilesActions }) {
+export function FilesView({ projectId, rootPath, path: routePath, line, onRoute, actions, compact }: { projectId: string; rootPath: string; path?: string; line?: number; onRoute: (path?: string, line?: number) => void; actions: FilesActions; compact?: boolean }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const openDialog = useDialogs((s) => s.open);
@@ -288,7 +288,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
   return (
     <div className="content flush" data-screen="S8" aria-label="Files">
       <input ref={uploadInput} type="file" multiple hidden onChange={(e) => void doUpload(e.target.files)} />
-      <div className={`files ${mobileFile && active ? 'open' : ''}`}>
+      <div className={`files ${mobileFile && active ? 'open' : ''} ${compact ? 'compact' : ''}`}>
         <aside className="ftree">
           <div className="ftool">
             <div className="seg grow">

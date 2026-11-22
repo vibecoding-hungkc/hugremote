@@ -27,7 +27,7 @@ export const useUi = create<UiState>((set, get) => ({
   open: saved.open ?? {},
   noSide: saved.noSide ?? false,
   sideOpen: false,
-  split: null,
+  split: saved.split ?? null,
   ratio: saved.ratio ?? 55,
   claudeFocus: saved.claudeFocus ?? false,
   toggle: (k, v) => set({ open: { ...get().open, [k]: v ?? !get().open[k] } }),
@@ -37,7 +37,7 @@ export const useUi = create<UiState>((set, get) => ({
 
 useUi.subscribe((s) => {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ open: s.open, noSide: s.noSide, ratio: s.ratio, claudeFocus: s.claudeFocus }));
+    localStorage.setItem(KEY, JSON.stringify({ open: s.open, noSide: s.noSide, ratio: s.ratio, claudeFocus: s.claudeFocus, split: s.split }));
   } catch {
     /* chế độ riêng tư */
   }

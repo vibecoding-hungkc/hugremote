@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""fake-claude — giả Claude Code CLI ở chế độ `-p --input-format stream-json --output-format stream-json`.
+
+Dùng cho dev/test/dogfood HugRemote mà không tốn hạn mức Claude thật. Phát đúng các dạng dòng mà CLI thật phát:
+system/init · stream_event (message_start, content_block_start/delta/stop) · assistant · user (tool_result) ·
+control_request can_use_tool (khi `--permission-prompts host` và chế độ quyền không cho phép sẵn) · result.
+Kịch bản theo nội dung prompt:
+  "nhanh"  → chỉ trả lời một câu
+  "chậm"   → như mặc định nhưng chạy lâu (để thử Dừng / xếp hàng)
+  "lỗi"    → kết thúc lượt bằng lỗi
+  mặc định → suy nghĩ → text → chạy lệnh (Bash) → xin quyền ghi file → ghi thật → tóm tắt
+"""
+import json, os, sys, time, uuid, threading
+
+argv = sys.argv[1:]
+def opt(name, default=None):
+    return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else default
+
+if '--version' in argv:
+    print('2.1.0 (fake-claude)'); sys.exit(0)
+
+session_id = opt('--session-id') or opt('--resume') or str(uuid.uuid4())
+mode = opt('--permission-mode', 'manual')
+model = opt('--model', 'claude-sonnet-fake')
+out_lock = threading.Lock()
+answers = {}
+interrupted = threading.Event()
+
+def emit(obj):
+    with out_lock:
+        sys.stdout.write(json.dumps(obj, ensure_ascii=False) + '\n'); sys.stdout.flush()
+
+def stream_text(text, kind='text', index=0, delay=0.03):
+    emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'content_block_start', 'index': index, 'content_block': {'type': kind, kind: ''}}})
+    for i in range(0, len(text), 6):
+        if interrupted.is_set(): return
+        d = {'type': 'thinking_delta', 'thinking': text[i:i+6]} if kind == 'thinking' else {'type': 'text_delta', 'text': text[i:i+6]}
+        emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'content_block_delta', 'index': index, 'delta': d}})
+        time.sleep(delay)
+    emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'content_block_stop', 'index': index}})
+
+def assistant(blocks):
+    emit({'type': 'assistant', 'session_id': session_id, 'message': {'role': 'assistant', 'model': model, 'content': blocks}})
+
+def ask(tool, inp):
+    """Xin quyền như CLI thật; chờ control_response từ host."""
+    if mode in ('bypassPermissions', 'acceptEdits') and tool in ('Write', 'Edit') or mode == 'bypassPermissions':
+        return True
+    rid = 'perm_' + uuid.uuid4().hex[:10]
+    ev = threading.Event(); answers[rid] = [ev, None]
+    emit({'type': 'control_request', 'request_id': rid, 'request': {'subtype': 'can_use_tool', 'tool_name': tool, 'input': inp, 'tool_use_id': 'toolu_' + rid}})
+    while not ev.wait(0.2):
+        if interrupted.is_set(): return False
+    return answers[rid][1]
+
+def reader():
+    global mode
+    for line in sys.stdin:
+        try: m = json.loads(line)
+        except Exception: continue
+        if m.get('type') == 'user':
+            c = m['message']['content']
+            prompts.append(c if isinstance(c, str) else ''.join(b.get('text', '') for b in c))
+            got_prompt.set()
+        elif m.get('type') == 'control_response':
+            r = m['response']; rid = r.get('request_id')
+            if rid in answers:
+                answers[rid][1] = r.get('response', {}).get('behavior') == 'allow'; answers[rid][0].set()
+        elif m.get('type') == 'control_request':
+            req = m.get('request', {})
+            if req.get('subtype') == 'interrupt': interrupted.set()
+            if req.get('subtype') == 'set_permission_mode': mode = req.get('mode', mode)
+            emit({'type': 'control_response', 'response': {'subtype': 'success', 'request_id': m.get('request_id'), 'response': {}}})
+    stdin_closed.set()
+
+prompts = []; got_prompt = threading.Event(); stdin_closed = threading.Event()
+threading.Thread(target=reader, daemon=True).start()
+if not got_prompt.wait(30): sys.exit(0)
+prompt = prompts[0]
+t0 = time.time()
+emit({'type': 'system', 'subtype': 'init', 'session_id': session_id, 'model': model, 'cwd': os.getcwd(), 'permissionMode': mode, 'tools': ['Bash', 'Read', 'Write', 'Edit']})
+slow = 'chậm' in prompt or 'cham' in prompt
+delay = 0.25 if slow else 0.03
+files = []
+def finish(is_error=False, msg=''):
+    emit({'type': 'result', 'subtype': 'error_during_execution' if is_error else 'success', 'is_error': is_error, 'session_id': session_id,
+          'duration_ms': int((time.time() - t0) * 1000), 'num_turns': 1, 'result': msg,
+          'total_cost_usd': 0.0123, 'usage': {'input_tokens': 4200, 'output_tokens': 380, 'cache_read_input_tokens': 15000}})
+    stdin_closed.wait(5); sys.exit(0)
+
+emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'message_start', 'message': {'role': 'assistant'}}})
+if 'nhanh' in prompt:
+    txt = f'Đã nhận: "{prompt[:60]}". Thư mục làm việc: {os.getcwd()}'
+    stream_text(txt); assistant([{'type': 'text', 'text': txt}]); finish()
+think = 'Người dùng muốn tôi làm việc trong dự án. Tôi sẽ xem cấu trúc, chạy test, rồi sửa file.'
+stream_text(think, 'thinking', 0, delay)
+txt = 'Mình xem cấu trúc dự án và chạy test trước.'
+stream_text(txt, 'text', 1, delay)
+assistant([{'type': 'thinking', 'thinking': think}, {'type': 'text', 'text': txt}, {'type': 'tool_use', 'id': 'toolu_ls', 'name': 'Bash', 'input': {'command': 'ls && git status --short'}}])
+if interrupted.is_set(): finish(True, 'interrupted')
+out = os.popen('ls 2>&1; git status --short 2>&1').read()[:2000]
+time.sleep(delay * 4)
+emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': 'toolu_ls', 'content': out, 'is_error': False}]}})
+if 'lỗi' in prompt or 'loi' in prompt: finish(True, 'Giả lập lỗi khi chạy lượt')
+target = 'NOTES-claude.md'
+content = f'# Ghi chú từ Claude (giả)\n\nYêu cầu: {prompt}\n\nThời điểm: {time.strftime("%Y-%m-%d %H:%M:%S")}\n'
+emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'message_start', 'message': {'role': 'assistant'}}})
+txt2 = f'Mình sẽ ghi kết quả vào {target}.'
+stream_text(txt2, 'text', 0, delay)
+assistant([{'type': 'text', 'text': txt2}, {'type': 'tool_use', 'id': 'toolu_w', 'name': 'Write', 'input': {'file_path': os.path.join(os.getcwd(), target), 'content': content}}])
+ok = ask('Write', {'file_path': os.path.join(os.getcwd(), target), 'content': content})
+if interrupted.is_set(): finish(True, 'interrupted')
+if ok:
+    open(target, 'w').write(content); files.append(target)
+    emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': 'toolu_w', 'content': f'File created successfully at: {target}'}]}})
+else:
+    emit({'type': 'user', 'session_id': session_id, 'message': {'role': 'user', 'content': [{'type': 'tool_result', 'tool_use_id': 'toolu_w', 'content': 'Người dùng đã từ chối', 'is_error': True}]}})
+emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'message_start', 'message': {'role': 'assistant'}}})
+final = f'Xong. {"Đã ghi " + target if ok else "Không ghi file vì bị từ chối"}. Kiểm tra: src/bookings/bookings.controller.ts:3'
+stream_text(final, 'text', 0, delay)
+assistant([{'type': 'text', 'text': final}])
+finish()

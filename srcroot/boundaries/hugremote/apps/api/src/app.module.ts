@@ -17,6 +17,7 @@ import { TerminalModule } from './modules/terminal/terminal.module';
 import { EventsModule } from './modules/events/events.module';
 import { FilesModule } from './modules/files/files.module';
 import { GitModule } from './modules/git/git.module';
+import { ClaudeModule } from './modules/claude/claude.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { GitModule } from './modules/git/git.module';
     TerminalModule,
     FilesModule,
     GitModule,
+    ClaudeModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

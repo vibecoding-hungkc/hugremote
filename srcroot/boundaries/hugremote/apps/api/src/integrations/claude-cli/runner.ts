@@ -1,0 +1,128 @@
+import * as crypto from 'node:crypto';
+import type { HostRuntime, StreamProc } from '../host/host-runtime';
+import { controlRequest, JsonlDecoder, Normalizer, permissionResponse, userLine, type NormOp } from './protocol';
+
+export interface TurnOptions {
+  bin: string;
+  cwd: string;
+  cliSessionId: string;
+  /** Phiên đã có lượt trước → `--resume`, lần đầu → `--session-id`. */
+  resume: boolean;
+  model?: string | null;
+  effort?: string | null;
+  permissionMode: string;
+  name?: string;
+}
+
+export interface TurnHandlers {
+  onOp(op: NormOp): void;
+  /** Tiến trình kết thúc; `notInstalled` khi không tìm thấy `claude` trên máy đích. */
+  onExit(info: { code: number | null; stderr: string; notInstalled: boolean; gotResult: boolean }): void;
+}
+
+/**
+ * Một lượt Claude = một tiến trình CLI (stream-json hai chiều). stdin để mở tới khi nhận `result` để còn trả
+ * lời yêu cầu quyền (`--permission-prompts host`) và gửi interrupt; nhận `result` thì đóng stdin, CLI tự thoát.
+ * Tác vụ chạy độc lập với trình duyệt (G-14) — runner không biết gì về SSE/HTTP.
+ */
+export class ClaudeTurn {
+  private proc?: StreamProc;
+  private readonly norm: Normalizer;
+  private readonly decoder = new JsonlDecoder();
+  private stderr = '';
+  private gotResult = false;
+  private ended = false;
+  private readonly pending = new Map<string, Record<string, unknown>>();
+
+  constructor(
+    readonly turnId: string,
+    private readonly h: TurnHandlers,
+  ) {
+    this.norm = new Normalizer(turnId);
+  }
+
+  static argv(o: TurnOptions): string[] {
+    const a = [
+      o.bin,
+      '-p',
+      '--input-format',
+      'stream-json',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--include-partial-messages',
+      '--permission-prompts',
+      'host',
+    ];
+    a.push(o.resume ? '--resume' : '--session-id', o.cliSessionId);
+    a.push('--permission-mode', o.permissionMode);
+    if (o.permissionMode === 'bypassPermissions') a.push('--allow-dangerously-skip-permissions');
+    if (o.model) a.push('--model', o.model);
+    if (o.effort) a.push('--effort', o.effort);
+    if (o.name && !o.resume) a.push('--name', o.name);
+    return a;
+  }
+
+  async start(rt: HostRuntime, o: TurnOptions, prompt: string) {
+    try {
+      this.proc = await rt.spawnStream(ClaudeTurn.argv(o), o.cwd, { CLAUDE_CODE_ENTRYPOINT: 'hugremote' });
+    } catch (e) {
+      const notInstalled = (e as NodeJS.ErrnoException).code === 'ENOENT';
+      this.ended = true;
+      this.h.onExit({ code: null, stderr: (e as Error).message, notInstalled, gotResult: false });
+      return;
+    }
+    this.proc.onStdout((d) =>
+      this.decoder.push(d, (obj) => {
+        for (const op of this.norm.feed(obj)) {
+          if (op.op === 'permission') this.pending.set(op.requestId, op.item.input);
+          if (op.op === 'result') {
+            this.gotResult = true;
+            this.proc?.stdin.end();
+          }
+          this.h.onOp(op);
+        }
+      }),
+    );
+    this.proc.onStderr((d) => (this.stderr = (this.stderr + d.toString('utf8')).slice(-4000)));
+    this.proc.onExit((code) => {
+      this.ended = true;
+      const notInstalled = code === 127 || /command not found|not found: claude|No such file/i.test(this.stderr);
+      this.h.onExit({ code, stderr: this.stderr, notInstalled: notInstalled && !this.gotResult, gotResult: this.gotResult });
+    });
+    this.proc.stdin.write(userLine(prompt, o.cliSessionId));
+  }
+
+  get running() {
+    return !!this.proc && !this.ended;
+  }
+
+  /** Trả lời yêu cầu quyền. false nếu yêu cầu không còn chờ (đã trả lời ở thiết bị khác). */
+  answer(requestId: string, allow: boolean): boolean {
+    const input = this.pending.get(requestId);
+    if (!this.proc || this.ended || input === undefined) return false;
+    this.pending.delete(requestId);
+    this.proc.stdin.write(permissionResponse(requestId, allow, input));
+    return true;
+  }
+
+  isPending(requestId: string) {
+    return this.pending.has(requestId);
+  }
+
+  setPermissionMode(mode: string) {
+    if (this.running) this.proc!.stdin.write(controlRequest(crypto.randomUUID(), { subtype: 'set_permission_mode', mode }));
+  }
+
+  /** Dừng lượt: interrupt qua giao thức, quá 3s chưa thoát thì SIGINT, 8s thì SIGKILL. */
+  interrupt() {
+    if (!this.running) return;
+    this.proc!.stdin.write(controlRequest(crypto.randomUUID(), { subtype: 'interrupt' }));
+    setTimeout(() => this.running && this.proc!.signal('SIGINT'), 3000).unref();
+    setTimeout(() => this.running && this.proc!.signal('SIGKILL'), 8000).unref();
+  }
+
+  kill() {
+    if (this.running) this.proc!.signal('SIGKILL');
+  }
+}

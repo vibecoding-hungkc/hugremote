@@ -3,7 +3,9 @@
 name: hugremote-local
 
 x-sshd: &sshd
-  build: ./docker/sshd
+  build:
+    context: .
+    dockerfile: docker/sshd/Dockerfile
   image: hugremote/sshd:dev
   volumes:
     - ./ssh/dev_ed25519.pub:/seed/authorized_keys:ro

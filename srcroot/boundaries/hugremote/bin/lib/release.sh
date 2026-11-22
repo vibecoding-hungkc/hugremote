@@ -12,7 +12,7 @@ build_release() { # $1 = tag ; in tiến độ dạng `STEP <tên>` để update
   if [ -f "$dest/.built" ]; then echo "STEP ok fetch install build (đã có sẵn $tag)"; return 0; fi
   rm -rf "$tmp"; mkdir -p "$INSTALL_ROOT/releases"
   echo "STEP fetch"
-  git clone --quiet --depth 1 --branch "$tag" "$UPDATE_REPO" "$tmp"
+  git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$tag" "$UPDATE_REPO" "$tmp"
   echo "STEP install"
   (cd "$tmp" && corepack enable >/dev/null 2>&1 || true; cd "$tmp" && pnpm install --frozen-lockfile --reporter=silent)
   echo "STEP build"

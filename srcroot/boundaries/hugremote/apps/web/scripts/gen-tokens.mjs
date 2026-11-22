@@ -6,6 +6,12 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pkg = path.resolve(here, '../../../../../../intake/design-systems/hugremote/tokens.json');
 const out = path.resolve(here, '../src/styles/tokens.css');
+if (!fs.existsSync(pkg)) {
+  // bản phát hành chỉ chứa target (không có intake/) → dùng tokens.css đã sinh và commit sẵn
+  if (!fs.existsSync(out)) throw new Error(`Thiếu ${pkg} và ${out}`);
+  console.log('gen-tokens: không có gói design system — giữ tokens.css đã commit');
+  process.exit(0);
+}
 const tokens = JSON.parse(fs.readFileSync(pkg, 'utf8'));
 
 const flat = [];

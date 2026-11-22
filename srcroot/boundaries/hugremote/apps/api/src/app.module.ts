@@ -11,6 +11,10 @@ import { createLogStream, REDACT } from './common/logger';
 import { dataSourceOptions } from './infra/database/data-source';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { HostsModule } from './modules/hosts/hosts.module';
+import { WorkspaceModule } from './modules/workspace/workspace.module';
+import { TerminalModule } from './modules/terminal/terminal.module';
+import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -32,6 +36,10 @@ import { AuthModule } from './modules/auth/auth.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 600 }]),
     HealthModule,
     AuthModule,
+    HostsModule,
+    WorkspaceModule,
+    EventsModule,
+    TerminalModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

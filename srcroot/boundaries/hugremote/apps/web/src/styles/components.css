@@ -40,7 +40,7 @@ svg.i { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none;
 .bottombar { display: none; }
 .section-title { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; margin: var(--space-xl) 0 var(--space-sm); }
 .section-title:first-child { margin-top: 0; }
-.wrap { max-width: 880px; }
+.wrap { max-width: 880px; margin: 0 auto; }
 .crumb { display: flex; align-items: center; gap: var(--space-xs); min-width: 0; white-space: nowrap; overflow: hidden; font-size: var(--text-sm); }
 .crumb b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 .crumb .sep { color: var(--color-text-muted); }

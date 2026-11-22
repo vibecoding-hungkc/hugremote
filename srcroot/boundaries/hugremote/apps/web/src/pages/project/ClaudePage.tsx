@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { QuickOpen } from '../../app/shell/QuickOpen';
 import { SessionBar } from '../../app/shell/SessionBar';
-import { pbase, shortAgo } from '../../app/shell/sessions';
+import { pbase, shortAgo, useMissingSession } from '../../app/shell/sessions';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { ConfirmDialog, useDialogs } from '../../components/ui/Dialogs';
@@ -43,6 +43,7 @@ export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: str
   const sessions = useClaudeSessions();
   const cur = sessions.data?.find((s) => s.id === sid);
   const stream = useClaudeStream(!isNew && cur ? sid : undefined);
+  const missing = useMissingSession(sid, isNew || !!cur, sessions.isLoading);
   const focus = useUi((s) => s.claudeFocus);
   const setUi = useUi((s) => s.set);
   const openDialog = useDialogs((s) => s.open);
@@ -94,15 +95,8 @@ export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: str
     return () => window.removeEventListener('keydown', on);
   }); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (sessions.isLoading || !project || !me) return <div className="content"><Skeleton rows={3} /></div>;
-  if (!isNew && !cur) {
-    if (!sessions.data?.some((s) => s.projectId === projectId)) return <Navigate to={`${base}/sessions`} replace />;
-    return (
-      <div className="content" data-screen="S10">
-        <ErrorBox title={t('session.notFound')} body={t('session.notFoundBody')} actions={<Button size="sm" onClick={() => nav('/')}>{t('nav.backToWorkspace')}</Button>} />
-      </div>
-    );
-  }
+  if (missing === 'gone') return <Navigate to="/" replace state={{ notice: 'sessionGone' }} />;
+  if (sessions.isLoading || !project || !me || missing === 'checking') return <div className="content"><Skeleton rows={3} /></div>;
 
   const hostName = host?.name ?? hostId;
   const patch = async (b: Parameters<typeof claudeApi.patch>[1]) => {

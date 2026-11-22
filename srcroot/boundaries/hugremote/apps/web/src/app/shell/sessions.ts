@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import i18n from '../../i18n';
 import type { Status } from '../../components/ui/Status';
 import { useClaudeSessions } from '../../features/claude/hooks/useClaude';
@@ -71,4 +72,19 @@ export function shortAgo(iso: string, now = Date.now()) {
   if (m < 24 * 60) return `${Math.floor(m / 60)}${en ? 'h' : 'g'}`;
   if (m < 7 * 24 * 60) return `${Math.floor(m / 1440)}${en ? 'd' : ' ngày'}`;
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * URL trỏ tới phiên không có trong danh sách: có thể vừa tạo ở tab/thiết bị khác → tải lại danh sách một lần.
+ * Vẫn không thấy (đã đóng, hoặc phiên của người khác — G-13) → `gone`: trang về S2 kèm câu báo (AC-33).
+ */
+export function useMissingSession(id: string, present: boolean, loading: boolean): 'ok' | 'checking' | 'gone' {
+  const qc = useQueryClient();
+  const [checked, setChecked] = useState<string | null>(null);
+  useEffect(() => {
+    if (present || loading || checked === id) return;
+    void Promise.all([qc.refetchQueries({ queryKey: ['terminals'] }), qc.refetchQueries({ queryKey: ['claude', 'sessions'] })]).finally(() => setChecked(id));
+  }, [id, present, loading, checked, qc]);
+  if (present) return 'ok';
+  return checked === id ? 'gone' : 'checking';
 }

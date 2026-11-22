@@ -1,3 +1,4 @@
+import { create } from 'zustand';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal } from '@xterm/xterm';
@@ -76,7 +77,15 @@ export function getTerm(id: string): PooledTerm {
     state: { exited: false, gone: false, reconnecting: 0 },
     listeners: new Set(),
   };
-  term.onData((d) => p.sock?.send(d));
+  term.onData((d) => {
+    // Ctrl giữ một lần trên thanh phím + phím gõ từ bàn phím ảo → ký tự điều khiển (AC-11)
+    const c = useCtrlLatch.getState();
+    if (c.on && d.length === 1 && /[a-z@[\\\]^_ ]/i.test(d)) {
+      c.set(false);
+      return p.sock?.send(String.fromCharCode(d.toUpperCase().charCodeAt(0) & 0x1f));
+    }
+    p.sock?.send(d);
+  });
   term.onBinary((d) => p.sock?.send(Uint8Array.from(d, (c) => c.charCodeAt(0))));
   let t: ReturnType<typeof setTimeout> | undefined;
   term.onResize(({ cols, rows }) => {
@@ -115,3 +124,6 @@ export function disposeTerm(id: string) {
   p.el.remove();
   pool.delete(id);
 }
+
+/** Trạng thái phím Ctrl "giữ một lần" của thanh phím cảm ứng — chung cho thanh phím và bàn phím ảo. */
+export const useCtrlLatch = create<{ on: boolean; set: (on: boolean) => void }>((set) => ({ on: false, set: (on) => set({ on }) }));

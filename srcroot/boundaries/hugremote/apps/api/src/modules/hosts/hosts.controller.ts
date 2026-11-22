@@ -58,7 +58,7 @@ export class HostsController {
   @Post('hosts/:id/trust-key')
   @HttpCode(204)
   async trust(@Param('id') id: string, @Body() dto: TrustKeyDto) {
-    await this.hosts.trustKey(id, dto.fingerprint, dto.keyType, dto.host, dto.port);
+    await this.hosts.trustKey(id, dto.fingerprint, dto.keyType, dto.host, dto.port, { proxyJump: dto.proxyJump, user: dto.user });
   }
 
   @Roles(UserRole.OWNER)

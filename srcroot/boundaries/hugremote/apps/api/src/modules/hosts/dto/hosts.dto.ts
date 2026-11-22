@@ -44,6 +44,9 @@ export class TrustKeyDto {
   @IsString() keyType!: string;
   @IsOptional() @IsString() @MaxLength(253) host?: string;
   @IsOptional() @IsInt() port?: number;
+  /** Máy chưa lưu: đi qua máy trung gian nào, user nào (để tin khoá của máy đích sau jump — dogfood smoke #6). */
+  @IsOptional() @IsString() @MaxLength(253) proxyJump?: string;
+  @IsOptional() @IsString() @MaxLength(64) user?: string;
 }
 
 export class PinsDto {

@@ -6,8 +6,28 @@ const path = require('node:path');
 const { execFileSync, spawn } = require('node:child_process');
 
 const BIN = path.resolve(__dirname, '..');
-const env = () => ({ ...process.env, DATA_DIR: process.env.DATA_DIR || path.join(os.homedir(), '.config/hugremote'), INSTALL_ROOT: process.env.INSTALL_ROOT || path.join(os.homedir(), '.local/share/hugremote') });
-const sh = (script) => execFileSync('bash', ['-c', script], { env: env(), stdio: 'inherit' });
+/** Môi trường của bản cài: biến của tiến trình + `$DATA_DIR/.env` (UPDATE_REPO, UPDATE_CHANNEL, SERVICE_MODE…). */
+function env() {
+  const dataDir = process.env.DATA_DIR || path.join(os.homedir(), '.config/hugremote');
+  const fromFile = {};
+  try {
+    for (const line of fs.readFileSync(path.join(dataDir, '.env'), 'utf8').split('\n')) {
+      const m = /^([A-Z_][A-Z0-9_]*)=(.*)$/.exec(line.trim());
+      if (m) fromFile[m[1]] = m[2].replace(/^["']|["']$/g, '');
+    }
+  } catch {
+    /* chưa có .env — bản dev */
+  }
+  return { ...fromFile, ...process.env, DATA_DIR: dataDir, INSTALL_ROOT: process.env.INSTALL_ROOT || fromFile.INSTALL_ROOT || path.join(os.homedir(), '.local/share/hugremote') };
+}
+function sh(script) {
+  try {
+    execFileSync('bash', ['-c', script], { env: env(), stdio: 'inherit' });
+  } catch (e) {
+    console.error(`✗ Lệnh dịch vụ thất bại (chế độ ${env().SERVICE_MODE || 'tự nhận'}). Bản này có được cài bằng install.sh không? Xem: hugremote doctor`);
+    process.exit(typeof e.status === 'number' ? e.status : 1);
+  }
+}
 
 function restart() {
   sh(`. "${BIN}/lib/service.sh"; service_restart`);

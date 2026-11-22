@@ -1,6 +1,7 @@
 import { createHashRouter, Navigate } from 'react-router-dom';
 import { AppShell } from './shell/AppShell';
 import { RequireAuth } from './RequireAuth';
+import { RouteError } from './RouteError';
 import { HostsPage } from '../pages/HostsPage';
 import { LoginPage } from '../pages/LoginPage';
 import { NewProjectPage } from '../pages/NewProjectPage';
@@ -11,7 +12,10 @@ import { SessionsPage } from '../pages/project/SessionsPage';
 /** Hash router — chạy dưới mọi BASE_PATH, view chính gắn URL (G-11). */
 export const router = createHashRouter([
   { path: '/login', element: <LoginPage /> },
+  // trang mẫu design system (G-16) — không cần đăng nhập, không có dữ liệu
+  { path: '/_ds', lazy: () => import('../pages/DesignSystemPage').then((m) => ({ Component: m.DesignSystemPage })) },
   {
+    errorElement: <RouteError />,
     element: (
       <RequireAuth>
         <AppShell />
@@ -25,6 +29,7 @@ export const router = createHashRouter([
       {
         path: '/s/:hostId/p/:projectId',
         element: <ProjectLayout />,
+        errorElement: <RouteError />,
         children: [
           { index: true, element: <Navigate to="sessions" replace /> },
           { path: 'sessions', element: <SessionsPage /> },

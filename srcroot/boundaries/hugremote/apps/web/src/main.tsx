@@ -24,6 +24,8 @@ function Boot() {
 
 // Bản mới vừa cài (hash chunk đổi) mà trang còn giữ bản cũ → tải lại một lần thay vì màn lỗi trắng.
 window.addEventListener('vite:preloadError', (e) => {
+  // mất mạng → không tải lại (mất trạng thái); để route hiện hộp lỗi + Thử lại (AC-43)
+  if (!navigator.onLine) return;
   const k = 'hugremote:reloaded';
   if (sessionStorage.getItem(k)) return;
   e.preventDefault();

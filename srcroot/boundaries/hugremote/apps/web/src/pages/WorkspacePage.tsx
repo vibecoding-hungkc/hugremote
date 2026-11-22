@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from '../components/ui/Overlay';
 import { WorkspaceTree } from '../app/shell/WorkspaceTree';
 import { sessionHref, useSessions, type SessionItem } from '../app/shell/sessions';
 import { Icon } from '../components/ui/Icon';
@@ -13,6 +15,11 @@ import { shortAgo } from '../app/shell/sessions';
 export function WorkspacePage() {
   const { t } = useTranslation();
   const nav = useNavigate();
+  const loc = useLocation();
+  // về đây vì link phiên đã đóng / của người khác (AC-33, G-13)
+  useEffect(() => {
+    if ((loc.state as { notice?: string } | null)?.notice === 'sessionGone') toast(t('session.goneNotice'));
+  }, [loc.key]); // eslint-disable-line react-hooks/exhaustive-deps
   const hosts = useHosts();
   const pins = usePins();
   const sessions = useSessions();

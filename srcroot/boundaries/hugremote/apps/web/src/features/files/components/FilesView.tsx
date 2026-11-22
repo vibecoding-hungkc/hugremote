@@ -47,6 +47,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
   const [upload, setUpload] = useState<{ done: number; total: number } | null>(null);
   const editor = useRef<CodeEditorHandle>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
+  const uploadFolderInput = useRef<HTMLInputElement>(null);
   const uploadDir = useRef('');
 
   // ----- mở file theo URL (…/files/<path>/<dòng>) -----
@@ -169,6 +170,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
             { icon: 'fileplus', label: t('files.newFile'), onSelect: () => create('touch') },
             { icon: 'folderplus', label: t('files.newFolder'), onSelect: () => create('mkdir') },
             { icon: 'upload', label: t('files.uploadHere'), onSelect: () => ((uploadDir.current = dir), uploadInput.current?.click()) },
+            { icon: 'folderplus', label: t('files.uploadFolderHere'), onSelect: () => ((uploadDir.current = dir), uploadFolderInput.current?.click()) },
             ...(x.path
               ? [
                   { icon: 'download' as const, label: t('files.downloadZip'), onSelect: () => void download(x.path, name + '.zip') },
@@ -249,6 +251,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
     } finally {
       setUpload(null);
       if (uploadInput.current) uploadInput.current.value = '';
+      if (uploadFolderInput.current) uploadFolderInput.current.value = '';
     }
   };
 
@@ -299,6 +302,17 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
   return (
     <div className="content flush" data-screen="S8" aria-label="Files">
       <input ref={uploadInput} type="file" multiple hidden onChange={(e) => void doUpload(e.target.files)} />
+      {/* cả thư mục (giữ cấu trúc con qua webkitRelativePath) — dogfood smoke #14 */}
+      <input
+        ref={(el) => {
+          uploadFolderInput.current = el;
+          el?.setAttribute('webkitdirectory', '');
+        }}
+        type="file"
+        multiple
+        hidden
+        onChange={(e) => void doUpload(e.target.files)}
+      />
       <div className={`files ${mobileFile && active ? 'open' : ''} ${compact ? 'compact' : ''}`}>
         <aside className="ftree">
           <div className="ftool">

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../../components/ui/Icon';
+import { useCtrlLatch } from './terminal-pool';
 
 const SEQ: Record<string, string> = {
   Esc: '\x1b',
@@ -32,7 +33,8 @@ const SEQ: Record<string, string> = {
 /** C10 — thanh phím cảm ứng (chỉ hiện <768px): Ctrl giữ một lần cho phím kế tiếp; ngăn mở rộng: tổ hợp Ctrl, F1–F12, ký tự shell, lệnh nhanh. */
 export function KeyBar({ send }: { send: (d: string) => void }) {
   const { t } = useTranslation();
-  const [ctrl, setCtrl] = useState(false);
+  const ctrl = useCtrlLatch((s) => s.on);
+  const setCtrl = useCtrlLatch((s) => s.set);
   const [drawer, setDrawer] = useState(false);
   const press = (label: string) => {
     if (/^\^[A-Z]$/.test(label)) return send(String.fromCharCode(label.charCodeAt(1) - 64));

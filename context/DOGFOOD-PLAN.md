@@ -102,3 +102,4 @@ Vòng: 1
 
 | Ngày | Vai | Nơi | Trình duyệt | Nặng | Vừa | Nhẹ | Ghi chú |
 |---|---|---|---|---|---|---|---|
+| 2026-11-22 | smoke | local | mcp__pw-slot-1__ | 8 | 6 | 13 | đợt 0: 19/28 PASS, luồng lõi terminal + Claude đi hết; FAIL dòng 6, 10, 14, 19, 22, 25, 26, 28 (+ phần chưa kiểm được ở 19) |

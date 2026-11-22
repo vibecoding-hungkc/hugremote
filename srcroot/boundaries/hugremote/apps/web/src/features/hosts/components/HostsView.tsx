@@ -180,6 +180,7 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
       setHostKey({ hostId: f.alias || f.id!, host: String(d.host), port: Number(d.port), keyType: String(d.keyType), fingerprint: String(d.fingerprint), oldFingerprint: d.oldFingerprint as string | undefined, via: d.via as string | undefined });
       return;
     }
+    if (e instanceof ApiError && e.code === 'HOST_IS_JUMP') return setErr(t('hosts.isJump', { names: ((e.details?.dependents as string[] | undefined) ?? []).join(', ') }));
     setErr(t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') }));
   };
   const test = async () => {
@@ -221,7 +222,12 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
         body={<p>{t('hosts.removeBody')}</p>}
         confirmLabel={t('hosts.remove')}
         onConfirm={async () => {
-          await hostsApi.remove(f.id!);
+          try {
+            await hostsApi.remove(f.id!);
+          } catch (e) {
+            explain(e);
+            return;
+          }
           await qc.invalidateQueries();
           toast(t('hosts.removed', { name: f.id }));
           onClose();
@@ -229,6 +235,8 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
       />,
     );
   const jumps = hosts.filter((h) => h.kind !== 'local' && h.id !== f.id);
+  // máy khác đang đi qua máy này → không xoá được, nêu tên (AC-5)
+  const dependents = edit ? hosts.filter((h) => h.proxyJump === f.id).map((h) => h.id) : [];
   return (
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <aside className="sheet" aria-label={edit ? t('hosts.editNamed', { name: f.id }) : t('hosts.addTitle')}>
@@ -280,7 +288,15 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
         </div>
         <div className="sheet-foot">
           {edit && (
-            <Button variant="danger" icon="trash" write style={{ marginRight: 'auto' }} onClick={remove}>
+            <Button
+              variant="danger"
+              icon="trash"
+              write
+              style={{ marginRight: 'auto' }}
+              disabled={dependents.length > 0}
+              disabledReason={t('hosts.isJump', { names: dependents.join(', ') })}
+              onClick={remove}
+            >
               {t('hosts.remove')}
             </Button>
           )}
@@ -300,7 +316,14 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
             const target = edit ? f.id! : f.alias.trim();
             try {
               // máy mới chưa lưu: tin theo địa chỉ đang nhập (máy sau jump: tin khoá của máy trung gian trước)
-              await hostsApi.trust(hostKey.via ?? target, { fingerprint: hostKey.fingerprint, keyType: hostKey.keyType, host: hostKey.host, port: hostKey.port });
+              await hostsApi.trust(hostKey.via ?? target, {
+                fingerprint: hostKey.fingerprint,
+                keyType: hostKey.keyType,
+                host: hostKey.host,
+                port: hostKey.port,
+                // khoá của máy đích (không phải máy trung gian) → kèm đường đi của bản nháp
+                ...(hostKey.via ? {} : { proxyJump: f.proxyJump || '', user: f.user || undefined }),
+              });
               setHostKey(null);
               await test();
             } catch (e) {

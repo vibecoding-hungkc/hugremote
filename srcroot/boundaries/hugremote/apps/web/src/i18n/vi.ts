@@ -12,6 +12,8 @@ export const vi = {
     or: 'hoặc',
   },
   net: {
+    chunkTitle: 'Đang mất kết nối — chưa mở được màn này',
+    chunkBody: 'Màn này chưa được tải về máy. Nháp và bản sửa chưa lưu vẫn giữ nguyên; nối lại rồi bấm Thử lại.',
     offlineTip: 'Đang mất kết nối — làm được khi nối lại',
     banner: 'Mất kết nối với HugRemote — đang thử lại (lần {{n}}). Claude và terminal vẫn chạy trên máy; gửi, duyệt, lưu, commit tạm khoá tới khi nối lại. Nháp vẫn được giữ.',
     retryNow: 'Thử ngay',
@@ -71,6 +73,7 @@ export const vi = {
     removed: 'Đã bỏ dự án {{name}}',
   },
   session: {
+    goneNotice: 'Phiên không còn, hoặc thuộc người khác — bạn chỉ mở được phiên của mình.',
     newClaude: 'Phiên Claude mới',
     newTerminal: 'Terminal mới',
     close: 'Đóng phiên',
@@ -103,6 +106,7 @@ export const vi = {
     skip: 'Bỏ qua, dùng máy này',
   },
   hosts: {
+    isJump: 'Không xoá được: máy trung gian của {{names}}. Đổi máy trung gian của các máy đó trước.',
     lead: 'Máy đọc từ ~/.ssh/config (kể cả file Include). Máy đã ghim hiện ở cây theo đúng thứ tự trên cùng dưới đây.',
     memberNote: 'Chỉ người quản trị thêm/sửa/xoá máy.',
     add: 'Thêm máy',
@@ -199,6 +203,7 @@ export const vi = {
     grpScroll: 'Cuộn',
   },
   files: {
+    uploadFolderHere: 'Tải cả thư mục lên đây',
     claudeEdited: 'Claude vừa sửa file này — đã tải lại bản mới trên máy.',
     tree: 'File',
     search: 'Tìm',

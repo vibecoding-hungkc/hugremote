@@ -206,13 +206,13 @@ export class HostsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async trustKey(id: string, fingerprint: string, keyType: string, host?: string, port?: number) {
+  async trustKey(id: string, fingerprint: string, keyType: string, host?: string, port?: number, draft: { proxyJump?: string; user?: string } = {}) {
     const h = this.findSsh(id);
     const hostName = host ?? h?.hostName;
     const p = port ?? h?.port ?? 22;
     if (!hostName) throw AppError.notFound(ErrorCode.HOST_NOT_FOUND);
     // Chỉ tin đúng vân tay đang thấy — gửi vân tay khác → từ chối (AC-6)
-    const t = await this.target(id, host ? { hostName: host, port: p } : {});
+    const t = await this.target(id, host ? { hostName: host, port: p, ...(draft.proxyJump !== undefined ? { proxyJump: draft.proxyJump } : {}), ...(draft.user ? { user: draft.user } : {}) } : {});
     let seen: { fingerprint: string; keyType: string } | undefined;
     try {
       seen = await this.pool.probe(t);

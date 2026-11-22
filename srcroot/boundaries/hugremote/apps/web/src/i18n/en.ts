@@ -4,6 +4,8 @@ export const en: Messages = {
   app: { name: 'HugRemote' },
   common: { retry: 'Retry', back: 'Back', cancel: 'Cancel', save: 'Save', close: 'Close', loading: 'Loading…', working: 'Working…', or: 'or' },
   net: {
+    chunkTitle: 'Connection lost — this screen could not open',
+    chunkBody: 'This screen was not downloaded yet. Drafts and unsaved edits are kept; reconnect, then press Retry.',
     offlineTip: 'Offline — available once reconnected',
     banner: 'Lost connection to HugRemote — retrying (attempt {{n}}). Claude and terminals keep running on the machine; send, approve, save and commit are paused until reconnected. Drafts are kept.',
     retryNow: 'Retry now',
@@ -63,6 +65,7 @@ export const en: Messages = {
     removed: 'Removed project {{name}}',
   },
   session: {
+    goneNotice: 'That session is gone or belongs to someone else — you can only open your own sessions.',
     newClaude: 'New Claude session',
     newTerminal: 'New terminal',
     close: 'Close session',
@@ -95,6 +98,7 @@ export const en: Messages = {
     skip: 'Skip, use this machine',
   },
   hosts: {
+    isJump: 'Cannot delete: it is the jump host of {{names}}. Change their jump host first.',
     lead: 'Machines are read from ~/.ssh/config (including Include files). Pinned machines appear in the tree in the order shown at the top.',
     memberNote: 'Only the admin can add, edit or delete machines.',
     add: 'Add machine',
@@ -191,6 +195,7 @@ export const en: Messages = {
     grpScroll: 'Scroll',
   },
   files: {
+    uploadFolderHere: 'Upload a folder here',
     claudeEdited: 'Claude just edited this file — reloaded the latest version from the machine.',
     tree: 'Files',
     search: 'Search',

@@ -1132,6 +1132,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/system/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bản đang chạy, bản mới của kênh, tiến độ lần cập nhật gần nhất, số phiên đang chạy sẽ dừng (AC-31). */
+        get: operations["SystemController_update"];
+        put?: never;
+        post: operations["SystemController_start"];
+        /** Huỷ hẹn "cập nhật khi rảnh". */
+        delete: operations["SystemController_cancel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/info": {
         parameters: {
             query?: never;
@@ -1699,6 +1717,36 @@ export interface components {
         AnswerDto: {
             /** @enum {string} */
             decision: "allow" | "deny" | "always";
+        };
+        UpdateStepDto: {
+            name: string;
+            status: string;
+        };
+        UpdateRunDto: {
+            runId: string;
+            from: string;
+            to: string;
+            /** @enum {string} */
+            status: "running" | "done" | "failed" | "rolled_back";
+            steps: components["schemas"]["UpdateStepDto"][];
+            at: string;
+        };
+        RunningDto: {
+            claude: number;
+            terminal: number;
+        };
+        UpdateStateDto: {
+            installed: boolean;
+            current: string;
+            channel: string;
+            latest?: string | null;
+            run?: components["schemas"]["UpdateRunDto"] | null;
+            waiting: boolean;
+            running: components["schemas"]["RunningDto"];
+        };
+        UpdateStartDto: {
+            /** @enum {string} */
+            when: "now" | "idle";
         };
         ImportReportDto: {
             at: string;
@@ -3618,6 +3666,65 @@ export interface operations {
                 content: {
                     "application/json": Record<string, never>;
                 };
+            };
+        };
+    };
+    SystemController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStateDto"];
+                };
+            };
+        };
+    };
+    SystemController_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateStartDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpdateStateDto"];
+                };
+            };
+        };
+    };
+    SystemController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

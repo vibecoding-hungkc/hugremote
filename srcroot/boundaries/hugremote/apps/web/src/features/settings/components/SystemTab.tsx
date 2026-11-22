@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/Button';
 import { toast } from '../../../components/ui/Overlay';
 import { ErrorBox, Skeleton } from '../../../components/ui/States';
 import { systemApi } from '../api/system.api';
+import { UpdateCard } from './UpdateCard';
 
 type Kind = 'app' | 'update' | 'ssh';
 
@@ -42,6 +43,7 @@ export function SystemTab() {
           <ErrorBox title={t('errors.INTERNAL')} onRetry={() => void info.refetch()} />
         )}
         <p className="muted xs">{t('settings.envHint')}</p>
+        <UpdateCard onShowLog={() => setKind('update')} />
       </div>
       <div className="card">
         <h3>{t('settings.health')}</h3>

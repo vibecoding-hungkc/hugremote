@@ -116,12 +116,29 @@ switch (cmd) {
   case 'reset-password':
     resetPassword();
     break;
+  case 'restart':
+    require('./lib/ops.cjs').restart();
+    break;
+  case 'update':
+    require('./lib/ops.cjs').update(rest);
+    break;
+  case '-p':
+  case '-h':
+  case '-b': {
+    // hugremote -p 8100 -h 0.0.0.0 -b /remote → ghi .env và khởi động lại
+    const all = [cmd, ...rest];
+    const map = { '-p': 'PORT', '-h': 'HOST', '-b': 'BASE_PATH' };
+    const pairs = {};
+    for (let i = 0; i < all.length; i += 2) if (map[all[i]] !== undefined) pairs[map[all[i]]] = all[i + 1] ?? '';
+    require('./lib/ops.cjs').setEnv(pairs);
+    break;
+  }
   case 'import-v1': {
     const opt = (n) => (rest.includes(n) ? rest[rest.indexOf(n) + 1] : undefined);
     require('./lib/import-v1.cjs').importV1({ dataDir: DATA_DIR, root: ROOT, from: opt('--from'), sshDir: opt('--ssh-dir'), dryRun: rest.includes('--dry-run') });
     break;
   }
   default:
-    console.log(`hugremote ${pkg.version}\n\nLệnh:\n  hugremote doctor [--fix]   kiểm môi trường, quyền file, dịch vụ\n  hugremote reset-password   đặt mật khẩu tạm khi quên mật khẩu\n  hugremote import-v1 [--from <thư mục v1>] [--ssh-dir <~/.ssh>] [--dry-run]   nhập dữ liệu HugRemote v1\n  hugremote --version`);
+    console.log(`hugremote ${pkg.version}\n\nLệnh:\n  hugremote doctor [--fix]   kiểm môi trường, quyền file, dịch vụ\n  hugremote reset-password   đặt mật khẩu tạm khi quên mật khẩu\n  hugremote import-v1 [--from <thư mục v1>] [--ssh-dir <~/.ssh>] [--dry-run]   nhập dữ liệu HugRemote v1\n  hugremote update [--stable|--beta|--dry-run|--rollback]\n  hugremote restart\n  hugremote -p <cổng> -h <địa chỉ> -b <BASE_PATH>   đổi cấu hình rồi khởi động lại\n  hugremote --version`);
     if (cmd && cmd !== 'help' && cmd !== '--help') process.exitCode = 1;
 }

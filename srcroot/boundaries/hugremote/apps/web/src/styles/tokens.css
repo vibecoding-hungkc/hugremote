@@ -1,0 +1,95 @@
+/* SINH TỰ ĐỘNG từ intake/design-systems/hugremote/tokens.json — chạy `pnpm tokens`. KHÔNG SỬA TAY. */
+:root {
+  --color-bg: #141414;
+  --color-surface: #1c1c1c;
+  --color-surface-raised: #262626;
+  --color-divider: #2a2a2a;
+  --color-border: #6b6b6b;
+  --color-text: #ededed;
+  --color-text-muted: #a3a3a3;
+  --color-primary: #38bdf8;
+  --color-on-primary: #0b1620;
+  --color-danger: #f87171;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-accent-terminal: #c084fc;
+  --color-accent-claude: #d97757;
+  --color-scrim: #000000a6;
+  --light-bg: #fafafa;
+  --light-surface: #ffffff;
+  --light-surface-raised: #f0f0f0;
+  --light-divider: #e5e5e5;
+  --light-border: #8a8a8a;
+  --light-text: #171717;
+  --light-text-muted: #525252;
+  --light-primary: #0369a1;
+  --light-on-primary: #ffffff;
+  --light-danger: #b91c1c;
+  --light-success: #047857;
+  --light-warning: #a16207;
+  --light-accent-terminal: #7e22ce;
+  --light-accent-claude: #c2410c;
+  --term-bg: #0f0f0f;
+  --term-text: #ededed;
+  --term-muted: #a3a3a3;
+  --term-green: #34d399;
+  --term-blue: #38bdf8;
+  --term-yellow: #fbbf24;
+  --term-red: #f87171;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-xl: 20px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --radius: 8px;
+  --radius-pill: 999px;
+  --shadow: 0 8px 24px #00000066;
+  --tap: 44px;
+  --sidebar-w: 280px;
+  --bar-h: 36px;
+  --bar-h-touch: 44px;
+}
+:root[data-theme="light"] {
+  --color-bg: var(--light-bg);
+  --color-surface: var(--light-surface);
+  --color-surface-raised: var(--light-surface-raised);
+  --color-divider: var(--light-divider);
+  --color-border: var(--light-border);
+  --color-text: var(--light-text);
+  --color-text-muted: var(--light-text-muted);
+  --color-primary: var(--light-primary);
+  --color-on-primary: var(--light-on-primary);
+  --color-danger: var(--light-danger);
+  --color-success: var(--light-success);
+  --color-warning: var(--light-warning);
+  --color-accent-terminal: var(--light-accent-terminal);
+  --color-accent-claude: var(--light-accent-claude);
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] {
+    --color-bg: var(--light-bg);
+    --color-surface: var(--light-surface);
+    --color-surface-raised: var(--light-surface-raised);
+    --color-divider: var(--light-divider);
+    --color-border: var(--light-border);
+    --color-text: var(--light-text);
+    --color-text-muted: var(--light-text-muted);
+    --color-primary: var(--light-primary);
+    --color-on-primary: var(--light-on-primary);
+    --color-danger: var(--light-danger);
+    --color-success: var(--light-success);
+    --color-warning: var(--light-warning);
+    --color-accent-terminal: var(--light-accent-terminal);
+    --color-accent-claude: var(--light-accent-claude);
+  }
+}
+/* Dưới 1024px (cảm ứng) các thanh cao bằng vùng chạm */
+@media (max-width: 1023px) {
+  :root { --bar-h: var(--bar-h-touch); }
+}

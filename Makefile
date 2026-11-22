@@ -14,7 +14,8 @@
 
 .PHONY: help dev check test migrate deploy doctor gate
 
-STACK_SKILL ?= chưa-chốt
+STACK_SKILL ?= stack-nestjs-react-fullstack
+TARGET := srcroot/boundaries/hugremote
 PYTHON ?= python3
 
 help:
@@ -44,22 +45,22 @@ define NOT_IMPLEMENTED
 endef
 
 dev:
-	$(NOT_IMPLEMENTED)
+	$(MAKE) -C $(TARGET) dev
 
 check:
-	$(NOT_IMPLEMENTED)
+	$(MAKE) -C $(TARGET) check
 
 test:
-	$(NOT_IMPLEMENTED)
+	$(MAKE) -C $(TARGET) test
 
 migrate:
-	$(NOT_IMPLEMENTED)
+	$(MAKE) -C $(TARGET) migrate
 
 deploy:
 	$(NOT_IMPLEMENTED)
 
 doctor:
-	$(NOT_IMPLEMENTED)
+	$(MAKE) -C $(TARGET) doctor
 
 # --- không đổi ---
 

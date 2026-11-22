@@ -1,0 +1,17 @@
+{
+  "name": "hugremote",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm --filter @app/shared build && pnpm --filter @app/api build && pnpm --filter @app/web build",
+    "postinstall": "node scripts/fix-node-pty.cjs",
+    "dev": "pnpm --filter @app/shared build && pnpm -r --parallel --filter @app/shared --filter @app/api --filter @app/web run dev:all"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  }
+}

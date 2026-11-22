@@ -27,7 +27,7 @@ cũng là web experience `hugremote`), `packages/shared` (`@app/shared`), `bin/`
 | Package manager | pnpm workspace, một `pnpm-lock.yaml` | 9.x (corepack) | Skill §2 |
 | Framework API | NestJS, adapter Express | 11 | Skill; module theo domain `auth · sso · hosts · workspace · terminal · files · git · claude · search · system · health` |
 | Database | SQLite qua driver `better-sqlite3`, file `${DATA_DIR}/hugremote.db`, mode 0600, WAL | — | Authority chốt; công cụ tự host cài một lệnh, không bắt dựng Postgres |
-| ORM / query layer | TypeORM, `synchronize: false`, migration có version, `migrationsRun` khi khởi động bản cài | 0.3.x | Skill §5 |
+| ORM / query layer | TypeORM, `synchronize: false`, migration có version, `migrationsRun` khi khởi động bản cài | 1.1.x | Skill §5 |
 | Validation | class-validator + class-transformer, `ValidationPipe({ whitelist, forbidNonWhitelisted, transform })` | — | Skill §5 |
 | Contract | DTO `*.dto.ts` + `@nestjs/swagger` → `/api/docs-json` → `openapi-typescript` sinh `apps/web/src/types/api.d.ts` | — | Skill §1, §3.1 |
 | Config | `@nestjs/config` + validate env; đọc thêm `~/.config/hugremote/.env` | — | Giữ vị trí `.env` quen thuộc |
@@ -56,7 +56,7 @@ cũng là web experience `hugremote`), `packages/shared` (`@app/shared`), `bin/`
 | Giọng nói | Web Speech API theo ngôn ngữ giao diện | — | Không phụ thuộc thêm |
 | Terminal UI | `@xterm/xterm` + `addon-fit` + `addon-web-links`, một instance mỗi phiên | 5.x/6.x | Giữ cách v1 |
 | UI kit | Không thư viện component ngoài; kho component riêng `apps/web/src/components/ui/` dựng theo gói `intake/design-systems/hugremote/components/` (C1–C38, props ở dòng "Hiện thực pha I"); `apps/web/src/styles/tokens.css` sinh từ `tokens.json` của gói, Tailwind CSS 4 `@theme` đọc các biến đó; route dev `#/_ds` + test so ảnh Playwright với `screens/` (G-16) | Tailwind 4 | Token là hợp đồng design system |
-| Icons | Remix Icon đóng gói cùng bundle (không CDN) | 4.6 | CSP chặt |
+| Icons | Bộ icon nét SVG của prototype đã chốt (55 icon, `components/ui/icon-paths.ts`), đóng gói cùng bundle | — | Prototype Authority chốt dùng bộ này; CSP chặt (DECISIONS 2026-11-22) |
 | i18n | `i18next` + `react-i18next`; `vi` mặc định + `en` đủ 100% khoá | — | Test bắt chuỗi cứng + khoá thiếu |
 | Test runner | Jest + supertest (api), Vitest + Testing Library (web), Playwright (e2e, gốc monorepo) | — | Skill §4 |
 | Deploy | `make deploy`: build + cài user service local (systemd `--user` / launchd) + health check + quay lại bản trước khi lỗi; phân phối cho người khác bằng `install.sh` / `beta.sh` | — | DECISIONS 2026-11-21; không PaaS |
@@ -99,19 +99,22 @@ OpenSSH, xterm), không ở tầng framework. DECISIONS 2026-11-21 (Stack, Một
 Ghi version thật sau khi scaffold xong (đọc từ `package.json`), để lần sau dựng lại được đúng.
 
 ```
-(điền ở pha I sau scaffold)
+node 22+ (máy dev: 24.15) · pnpm 12.21 (corepack) · typescript 5.9.3
+@nestjs/core 11.2 · typeorm 1.1 · better-sqlite3 13.2 · node-pty 1.1.0 · ssh2 1.17 · jose 6.2 · qrcode 1.5
+react 19.3 · react-router-dom 7.18 · @tanstack/react-query 5.108 · zustand 5.1 · vite 8.3 · tailwindcss 4.3
+@xterm/xterm 6.0 · i18next 27.2 · codemirror 6
 ```
 
 ## 5. Hợp đồng lệnh
 
 | Lệnh | Làm gì | Đã hoạt động? |
 |---|---|---|
-| `make dev` | Compose: shared (tsc -w) + api (Nest watch :3000) + web (Vite :5173, proxy `/api` `/ws`) + sshd + jump + keycloak | ☐ |
-| `make check` | Lint + typecheck + build cả monorepo | ☐ |
-| `make test` | Jest (api) + Vitest (web) + Playwright smoke | ☐ |
-| `make migrate` | TypeORM migration:run trên SQLite của dev | ☐ |
+| `make dev` | Chạy **trên máy host** (không container): shared (tsc -w) + api (Nest watch :3000) + web (Vite :5173, proxy `/api` `/ws`); máy thử sshd + jump + keycloak trong `deployment/local/docker-compose.yml` (`docker compose up -d`) — DECISIONS 2026-11-22 | ☑ |
+| `make check` | Lint + typecheck + build cả monorepo | ☑ |
+| `make test` | Jest (api) + Vitest (web) + Playwright smoke | ☑ (Jest; Vitest/Playwright thêm theo lát) |
+| `make migrate` | TypeORM migration:run trên SQLite của dev | ☑ |
 | `make deploy` | Build bản phát hành + cài/khởi động lại user service local + health check + quay lại khi lỗi | ☐ |
-| `make doctor` | Kiểm Node, pnpm, git, ssh, python3/zip, quyền `DATA_DIR`, biến môi trường, `/api/health` | ☐ |
+| `make doctor` | Kiểm Node, pnpm, git, ssh, python3/zip, quyền `DATA_DIR`, biến môi trường, `/api/health` | ☑ |
 
 Root `Makefile` là hợp đồng 6 lệnh duy nhất — thân lệnh gọi `make -C srcroot/boundaries/hugremote …`.
 Deploy luôn đi qua root `make deploy` (hook `guard_bc` đứng ở đó).

@@ -1,0 +1,9 @@
+{
+  "name": "HugRemote",
+  "short_name": "HugRemote",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#141414",
+  "theme_color": "#141414",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

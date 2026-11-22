@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+# Dependency có bước build native — chỉ những gói này được chạy script cài đặt
+allowBuilds:
+  '@parcel/watcher': false
+  '@scarf/scarf': false
+  better-sqlite3: true
+  cpu-features: true
+  node-pty: true
+  ssh2: true

@@ -1,0 +1,34 @@
+# Máy thử cho dev/test/dogfood (TECHSTACK §2). App (api + web) chạy trên máy host — `make dev`.
+# Khởi tạo khoá + ssh config mẫu: deployment/local/setup.sh (make dev tự gọi).
+name: hugremote-local
+
+x-sshd: &sshd
+  build: ./docker/sshd
+  image: hugremote/sshd:dev
+  volumes:
+    - ./ssh/dev_ed25519.pub:/seed/authorized_keys:ro
+  environment:
+    DEV_PASSWORD: dev-password-123
+
+services:
+  demo-sshd:
+    <<: *sshd
+    hostname: demo-sshd
+    ports: ["127.0.0.1:2222:22"]
+    networks: [edge]
+
+  demo-jump:
+    <<: *sshd
+    hostname: demo-jump
+    ports: ["127.0.0.1:2223:22"]
+    networks: [edge, inner]
+
+  # Chỉ tới được qua demo-jump (không mở cổng ra máy host)
+  demo-behind:
+    <<: *sshd
+    hostname: demo-behind
+    networks: [inner]
+
+networks:
+  edge: {}
+  inner: { internal: true }

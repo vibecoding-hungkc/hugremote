@@ -9,6 +9,8 @@ install:
 	pnpm install --frozen-lockfile
 
 dev: install
+	@../../../deployment/local/setup.sh
+	@if docker info >/dev/null 2>&1; then docker compose -f ../../../deployment/local/docker-compose.yml up -d --build; else echo "(Docker chưa chạy — bỏ qua máy SSH thử)"; fi
 	$(LOAD_ENV) pnpm dev
 
 check:

@@ -61,6 +61,24 @@ export function SystemTab() {
           </div>
         )}
       </div>
+      {info.data?.imported && (
+        <div className="card">
+          <h3>{t('settings.v1Title')}</h3>
+          <p className="muted sm">
+            {t('settings.v1Body', {
+              at: new Date(info.data.imported.at).toLocaleDateString(i18n.language),
+              projects: info.data.imported.projects,
+              claude: info.data.imported.claude,
+              hosts: info.data.imported.hosts,
+            })}
+            {info.data.imported.password && ` ${t('settings.v1Pw')}`}
+            {info.data.imported.twoFactor && ` ${t('settings.v1Tfa')}`}
+          </p>
+          <p className="muted xs">
+            {t('settings.v1Backup')} <span className="mono">{info.data.imported.backup}</span>
+          </p>
+        </div>
+      )}
       <div className="card">
         <h3>{t('settings.logs')}</h3>
         <div className="seg" role="tablist">

@@ -1700,7 +1700,17 @@ export interface components {
             /** @enum {string} */
             decision: "allow" | "deny" | "always";
         };
+        ImportReportDto: {
+            at: string;
+            backup: string;
+            projects: number;
+            claude: number;
+            hosts: number;
+            password: boolean;
+            twoFactor: boolean;
+        };
         SystemInfoDto: {
+            imported?: components["schemas"]["ImportReportDto"] | null;
             version: string;
             channel: string;
             node: string;

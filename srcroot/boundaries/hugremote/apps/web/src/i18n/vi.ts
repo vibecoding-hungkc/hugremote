@@ -394,6 +394,11 @@ export const vi = {
     allSessions: 'Tất cả phiên của dự án này',
   },
   settings: {
+    v1Title: 'Dữ liệu nhập từ HugRemote v1',
+    v1Body: 'Nhập ngày {{at}} (chỉ đọc dữ liệu v1): {{projects}} dự án · {{claude}} phiên Claude · {{hosts}} máy có mật khẩu.',
+    v1Pw: 'Đăng nhập bằng mật khẩu v1.',
+    v1Tfa: '2FA v1 đã chuyển sang.',
+    v1Backup: 'Bản sao lưu v1:',
     tab_account: 'Tài khoản',
     tab_account_owner: 'Tài khoản & bảo mật',
     tab_team: 'Nhóm (SSO)',

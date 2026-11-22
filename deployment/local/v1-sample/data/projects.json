@@ -1,0 +1,16 @@
+[
+  {
+    "name": "API đặt lịch",
+    "path": "~/projects/demo-api",
+    "serverId": "demo-sshd"
+  },
+  {
+    "name": "Web",
+    "path": "~/projects/demo-web",
+    "serverId": "demo-sshd"
+  },
+  {
+    "name": "Ghi chú",
+    "path": "/tmp/v1-notes"
+  }
+]

@@ -386,6 +386,11 @@ export const en: Messages = {
     allSessions: 'All sessions of this project',
   },
   settings: {
+    v1Title: 'Data imported from HugRemote v1',
+    v1Body: 'Imported on {{at}} (v1 data read-only): {{projects}} projects · {{claude}} Claude sessions · {{hosts}} machines with passwords.',
+    v1Pw: 'Sign in with the v1 password.',
+    v1Tfa: 'v1 2FA carried over.',
+    v1Backup: 'v1 backup:',
     tab_account: 'Account',
     tab_account_owner: 'Account & security',
     tab_team: 'Team (SSO)',

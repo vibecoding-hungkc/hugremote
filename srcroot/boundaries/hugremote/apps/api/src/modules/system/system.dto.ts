@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export class ImportReportDto {
+  @ApiProperty() at!: string;
+  @ApiProperty() backup!: string;
+  @ApiProperty() projects!: number;
+  @ApiProperty() claude!: number;
+  @ApiProperty() hosts!: number;
+  @ApiProperty() password!: boolean;
+  @ApiProperty() twoFactor!: boolean;
+}
+
 export class SystemInfoDto {
+  @ApiPropertyOptional({ type: ImportReportDto, nullable: true }) imported!: ImportReportDto | null;
   @ApiProperty() version!: string;
   @ApiProperty() channel!: string;
   @ApiProperty() node!: string;

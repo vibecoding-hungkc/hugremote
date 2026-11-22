@@ -12,7 +12,7 @@ export class SystemController {
   constructor(private readonly system: SystemService) {}
 
   @Get('system/info')
-  info(): SystemInfoDto {
+  info(): Promise<SystemInfoDto> {
     return this.system.info();
   }
 

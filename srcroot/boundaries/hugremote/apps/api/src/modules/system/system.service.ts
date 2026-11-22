@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -40,7 +41,10 @@ export class SystemService {
   private readonly startedAt = new Date().toISOString();
   private readonly version: string;
 
-  constructor(@Inject(APP_CONFIG) private readonly cfg: AppConfig) {
+  constructor(
+    @Inject(APP_CONFIG) private readonly cfg: AppConfig,
+    private readonly ds: DataSource,
+  ) {
     let v = '0.0.0';
     for (const p of [path.resolve(__dirname, '../../../../../package.json'), path.resolve(process.cwd(), '../../package.json')])
       try {
@@ -52,8 +56,29 @@ export class SystemService {
     this.version = v;
   }
 
-  info() {
+  /** Báo cáo lần nhập v1 gần nhất (do CLI `import-v1` ghi vào bảng settings) — AC-30. */
+  async imported() {
+    const rows: { value: string }[] = await this.ds.query(`SELECT value FROM settings WHERE key = 'import_v1'`);
+    if (!rows[0]) return null;
+    try {
+      const r = JSON.parse(rows[0].value) as Record<string, unknown>;
+      return {
+        at: String(r.at),
+        backup: String(r.backup),
+        projects: Number(r.projects),
+        claude: Number(r.claude),
+        hosts: Number(r.hosts),
+        password: !!r.password,
+        twoFactor: !!r.twoFactor,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async info() {
     return {
+      imported: await this.imported(),
       version: this.version,
       channel: this.cfg.updateChannel,
       node: process.versions.node,

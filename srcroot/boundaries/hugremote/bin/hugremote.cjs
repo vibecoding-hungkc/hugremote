@@ -116,7 +116,12 @@ switch (cmd) {
   case 'reset-password':
     resetPassword();
     break;
+  case 'import-v1': {
+    const opt = (n) => (rest.includes(n) ? rest[rest.indexOf(n) + 1] : undefined);
+    require('./lib/import-v1.cjs').importV1({ dataDir: DATA_DIR, root: ROOT, from: opt('--from'), sshDir: opt('--ssh-dir'), dryRun: rest.includes('--dry-run') });
+    break;
+  }
   default:
-    console.log(`hugremote ${pkg.version}\n\nLệnh:\n  hugremote doctor [--fix]   kiểm môi trường, quyền file, dịch vụ\n  hugremote reset-password   đặt mật khẩu tạm khi quên mật khẩu\n  hugremote --version`);
+    console.log(`hugremote ${pkg.version}\n\nLệnh:\n  hugremote doctor [--fix]   kiểm môi trường, quyền file, dịch vụ\n  hugremote reset-password   đặt mật khẩu tạm khi quên mật khẩu\n  hugremote import-v1 [--from <thư mục v1>] [--ssh-dir <~/.ssh>] [--dry-run]   nhập dữ liệu HugRemote v1\n  hugremote --version`);
     if (cmd && cmd !== 'help' && cmd !== '--help') process.exitCode = 1;
 }

@@ -4,31 +4,9 @@
  * trên "mục hội thoại" (ChatItem) mà module claude lưu + phát qua SSE.
  */
 
-/** Mục hội thoại — đơn vị lưu (`claude_messages.content`) và hiển thị (C19, C20, C21, C33). */
-export type ChatItem =
-  | { kind: 'user'; id: string; text: string; attachments?: string[] }
-  | { kind: 'assistant'; id: string; text: string; thinking?: string }
-  | { kind: 'tool'; id: string; name: string; input: Record<string, unknown>; result?: string; isError?: boolean; done?: boolean }
-  | {
-      kind: 'interaction';
-      id: string;
-      tool: string;
-      input: Record<string, unknown>;
-      decision?: 'allowed' | 'denied' | 'always';
-      by?: string;
-      at?: string;
-    }
-  | {
-      kind: 'summary';
-      id: string;
-      durationMs: number;
-      usage: { input: number; output: number; cacheRead: number };
-      costUsd?: number;
-      filesChanged: string[];
-      stopped?: boolean;
-      error?: string;
-    }
-  | { kind: 'note'; id: string; text: string };
+import type { ChatItem } from '@app/shared';
+
+export type { ChatItem };
 
 /** Thao tác normalizer sinh ra từ một dòng CLI. */
 export type NormOp =
@@ -37,7 +15,33 @@ export type NormOp =
   | { op: 'delta'; itemId: string; field: 'text' | 'thinking'; text: string }
   | { op: 'permission'; requestId: string; item: Extract<ChatItem, { kind: 'interaction' }> }
   | { op: 'result'; item: Extract<ChatItem, { kind: 'summary' }>; isError: boolean }
-  | { op: 'control_response'; requestId: string; response: Record<string, unknown> };
+  | { op: 'control_response'; requestId: string; response: Record<string, unknown> }
+  | { op: 'rate_limit'; info: RateLimitInfo };
+
+/** Hạn mức dùng Claude do CLI báo (`rate_limit_event`) — chip "Hạn mức 5 giờ" (AC-25). */
+export interface RateLimitInfo {
+  kind: 'five_hour' | 'weekly' | 'other';
+  /** 0–100; null khi CLI không báo mức dùng. */
+  pct: number | null;
+  resetAt: string | null;
+  status: string;
+}
+
+export function parseRateLimit(m: Record<string, unknown>): RateLimitInfo | null {
+  const r = (m.rate_limit_info ?? m.rateLimitInfo) as Record<string, unknown> | undefined;
+  if (!r) return null;
+  const t = typeof r.rateLimitType === 'string' ? r.rateLimitType : typeof r.type === 'string' ? r.type : '';
+  const kind = t.startsWith('five_hour') ? 'five_hour' : t.startsWith('seven_day') || t.startsWith('weekly') ? 'weekly' : 'other';
+  const u = typeof r.utilization === 'number' ? r.utilization : null;
+  const pct = u === null ? null : Math.round(u <= 1 ? u * 100 : u);
+  const ra =
+    typeof r.resetsAt === 'number'
+      ? new Date(r.resetsAt * (r.resetsAt < 1e12 ? 1000 : 1)).toISOString()
+      : typeof r.resetsAt === 'string'
+        ? r.resetsAt
+        : null;
+  return { kind, pct, resetAt: ra, status: typeof r.status === 'string' ? r.status : '' };
+}
 
 /** Tách stdout thành dòng; giữ phần dở dang tới khi có `\n` (không cắt ngang ký tự UTF-8 vì gộp Buffer trước khi decode). */
 export class JsonlDecoder {
@@ -175,6 +179,9 @@ export class Normalizer {
     } else if (type === 'control_response') {
       const r = m.response as { request_id?: string; response?: Record<string, unknown> };
       if (r?.request_id) out.push({ op: 'control_response', requestId: r.request_id, response: r.response ?? {} });
+    } else if (type === 'rate_limit_event') {
+      const info = parseRateLimit(m);
+      if (info) out.push({ op: 'rate_limit', info });
     } else if (type === 'result') {
       const u = (m.usage ?? {}) as Record<string, number>;
       const isError = m.is_error === true || (typeof m.subtype === 'string' && m.subtype !== 'success');

@@ -30,6 +30,9 @@ export class AppError extends HttpException {
   static tooLarge(code: ErrorCode, details?: Record<string, unknown>) {
     return new AppError(code, HttpStatus.PAYLOAD_TOO_LARGE, details);
   }
+  static badGateway(code: ErrorCode, details?: Record<string, unknown>) {
+    return new AppError(code, HttpStatus.BAD_GATEWAY, details);
+  }
   static locked(retryAfter: number) {
     return new AppError(ErrorCode.LOCKED, HttpStatus.TOO_MANY_REQUESTS, { retryAfter });
   }

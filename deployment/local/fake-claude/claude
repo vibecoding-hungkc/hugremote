@@ -70,15 +70,39 @@ def reader():
             req = m.get('request', {})
             if req.get('subtype') == 'interrupt': interrupted.set()
             if req.get('subtype') == 'set_permission_mode': mode = req.get('mode', mode)
-            emit({'type': 'control_response', 'response': {'subtype': 'success', 'request_id': m.get('request_id'), 'response': {}}})
+            resp = {}
+            if req.get('subtype') == 'initialize': resp = INIT
+            if req.get('subtype') == 'get_context_usage':
+                resp = {'totalTokens': 12000 + 19000 * len(prompts), 'maxTokens': 200000 if 'haiku' in model else 1000000, 'model': model}
+            emit({'type': 'control_response', 'response': {'subtype': 'success', 'request_id': m.get('request_id'), 'response': resp}})
     stdin_closed.set()
+
+EFF = ['low', 'medium', 'high', 'xhigh', 'max']
+INIT = {
+    'commands': [
+        {'name': 'compact', 'description': 'Nén hội thoại để tiết kiệm context', 'argumentHint': '<hướng dẫn>'},
+        {'name': 'init', 'description': 'Tạo CLAUDE.md cho dự án', 'argumentHint': ''},
+        {'name': 'review', 'description': 'Rà lại thay đổi hiện tại', 'argumentHint': ''},
+        {'name': 'clear', 'description': 'Xoá hội thoại', 'argumentHint': ''},
+    ],
+    'models': [
+        {'value': 'default', 'resolvedModel': 'claude-opus-fake[1m]', 'displayName': 'Default (recommended)', 'description': 'Opus giả · 1M context', 'supportsEffort': True, 'supportedEffortLevels': EFF},
+        {'value': 'sonnet', 'resolvedModel': 'claude-sonnet-fake', 'displayName': 'Sonnet', 'description': 'Cân bằng', 'supportsEffort': True, 'supportedEffortLevels': EFF},
+        {'value': 'haiku', 'resolvedModel': 'claude-haiku-fake', 'displayName': 'Haiku', 'description': 'Nhanh, rẻ', 'supportsEffort': False},
+    ],
+    'account': {'subscriptionType': 'fake'},
+    'current_permission_mode': mode,
+}
 
 prompts = []; got_prompt = threading.Event(); stdin_closed = threading.Event()
 threading.Thread(target=reader, daemon=True).start()
-if not got_prompt.wait(30): sys.exit(0)
+while not got_prompt.wait(0.2):
+    if stdin_closed.is_set(): sys.exit(0)
 prompt = prompts[0]
 t0 = time.time()
 emit({'type': 'system', 'subtype': 'init', 'session_id': session_id, 'model': model, 'cwd': os.getcwd(), 'permissionMode': mode, 'tools': ['Bash', 'Read', 'Write', 'Edit']})
+emit({'type': 'rate_limit_event', 'session_id': session_id, 'rate_limit_info': {'status': 'allowed_warning', 'rateLimitType': 'five_hour', 'utilization': 0.81, 'resetsAt': int(time.time()) + 2 * 3600}})
+emit({'type': 'rate_limit_event', 'session_id': session_id, 'rate_limit_info': {'status': 'allowed', 'rateLimitType': 'seven_day', 'utilization': 0.46, 'resetsAt': int(time.time()) + 4 * 86400}})
 slow = 'chậm' in prompt or 'cham' in prompt
 delay = 0.25 if slow else 0.03
 files = []

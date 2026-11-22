@@ -935,6 +935,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/projects/{id}/claude/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Model + effort + slash command lấy từ CLI trên đúng máy và thư mục dự án (AC-22, AC-24). */
+        get: operations["ClaudeController_options"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/claude/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Hạn mức 5 giờ / tuần do CLI báo; CLI không báo → rỗng, web ẩn chip (AC-25). */
+        get: operations["ClaudeController_limits"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/claude/sessions": {
         parameters: {
             query?: never;
@@ -1351,6 +1385,30 @@ export interface components {
             queued: number;
             pendingInteractions: number;
             pending: components["schemas"]["PendingInteractionDto"][];
+        };
+        CliModelDto: {
+            value: string;
+            displayName: string;
+            description: string;
+            efforts: string[];
+            contextWindow: number;
+        };
+        CliCommandDto: {
+            name: string;
+            description: string;
+            argumentHint: string;
+        };
+        ClaudeOptionsDto: {
+            models: components["schemas"]["CliModelDto"][];
+            commands: components["schemas"]["CliCommandDto"][];
+        };
+        LimitWindowDto: {
+            pct: number;
+            resetAt?: string | null;
+        };
+        ClaudeLimitsDto: {
+            fiveHour?: components["schemas"]["LimitWindowDto"];
+            weekly?: components["schemas"]["LimitWindowDto"];
         };
         CreateClaudeDto: {
             name?: string;
@@ -2932,6 +2990,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClaudeSessionDto"];
+                };
+            };
+        };
+    };
+    ClaudeController_options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaudeOptionsDto"];
+                };
+            };
+        };
+    };
+    ClaudeController_limits: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaudeLimitsDto"];
                 };
             };
         };

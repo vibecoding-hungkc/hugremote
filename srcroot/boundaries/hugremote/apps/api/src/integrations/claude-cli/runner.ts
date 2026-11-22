@@ -33,6 +33,10 @@ export class ClaudeTurn {
   private gotResult = false;
   private ended = false;
   private readonly pending = new Map<string, Record<string, unknown>>();
+  /** `result` giữ lại tới khi CLI trả `get_context_usage` (≤3s) để tóm tắt lượt mang luôn Context a/b. */
+  private held?: Extract<NormOp, { op: 'result' }>;
+  private ctxReq?: string;
+  private ctxTimer?: NodeJS.Timeout;
 
   constructor(
     readonly turnId: string,
@@ -78,7 +82,12 @@ export class ClaudeTurn {
           if (op.op === 'permission') this.pending.set(op.requestId, op.item.input);
           if (op.op === 'result') {
             this.gotResult = true;
-            this.proc?.stdin.end();
+            this.holdResult(op);
+            continue;
+          }
+          if (op.op === 'control_response' && op.requestId === this.ctxReq) {
+            this.releaseResult(op.response);
+            continue;
           }
           this.h.onOp(op);
         }
@@ -86,11 +95,31 @@ export class ClaudeTurn {
     );
     this.proc.onStderr((d) => (this.stderr = (this.stderr + d.toString('utf8')).slice(-4000)));
     this.proc.onExit((code) => {
+      this.releaseResult(null);
       this.ended = true;
       const notInstalled = code === 127 || /command not found|not found: claude|No such file/i.test(this.stderr);
       this.h.onExit({ code, stderr: this.stderr, notInstalled: notInstalled && !this.gotResult, gotResult: this.gotResult });
     });
     this.proc.stdin.write(userLine(prompt, o.cliSessionId));
+  }
+
+  private holdResult(op: Extract<NormOp, { op: 'result' }>) {
+    this.held = op;
+    this.ctxReq = `ctx-${this.turnId}`;
+    this.proc?.stdin.write(controlRequest(this.ctxReq, { subtype: 'get_context_usage' }));
+    this.ctxTimer = setTimeout(() => this.releaseResult(null), 3000);
+    this.ctxTimer.unref();
+  }
+
+  private releaseResult(resp: Record<string, unknown> | null) {
+    const r = this.held;
+    if (!r) return;
+    this.held = undefined;
+    clearTimeout(this.ctxTimer);
+    if (resp && typeof resp.totalTokens === 'number' && typeof resp.maxTokens === 'number')
+      r.item.context = { used: resp.totalTokens, max: resp.maxTokens };
+    this.h.onOp(r);
+    if (!this.ended) this.proc?.stdin.end();
   }
 
   get running() {

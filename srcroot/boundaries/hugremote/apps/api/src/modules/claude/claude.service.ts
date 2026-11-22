@@ -1,12 +1,14 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, type MessageEvent } from '@nestjs/common';
 import * as crypto from 'node:crypto';
 import { concat, filter, interval, map, merge, Observable, of, Subject } from 'rxjs';
-import { ClaudeEvent, ClaudeStatus, ErrorCode, LIMITS, PermissionMode, UserRole } from '@app/shared';
+import { ClaudeEvent, ClaudeStatus, ErrorCode, LIMITS, mergeChatItem, PermissionMode, UserRole } from '@app/shared';
 import { APP_CONFIG } from '../../config/app-config';
 import type { AppConfig } from '../../config/app-config';
 import { AppError } from '../../common/app-error';
 import type { AuthUser } from '../../common/auth-user';
 import type { ChatItem, NormOp } from '../../integrations/claude-cli/protocol';
+import { probeCli, type CliOptions } from '../../integrations/claude-cli/probe';
+import type { RateLimitInfo } from '../../integrations/claude-cli/protocol';
 import { ClaudeTurn } from '../../integrations/claude-cli/runner';
 import { EventsService } from '../events/events.service';
 import { LOCAL_HOST_ID } from '../hosts/hosts.service';
@@ -45,6 +47,11 @@ const now = () => new Date().toISOString();
 export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   private readonly log = new Logger('Claude');
   private readonly live = new Map<string, Live>();
+  /** Hạn mức theo máy — cập nhật mỗi khi CLI phát `rate_limit_event` (AC-25). */
+  private readonly limitsByHost = new Map<string, Partial<Record<'five_hour' | 'weekly', RateLimitInfo>>>();
+  /** Kết quả `initialize` theo máy + thư mục (model, slash command) — cache 5 phút, tối đa 2 probe cùng lúc (AC-22). */
+  private readonly optCache = new Map<string, { at: number; p: Promise<CliOptions> }>();
+  private probing = 0;
 
   constructor(
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
@@ -300,7 +307,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     });
     l.turn = turn;
     await this.setStatus(s, 'running');
-    const bin = project.hostId === LOCAL_HOST_ID ? (this.cfg.claudeBinPath ?? 'claude') : 'claude';
+    const bin = this.bin(project.hostId);
     await turn.start(
       rt,
       {
@@ -317,7 +324,47 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
+  private bin(hostId: string) {
+    return hostId === LOCAL_HOST_ID ? (this.cfg.claudeBinPath ?? 'claude') : 'claude';
+  }
+
+  // ------------------------------------------------------------ model / slash command / hạn mức
+
+  async options(projectId: string): Promise<CliOptions> {
+    const { project, rt } = await this.ws.context(projectId);
+    const key = `${project.hostId}\0${project.rootPath}`;
+    const hit = this.optCache.get(key);
+    if (hit && Date.now() - hit.at < 5 * 60_000) return hit.p;
+    if (this.probing >= 2 && hit) return hit.p;
+    if (this.probing >= 2) throw new AppError(ErrorCode.RATE_LIMITED, 429);
+    this.probing++;
+    const p = probeCli(rt, this.bin(project.hostId), project.rootPath)
+      .catch((e: Error) => {
+        this.optCache.delete(key);
+        if (e.message === 'ENOENT' || (e as NodeJS.ErrnoException).code === 'ENOENT')
+          throw AppError.conflict(ErrorCode.CLAUDE_NOT_INSTALLED);
+        this.log.warn(`probe ${project.hostId}: ${e.message}`);
+        throw AppError.badGateway(ErrorCode.CLAUDE_PROBE_FAILED);
+      })
+      .finally(() => this.probing--);
+    this.optCache.set(key, { at: Date.now(), p });
+    return p;
+  }
+
+  async limits(projectId: string) {
+    const project = await this.ws.get(projectId);
+    const l = this.limitsByHost.get(project.hostId) ?? {};
+    const pick = (i?: RateLimitInfo) => (i && i.pct !== null ? { pct: i.pct, resetAt: i.resetAt } : undefined);
+    return { fiveHour: pick(l.five_hour), weekly: pick(l.weekly) };
+  }
+
   private async onOp(s: ClaudeSessionEntity, l: Live, op: NormOp) {
+    if (op.op === 'rate_limit') {
+      if (op.info.kind === 'other') return;
+      const project = await this.ws.get(s.projectId);
+      this.limitsByHost.set(project.hostId, { ...this.limitsByHost.get(project.hostId), [op.info.kind]: op.info });
+      return;
+    }
     if (op.op === 'upsert') {
       if (op.final) {
         l.partial.delete(op.item.id);
@@ -469,10 +516,10 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     for (const m of await this.repo.messagesOf(s.id)) {
       const it = JSON.parse(m.content) as ChatItem;
       const prev = items.get(it.id);
-      items.set(it.id, prev ? mergeItem(prev, it) : it);
+      items.set(it.id, prev ? mergeChatItem(prev, it) : it);
     }
     const l = this.live.get(s.id);
-    for (const p of l?.partial.values() ?? []) items.set(p.id, items.has(p.id) ? mergeItem(items.get(p.id)!, p) : p);
+    for (const p of l?.partial.values() ?? []) items.set(p.id, items.has(p.id) ? mergeChatItem(items.get(p.id)!, p) : p);
     return {
       seq: s.lastSequence,
       status: s.status,
@@ -506,14 +553,6 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     const from = after ?? 0;
     return concat(head$, merge(live$.pipe(filter((m) => Number(m.id ?? Infinity) > from || m.type === 'ping')), beat$));
   }
-}
-
-function mergeItem(a: ChatItem, b: ChatItem): ChatItem {
-  if (a.kind === 'tool' && b.kind === 'tool')
-    return { ...a, ...b, name: b.name || a.name, input: Object.keys(b.input).length ? b.input : a.input };
-  if (a.kind === 'interaction' && b.kind === 'interaction')
-    return { ...a, decision: b.decision ?? a.decision, by: b.by ?? a.by, at: b.at ?? a.at };
-  return b;
 }
 
 /** Câu ngắn cho chuông / thẻ duyệt: "Write src/x.ts", "Bash: pnpm test". */

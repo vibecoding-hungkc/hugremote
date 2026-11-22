@@ -9,6 +9,8 @@ import type { AuthUser } from '../../common/auth-user';
 import { AuthService } from '../auth/auth.service';
 import { ClaudeService } from './claude.service';
 import {
+  ClaudeLimitsDto,
+  ClaudeOptionsDto,
   AnswerDto,
   ClaudeSessionDto,
   CreateClaudeDto,
@@ -30,6 +32,18 @@ export class ClaudeController {
   @Get('projects/:id/claude/sessions')
   list(@CurrentUser() u: AuthUser, @Param('id') id: string): Promise<ClaudeSessionDto[]> {
     return this.claude.list(u, id);
+  }
+
+  /** Model + effort + slash command lấy từ CLI trên đúng máy và thư mục dự án (AC-22, AC-24). */
+  @Get('projects/:id/claude/options')
+  options(@Param('id') id: string): Promise<ClaudeOptionsDto> {
+    return this.claude.options(id);
+  }
+
+  /** Hạn mức 5 giờ / tuần do CLI báo; CLI không báo → rỗng, web ẩn chip (AC-25). */
+  @Get('projects/:id/claude/limits')
+  limits(@Param('id') id: string): Promise<ClaudeLimitsDto> {
+    return this.claude.limits(id);
   }
 
   @Get('claude/sessions')

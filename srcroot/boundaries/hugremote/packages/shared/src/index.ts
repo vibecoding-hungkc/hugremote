@@ -3,3 +3,4 @@ export * from './session/session.enums';
 export * from './limits/limits';
 export * from './path/remote-path';
 export * from './shell/shell-quote';
+export * from './claude/chat-item';

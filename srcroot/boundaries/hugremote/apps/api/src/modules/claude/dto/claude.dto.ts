@@ -54,3 +54,32 @@ export class QueueItemDto {
   @ApiProperty() text!: string;
   @ApiProperty() createdAt!: string;
 }
+
+export class CliModelDto {
+  @ApiProperty() value!: string;
+  @ApiProperty() displayName!: string;
+  @ApiProperty() description!: string;
+  @ApiProperty({ type: [String] }) efforts!: string[];
+  @ApiProperty() contextWindow!: number;
+}
+
+export class CliCommandDto {
+  @ApiProperty() name!: string;
+  @ApiProperty() description!: string;
+  @ApiProperty() argumentHint!: string;
+}
+
+export class ClaudeOptionsDto {
+  @ApiProperty({ type: [CliModelDto] }) models!: CliModelDto[];
+  @ApiProperty({ type: [CliCommandDto] }) commands!: CliCommandDto[];
+}
+
+export class LimitWindowDto {
+  @ApiProperty() pct!: number;
+  @ApiPropertyOptional({ nullable: true, type: String }) resetAt!: string | null;
+}
+
+export class ClaudeLimitsDto {
+  @ApiPropertyOptional({ type: LimitWindowDto }) fiveHour?: LimitWindowDto;
+  @ApiPropertyOptional({ type: LimitWindowDto }) weekly?: LimitWindowDto;
+}

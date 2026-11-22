@@ -12,6 +12,7 @@ import { Icon } from '../../../components/ui/Icon';
 import { Menu, toast, type MenuItem } from '../../../components/ui/Overlay';
 import { EmptyState, ErrorBox, Skeleton } from '../../../components/ui/States';
 import { ApiError } from '../../../lib/api-client';
+import { blockedOffline } from '../../../lib/connection';
 import { filesApi, type FsEntry } from '../api/files.api';
 import { isDirty, useFiles, type OpenFile } from '../files.store';
 import { useUi } from '../../../stores/ui.store';
@@ -86,6 +87,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
 
   const save = async (f: OpenFile | undefined = active, force = false) => {
     if (!f || (!isDirty(f) && !force)) return;
+    if (blockedOffline(toast, t('net.offlineTip'))) return; // bản sửa giữ nguyên trong store
     try {
       const r = await filesApi.write(projectId, f.path, f.buf, force ? f.conflictMtime : f.mtime);
       store.saved(projectId, f.path, r.mtime, f.buf);

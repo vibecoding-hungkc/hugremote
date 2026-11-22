@@ -12,13 +12,34 @@ export function startEvents(qc: QueryClient, handlers: Record<string, (d: Record
   let stopped = false;
   let attempt = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
+  // server gửi `ping` mỗi 15s; quá 35s không nghe gì (mạng đứt mà socket chưa báo lỗi) → coi là mất kết nối, nối lại
+  const alive = () => {
+    clearTimeout(watchdog);
+    watchdog = setTimeout(() => {
+      useConnection.getState().set(false);
+      es?.close();
+      es = null;
+      if (!stopped) void open();
+    }, 35_000);
+  };
+  const goneOffline = () => {
+    useConnection.getState().set(false);
+    es?.close();
+    es = null;
+    clearTimeout(timer);
+    timer = setTimeout(() => void open(), 1000);
+  };
+  window.addEventListener('offline', goneOffline);
 
   const open = async () => {
     if (stopped) return;
     try {
       const { ticket } = await api<{ ticket: string }>('/auth/stream-ticket', { method: 'POST' });
       es = new EventSource(`${env.apiBase}/events/stream?ticket=${encodeURIComponent(ticket)}`);
+      es.addEventListener('ping', alive);
       es.onopen = () => {
+        alive();
         attempt = 0;
         useConnection.getState().set(true);
         // vừa nối lại → lấy lại trạng thái đầy đủ
@@ -54,6 +75,8 @@ export function startEvents(qc: QueryClient, handlers: Record<string, (d: Record
   return () => {
     stopped = true;
     clearTimeout(timer);
+    clearTimeout(watchdog);
+    window.removeEventListener('offline', goneOffline);
     es?.close();
   };
 }

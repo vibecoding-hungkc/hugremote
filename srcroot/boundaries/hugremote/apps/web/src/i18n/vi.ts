@@ -678,6 +678,7 @@ export const vi = {
     reconnecting: 'Đang nối lại luồng Claude…',
   },
   errors: {
+    NETWORK: 'Đang mất kết nối — làm được khi nối lại',
     VALIDATION_FAILED: 'Thông tin nhập chưa hợp lệ',
     UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn — đăng nhập lại',
     FORBIDDEN: 'Bạn không có quyền làm việc này',

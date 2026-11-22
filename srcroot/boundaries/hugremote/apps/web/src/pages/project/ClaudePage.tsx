@@ -19,6 +19,7 @@ import { ck, useClaudeSessions } from '../../features/claude/hooks/useClaude';
 import { useClaudeStream } from '../../features/claude/hooks/useClaudeStream';
 import { useHosts, useProject } from '../../features/workspace/hooks/useWorkspace';
 import { ApiError } from '../../lib/api-client';
+import { blockedOffline } from '../../lib/connection';
 import { useUi } from '../../stores/ui.store';
 import { SplitView } from './SplitView';
 
@@ -68,11 +69,13 @@ export function ClaudePage({ embed }: { embed?: { hostId: string; projectId: str
   const fail = (e: unknown) => toast(t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') }));
   const refresh = () => qc.invalidateQueries({ queryKey: ck.sessions });
   const answer = (iid: string, d: 'allow' | 'deny' | 'always') =>
-    claudeApi.answer(sid, iid, d).then(refresh, (e: unknown) => {
+    blockedOffline(toast, t('net.offlineTip'))
+      ? Promise.resolve()
+      : claudeApi.answer(sid, iid, d).then(refresh, (e: unknown) => {
       fail(e);
       void refresh();
     });
-  const stop = () => void claudeApi.cancel(sid).catch(fail);
+  const stop = () => !blockedOffline(toast, t('net.offlineTip')) && void claudeApi.cancel(sid).catch(fail);
 
   // Esc dừng lượt; ⌥Y / ⌥N trả lời yêu cầu quyền đầu tiên (AC-40, AC-49)
   useEffect(() => {

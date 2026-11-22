@@ -280,7 +280,7 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
         </div>
         <div className="sheet-foot">
           {edit && (
-            <Button variant="danger" icon="trash" style={{ marginRight: 'auto' }} onClick={remove}>
+            <Button variant="danger" icon="trash" write style={{ marginRight: 'auto' }} onClick={remove}>
               {t('hosts.remove')}
             </Button>
           )}

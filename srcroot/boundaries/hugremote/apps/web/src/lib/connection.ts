@@ -24,3 +24,10 @@ export const connection = {
     useConnection.getState().set(false);
   },
 };
+
+/** Đường phím tắt (⌘S, ⌘Enter, ⌥Y…) không đi qua nút có `write` → kiểm ở đây. true = đang mất kết nối, đừng gửi. */
+export function blockedOffline(notify: (msg: string) => void, msg: string) {
+  if (useConnection.getState().online) return false;
+  notify(msg);
+  return true;
+}

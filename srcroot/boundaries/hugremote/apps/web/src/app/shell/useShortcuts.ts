@@ -58,6 +58,12 @@ export function useShortcuts() {
       if ((alt || e.metaKey) && /^Digit[1-9]$/.test(e.code) && !e.shiftKey) {
         if (goSession(Number(e.code.slice(5)) - 1)) return;
       }
+      // ⌥W đóng phiên terminal đang xem (có xác nhận khi còn chạy) — Files tự xử lý ⌥W cho tab file
+      if (alt && e.code === 'KeyW' && r.tab === 'terminal') {
+        e.preventDefault();
+        document.querySelector<HTMLButtonElement>('.tabbar .tab.on button')?.click();
+        return;
+      }
       if (e.ctrlKey && !e.metaKey && ['1', '2', '3'].includes(k)) return (e.preventDefault(), nav(`${base}/${['sessions', 'files', 'git'][Number(k) - 1]}`));
       if (e.ctrlKey && e.key === 'Tab' && r.tab !== 'files' && list.length) {
         e.preventDefault();

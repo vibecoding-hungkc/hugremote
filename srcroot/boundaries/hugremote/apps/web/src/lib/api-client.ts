@@ -78,8 +78,10 @@ export async function api<T = unknown>(path: string, opts: Opts = {}): Promise<T
     res = await send(useAuthStore.getState().accessToken);
     connection.reportOk();
   } catch (e) {
-    if ((e as Error).name !== 'AbortError') connection.reportNetworkError();
-    throw e;
+    if ((e as Error).name === 'AbortError') throw e;
+    connection.reportNetworkError();
+    // lỗi mạng → mã riêng để mọi nơi hiện "Đang mất kết nối" thay vì lỗi chung (AC-43)
+    throw new ApiError(0, 'NETWORK');
   }
   if (res.status === 401 && !path.startsWith('/auth/login') && !path.startsWith('/auth/2fa/verify')) {
     const t = await refreshAccessToken();

@@ -11,7 +11,7 @@ export function StartCard({ hostCount, projectCount, sessionCount }: { hostCount
   const me = useMe();
   if (me.data?.role !== 'owner') return null;
   const steps = [
-    { label: t('start.step1'), done: hostCount > 1, act: () => nav('/hosts'), cta: t('start.cta1') },
+    { label: t('start.step1'), done: hostCount > 1 || projectCount > 0, act: () => nav('/hosts'), cta: t('start.cta1') },
     { label: t('start.step2'), done: projectCount > 0, act: () => nav('/s/local/new-project'), cta: t('start.cta2') },
     { label: t('start.step3'), done: sessionCount > 0, act: () => nav('/s/local/new-project'), cta: t('start.cta3') },
   ];

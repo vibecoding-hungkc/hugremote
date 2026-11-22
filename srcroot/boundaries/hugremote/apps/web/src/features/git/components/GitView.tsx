@@ -8,7 +8,7 @@ import { Icon } from '../../../components/ui/Icon';
 import { Menu, toast, type MenuItem } from '../../../components/ui/Overlay';
 import { EmptyState, ErrorBox, Skeleton } from '../../../components/ui/States';
 import { ApiError } from '../../../lib/api-client';
-import { useConnection } from '../../../lib/connection';
+import { blockedOffline, useConnection } from '../../../lib/connection';
 import { gitApi, type GitChange, type GitStatus } from '../api/git.api';
 
 const disp = (f: string) => {
@@ -70,6 +70,7 @@ export function GitView({ projectId, history, onHistory, onOpenFile, focusPath, 
   };
   const doCommit = async () => {
     if (!msg.trim() || !changes.some((c) => c.staged)) return;
+    if (blockedOffline(toast, t('net.offlineTip'))) return;
     if (await run('commit', () => gitApi.commit(projectId, msg.trim()), t('git.committed'))) {
       setMsg('');
       sessionStorage.removeItem(`commitmsg:${projectId}`);

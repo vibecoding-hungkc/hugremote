@@ -670,6 +670,7 @@ export const en: Messages = {
     reconnecting: 'Reconnecting the Claude stream…',
   },
   errors: {
+    NETWORK: 'Connection lost — you can do this once reconnected',
     VALIDATION_FAILED: 'Some input is not valid',
     UNAUTHORIZED: 'Your session expired — sign in again',
     FORBIDDEN: 'You are not allowed to do this',

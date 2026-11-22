@@ -99,7 +99,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-46 | ☐ | |
 | AC-47 | ☐ | |
 | AC-48 | ☐ | |
-| AC-49 | ◐ | ⌘K ⌘P ⌘⇧F ⌘/ ⌘\\ ⌥1–9 Ctrl+Tab Ctrl+1/2/3 ⌥⇧N ⌥⇧T Esc ⇧Tab ⌥Y/⌥N ⌘S ⌘Enter; bắt ở pha capture để thắng phím editor; còn ⌥W đóng phiên terminal |
+| AC-49 | ☑ | ⌘K ⌘P ⌘⇧F ⌘/ ⌘\ ⌥1–9 Ctrl+Tab Ctrl+1/2/3 ⌥⇧N ⌥⇧T ⌥W Esc ⇧Tab ⌥Y/⌥N ⌘S ⌘Enter; bắt ở pha capture để thắng phím editor; PWA dùng ⌘ thay ⌥ |
 
 Thời lượng vòng: `intake/loops/l1/_PROPOSAL.md` (~6 tuần công, gồm P1).
 

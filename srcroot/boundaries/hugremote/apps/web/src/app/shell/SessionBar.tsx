@@ -79,7 +79,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
           >
             <Icon name={s.kind === 'claude' ? 'claude' : 'term'} className={s.kind === 'claude' ? 'claude-ic' : 'term-ic'} />
             <span className="tn">{s.name}</span>
-            {s.bypass && <Icon name="warn" className="warn-ic" />}
+            {s.bypass && <Icon name="warn" className="del" />}
             <StatusDot status={s.status} />
             {s.kind === 'terminal' ? (
             <Button

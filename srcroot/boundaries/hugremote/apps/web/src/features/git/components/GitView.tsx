@@ -254,7 +254,7 @@ export function GitView({ projectId, history, onHistory, onOpenFile, focusPath, 
             <div className="t grow">
               <div className="sm ell">{c.subject}</div>
               <div className="xs muted ell">
-                <span className="mono">{c.short}</span> · {c.author} · {new Date(c.date).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                <span className="mono">{c.short}</span> · {c.author} · {new Date(c.date).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
               </div>
             </div>
             <Button variant="ghost" size="sm" iconOnly icon="copy" className="act" label={t('git.copySha')} onClick={(e) => (e.stopPropagation(), void navigator.clipboard?.writeText(c.sha).then(() => toast(t('files.copied', { path: c.short }))))} />

@@ -60,7 +60,7 @@ export function KeyBar({ send }: { send: (d: string) => void }) {
         {k('Tab')}
         {k('Ctrl', t('term.ctrlHold'), ctrl, () => setCtrl(!ctrl))}
         {['↑', '↓', '←', '→', '↵'].map((x) => k(x))}
-        <button className={`key ${drawer ? 'on' : ''}`} title={t(drawer ? 'term.lessKeys' : 'term.moreKeys')} aria-label={t(drawer ? 'term.lessKeys' : 'term.moreKeys')} onMouseDown={(e) => e.preventDefault()} onClick={() => setDrawer(!drawer)}>
+        <button className={`key pin-r ${drawer ? 'on' : ''}`} title={t(drawer ? 'term.lessKeys' : 'term.moreKeys')} aria-label={t(drawer ? 'term.lessKeys' : 'term.moreKeys')} onMouseDown={(e) => e.preventDefault()} onClick={() => setDrawer(!drawer)}>
           <Icon name="kb" />
         </button>
       </div>

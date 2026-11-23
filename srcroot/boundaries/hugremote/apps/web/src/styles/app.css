@@ -31,8 +31,17 @@
 /* Tương phản AA ở chủ đề Sáng cho nhãn cảnh báo trên hàng cây đang chọn (picky #1: đạt 4.92:1 ≥ 4.5) */
 .node.sel .meta.warn { background: var(--color-surface); padding: 0 var(--space-xs); border-radius: var(--radius-pill); }
 
+/* Thanh chip ô soạn không đè sát nút Gửi (power #1) */
+.crow.tools { flex-wrap: wrap; }
+.cscroll { padding-right: var(--space-xs); }
+
+/* Ghim nút mở ngăn phím phụ terminal ở mép phải trên màn nhỏ (mobile #3) */
+.keybar .key.pin-r { position: sticky; right: 0; background: var(--color-surface-raised); box-shadow: -4px 0 8px var(--color-surface); }
+
 @media (max-width: 767px) {
   .fside .input { min-height: var(--tap); }
   .ehead { overflow-x: auto; scrollbar-width: none; }
   .ehead .btn.sm.icon { flex: none; min-width: var(--tap); }
+  .crow .chip { min-height: var(--tap); }
+  .gleft .linkp { min-height: var(--tap); display: inline-flex; align-items: center; }
 }

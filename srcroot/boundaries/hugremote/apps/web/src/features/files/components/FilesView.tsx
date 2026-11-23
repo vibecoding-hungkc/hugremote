@@ -83,7 +83,13 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
     if (routePath && routePath !== state.active) void openPath(routePath, line);
     else if (routePath && line) editor.current?.goto(line);
   }, [routePath, line]); // eslint-disable-line react-hooks/exhaustive-deps
-  const go = (p?: string, ln?: number) => onRoute(p, ln);
+  const go = (p?: string, ln?: number) => {
+    if (p && p === state.active) {
+      setOpenErr(null);
+      setMobileFile(true);
+    }
+    onRoute(p, ln);
+  };
 
   // ----- cây -----
   const fileList = useQuery({ queryKey: ['fsfiles', projectId], queryFn: () => filesApi.files(projectId), enabled: !!filter, staleTime: 30_000 });
@@ -437,6 +443,21 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
           <div className="panes">
             <div className="pane">{body()}</div>
           </div>
+          {editable && !diffMode && !preview && (
+            <div className="edkeys" aria-label={t('term.keybar')}>
+              {(['Tab', '{', '}', '(', ')', '[', ']', "'", '"', ';', '/', '=', '=>'] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="key"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => editor.current?.insert(k === 'Tab' ? '  ' : k)}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
       </div>
       {menu && <Menu anchor={menu.rect} items={menu.items} onClose={() => setMenu(null)} />}

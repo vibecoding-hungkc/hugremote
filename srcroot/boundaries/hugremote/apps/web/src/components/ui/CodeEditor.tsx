@@ -12,6 +12,7 @@ import { Compartment, EditorState, RangeSetBuilder, StateEffect, StateField, typ
 import { drawSelection, EditorView, GutterMarker, gutter, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import i18n from '../../i18n';
 
 /** Tô cú pháp theo token (cùng màu với prototype: từ khoá tím terminal, chuỗi xanh lá, chú thích chữ phụ). */
 const hl = HighlightStyle.define([
@@ -64,7 +65,7 @@ class ChangeMarker extends GutterMarker {
   toDOM() {
     const el = document.createElement('div');
     el.className = `cm-change-${this.kind}`;
-    el.title = this.kind === 'add' ? 'Dòng mới so với commit' : 'Dòng đã sửa so với commit';
+    el.title = i18n.t(this.kind === 'add' ? 'files.newMark' : 'files.modMark');
     el.style.height = '100%';
     return el;
   }
@@ -95,6 +96,7 @@ export interface CodeEditorHandle {
   openFind(): void;
   closeFind(): void;
   gotoPrompt(): void;
+  insert(text: string): void;
   value(): string;
   focus(): void;
 }
@@ -174,6 +176,13 @@ export const CodeEditor = forwardRef<CodeEditorHandle, { name: string; value: st
       openFind: () => view.current && openSearchPanel(view.current),
       closeFind: () => view.current && closeSearchPanel(view.current),
       gotoPrompt: () => view.current && gotoLine(view.current),
+      insert(text: string) {
+        const v = view.current;
+        if (!v) return;
+        const { from, to } = v.state.selection.main;
+        v.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } });
+        v.focus();
+      },
       value: () => view.current?.state.doc.toString() ?? '',
       focus: () => view.current?.focus(),
     }));

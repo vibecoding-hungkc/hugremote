@@ -61,9 +61,9 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-8 | ☑ | ghim/bỏ/sắp thứ tự máy lưu ở server theo người dùng (đồng bộ thiết bị), bỏ dự án = xoá cho cả nhóm + dừng phiên |
 | AC-9 | ☑ | nhiều terminal/dự án, chạy nền, nối lại phát lại buffer, local + SSH qua jump |
 | AC-10 | ☑ | chia ô Terminal + Terminal (ô phải chọn terminal khác), đổi tên/đóng ở thanh phiên + cây |
-| AC-11 | ◐ | thanh phím cảm ứng (Ctrl, F1–F12, ký tự shell, lệnh nhanh) đã có; chưa thử trên điện thoại thật/giả lập (dogfood vai mobile) |
-| AC-12 | ◐ | một mô hình điều hướng cây → dự án → tab; mobile: S2 + thanh dưới + bộ chọn phiên; chưa dogfood mobile |
-| AC-13 | ◐ | token/component từ gói DS, route `#/_ds` đã dựng, test tự động i18n/token (`design-and-i18n.test.ts`) PASS; còn vai `picky` đối chiếu `screens/` trên app thật |
+| AC-11 | ☑ | thanh phím cảm ứng (Ctrl, F1–F12, ký tự shell, lệnh nhanh) — đã dogfood mobile 390×844 & 360×740, ghim nút mở ngăn mép phải |
+| AC-12 | ☑ | một mô hình điều hướng cây → dự án → tab; mobile: S2 + thanh dưới + bộ chọn phiên — đã dogfood mobile & desktop |
+| AC-13 | ☑ | 54/54 token khớp `tokens.json`, 0 màu trộn DS, route `#/_ds`, test tự động i18n/token PASS, đã soi bằng vai `picky` |
 | AC-14 | ☑ | JwtAuthGuard toàn cục, @Public tối thiểu; security.e2e 18/18 |
 | AC-15 | ☑ | `/api/health`, `hugremote doctor [--fix]`, S7 Hệ thống tình trạng |
 | AC-16 | ☑ | Files: cây (.gitignore mờ, git M/A), CodeMirror tô màu, ⌘S, ⌘F/Ctrl+G, vạch dòng đổi, ảnh/markdown/log, xung đột khi file đổi trên máy |
@@ -74,7 +74,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-21 | ☑ | thẻ Cho phép/Từ chối/mọi lần ghi + chọn phương án (`AskUserQuestion`, gửi `answers`, không chọn hộ qua ⌥Y/chuông), menu quyền có mô tả, Bypass xác nhận lần hai |
 | AC-22 | ◐ | model/effort/slash từ `initialize`, Context a/b từ `get_context_usage` sau mỗi lượt; còn thử đổi model trên giao diện với CLI thật |
 | AC-23 | ☑ | danh sách phiên CLI chưa gắn + Tiếp tục (`--resume`), cảnh báo phiên vừa dùng <2 phút; đổi tên gửi `--name` ở lượt kế tiếp |
-| AC-24 | ◐ | gợi ý `/`, đính kèm qua Mở nhanh, mic Web Speech, IME không gửi sớm; còn dogfood điện thoại |
+| AC-24 | ☑ | gợi ý `/`, đính kèm qua Mở nhanh, mic Web Speech, IME `isComposing` không gửi sớm — đã dogfood mobile & locale |
 | AC-25 | ◐ | chip Hạn mức 5 giờ từ `rate_limit_event` (fake-claude); chưa đối chiếu CLI thật |
 | AC-26 | ☑ | ⌘K / Ctrl+Alt+K (nút ở thanh bên + thanh trên): dự án, phiên, file của dự án hiện tại, lệnh; gõ không dấu; trống → phiên đang chạy/cần duyệt |
 | AC-27 | ☑ | Chủ đề Tối/Sáng/Theo hệ thống + Tiếng Việt/English lưu theo người dùng, áp ngay, giữ qua F5 |
@@ -88,8 +88,8 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-35 | ☑ | chia ô trái/phải: Claude/Terminal/Files/Git ở ô phải, kéo đổi tỉ lệ, giữ qua F5; Files/Git ô phải một cột; dưới 768px ẩn ô phải |
 | AC-36 | ☑ | ⌘P khớp mờ + `:dòng`, trống → file đang mở; ⌘⇧F mở tab Tìm ở Files từ bất kỳ đâu |
 | AC-37 | ☑ | `file:dòng` mở đúng dòng; Claude sửa file đang mở → tự tải lại + dải báo / xung đột khi đang sửa; file đổi ngoài Claude bắt ở lúc lưu (watcher → backlog) |
-| AC-38 | ◐ | chuông ở thanh phiên + thanh trên, ✓/✗ tại chỗ, cập nhật qua events.v1 — đã thử desktop; còn mobile |
-| AC-39 | ◐ | model/effort/quyền lưu theo phiên, ⚠ Bypass ở cây/tab/ô soạn, ⇧Tab, nháp + đính kèm riêng từng phiên; chưa thử F5 với 2 phiên khác cấu hình |
+| AC-38 | ☑ | chuông ở thanh phiên + thanh trên, ✓/✗ tại chỗ, cập nhật qua events.v1 — đã dogfood desktop + mobile (askbar) |
+| AC-39 | ☑ | model/effort/quyền lưu theo phiên, ⚠ đỏ Bypass ở cây/tab/ô soạn, ⇧Tab, nháp + đính kèm riêng từng phiên — đã dogfood F5 với 2 phiên khác cấu hình |
 | AC-40 | ☑ | hàng chờ server (mờ, Huỷ), Esc/Dừng giữ hàng chờ, lượt lỗi/dừng → "Gửi tiếp" — thử trên trình duyệt 2026-11-22 |
 | AC-41 | ☑ | tóm tắt lượt: thời gian · token · USD · file đổi (chỉ file ghi thành công), bấm file → Git `?file=` |
 | AC-42 | ☑ | nút gọn (target) gom bước thành "N bước · sửa x file · chạy y lệnh"; bấm → xem đầy đủ |

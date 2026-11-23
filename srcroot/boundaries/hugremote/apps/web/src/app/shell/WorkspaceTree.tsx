@@ -213,7 +213,7 @@ export function WorkspaceTree() {
                             metaWarn={s.status === 'awaiting'}
                             status={s.status}
                             statusTitle={t(`status.${s.status}`)}
-                            extra={s.bypass ? <span title={t('claude.mode_bypassPermissions_d')}><Icon name="warn" className="warn-ic" /></span> : undefined}
+                            extra={s.bypass ? <span title={t('claude.mode_bypassPermissions_d')}><Icon name="warn" className="del" /></span> : undefined}
                             onClick={() => nav(sessionHref(h.id, s))}
                             onMore={(e) => pop(e, sessionItems(s))}
                             moreLabel={t('tree.sessionActions', { name: s.name })}

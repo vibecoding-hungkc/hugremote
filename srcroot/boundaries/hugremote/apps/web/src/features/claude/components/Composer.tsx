@@ -346,13 +346,12 @@ export function Composer(p: ComposerProps) {
               <button className="chip" title={t('claude.modelTip')} onClick={() => setMenu(menu === 'model' ? null : 'model')}>
                 {t('claude.model')}{' '}
                 <b>
-                  {curModel?.displayName ?? p.model ?? '…'}
+                  {(curModel?.displayName ?? p.model ?? '…').replace(/\s*\(recommended\)/i, '')}
                   {effort ? ` · ${t(`claude.effort_${effort}`, { defaultValue: effort })}` : ''}
                 </b>{' '}
                 ▾
               </button>
               <button
-                style={{ marginLeft: 'auto' }}
                 className={`chip ${bypass ? 'danger' : ''}`}
                 title={t('claude.modeTip', { desc: t(`claude.mode_${p.mode}_d`) })}
                 onClick={() => setMenu(menu === 'mode' ? null : 'mode')}

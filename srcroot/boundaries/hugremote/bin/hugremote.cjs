@@ -34,15 +34,15 @@ function mode(p) {
 
 async function doctor(fix) {
   const rows = [];
-  const add = (ok, name, detail, hint) => rows.push({ ok, name, detail, hint });
+  const add = (ok, name, detail, hint, required = true) => rows.push({ ok, name, detail, hint, required });
   const nodeMajor = Number(process.versions.node.split('.')[0]);
   add(nodeMajor >= 22, 'Node.js', process.versions.node, 'Cần Node 22 trở lên');
   for (const [cmd, name, need] of [['git', 'git', true], ['ssh', 'OpenSSH', true], ['python3', 'python3 (nén zip)', false], ['rg', 'ripgrep (tìm trong dự án)', false]]) {
     const v = has(cmd, cmd === 'ssh' ? ['-V'] : ['--version']);
-    add(!!v || !need, name, v || 'không có', need ? `Cài ${cmd}` : `Nên cài ${cmd} — có thì nhanh hơn`);
+    add(!!v, name, v || 'không có', v ? '' : (need ? `Cài ${cmd}` : `Nên cài ${cmd} — có thì nhanh hơn`), need);
   }
   const claude = has(process.env.CLAUDE_BIN_PATH || 'claude', ['--version']);
-  add(true, 'Claude Code CLI (máy này)', claude || 'chưa cài — phiên Claude trên máy này sẽ báo cài', '');
+  add(!!claude, 'Claude Code CLI (máy này)', claude || 'chưa cài — phiên Claude trên máy này sẽ báo cài', claude ? '' : 'Tuỳ chọn — Claude thường chạy trên máy đích qua SSH, không bắt buộc cài ở đây', false);
   if (fix) {
     fs.mkdirSync(path.join(DATA_DIR, 'logs'), { recursive: true, mode: 0o700 });
     for (const [p, m] of [[DATA_DIR, 0o700], [path.join(DATA_DIR, 'logs'), 0o700], ...['hugremote.db', 'hugremote.db-wal', 'hugremote.db-shm', 'secret.key', 'known_hosts'].map((f) => [path.join(DATA_DIR, f), 0o600])]) {
@@ -67,8 +67,9 @@ async function doctor(fix) {
   }
   let bad = 0;
   for (const r of rows) {
-    if (!r.ok) bad++;
-    console.log(`${r.ok ? '✓' : '✗'} ${r.name}: ${r.detail}${r.ok || !r.hint ? '' : `\n    → ${r.hint}`}`);
+    if (!r.ok && r.required !== false) bad++;
+    const icon = r.ok ? '✓' : r.required === false ? '⚠' : '✗';
+    console.log(`${icon} ${r.name}: ${r.detail}${r.ok || !r.hint ? '' : `\n    → ${r.hint}`}`);
   }
   console.log(bad ? `\n${bad} mục cần xử lý.` : '\nMọi thứ ổn.');
   process.exitCode = bad ? 1 : 0;

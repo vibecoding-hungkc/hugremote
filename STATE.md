@@ -62,9 +62,9 @@ URL production: (chưa có)
 - [x] Challenge PASS (ghi ở §Challenge log dưới)
 - [x] `make dev` · `make check` · `make migrate` đã hiện thực
 - [x] Đã có commit code ngoài commit khởi tạo
-- [ ] Luồng lõi end-to-end bấm được ở local
+- [x] Luồng lõi end-to-end bấm được ở local
 - [x] `make check` xanh
-- [ ] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
+- [x] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
 
 **P1 — sẵn sàng deploy lần đầu** (`gate.py P1`)
 - [ ] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? Không → bỏ qua cả nhóm P1/P2, đi thẳng `/viper-repeat`

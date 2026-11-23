@@ -22,6 +22,7 @@ last_reviewed: "2026-11-21"
 srcroot/boundaries/hugremote/
 ├── apps/api/        @app/api — NestJS (modules/, integrations/{ssh,pty,claude-cli,git,oidc,updater}, infra/database, health/)
 ├── apps/web/        @app/web — React + Vite (pages/, features/<domain>/, components/ui/ (C1–C38), styles/tokens.css (sinh từ gói DS), stores/, types/api.d.ts, dev/ds (route #/_ds))
+├── apps/desktop/    @app/desktop — Electron (main, preload), bọc apps/api + apps/web đã build, loopback cookie auth, build .app/.dmg ký ad-hoc (Vòng 2)
 ├── packages/shared/ @app/shared — enum, hằng số, mã lỗi, hàm thuần
 ├── bin/             CLI hugremote (doctor [--fix], update, import-v1, reset-password, restart), install.sh, beta.sh, updater cô lập, cài user service
 ├── pnpm-workspace.yaml · package.json · Makefile
@@ -215,4 +216,4 @@ Quy tắc chung không đổi:
 - Đa tenant, cô lập ở mức hệ điều hành — mọi thứ chạy dưới quyền user chạy dịch vụ; `member` chỉ bị giới hạn ở tầng app
 - Telemetry/analytics gửi ra ngoài
 - Chạy Claude trong PTY rồi đọc màn hình — dùng giao thức stream-json
-- Git worktree, chạy song song nhiều agent kiểu Orca (backlog); app macOS (Phase 3)
+- Git worktree, chạy song song nhiều agent kiểu Orca (backlog); app Windows/Linux native (backlog)

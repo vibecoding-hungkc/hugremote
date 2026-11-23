@@ -36,26 +36,31 @@ function isPrivate(ip: string) {
 }
 
 /**
- * Chặn SSRF khi owner nhập Issuer URL: chỉ https và không trỏ vào IP nội bộ. `allowLocalHttp` chỉ bật ở môi trường dev
- * (IdP thử Keycloak ở localhost).
+ * Chặn SSRF: chỉ https và không trỏ vào IP nội bộ. `allowLocalHttp` chỉ bật ở môi trường dev (IdP thử
+ * Keycloak ở localhost). Dùng cho Issuer owner nhập VÀ cho mọi endpoint mà tài liệu discovery khai báo
+ * (token_endpoint/jwks_uri/authorization_endpoint) — issuer gốc an toàn không có nghĩa nội dung
+ * `.well-known` nó trả về (đọc lại ở MỖI lần discover/login, không chỉ lúc owner lưu cấu hình) cũng an
+ * toàn: DNS rebinding hoặc issuer bị chiếm sau khi đã lưu vẫn phải bị chặn.
  */
-export async function assertSafeIssuer(raw: string, allowLocalHttp: boolean) {
+export async function assertSafeUrl(raw: string, allowLocalHttp: boolean, label = 'URL') {
   let u: URL;
   try {
     u = new URL(raw);
   } catch {
-    throw new OidcError('Issuer URL không hợp lệ');
+    throw new OidcError(`${label} không hợp lệ`);
   }
   const local = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
   if (allowLocalHttp && local) return;
-  if (u.protocol !== 'https:') throw new OidcError('Issuer URL phải là https');
+  if (u.protocol !== 'https:') throw new OidcError(`${label} phải là https`);
   const addrs = net.isIP(u.hostname) ? [u.hostname] : (await dns.lookup(u.hostname, { all: true })).map((a) => a.address);
-  if (addrs.some(isPrivate)) throw new OidcError('Issuer trỏ vào địa chỉ nội bộ');
+  if (addrs.some(isPrivate)) throw new OidcError(`${label} trỏ vào địa chỉ nội bộ`);
 }
+
+export const assertSafeIssuer = (raw: string, allowLocalHttp: boolean) => assertSafeUrl(raw, allowLocalHttp, 'Issuer URL');
 
 const metaCache = new Map<string, { at: number; meta: OidcMeta }>();
 
-export async function discover(issuer: string): Promise<OidcMeta> {
+export async function discover(issuer: string, allowLocalHttp = false): Promise<OidcMeta> {
   const key = issuer.replace(/\/+$/, '');
   const hit = metaCache.get(key);
   if (hit && Date.now() - hit.at < 10 * 60_000) return hit.meta;
@@ -64,6 +69,9 @@ export async function discover(issuer: string): Promise<OidcMeta> {
   const meta = (await r.json()) as OidcMeta;
   if (!meta.authorization_endpoint || !meta.token_endpoint || !meta.jwks_uri) throw new OidcError('Tài liệu discovery thiếu trường');
   if (meta.issuer.replace(/\/+$/, '') !== key) throw new OidcError('Issuer trong discovery không khớp');
+  await assertSafeUrl(meta.token_endpoint, allowLocalHttp, 'token_endpoint');
+  await assertSafeUrl(meta.jwks_uri, allowLocalHttp, 'jwks_uri');
+  await assertSafeUrl(meta.authorization_endpoint, allowLocalHttp, 'authorization_endpoint');
   metaCache.set(key, { at: Date.now(), meta });
   return meta;
 }

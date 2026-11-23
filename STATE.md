@@ -3,7 +3,7 @@
 > Trạng thái sống. Người và agent cùng đọc/ghi. Cập nhật ngay khi đổi pha hoặc tick gate.
 
 ```
-Pha hiện tại : I
+Pha hiện tại : P1
 Vòng          : 1
 Phase         : MVP · mở ở vòng 1
 Đường vào     : intake
@@ -67,12 +67,12 @@ URL production: (chưa có)
 - [x] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
 
 **P1 — sẵn sàng deploy lần đầu** (`gate.py P1`)
-- [ ] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? Không → bỏ qua cả nhóm P1/P2, đi thẳng `/viper-repeat`
-- [ ] `context/PRODUCTION-READY.md` 4 nhóm xanh, **trừ** mục gắn `(sau deploy)`
-- [ ] Vòng ≥2: `BACKWARD-COMPATIBILITY-CHECKLIST.md §3` xanh — hook `guard_bc` chặn deploy tới khi xanh
-- [ ] `make test` · `make deploy` · `make doctor` đã hiện thực
-- [ ] `make check && make test` xanh
-- [ ] Phép thử phân quyền A↛B đã chạy ở local
+- [x] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? **Có** (STATE.md: "Pha vòng này: V, I, P (chỉ P1)") → chạy P1
+- [x] `context/PRODUCTION-READY.md` 4 nhóm xanh, **trừ** mục gắn `(sau deploy)`
+- [x] Vòng ≥2: `BACKWARD-COMPATIBILITY-CHECKLIST.md §3` xanh — **n/a, vòng 1**
+- [x] `make test` · `make deploy` · `make doctor` đã hiện thực
+- [x] `make check && make test` xanh
+- [x] Phép thử phân quyền A↛B đã chạy ở local — dogfood `breaker` 28/28 route (1 lỗ hổng 2FA vá) + review pha P1 tìm thêm 1 lỗ hổng WS terminal (vá + test hồi quy) + `core-flow.e2e.mjs` (member↛owner)
 
 **P2 — production đã sống** (`gate.py P2`)
 - [ ] 4 nhóm xanh **toàn bộ**, kể cả mục `(sau deploy)`
@@ -111,6 +111,7 @@ Meta ra câu hỏi khó dựa trên context, chấm PASS/FAIL. **Pha V**: 3–5 
 | 2026-11-21 | V | Vòng ~30 ngày công trễ ở giữa thì cắt gì trước, cắt rồi đi đâu? | PASS | `l1/_PROPOSAL.md §20` thứ tự cắt (cập nhật → mic/hạn mức → lịch sử Git → SSO → sáng/en) → `ROADMAP.md §3` thành vòng 2 |
 | 2026-11-22 | I | Lát 1–2 trước khi code: owner đang chạy phiên Claude A, member B (SSO) mở đúng URL phiên A rồi gửi tin trong lúc A đang `running` và lượt đó kết thúc bằng lỗi — server làm gì với tin của B, với hàng chờ của A, và B thấy gì? | PASS | B: G-13 → `POST /:id/messages` trả 403 `NOT_SESSION_OWNER` trước cả kiểm `running`; route web chặn về S2 (AC-33, AC-48). Hàng chờ của A: lượt lỗi → **không** tự gửi tin kế, hiện C5 + "Gửi tiếp" (SOLUTION B1 AC-40), tin vẫn nằm trong `claude_queue`. Hệ quả code: guard chủ phiên đặt ở service trước mọi nhánh, runner chỉ rút hàng chờ khi `finish` thành công |
 | 2026-11-22 | I | Trước khi hoàn thiện AC-20/21/13: agent con (`parent_tool_use_id`) phát stream song song + gọi `AskUserQuestion`, người dùng bấm `⌥Y` hoặc hai thiết bị trả lời cùng lúc thì xử lý thế nào? | PASS | Normalizer tách `blocks`/`assistantId` theo `parentId` để không trộn stream chính và gắn `parentId` để ChatView lồng trong thẻ cha (chế độ gọn gộp chung). `AskUserQuestion` bắt chọn phương án (C21 không chọn hộ): `⌥Y` và ✓ nhanh ở chuông/askbar không gửi allow rỗng; API chặn `allow` thiếu `answers` (400). Hai thiết bị trả lời cùng lúc → `pending.delete` đầu tiên thắng, người sau 409 `INTERACTION_ALREADY_ANSWERED` |
+| 2026-11-23 | P1 | Trước checklist production-ready: member biết `sessionId` terminal hoặc `hostId` của owner (đoán hoặc nhìn thấy trong URL/log mạng) — có bao nhiêu đường chạm được vào đó mà KHÔNG qua kiểm chủ sở hữu, tính cả đường không lộ ở UI (WS mở trực tiếp, route browse dùng cho tạo dự án)? | FAIL lúc đầu → PASS sau vá | Soi ra 2 đường thủng thật: (1) `terminal.gateway.ts` ghi phím vào PTY TRƯỚC khi `attach()` xác nhận chủ phiên — đã vá (đệm hàng đợi, xả sau khi attach OK) + `terminal.gateway.spec.ts`; (2) `GET /hosts/:id/browse` không có `@Roles(OWNER)` — member duyệt được toàn bộ cây thư mục mọi máy, đã vá + test ở `core-flow.e2e.mjs`. Cả hai không bị `breaker` dogfood (click tay) bắt được — chỉ lộ qua review tĩnh đọc code |
 
 ---
 

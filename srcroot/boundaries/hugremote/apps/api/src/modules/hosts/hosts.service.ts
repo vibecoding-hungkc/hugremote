@@ -7,7 +7,7 @@ import { APP_CONFIG } from '../../config/app-config';
 import type { AppConfig } from '../../config/app-config';
 import { AppError } from '../../common/app-error';
 import { CryptoService } from '../../common/crypto.service';
-import type { AuthUser } from '../../common/auth-user';
+import { isOwner, type AuthUser } from '../../common/auth-user';
 import { LocalRuntime, SshRuntime, type HostRuntime } from '../../integrations/host/host-runtime';
 import {
   removeHostBlock,
@@ -98,6 +98,7 @@ export class HostsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async list(user: AuthUser): Promise<HostListDto> {
+    const owner = isOwner(user); // member xem được danh sách máy nhưng không cần đường dẫn khoá/cấu hình trên đĩa (PERSONAS §2)
     const { hosts, warnings } = this.sshHosts();
     const metas = new Map((await this.repo.allMeta()).map((m) => [m.hostId, m]));
     const pinIds = await this.pins(user);
@@ -124,14 +125,14 @@ export class HostsService implements OnModuleInit, OnModuleDestroy {
         user: h.user,
         port: h.port,
         proxyJump: h.proxyJump,
-        keyPath: h.identityFile,
+        keyPath: owner ? h.identityFile : undefined,
         authType: (m?.authType as HostAuthType) ?? (h.identityFile ? HostAuthType.KEY : HostAuthType.AGENT),
         hasSecret: !!m?.secretEnc,
         workspaceDir: m?.workspaceDir ?? '~',
         trusted: this.knownCache.some((k) => k.host === h.hostName && k.port === h.port),
         pinned: pinPos.has(h.alias),
         pinPosition: pinPos.get(h.alias),
-        configFile: h.file.replace(os.homedir(), '~'),
+        configFile: owner ? h.file.replace(os.homedir(), '~') : undefined,
         dependents: hosts.filter((x) => x.proxyJump === h.alias).map((x) => x.alias),
       });
     }

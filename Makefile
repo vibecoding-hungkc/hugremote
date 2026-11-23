@@ -57,7 +57,7 @@ migrate:
 	$(MAKE) -C $(TARGET) migrate
 
 deploy:
-	$(NOT_IMPLEMENTED)
+	$(MAKE) -C $(TARGET) deploy
 
 doctor:
 	$(MAKE) -C $(TARGET) doctor

@@ -18,7 +18,18 @@ async function bootstrap() {
   const cfg = app.get<AppConfig>(APP_CONFIG);
   process.umask(0o077);
   secureDataDir(cfg.dataDir);
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
+  // Mặc định Node in ra stderr rồi thoát — không vào app.log nên không hiện ở Hệ thống (AC-15).
+  // Ghi qua logger chung trước khi thoát; systemd/launchd Restart=on-failure/KeepAlive tự khởi động lại.
+  process.on('uncaughtException', (err) => {
+    logger.error(err?.stack ?? String(err), 'uncaughtException');
+    process.exit(1);
+  });
+  process.on('unhandledRejection', (reason) => {
+    logger.error(reason instanceof Error ? (reason.stack ?? reason.message) : String(reason), 'unhandledRejection');
+    process.exit(1);
+  });
   app.useWebSocketAdapter(new WsAdapter(app));
   app.set('trust proxy', cfg.trustProxy ? 1 : false);
   app.disable('x-powered-by');

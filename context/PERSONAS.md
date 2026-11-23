@@ -106,7 +106,7 @@ last_reviewed: "2026-11-21"
 | Đổi tên hiển thị dự án | ✓ | ✗ | ✗ | ✗ |
 | Bỏ dự án khỏi không gian làm việc (xoá cho cả nhóm, dừng mọi phiên của dự án) | ✓ | ✗ | ✗ | ✗ |
 | Tạo thư mục mới khi chọn thư mục dự án (S5, `POST /api/hosts/:id/mkdir`) | ✓ | ✗ | ✗ | ✗ |
-| Duyệt cây thư mục (local: trong `ALLOWED_ROOT`) | ✓ | ✓ (trong dự án) | ✗ | ✗ |
+| Duyệt cây thư mục máy để chọn gốc dự án mới (`GET /hosts/:id/browse`, trước khi dự án tồn tại) | ✓ | ✗ | ✗ | ✗ |
 | Mở / gõ / đổi tên / đóng phiên terminal | ✓ (mọi phiên) | ✓ (chỉ của mình) | ✗ | ✗ |
 | Đổi tên hiển thị phiên Claude | ✓ (mọi phiên) | ✓ (chỉ của mình) | ✗ | ✗ |
 | Duyệt ✓/✗ qua chuông thông báo; nhận sự kiện `events.v1` | ✓ (mọi phiên) | ✓ (chỉ phiên của mình) | ✗ | ✗ |

@@ -100,7 +100,7 @@ export class SsoService {
     const issuer = provider === 'google' ? GOOGLE_ISSUER : (issuerUrl ?? '').trim();
     try {
       await assertSafeIssuer(issuer, this.devLocal);
-      const m = await discover(issuer);
+      const m = await discover(issuer, this.devLocal);
       return { ok: true, issuer: m.issuer, authorizationEndpoint: m.authorization_endpoint };
     } catch (e) {
       throw AppError.badRequest(ErrorCode.SSO_FAILED, { reason: (e as Error).message });
@@ -145,7 +145,7 @@ export class SsoService {
   async start(provider: Provider, returnTo?: string): Promise<string> {
     const c = await this.active();
     if (!c || c.provider !== provider || !c.clientId) throw AppError.badRequest(ErrorCode.SSO_DISABLED);
-    const meta = await discover(this.issuerOf(c)).catch((e: Error) => {
+    const meta = await discover(this.issuerOf(c), this.devLocal).catch((e: Error) => {
       throw AppError.badRequest(ErrorCode.SSO_FAILED, { reason: e.message });
     });
     for (const [k, v] of this.pending) if (Date.now() - v.at > 10 * 60_000) this.pending.delete(k);
@@ -170,7 +170,7 @@ export class SsoService {
     if (!c || c.provider !== provider) return { returnTo: p.returnTo, error: ErrorCode.SSO_DISABLED };
     let who: { email: string };
     try {
-      const meta = await discover(this.issuerOf(c));
+      const meta = await discover(this.issuerOf(c), this.devLocal);
       who = await exchange(meta, {
         clientId: c.clientId!,
         clientSecret: this.crypto.decrypt(c.clientSecretEnc!),

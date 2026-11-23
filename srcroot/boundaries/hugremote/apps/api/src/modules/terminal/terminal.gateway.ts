@@ -35,8 +35,7 @@ export class TerminalGateway implements OnGatewayConnection {
       send: (d: Buffer) => ws.readyState === ws.OPEN && ws.send(d, { binary: true }),
       sendControl: (m: Record<string, unknown>) => ws.readyState === ws.OPEN && ws.send(JSON.stringify(m)),
     };
-    // Gắn nghe trước khi attach để không lỡ phím gõ sớm
-    ws.on('message', (raw: Buffer, isBinary: boolean) => {
+    const handle = (raw: Buffer, isBinary: boolean) => {
       if (!isBinary && raw.length < 256 && raw[0] === 0x7b) {
         try {
           const m = JSON.parse(raw.toString()) as { type?: string; cols?: number; rows?: number };
@@ -47,11 +46,24 @@ export class TerminalGateway implements OnGatewayConnection {
         }
       }
       this.terminals.ptys.write(id, raw);
+    };
+    // Đệm phím gõ tới khi attach() xác nhận chủ phiên (G-13) — gắn nghe trước để không lỡ phím gõ
+    // sớm, nhưng KHÔNG ghi thẳng vào PTY trước khi biết `id` đúng là phiên của `user`.
+    let attached = false;
+    const pending: Array<{ raw: Buffer; isBinary: boolean }> = [];
+    ws.on('message', (raw: Buffer, isBinary: boolean) => {
+      if (!attached) {
+        if (pending.length < 64) pending.push({ raw, isBinary });
+        return;
+      }
+      handle(raw, isBinary);
     });
     ws.on('close', () => this.terminals.ptys.detach(id, viewer));
     try {
       const ok = await this.terminals.attach(user, id, viewer, clamp(Number(q.get('cols')), 2, 500), clamp(Number(q.get('rows')), 2, 300));
-      if (!ok) ws.close(4404, 'gone');
+      if (!ok) return ws.close(4404, 'gone');
+      attached = true;
+      for (const { raw, isBinary } of pending) handle(raw, isBinary);
     } catch {
       ws.close(4404, 'gone');
     }

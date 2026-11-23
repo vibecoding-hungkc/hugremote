@@ -30,6 +30,10 @@ export class UpdaterService implements OnModuleInit, OnModuleDestroy {
   private latestCache?: { at: number; tag: string | null };
   private waiting: { channel: string; runId: string } | null = null;
   private timer?: NodeJS.Timeout;
+  /** Khoá trong bộ nhớ: đóng khoảng hở giữa lúc `start()` qua được kiểm tra trùng lệnh và lúc nó
+   * ghi xong trạng thái "đang chạy" xuống đĩa (file chỉ được ghi muộn trong `launch()`, sau vài
+   * `await`) — hai lần bấm gần nhau (hoặc hai tab) có thể cùng vượt qua kiểm tra ở `this.run()`. */
+  private launching = false;
 
   constructor(
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
@@ -108,18 +112,23 @@ export class UpdaterService implements OnModuleInit, OnModuleDestroy {
   /** Bấm lần hai khi đang chạy/đang chờ → 409 UPDATE_IN_PROGRESS. */
   async start(when: 'now' | 'idle') {
     if (!this.current()) throw AppError.badRequest(ErrorCode.VALIDATION_FAILED, { reason: 'Bản dev — cập nhật bằng git pull + make' });
-    if (this.waiting || this.run()?.status === 'running') throw AppError.conflict(ErrorCode.UPDATE_IN_PROGRESS);
-    const tag = await this.latest();
-    if (!tag || tag === this.current()) throw AppError.badRequest(ErrorCode.VALIDATION_FAILED, { reason: 'Đang ở bản mới nhất' });
-    const runId = Date.now().toString(36);
-    await this.record(runId, tag, when === 'idle' ? 'waiting' : 'running', when);
-    if (when === 'idle') {
-      this.waiting = { channel: this.cfg.updateChannel, runId };
-      this.log.log(`Hẹn cập nhật lên ${tag} khi không còn phiên chạy`);
+    if (this.waiting || this.run()?.status === 'running' || this.launching) throw AppError.conflict(ErrorCode.UPDATE_IN_PROGRESS);
+    this.launching = true; // đặt khoá NGAY — không await nào trước dòng này nên không có khe hở
+    try {
+      const tag = await this.latest();
+      if (!tag || tag === this.current()) throw AppError.badRequest(ErrorCode.VALIDATION_FAILED, { reason: 'Đang ở bản mới nhất' });
+      const runId = Date.now().toString(36);
+      await this.record(runId, tag, when === 'idle' ? 'waiting' : 'running', when);
+      if (when === 'idle') {
+        this.waiting = { channel: this.cfg.updateChannel, runId };
+        this.log.log(`Hẹn cập nhật lên ${tag} khi không còn phiên chạy`);
+        return this.state();
+      }
+      this.launch(tag, runId);
       return this.state();
+    } finally {
+      this.launching = false;
     }
-    this.launch(tag, runId);
-    return this.state();
   }
 
   cancelWaiting() {

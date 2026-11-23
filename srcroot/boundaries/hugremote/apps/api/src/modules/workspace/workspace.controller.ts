@@ -5,7 +5,8 @@ import { Roles } from '../../common/decorators';
 import { WorkspaceService } from './workspace.service';
 import { BrowseDto, BrowseQuery, CreateProjectDto, DryRunDto, MkdirDto, ProjectDto, RenameProjectDto } from './dto/workspace.dto';
 
-/** workspace-api.v1. Tạo/sửa/xoá dự án, tạo thư mục: owner (PERSONAS §2); duyệt + đọc: mọi người đã đăng nhập. */
+/** workspace-api.v1. Tạo/sửa/xoá/duyệt cây máy, tạo thư mục: owner (PERSONAS §2 — member chỉ duyệt "trong dự án"
+ * qua `/files`, không qua `browse` vì route này duyệt toàn bộ ALLOWED_ROOT/máy, dùng để CHỌN thư mục lúc tạo dự án). */
 @ApiTags('workspace')
 @Controller()
 export class WorkspaceController {
@@ -16,6 +17,7 @@ export class WorkspaceController {
     return this.ws.list(id);
   }
 
+  @Roles(UserRole.OWNER)
   @Get('hosts/:id/browse')
   browse(@Param('id') id: string, @Query() q: BrowseQuery): Promise<BrowseDto> {
     return this.ws.browse(id, q.path);

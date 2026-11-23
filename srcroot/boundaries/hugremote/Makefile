@@ -3,7 +3,7 @@ SHELL := /bin/bash
 ENV_FILE ?= ../../../deployment/local/.env
 LOAD_ENV = set -a; [ -f $(ENV_FILE) ] && . $(ENV_FILE); set +a;
 
-.PHONY: install dev check test migrate build doctor
+.PHONY: install dev check test migrate build deploy doctor
 
 install:
 	pnpm install --frozen-lockfile
@@ -26,6 +26,7 @@ test:
 	pnpm --filter @app/web test
 	pnpm --filter @app/api build
 	pnpm --filter @app/api test:security
+	pnpm --filter @app/api test:core
 
 migrate:
 	pnpm --filter @app/shared build
@@ -33,6 +34,9 @@ migrate:
 	$(LOAD_ENV) pnpm --filter @app/api migrate
 
 build: check
+
+deploy: check
+	$(LOAD_ENV) bash bin/lib/cut-release.sh
 
 doctor:
 	@$(LOAD_ENV) node bin/hugremote.cjs doctor

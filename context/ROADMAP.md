@@ -83,7 +83,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-30 | ◐ | `hugremote import-v1`: sao lưu, chỉ đọc, nhập mật khẩu + 2FA + mã khôi phục + dự án + phiên Claude + mật khẩu SSH, chạy lại không trùng, báo cáo S7; định dạng v1 là giả định — cần đối chiếu file v1 thật |
 | AC-31 | ☑ | S7: bản mới → xác nhận nêu số phiên sẽ dừng → Cập nhật ngay / Khi rảnh → 5 bước; bấm lại 409; bản hỏng tự quay về (đã thử kênh giả) |
 | AC-32 | ☑ | SSO OIDC (Keycloak thử) + Google: PKCE S256 + state + nonce, `id_token` kiểm JWKS, allowlist email/@tên-miền, link sâu giữ qua SSO |
-| AC-33 | ◐ | member: 403 với phiên/máy/hệ thống/SSO của owner, cây/chuông/⌘K lọc theo người dùng; chưa dogfood 2 người dùng song song (operator/concurrent) |
+| AC-33 | ☑ | member: 403 với phiên/máy/hệ thống/SSO/2FA của owner, cây/chuông/⌘K lọc theo người dùng — đã dogfood 2 người dùng song song (`breaker` + `operator`) |
 | AC-34 | ☑ | `apps/api/test/security.e2e.mjs` trong `make test`: 18/18 PASS (gồm 4 ca mới); sửa 413/400 cho lỗi body-parser, header bảo mật |
 | AC-35 | ☑ | chia ô trái/phải: Claude/Terminal/Files/Git ở ô phải, kéo đổi tỉ lệ, giữ qua F5; Files/Git ô phải một cột; dưới 768px ẩn ô phải |
 | AC-36 | ☑ | ⌘P khớp mờ + `:dòng`, trống → file đang mở; ⌘⇧F mở tab Tìm ở Files từ bất kỳ đâu |
@@ -96,7 +96,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó.
 | AC-43 | ☑ | dải mất kết nối ngay (offline + heartbeat), khoá nút + phím tắt ghi, mã NETWORK, nháp/bản sửa/commit message giữ, nối lại không tự gửi |
 | AC-44 | ☑ | S7 thiết bị đang đăng nhập: đăng xuất từng cái / mọi thiết bị khác / thiết bị này |
 | AC-45 | ☑ | S7 Nhóm: thành viên + Thu hồi (đăng xuất mọi nơi, dừng phiên, chặn đăng nhập) + Cho vào lại; lần bị từ chối + Cho phép; Tắt SSO |
-| AC-46 | ◐ | S7 Hệ thống: tình trạng + nhật ký Ứng dụng/SSH/Cập nhật, tải/sao chép; lọc SSH dựa vào ngữ cảnh log |
+| AC-46 | ☑ | S7 Hệ thống: tình trạng + nhật ký Ứng dụng/SSH/Cập nhật, tải/sao chép, không lộ bí mật — đã dogfood `operator` |
 | AC-47 | ☑ | `hugremote reset-password` đặt mật khẩu tạm, bắt đổi, đăng xuất mọi thiết bị, giữ 2FA |
 | AC-48 | ☑ | link sâu khi chưa đăng nhập về đúng chỗ (cả 2FA, SSO); bị khoá thấy đếm ngược |
 | AC-49 | ☑ | ⌘K ⌘P ⌘⇧F ⌘/ ⌘\ ⌥1–9 Ctrl+Tab Ctrl+1/2/3 ⌥⇧N ⌥⇧T ⌥W Esc ⇧Tab ⌥Y/⌥N ⌘S ⌘Enter; bắt ở pha capture để thắng phím editor; PWA dùng ⌘ thay ⌥ |

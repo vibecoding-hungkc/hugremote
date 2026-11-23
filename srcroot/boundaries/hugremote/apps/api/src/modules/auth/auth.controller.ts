@@ -5,10 +5,10 @@ import type { Request, Response } from 'express';
 import { Inject } from '@nestjs/common';
 import { APP_CONFIG } from '../../config/app-config';
 import type { AppConfig } from '../../config/app-config';
-import { ErrorCode } from '@app/shared';
+import { ErrorCode, UserRole } from '@app/shared';
 import { AppError } from '../../common/app-error';
 import { clearRefreshCookie, REFRESH_COOKIE, setRefreshCookie } from './refresh-cookie';
-import { AllowPending, CurrentUser, Public } from '../../common/decorators';
+import { AllowPending, CurrentUser, Public, Roles } from '../../common/decorators';
 import type { AuthUser } from '../../common/auth-user';
 import { AuthService, ClientCtx, IssuedSession } from './auth.service';
 import {
@@ -121,25 +121,29 @@ export class AuthController {
     return this.auth.issueTicket(u);
   }
 
-  // 2FA — chỉ owner có mật khẩu (member dùng 2FA của IdP)
+  // 2FA — chỉ owner có mật khẩu (member dùng 2FA của IdP — PERSONAS §2, dogfood breaker)
+  @Roles(UserRole.OWNER)
   @Post('auth/2fa/setup')
   @HttpCode(200)
   setup(@CurrentUser() u: AuthUser): Promise<TwoFactorSetupResponseDto> {
     return this.auth.setupTwoFactor(u);
   }
 
+  @Roles(UserRole.OWNER)
   @Post('auth/2fa/enable')
   @HttpCode(200)
   async enable(@CurrentUser() u: AuthUser, @Body() dto: TwoFactorCodeDto): Promise<RecoveryCodesResponseDto> {
     return { recoveryCodes: await this.auth.enableTwoFactor(u, dto.code) };
   }
 
+  @Roles(UserRole.OWNER)
   @Post('auth/2fa/disable')
   @HttpCode(204)
   async disable(@CurrentUser() u: AuthUser, @Body() dto: TwoFactorCodeDto) {
     await this.auth.disableTwoFactor(u, dto.code);
   }
 
+  @Roles(UserRole.OWNER)
   @Post('auth/2fa/recovery-codes')
   @HttpCode(200)
   async recovery(@CurrentUser() u: AuthUser, @Body() dto: TwoFactorCodeDto): Promise<RecoveryCodesResponseDto> {

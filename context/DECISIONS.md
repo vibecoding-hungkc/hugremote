@@ -96,3 +96,4 @@ last_reviewed: "2026-11-21"
 | 2026-08-01 | Xoá mềm thay vì xoá cứng cho đơn hàng | Cần khôi phục khi khách gọi lại; AC-4 nhắc "huỷ nhầm" | Lượng đơn nhỏ, không lo phình bảng trong Phase 1 | Có — đổi sang xoá cứng kèm migration |
 | 2026-08-01 | Clerk cho auth thay vì tự viết | Mất 20 phút thay vì 1 ngày; PRD §7 chốt đăng nhập Google | Chấp nhận phụ thuộc bên thứ ba + chi phí khi scale | Khó — đổi provider phải migrate user |
 -->
+| (vòng 2) | — mở vòng 2 ngày 2026-11-23 — quyết định của vòng này nằm DƯỚI dòng này | | | |

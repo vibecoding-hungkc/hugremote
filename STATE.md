@@ -3,8 +3,9 @@
 > Trạng thái sống. Người và agent cùng đọc/ghi. Cập nhật ngay khi đổi pha hoặc tick gate.
 
 ```
-Pha hiện tại : R
-Vòng          : 1
+Pha hiện tại : V
+Vòng          : 2
+Vòng mở       : 2026-11-23
 Phase         : MVP · mở ở vòng 1
 Đường vào     : intake
 Pha vòng này  : V, I, P (chỉ P1)
@@ -38,41 +39,41 @@ URL production: (chưa có)
 > Bản thao tác. Định nghĩa chuẩn ở `VIPER.md §1.1` — lệch nhau thì sửa chỗ này cho khớp (luật #4).
 
 **V — Validate**
-- [x] `context/PRD.md`: pain point + đối tượng cụ thể
-- [x] `context/PRD.md`: AC — phỏng vấn 3–7 · intake ≥3 không trần, mọi AC có mặt ở `CAPABILITIES-MAP.md`
-- [x] `context/PRD.md`: out-of-scope tường minh
-- [x] `context/PRD.md`: 1 success metric có số
+- [ ] `context/PRD.md`: pain point + đối tượng cụ thể
+- [ ] `context/PRD.md`: AC — phỏng vấn 3–7 · intake ≥3 không trần, mọi AC có mặt ở `CAPABILITIES-MAP.md`
+- [ ] `context/PRD.md`: out-of-scope tường minh
+- [ ] `context/PRD.md`: 1 success metric có số
 - [ ] (vòng 1 — phỏng vấn) `context/INTERVIEW.md`: 14 mục, mỗi mục có dòng `Bằng chứng:` — *không áp: đường intake vòng 1*
-- [x] (vòng 1 — intake, thay dòng trên, `VIPER.md §1.3`) `intake/PRD.md` render thật · `INTERVIEW.md` mang `NGUỒN: INTAKE` + bảng truy vết · `context/CAPABILITIES-MAP.md` đã tách
-- [x] (vòng 1 — intake) **kế hoạch vòng** (`VIPER.md §1.4`): `ROADMAP.md §1` có bảng chia vòng, mỗi dòng có `intake/loops/l<N>/_PROPOSAL.md` tương ứng
+- [ ] (vòng 1 — intake, thay dòng trên, `VIPER.md §1.3`) `intake/PRD.md` render thật · `INTERVIEW.md` mang `NGUỒN: INTAKE` + bảng truy vết · `context/CAPABILITIES-MAP.md` đã tách
+- [ ] (vòng 1 — intake) **kế hoạch vòng** (`VIPER.md §1.4`): `ROADMAP.md §1` có bảng chia vòng, mỗi dòng có `intake/loops/l<N>/_PROPOSAL.md` tương ứng
 - [ ] (vòng ≥2 — phỏng vấn; thay hai dòng INTERVIEW; INTERVIEW đóng băng) `intake/loops/l<N>/` có ≥1 tài liệu vòng thật từ Authority — đồng thời là chữ ký chốt — *không áp: đường intake vòng 1*
 - [ ] (vòng ≥2 — intake; thay dòng trên) `l<N>/_PROPOSAL.md` thật (có `Pha vòng này`) + dòng `Rà lại vòng N: <ISO>` ngày ≥ `Vòng mở` — *không áp: đường intake vòng 1*
-- [x] `context/PERSONAS.md`: persona + năng lực được cấp + ma trận vai × hành động
-- [x] `context/TECHSTACK.md` chốt + 1 dòng lý do trong `DECISIONS.md`
-- [x] `context/DECISIONS.md`: ≥2 quyết định của vòng này (vòng ≥2: dưới mốc `(vòng N)`, ngày ≥ `Vòng mở`)
-- [x] `context/ARCHITECTURE.md` (sơ đồ + mô hình dữ liệu + luồng lõi; intake: thêm boundary/experience + contract)
-- [x] Design system: có UI → `context/DESIGN-SYSTEM.md` chốt **trước** prototype (token dùng thật · không dùng token ngoài bảng · tương phản AA · component có màn dùng · khớp gói `intake/design-systems/` nếu có) · backend-only → marker `KHÔNG CÓ UI`
-- [x] Prototype: có UI → file tương tác **từ token/component đã chốt** (`prototype/index.html`, hoặc `prototype/<experience>/index.html` ở đường intake) + mọi màn khai ở `PROTOTYPE.md §1` đã dựng + **Authority đã chốt** (`PROTOTYPE.md §5`) · backend-only → marker `KHÔNG CÓ UI` · intake vòng ≥2 khai `UI vòng này: không có màn mới` → bỏ qua
-- [x] **Bộ giải pháp** (`context/SOLUTION.md`): Phase khớp dòng `Phase` ở trên · phần A đủ A1–A5 + `Authority chốt Phase` (vòng đầu Phase: Authority vừa chốt) · phần B đúng vòng này, mỗi AC một dòng giải pháp
-- [x] `context/DOGFOOD-PLAN.md` của vòng này: mọi vai danh mục có bật/tắt + căn cứ · `smoke` luôn bật, đợt 0 · đợt ≤3 vai · mỗi vai một tài khoản · §3 smoke hồi quy
-- [x] Challenge pha V **PASS** (§Challenge log) — tài liệu trả lời được 3–5 câu khó nhất
-- [x] **Scope khoá** — từ đây không hỏi Authority nữa
+- [ ] `context/PERSONAS.md`: persona + năng lực được cấp + ma trận vai × hành động
+- [ ] `context/TECHSTACK.md` chốt + 1 dòng lý do trong `DECISIONS.md`
+- [ ] `context/DECISIONS.md`: ≥2 quyết định của vòng này (vòng ≥2: dưới mốc `(vòng N)`, ngày ≥ `Vòng mở`)
+- [ ] `context/ARCHITECTURE.md` (sơ đồ + mô hình dữ liệu + luồng lõi; intake: thêm boundary/experience + contract)
+- [ ] Design system: có UI → `context/DESIGN-SYSTEM.md` chốt **trước** prototype (token dùng thật · không dùng token ngoài bảng · tương phản AA · component có màn dùng · khớp gói `intake/design-systems/` nếu có) · backend-only → marker `KHÔNG CÓ UI`
+- [ ] Prototype: có UI → file tương tác **từ token/component đã chốt** (`prototype/index.html`, hoặc `prototype/<experience>/index.html` ở đường intake) + mọi màn khai ở `PROTOTYPE.md §1` đã dựng + **Authority đã chốt** (`PROTOTYPE.md §5`) · backend-only → marker `KHÔNG CÓ UI` · intake vòng ≥2 khai `UI vòng này: không có màn mới` → bỏ qua
+- [ ] **Bộ giải pháp** (`context/SOLUTION.md`): Phase khớp dòng `Phase` ở trên · phần A đủ A1–A5 + `Authority chốt Phase` (vòng đầu Phase: Authority vừa chốt) · phần B đúng vòng này, mỗi AC một dòng giải pháp
+- [ ] `context/DOGFOOD-PLAN.md` của vòng này: mọi vai danh mục có bật/tắt + căn cứ · `smoke` luôn bật, đợt 0 · đợt ≤3 vai · mỗi vai một tài khoản · §3 smoke hồi quy
+- [ ] Challenge pha V **PASS** (§Challenge log) — tài liệu trả lời được 3–5 câu khó nhất
+- [ ] **Scope khoá** — từ đây không hỏi Authority nữa
 
 **I — Implement**
-- [x] Challenge PASS (ghi ở §Challenge log dưới)
-- [x] `make dev` · `make check` · `make migrate` đã hiện thực
-- [x] Đã có commit code ngoài commit khởi tạo
-- [x] Luồng lõi end-to-end bấm được ở local
-- [x] `make check` xanh
-- [x] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
+- [ ] Challenge PASS (ghi ở §Challenge log dưới)
+- [ ] `make dev` · `make check` · `make migrate` đã hiện thực
+- [ ] Đã có commit code ngoài commit khởi tạo
+- [ ] Luồng lõi end-to-end bấm được ở local
+- [ ] `make check` xanh
+- [ ] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
 
 **P1 — sẵn sàng deploy lần đầu** (`gate.py P1`)
-- [x] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? **Có** (STATE.md: "Pha vòng này: V, I, P (chỉ P1)") → chạy P1
-- [x] `context/PRODUCTION-READY.md` 4 nhóm xanh, **trừ** mục gắn `(sau deploy)`
-- [x] Vòng ≥2: `BACKWARD-COMPATIBILITY-CHECKLIST.md §3` xanh — **n/a, vòng 1**
-- [x] `make test` · `make deploy` · `make doctor` đã hiện thực
-- [x] `make check && make test` xanh
-- [x] Phép thử phân quyền A↛B đã chạy ở local — dogfood `breaker` 28/28 route (1 lỗ hổng 2FA vá) + review pha P1 tìm thêm 1 lỗ hổng WS terminal (vá + test hồi quy) + `core-flow.e2e.mjs` (member↛owner)
+- [ ] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? **Có** (STATE.md: "Pha vòng này: V, I, P (chỉ P1)") → chạy P1
+- [ ] `context/PRODUCTION-READY.md` 4 nhóm xanh, **trừ** mục gắn `(sau deploy)`
+- [ ] Vòng ≥2: `BACKWARD-COMPATIBILITY-CHECKLIST.md §3` xanh — **n/a, vòng 1**
+- [ ] `make test` · `make deploy` · `make doctor` đã hiện thực
+- [ ] `make check && make test` xanh
+- [ ] Phép thử phân quyền A↛B đã chạy ở local — dogfood `breaker` 28/28 route (1 lỗ hổng 2FA vá) + review pha P1 tìm thêm 1 lỗ hổng WS terminal (vá + test hồi quy) + `core-flow.e2e.mjs` (member↛owner)
 
 **P2 — production đã sống** (`gate.py P2`)
 - [ ] 4 nhóm xanh **toàn bộ**, kể cả mục `(sau deploy)`

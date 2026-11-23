@@ -35,26 +35,26 @@ last_reviewed: "2026-11-21"
 ## Nhóm 2 — Auth + bảo mật
 
 - [x] **Đăng nhập** — owner: tự viết có chủ đích (PBKDF2-SHA512 100k, khoá 5 lần sai, JWT refresh httpOnly SameSite=Strict xoay theo thiết bị) vì PRD §7 chốt kiến trúc tự host (không PaaS) khiến managed SaaS không hợp cho chính tài khoản đó; member: SSO Google/OIDC (managed) — xem DECISIONS 2026-11-23 lý do đầy đủ
-- [x] **Validate input** `(mỗi vòng)` — `ValidationPipe({whitelist,forbidNonWhitelisted,transform})` global ở mọi route HTTP; WS terminal: JSON điều khiển try/catch + clamp cols/rows (2–500/2–300)
+- [ ] **Validate input** `(mỗi vòng)` — `ValidationPipe({whitelist,forbidNonWhitelisted,transform})` global ở mọi route HTTP; WS terminal: JSON điều khiển try/catch + clamp cols/rows (2–500/2–300)
 - [x] **Rate limit** — `ThrottlerGuard` global 600/60s + riêng đăng nhập/2FA 10–20/60s (`auth.controller.ts`)
 - [x] **Không hardcode secret** — grep `git log -p` theo pattern api-key/secret/password/token: sạch (khớp đều là fixture test)
-- [x] **Phân quyền** `(mỗi vòng)` — dogfood `breaker` đã thử tay 28/28 route ma trận §2 (1 lỗ hổng 2FA route tìm+vá); review tĩnh pha P1 (bug-hunter + reviewer độc lập) tìm thêm 2 lỗ hổng NẶNG: (1) WS terminal ghi phím vào PTY TRƯỚC khi `attach()` xác nhận chủ phiên (`terminal.gateway.ts`) — vá bằng đệm hàng đợi, chỉ xả sau khi attach() xác nhận + test `terminal.gateway.spec.ts`; (2) `GET /hosts/:id/browse` thiếu `@Roles(OWNER)` — member duyệt được toàn bộ cây thư mục mọi máy (recon) — vá + test ở `core-flow.e2e.mjs`; nhẹ: `HostDto.keyPath`/`configFile` ẩn khỏi member
+- [ ] **Phân quyền** `(mỗi vòng)` — dogfood `breaker` đã thử tay 28/28 route ma trận §2 (1 lỗ hổng 2FA route tìm+vá); review tĩnh pha P1 (bug-hunter + reviewer độc lập) tìm thêm 2 lỗ hổng NẶNG: (1) WS terminal ghi phím vào PTY TRƯỚC khi `attach()` xác nhận chủ phiên (`terminal.gateway.ts`) — vá bằng đệm hàng đợi, chỉ xả sau khi attach() xác nhận + test `terminal.gateway.spec.ts`; (2) `GET /hosts/:id/browse` thiếu `@Roles(OWNER)` — member duyệt được toàn bộ cây thư mục mọi máy (recon) — vá + test ở `core-flow.e2e.mjs`; nhẹ: `HostDto.keyPath`/`configFile` ẩn khỏi member
 
 ## Nhóm 3 — CI/CD + test tối thiểu
 
 - [ ] **Push là deploy** `(sau deploy)` — merge vào `main` thì tự lên production
 - [x] **`make check` chạy trong CI** — `.github/workflows/ci.yml`: `make check` + `make test` mỗi push/PR
-- [x] **Smoke test** `(mỗi vòng)` — `apps/api/test/core-flow.e2e.mjs`: đăng nhập → máy SSH → dự án → terminal → Claude xin quyền ghi file → Files thấy → Git commit, tự động, 6/6 PASS (`make test`)
-- [x] **Test cho luồng tiền/dữ liệu quan trọng** `(mỗi vòng)` — không thu tiền (PRD §7); dữ liệu quan trọng có test: tạo dự án trùng không nhân bản, sửa file đồng thời `FILE_CHANGED` không mất dữ liệu, duyệt quyền Claude hai lần bị chặn, hàng chờ tin nhắn không mất/không vượt giới hạn, member không đọc/ghi được phiên+máy của owner — cùng `core-flow.e2e.mjs`
+- [ ] **Smoke test** `(mỗi vòng)` — `apps/api/test/core-flow.e2e.mjs`: đăng nhập → máy SSH → dự án → terminal → Claude xin quyền ghi file → Files thấy → Git commit, tự động, 6/6 PASS (`make test`)
+- [ ] **Test cho luồng tiền/dữ liệu quan trọng** `(mỗi vòng)` — không thu tiền (PRD §7); dữ liệu quan trọng có test: tạo dự án trùng không nhân bản, sửa file đồng thời `FILE_CHANGED` không mất dữ liệu, duyệt quyền Claude hai lần bị chặn, hàng chờ tin nhắn không mất/không vượt giới hạn, member không đọc/ghi được phiên+máy của owner — cùng `core-flow.e2e.mjs`
 
 Không đặt mục tiêu coverage %. Test đúng chỗ quan trọng, không test cho đủ số. (Đây là nguyên tắc, không phải việc phải tick.)
 
 ## Nhóm 4 — Đo phản ứng thị trường
 
 - [ ] **Analytics** `(sau deploy)` — đang đếm lượt truy cập + nguồn đến
-- [x] **Event tracking** `(mỗi vòng)` — cố tình bỏ qua, xem §Đã cố tình bỏ qua
+- [ ] **Event tracking** `(mỗi vòng)` — cố tình bỏ qua, xem §Đã cố tình bỏ qua
 - [x] **Kênh feedback** — cố tình bỏ qua, xem §Đã cố tình bỏ qua
-- [x] **Ngưỡng quyết định** `(mỗi vòng)` — `PRD.md §6`: ≥7 ngày dùng liên tục thay v1 → GO · quay lại v1 trong 3 ngày đầu → PIVOT · quay lại v1 sau một lượt sửa → KILL; đo bằng nhật ký dùng cục bộ của Authority, không phải analytics (PRD §6 chốt "vòng này không chạy pha E")
+- [ ] **Ngưỡng quyết định** `(mỗi vòng)` — `PRD.md §6`: ≥7 ngày dùng liên tục thay v1 → GO · quay lại v1 trong 3 ngày đầu → PIVOT · quay lại v1 sau một lượt sửa → KILL; đo bằng nhật ký dùng cục bộ của Authority, không phải analytics (PRD §6 chốt "vòng này không chạy pha E")
 
 ---
 

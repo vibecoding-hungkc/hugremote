@@ -44,6 +44,8 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
   const [compare, setCompare] = useState(false);
   const [mobileFile, setMobileFile] = useState(false);
   const [openErr, setOpenErr] = useState<{ path: string; msg: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [menu, setMenu] = useState<{ rect: DOMRect; items: MenuItem[] } | null>(null);
   const [upload, setUpload] = useState<{ done: number; total: number } | null>(null);
   const editor = useRef<CodeEditorHandle>(null);
@@ -100,8 +102,10 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
   const fileDiff = useQuery({ queryKey: ['filediff', projectId, active?.path, active?.mtime], queryFn: () => filesApi.gitDiff(projectId, active!.path), enabled: diffMode && !!active });
 
   const save = async (f: OpenFile | undefined = active, force = false) => {
-    if (!f || (!isDirty(f) && !force)) return;
+    if (!f || (!isDirty(f) && !force) || savingRef.current) return;
     if (blockedOffline(toast, t('net.offlineTip'))) return; // bản sửa giữ nguyên trong store
+    savingRef.current = true;
+    setSaving(true);
     try {
       const r = await filesApi.write(projectId, f.path, f.buf, force ? f.conflictMtime : f.mtime);
       store.saved(projectId, f.path, r.mtime, f.buf);
@@ -111,6 +115,9 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
     } catch (e) {
       if (e instanceof ApiError && e.code === 'FILE_CHANGED') store.conflict(projectId, f.path, Number(e.details?.mtime));
       else toast(errText(t, e));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
   const close = (f: OpenFile) => {
@@ -412,7 +419,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
                 <Button variant="ghost" size="sm" iconOnly icon="git" tone={diffMode ? 'primary' : undefined} label={t(diffMode ? 'files.backToEdit' : 'files.viewChanges')} onClick={() => setDiffMode(!diffMode)} />
               )}
               <Button variant="ghost" size="sm" iconOnly icon="more" label={t('files.more')} onClick={(e) => fileMenu(e, { path: active.path, type: 'file', git: changes.data?.added.length || changes.data?.modified.length ? 'M' : undefined })} />
-              {editable && <Button variant={dirty ? 'primary' : 'ghost'} size="sm" iconOnly icon="save" write label={`${t('common.save')} (⌘S)`} onClick={() => void save()} />}
+              {editable && <Button variant={dirty ? 'primary' : 'ghost'} size="sm" iconOnly icon="save" write loading={saving} label={`${t('common.save')} (⌘S)`} onClick={() => void save()} />}
             </div>
           )}
           {active?.claudeTouched && !active.conflictMtime && (

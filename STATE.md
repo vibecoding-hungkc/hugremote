@@ -3,7 +3,7 @@
 > Trạng thái sống. Người và agent cùng đọc/ghi. Cập nhật ngay khi đổi pha hoặc tick gate.
 
 ```
-Pha hiện tại : P1
+Pha hiện tại : R
 Vòng          : 1
 Phase         : MVP · mở ở vòng 1
 Đường vào     : intake

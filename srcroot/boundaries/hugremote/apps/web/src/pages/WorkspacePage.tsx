@@ -91,7 +91,7 @@ export function WorkspacePage() {
             <div className="overview">{running.map(card)}</div>
           </>
         )}
-        {!need.length && !running.length && (
+        {!need.length && !running.length && projects.filter((p) => !p.isHome).length > 0 && (
           <div className="hide-mobile">
             <EmptyState icon="sessions" message={t('ws.nothingRunning')} />
           </div>

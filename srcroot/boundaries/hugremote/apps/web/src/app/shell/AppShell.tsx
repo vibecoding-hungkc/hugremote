@@ -84,7 +84,7 @@ function Topbar() {
           )}
         </div>
         {inProject && <ProjectTabs hostId={hostId} projectId={projectId} />}
-        {inProject && !/\/(terminal|claude)\//.test(loc.pathname) && <NotifBell hostId={hostId} projectId={projectId} />}
+        {inProject && !/\/(sessions|terminal\/|claude\/)/.test(loc.pathname) && <NotifBell hostId={hostId} projectId={projectId} />}
         <Button variant="ghost" size="sm" iconOnly icon="search" label={`${t('nav.quickSwitch')} (⌘K)`} onClick={() => ui.set({ spot: true })} />
         <span className="only-desk">
           <Button variant="ghost" size="sm" iconOnly icon="cog" label={t('nav.settings')} onClick={() => nav('/settings')} />

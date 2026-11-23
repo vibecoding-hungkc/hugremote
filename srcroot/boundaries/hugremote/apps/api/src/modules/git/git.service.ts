@@ -32,11 +32,11 @@ export class GitService {
     return { ...c, cwd };
   }
 
-  private async git(rt: HostRuntime, cwd: string, args: string[], opts: { timeoutMs?: number; stdin?: string } = {}) {
+  private async git(rt: HostRuntime, cwd: string, args: string[], opts: { timeoutMs?: number; stdin?: string; ceiling?: string } = {}) {
     try {
       return await rt.exec(['git', ...args], {
         cwd,
-        env: ENV,
+        env: opts.ceiling ? { ...ENV, GIT_CEILING_DIRECTORIES: opts.ceiling } : ENV,
         timeoutMs: opts.timeoutMs ?? 30_000,
         maxBytes: 8 * 1024 * 1024,
         stdin: opts.stdin,
@@ -59,10 +59,17 @@ export class GitService {
     return r.stdout.toString('utf8');
   }
 
+  /** Chặn git leo ngược vượt khỏi gốc dự án (vd dự án local nằm trong thư mục con của repo cha — dogfood edge #2). */
+  private ceilingOf(rootPath: string) {
+    const parent = path.posix.dirname(rootPath.replace(/\/+$/, ''));
+    return parent && parent !== rootPath ? parent : undefined;
+  }
+
   /** Repo lồng trong dự án tới 5 cấp (gốc dự án trước). */
   async repos(projectId: string) {
     const c = await this.ctx(projectId);
-    const top = await this.git(c.rt, c.cwd, ['rev-parse', '--show-toplevel']);
+    const ceiling = this.ceilingOf(c.project.rootPath);
+    const top = await this.git(c.rt, c.cwd, ['rev-parse', '--show-toplevel'], { ceiling });
     if (top.code === 0) return { repos: [''] };
     const r = await c.rt
       .exec(['find', '.', '-maxdepth', '5', '-name', '.git', '-not', '-path', '*/node_modules/*'], {
@@ -80,7 +87,8 @@ export class GitService {
 
   async status(projectId: string, repo?: string) {
     const c = await this.ctx(projectId, repo);
-    const st = await this.git(c.rt, c.cwd, ['status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all']);
+    const ceiling = this.ceilingOf(c.project.rootPath);
+    const st = await this.git(c.rt, c.cwd, ['status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all'], { ceiling });
     if (st.code === 128) return { isRepo: false, branch: null, upstream: null, ahead: 0, behind: 0, changes: [] as GitChange[] };
     if (st.code === 127) throw AppError.badRequest(ErrorCode.GIT_NOT_INSTALLED);
     let branch: string | null = null;

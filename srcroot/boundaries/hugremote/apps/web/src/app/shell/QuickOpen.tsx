@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/Button';
@@ -50,6 +50,11 @@ export function QuickOpen({ projectId, onPick, onClose, placeholder }: { project
       .slice(0, 30)
       .map((x) => x[0]);
   }, [list.data, query, open]);
+  useEffect(() => {
+    const esc = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && !e.isComposing && onClose();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [onClose]);
   const pick = (p: string) => {
     onClose();
     onPick(p, line);

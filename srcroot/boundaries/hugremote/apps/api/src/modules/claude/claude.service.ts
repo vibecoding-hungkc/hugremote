@@ -35,6 +35,8 @@ interface Live {
   /** Mô tả yêu cầu quyền đang chờ (cho chuông C38). */
   pendingInfo: Map<string, { tool: string; summary: string }>;
   stopping: boolean;
+  /** Lượt vừa nhận `result` có `isError: true` — không tự rút hàng chờ khi tiến trình thoát 0 (AC-40). */
+  hadError: boolean;
   turnStartedAt: number;
   /** Bộ đếm seq duy nhất của phiên (khởi từ claude_sessions.last_sequence). */
   seq?: number;
@@ -85,6 +87,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
         pending: new Set(),
         pendingInfo: new Map(),
         stopping: false,
+        hadError: false,
         turnStartedAt: 0,
         chain: Promise.resolve(),
       };
@@ -321,6 +324,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     await this.persist(s, { kind: 'user', id: `${turnId}-u`, text, ...(attachments.length ? { attachments } : {}) });
     const resume = await this.repo.hasTurns(s.id);
     l.stopping = false;
+    l.hadError = false;
     l.turnStartedAt = Date.now();
     l.partial.clear();
     const turn = new ClaudeTurn(turnId, {
@@ -433,6 +437,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
         ownerUserId: s.ownerUserId,
       });
     } else if (op.op === 'result') {
+      if (op.isError) l.hadError = true;
       const item = { ...op.item, ...(l.stopping ? { stopped: true } : {}) };
       await this.persist(s, item, ClaudeEvent.FINISH);
       this.events.publish({
@@ -476,14 +481,18 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       this.log.log(`"${s.name}": người dùng dừng lượt`);
       return this.setStatus(s, 'cancelled'); // dừng không xoá hàng chờ, không tự gửi tin kế (AC-40)
     }
-    if (!info.gotResult || info.code) {
-      this.log.error(`"${s.name}": lượt lỗi (exit ${info.code}) ${info.stderr.trim().split('\n').pop()?.slice(0, 200) ?? ''}`);
-      await this.persist(
-        s,
-        { kind: 'note', id: `${crypto.randomUUID().slice(0, 8)}-n`, text: info.stderr.trim().slice(-800) || `exit ${info.code}` },
-        ClaudeEvent.ERROR,
-      );
-      return this.setStatus(s, 'error'); // lượt lỗi → không tự gửi tin kế, hiện "Gửi tiếp"
+    if (!info.gotResult || info.code || l.hadError) {
+      if (!l.hadError) {
+        this.log.error(`"${s.name}": lượt lỗi (exit ${info.code}) ${info.stderr.trim().split('\n').pop()?.slice(0, 200) ?? ''}`);
+        await this.persist(
+          s,
+          { kind: 'note', id: `${crypto.randomUUID().slice(0, 8)}-n`, text: info.stderr.trim().slice(-800) || `exit ${info.code}` },
+          ClaudeEvent.ERROR,
+        );
+      } else {
+        this.log.warn(`"${s.name}": lượt kết thúc với lỗi (is_error) — tạm dừng hàng chờ`);
+      }
+      return this.setStatus(s, 'error'); // lượt lỗi → không tự gửi tin kế, hiện "Gửi tiếp" (AC-40)
     }
     this.log.log(`"${s.name}": xong lượt sau ${Math.round((Date.now() - l.turnStartedAt) / 1000)} giây`);
     await this.setStatus(s, 'done');

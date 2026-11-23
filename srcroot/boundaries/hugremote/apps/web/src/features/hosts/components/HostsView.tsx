@@ -31,12 +31,28 @@ interface FormState {
 const empty: FormState = { alias: '', hostName: '', user: '', port: '22', authType: 'agent', keyPath: '', password: '', proxyJump: '', workspaceDir: '' };
 
 /** S3 — Máy: danh sách từ ~/.ssh/config, ghim + lên/xuống (khớp thứ tự cây), sheet thêm/sửa, thử kết nối, S4 tin host key. */
-export function HostsView({ hosts, pins, loading, error, onPins, onReload }: { hosts: Host[]; pins: string[]; loading: boolean; error?: boolean; onPins: (ids: string[]) => void; onReload: () => void }) {
+export function HostsView({
+  hosts,
+  pins,
+  loading,
+  loadError,
+  configWarning,
+  onPins,
+  onReload,
+}: {
+  hosts: Host[];
+  pins: string[];
+  loading: boolean;
+  loadError?: boolean;
+  configWarning?: boolean;
+  onPins: (ids: string[]) => void;
+  onReload: () => void;
+}) {
   const { t } = useTranslation();
   const me = useMe();
   const owner = me.data?.role === 'owner';
   const [params, setParams] = useSearchParams();
-  const [form, setForm] = useState<FormState | null>(null);
+  const [form, setForm] = useState<(FormState & { autoTest?: boolean }) | null>(null);
   const editId = params.get('edit');
   useEffect(() => {
     const h = editId && hosts.find((x) => x.id === editId);
@@ -46,7 +62,7 @@ export function HostsView({ hosts, pins, loading, error, onPins, onReload }: { h
     }
   }, [editId, hosts]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openForm = (h?: Host) =>
+  const openForm = (h?: Host, autoTest = false) =>
     setForm(
       h
         ? {
@@ -60,6 +76,7 @@ export function HostsView({ hosts, pins, loading, error, onPins, onReload }: { h
             password: '',
             proxyJump: h.proxyJump ?? '',
             workspaceDir: h.workspaceDir === '~' ? '' : h.workspaceDir,
+            autoTest,
           }
         : { ...empty },
     );
@@ -93,7 +110,8 @@ export function HostsView({ hosts, pins, loading, error, onPins, onReload }: { h
             </Button>
           )}
         </div>
-        {error && <ErrorBox title={t('hosts.loadError')} onRetry={onReload} />}
+        {loadError && <ErrorBox title={t('ws.loadError')} body={t('ws.loadErrorBody')} onRetry={onReload} />}
+        {!loadError && configWarning && <ErrorBox title={t('hosts.loadError')} onRetry={onReload} />}
         <div className="list">
           {ordered.map((h) => {
             const pinned = pins.includes(h.id);
@@ -109,7 +127,7 @@ export function HostsView({ hosts, pins, loading, error, onPins, onReload }: { h
                   </div>
                 </div>
                 <span className="hide-mobile">
-                  <StatusBadge status={h.trusted ? 'ok' : 'connecting'} />
+                  <StatusBadge status={h.trusted ? 'ok' : 'idle'} />
                 </span>
                 <Button
                   variant="ghost"
@@ -126,7 +144,12 @@ export function HostsView({ hosts, pins, loading, error, onPins, onReload }: { h
                     <Button variant="ghost" size="sm" iconOnly icon="down" label={t('hosts.down')} disabled={i === pins.length - 1} onClick={() => move(h.id, 1)} />
                   </>
                 )}
-                {owner && h.kind !== 'local' && <Button variant="ghost" size="sm" iconOnly icon="edit" label={t('hosts.editNamed', { name: h.name })} onClick={() => openForm(h)} />}
+                {owner && h.kind !== 'local' && (
+                  <>
+                    <Button variant="ghost" size="sm" iconOnly icon="plug" label={t('hosts.test')} onClick={() => openForm(h, true)} />
+                    <Button variant="ghost" size="sm" iconOnly icon="edit" label={t('hosts.editNamed', { name: h.name })} onClick={() => openForm(h)} />
+                  </>
+                )}
               </div>
             );
           })}
@@ -148,16 +171,29 @@ export function HostsView({ hosts, pins, loading, error, onPins, onReload }: { h
   );
 }
 
-function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState; hosts: Host[]; onClose: () => void; onSaved: () => void }) {
+function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState & { autoTest?: boolean }; hosts: Host[]; onClose: () => void; onSaved: () => void }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const openDialog = useDialogs((s) => s.open);
-  const [f, setF] = useState(initial);
+  const [f, setF] = useState<FormState>(initial);
   const [err, setErr] = useState<string | null>(null);
   const [testedAt, setTestedAt] = useState<string | null>(null);
   const [busy, setBusy] = useState<'test' | 'save' | null>(null);
   const [hostKey, setHostKey] = useState<HostKeyInfo | null>(null);
   const edit = !!f.id;
+
+  // Esc đóng sheet C6 khi không mở hộp thoại con (picky #5)
+  useEffect(() => {
+    const esc = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.isComposing && !hostKey) onClose();
+    };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [hostKey, onClose]);
+
+  useEffect(() => {
+    if (initial.autoTest) void test();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const orig = initial;
   const addressChanged = edit && (f.hostName !== orig.hostName || f.port !== orig.port || f.user !== orig.user);
   const set = (k: keyof FormState) => (e: { target: { value: string } }) => {
@@ -325,6 +361,8 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
                 ...(hostKey.via ? {} : { proxyJump: f.proxyJump || '', user: f.user || undefined }),
               });
               setHostKey(null);
+              await qc.invalidateQueries({ queryKey: ['hosts'] });
+              onSaved();
               await test();
             } catch (e) {
               setHostKey(null);

@@ -491,14 +491,14 @@ export function ChatView({
           <div className="note">
             <Icon name="claude" className="claude-ic" />
             <span className="grow">
-              {t('claude.working')}
-              {focus && lastTool && (
+              {status === 'awaiting_input' ? t('claude.waitingInput') : t('claude.working')}
+              {focus && lastTool && status !== 'awaiting_input' && (
                 <>
                   {' · '}
                   {toolLabel(lastTool.name)} <span className="mono xs">{toolTarget(lastTool.input).slice(0, 80)}</span>
                 </>
               )}{' '}
-              <span className="caret" />
+              {status !== 'awaiting_input' && <span className="caret" />}
             </span>
           </div>
         )}

@@ -188,17 +188,14 @@ export function LoginView({
                     ? t(`errors.${err.code}`, { defaultValue: t('errors.INTERNAL') })
                     : undefined
             }
-            hint={
-              firstRun ? (
-                t('auth.firstHint')
-              ) : (
-                <>
-                  {t('auth.forgotHint')}
-                  <span className="mono">hugremote reset-password</span>
-                </>
-              )
-            }
+            hint={firstRun ? t('auth.firstHint') : undefined}
           />
+          {!firstRun && (
+            <p className="hint" style={{ margin: 0 }}>
+              {t('auth.forgotHint')}
+              <span className="mono">hugremote reset-password</span>
+            </p>
+          )}
           <Button variant="primary" block type="submit" loading={busy} loadingLabel={t('auth.loggingIn')} disabled={locked}>
             {t('auth.login')}
           </Button>

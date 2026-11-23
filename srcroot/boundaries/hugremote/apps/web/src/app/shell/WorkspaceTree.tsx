@@ -138,9 +138,9 @@ export function WorkspaceTree() {
   };
 
   const hostItems = (hostId: string): MenuItem[] => [
-    ...(owner ? [{ icon: 'plus' as const, label: t('tree.newProject'), onSelect: () => nav(`/s/${encodeURIComponent(hostId)}/new-project`) }] : []),
+    ...(owner ? [{ icon: 'plus' as const, label: hostId === 'local' ? t('tree.newProject') : t('tree.newProjectOn', { host: hostId }), onSelect: () => nav(`/s/${encodeURIComponent(hostId)}/new-project`) }] : []),
     ...(owner && hostId !== 'local' ? [{ icon: 'edit' as const, label: t('tree.editHost'), onSelect: () => nav(`/hosts?edit=${encodeURIComponent(hostId)}`) }] : []),
-    { icon: 'unpin', label: t('tree.unpin'), onSelect: () => setPins.mutate((pins.data ?? []).filter((x) => x !== hostId)) },
+    { icon: 'unpin', label: t('tree.unpin'), danger: true, onSelect: () => setPins.mutate((pins.data ?? []).filter((x) => x !== hostId)) },
   ];
 
   return (

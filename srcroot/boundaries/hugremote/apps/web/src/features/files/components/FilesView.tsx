@@ -43,6 +43,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
   const [preview, setPreview] = useState(false);
   const [compare, setCompare] = useState(false);
   const [mobileFile, setMobileFile] = useState(false);
+  const [openErr, setOpenErr] = useState<{ path: string; msg: string } | null>(null);
   const [menu, setMenu] = useState<{ rect: DOMRect; items: MenuItem[] } | null>(null);
   const [upload, setUpload] = useState<{ done: number; total: number } | null>(null);
   const editor = useRef<CodeEditorHandle>(null);
@@ -52,6 +53,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
 
   // ----- mở file theo URL (…/files/<path>/<dòng>) -----
   const openPath = async (p: string, ln?: number) => {
+    setOpenErr(null);
     const existing = state.open.find((f) => f.path === p);
     if (existing) store.setActive(projectId, p);
     else if (IMG.test(p)) store.open(projectId, { path: p, base: '', buf: '', mtime: 0 });
@@ -65,7 +67,12 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
         store.open(projectId, { path: p, base: r.content, buf: r.content, mtime: r.mtime });
       } catch (e) {
         if (e instanceof ApiError && e.code === 'FILE_TOO_LARGE') store.open(projectId, { path: p, base: '', buf: '', mtime: -1 });
-        else return toast(errText(t, e));
+        else {
+          const msg = errText(t, e);
+          setOpenErr({ path: p, msg });
+          setMobileFile(true);
+          return toast(msg);
+        }
       }
     }
     setMobileFile(true);
@@ -257,6 +264,12 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
 
   // ----- thân editor -----
   const body = () => {
+    if (openErr)
+      return (
+        <div className="special">
+          <ErrorBox title={openErr.msg} body={<span className="mono xs">{openErr.path}</span>} onRetry={() => void openPath(openErr.path, line)} />
+        </div>
+      );
     if (!active) return <div className="special"><EmptyState icon="file" message={t('files.noneOpen')} /></div>;
     if (IMG.test(active.path))
       return (
@@ -326,7 +339,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
                 {t('files.search')}
               </button>
             </div>
-            <Button variant="ghost" size="sm" iconOnly icon="fileplus" label={t('files.newFileOrFolder')} onClick={(e) => fileMenu(e, { path: '', type: 'dir' })} />
+            <Button variant="ghost" size="sm" iconOnly icon="fileplus" write label={t('files.newFileOrFolder')} onClick={(e) => fileMenu(e, { path: '', type: 'dir' })} />
             <Button variant="ghost" size="sm" iconOnly icon="upload" write label={t('files.upload')} onClick={() => ((uploadDir.current = ''), uploadInput.current?.click())} />
             <Button variant="ghost" size="sm" iconOnly icon="eye" tone={hidden ? 'primary' : undefined} label={t(hidden ? 'files.hideHidden' : 'files.showHidden')} onClick={() => setHidden(!hidden)} />
           </div>

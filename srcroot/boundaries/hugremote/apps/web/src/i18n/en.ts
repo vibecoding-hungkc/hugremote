@@ -63,6 +63,7 @@ export const en: Messages = {
     removeProjectBody_other: 'The project is removed for the whole team and {{count}} running sessions (including members\' sessions) will stop. The folder on the machine is not deleted.',
     removeProjectConfirm: 'Remove project',
     removed: 'Removed project {{name}}',
+    newProjectOn: 'New project on {{host}}',
   },
   session: {
     goneNotice: 'That session is gone or belongs to someone else — you can only open your own sessions.',
@@ -603,6 +604,7 @@ export const en: Messages = {
     who: 'Claude',
     thinking: 'Thinking',
     working: 'Claude is working',
+    waitingInput: 'Waiting for your response',
     steps_one: '{{count}} step',
     steps_other: '{{count}} steps',
     stepsEdit: 'edited {{n}} files',

@@ -103,3 +103,6 @@ Vòng: 1
 | Ngày | Vai | Nơi | Trình duyệt | Nặng | Vừa | Nhẹ | Ghi chú |
 |---|---|---|---|---|---|---|---|
 | 2026-11-22 | smoke | local | mcp__pw-slot-1__ | 8 | 6 | 13 | đợt 0: 19/28 PASS, luồng lõi terminal + Claude đi hết; FAIL dòng 6, 10, 14, 19, 22, 25, 26, 28 (+ phần chưa kiểm được ở 19) |
+| 2026-11-23 | newbie | local | pw-slot-1/ | 1 | 4 | 3 | đợt 1: đi hết luồng lần đầu (đổi mật khẩu, S2/S3/S4/S5, Terminal, Claude `hỏi phương án`); phát hiện trạng thái S3 `đang nối` không tự cập nhật sau S4, trùng 2 chuông tab Phiên, dòng "Claude đang làm" khi chờ trả lời |
+| 2026-11-23 | edge | local | pw-slot-2/ | 0 | 4 | 4 | đợt 1: file >10MB + offline/online C13 + khoá ghi + giữ nháp ĐẠT; phát hiện hàng chờ Claude tự chạy tiếp sau `Lượt lỗi`, Git leo ngược vượt `ALLOWED_ROOT`, S3 báo nhầm lỗi SSH config khi mất mạng |
+| 2026-11-23 | picky | local | pw-slot-3/ | 1 | 6 | 4 | đợt 1: 54/54 token khớp `tokens.json`, 0 màu trộn DS, 0/12 tràn ngang; phát hiện tương phản `span.meta.warn` chủ đề Sáng 4.32:1, S8 thiếu C5 khi lỗi API, C23 mục Bỏ thiếu đỏ, S3 sheet & S12 thiếu Esc, S1 mất Quên mật khẩu khi sai |

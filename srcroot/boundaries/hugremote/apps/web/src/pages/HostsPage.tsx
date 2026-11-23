@@ -10,7 +10,8 @@ export function HostsPage() {
       hosts={hosts.data?.hosts ?? []}
       pins={pins.data ?? []}
       loading={hosts.isLoading || pins.isLoading}
-      error={hosts.isError || !!hosts.data?.warnings.length}
+      loadError={hosts.isError}
+      configWarning={!!hosts.data?.warnings.length}
       onPins={(ids) => setPins.mutate(ids)}
       onReload={() => void hosts.refetch()}
     />

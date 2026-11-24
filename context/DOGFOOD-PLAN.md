@@ -87,3 +87,10 @@ Vòng: 2
 
 | Ngày | Vai | Nơi | Trình duyệt | Nặng | Vừa | Nhẹ | Ghi chú |
 |---|---|---|---|---|---|---|---|
+| 2026-11-24 | smoke | local | electron | 0 | 1 | 0 | Đợt 0: Khởi chạy app HugRemote, phát hiện symlink bên trong bundle trỏ ra ngoài khiến codesign báo lỗi; đã chuẩn hoá symlink và ký thành công |
+| 2026-11-24 | newbie | local | pw-slot-1 | 0 | 0 | 0 | Đợt 1: Mount file HugRemote.dmg, mở app, xác thực loopback tự động cấp quyền owner không cần mật khẩu/2FA |
+| 2026-11-24 | edge | local | pw-slot-2 | 0 | 0 | 0 | Đợt 1: Giả lập chiếm cổng 8099, app tự động cấp phát cổng thay thế; tiến trình backend tắt đột ngột hiển thị thông báo lỗi |
+| 2026-11-24 | power | local | pw-slot-3 | 0 | 0 | 0 | Đợt 1: Thử nghiệm menu native macOS, các phím tắt ⌘Q, ⌘W, ⌘C, ⌘V, ⌘K, ⌘P hoạt động mượt mà, nhớ kích thước cửa sổ 1200x800 |
+| 2026-11-24 | breaker | local | curl | 0 | 0 | 0 | Đợt 2: Gọi loopback API trực tiếp từ curl không có header/cookie bí mật → 401; IP ngoài loopback → 403 |
+| 2026-11-24 | operator | local | cli | 0 | 0 | 0 | Đợt 2: Chạy make desktop-build đóng gói file .app và .dmg, xác nhận chữ ký mã ad-hoc (codesign --verify) hợp lệ |
+| 2026-11-24 | smoke | local | electron | 0 | 0 | 0 | Lượt cuối: Chạy lại toàn bộ luồng lõi, package smoke test, 4/4 e2e desktop auth tests pass |

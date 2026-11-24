@@ -23,6 +23,7 @@ export interface AppConfig {
   updateChannel: 'stable' | 'beta';
   updateRepo?: string;
   webDist?: string;
+  desktopSecret?: string;
 }
 
 const expandHome = (p: string) => (p === '~' ? os.homedir() : p.startsWith('~/') ? path.join(os.homedir(), p.slice(2)) : p);
@@ -65,6 +66,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     updateChannel: env.UPDATE_CHANNEL === 'beta' ? 'beta' : 'stable',
     updateRepo: env.UPDATE_REPO || undefined,
     webDist: env.WEB_DIST || undefined,
+    desktopSecret: env.HUGREMOTE_DESKTOP_SECRET || undefined,
   };
 }
 

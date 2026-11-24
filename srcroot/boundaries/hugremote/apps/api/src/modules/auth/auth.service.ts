@@ -167,7 +167,7 @@ export class AuthService implements OnModuleInit {
   }
 
   /** SSO và đăng nhập mật khẩu dùng chung — tạo family (thiết bị) mới. */
-  async issue(user: UserEntity, ctx: ClientCtx, familyId: string = crypto.randomUUID()): Promise<IssuedSession> {
+  async issue(user: UserEntity, ctx: ClientCtx, familyId: string = crypto.randomUUID(), mcpOverride?: boolean): Promise<IssuedSession> {
     const refreshToken = this.crypto.randomToken(32);
     const now = iso();
     await this.repo.insertToken({
@@ -183,16 +183,17 @@ export class AuthService implements OnModuleInit {
       revokedAt: null,
     });
     await this.repo.updateUser(user.id, { lastLoginAt: now });
-    const accessToken = await this.signAccess(user, familyId);
-    return { body: { accessToken, needs2fa: false, mustChangePassword: !!user.mustChangePassword }, refreshToken };
+    const mustChange = mcpOverride !== undefined ? mcpOverride : !!user.mustChangePassword;
+    const accessToken = await this.signAccess(user, familyId, mustChange);
+    return { body: { accessToken, needs2fa: false, mustChangePassword: mustChange }, refreshToken };
   }
 
-  private signAccess(user: UserEntity, familyId: string) {
+  private signAccess(user: UserEntity, familyId: string, mustChangePassword?: boolean) {
     const claims: AccessClaims = {
       sub: user.id,
       role: user.role as UserRole,
       fam: familyId,
-      mcp: !!user.mustChangePassword,
+      mcp: mustChangePassword !== undefined ? mustChangePassword : !!user.mustChangePassword,
       stage: 'full',
     };
     return this.jwt.signAsync(claims, { expiresIn: `${LIMITS.ACCESS_TOKEN_MINUTES}m` });
@@ -257,7 +258,7 @@ export class AuthService implements OnModuleInit {
       role: user.role as UserRole,
       email: user.email ?? undefined,
       familyId: c.fam,
-      mustChangePassword: !!user.mustChangePassword,
+      mustChangePassword: c.mcp && !!user.mustChangePassword,
     };
   }
 
@@ -265,6 +266,13 @@ export class AuthService implements OnModuleInit {
   async localOwner(): Promise<AuthUser | null> {
     const o = await this.repo.findOwner();
     return o ? { id: o.id, role: UserRole.OWNER, familyId: 'local', mustChangePassword: false } : null;
+  }
+
+  /** Tạo session đầy đủ cho app Electron chạy trên loopback qua secret token (AC-51). */
+  async issueDesktopSession(ctx: ClientCtx): Promise<IssuedSession> {
+    const o = await this.repo.findOwner();
+    if (!o) throw AppError.unauthorized();
+    return this.issue(o, ctx, undefined, false);
   }
 
   async me(u: AuthUser): Promise<MeResponseDto> {

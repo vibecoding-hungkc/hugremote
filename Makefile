@@ -12,7 +12,7 @@
 # Đa target (đường intake): thân lệnh điều phối xuống `make -C srcroot/<nhóm>/<tên> …`;
 # deploy LUÔN đi qua `make deploy` ở gốc — đó là chỗ hook guard_bc đứng.
 
-.PHONY: help dev check test migrate deploy doctor gate
+.PHONY: help dev check test migrate deploy doctor gate desktop-build
 
 STACK_SKILL ?= stack-nestjs-react-fullstack
 TARGET := srcroot/boundaries/hugremote
@@ -61,6 +61,9 @@ deploy:
 
 doctor:
 	$(MAKE) -C $(TARGET) doctor
+
+desktop-build:
+	$(MAKE) -C $(TARGET) desktop-build
 
 # --- không đổi ---
 

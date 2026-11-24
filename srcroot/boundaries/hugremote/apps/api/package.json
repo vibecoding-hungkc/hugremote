@@ -22,7 +22,8 @@
     "migrate": "node dist/infra/database/migrate.js",
     "dev:all": "nest start --watch --preserveWatchOutput",
     "test:security": "node --test test/security.e2e.mjs",
-    "test:core": "node --test test/core-flow.e2e.mjs"
+    "test:core": "node --test test/core-flow.e2e.mjs",
+    "test:desktop": "node --test test/desktop-auth.e2e.mjs"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

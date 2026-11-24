@@ -71,9 +71,40 @@ export class AuthController {
   }
 
   @Public()
+  @Post('auth/desktop-session')
+  @HttpCode(200)
+  async desktopSession(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<SessionResponseDto> {
+    const desktopSecret = this.cfg.desktopSecret;
+    const cookieSecret = (req.cookies as Record<string, string | undefined> | undefined)?.['hugremote_desktop_token'];
+    const headerSecret = req.headers['x-hugremote-desktop-secret'];
+    const bodySecret = (req.body as { secret?: string } | undefined)?.secret;
+    const ip = req.ip || req.socket?.remoteAddress;
+    const isLoopback = !ip || ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost';
+
+    if (!desktopSecret || (cookieSecret !== desktopSecret && headerSecret !== desktopSecret && bodySecret !== desktopSecret)) {
+      throw AppError.unauthorized();
+    }
+    if (!isLoopback) {
+      throw AppError.forbidden();
+    }
+    return this.send(res, await this.auth.issueDesktopSession(this.ctx(req)));
+  }
+
+  @Public()
   @Post('auth/refresh')
   @HttpCode(200)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<SessionResponseDto> {
+    const desktopSecret = this.cfg.desktopSecret;
+    const cookieSecret = (req.cookies as Record<string, string | undefined> | undefined)?.['hugremote_desktop_token'];
+    const headerSecret = req.headers['x-hugremote-desktop-secret'];
+    const ip = req.ip || req.socket?.remoteAddress;
+    const isLoopback = !ip || ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip === 'localhost';
+
+    if (desktopSecret && (cookieSecret === desktopSecret || headerSecret === desktopSecret)) {
+      if (!isLoopback) throw AppError.forbidden();
+      return this.send(res, await this.auth.issueDesktopSession(this.ctx(req)));
+    }
+
     try {
       return this.send(
         res,

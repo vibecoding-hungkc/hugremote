@@ -60,12 +60,12 @@ URL production: (chưa có)
 - [x] **Scope khoá** — từ đây không hỏi Authority nữa
 
 **I — Implement**
-- [ ] Challenge PASS (ghi ở §Challenge log dưới)
-- [ ] `make dev` · `make check` · `make migrate` đã hiện thực
-- [ ] Đã có commit code ngoài commit khởi tạo
-- [ ] Luồng lõi end-to-end bấm được ở local
-- [ ] `make check` xanh
-- [ ] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
+- [x] Challenge PASS (ghi ở §Challenge log dưới)
+- [x] `make dev` · `make check` · `make migrate` đã hiện thực
+- [x] Đã có commit code ngoài commit khởi tạo
+- [x] Luồng lõi end-to-end bấm được ở local
+- [x] `make check` xanh
+- [x] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
 
 **P1 — sẵn sàng deploy lần đầu** (`gate.py P1`)
 - [ ] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? **Có** (STATE.md: "Pha vòng này: V, I, P (chỉ P1)") → chạy P1

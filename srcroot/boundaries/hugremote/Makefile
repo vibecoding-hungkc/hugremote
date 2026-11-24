@@ -3,7 +3,7 @@ SHELL := /bin/bash
 ENV_FILE ?= ../../../deployment/local/.env
 LOAD_ENV = set -a; [ -f $(ENV_FILE) ] && . $(ENV_FILE); set +a;
 
-.PHONY: install dev check test migrate build deploy doctor
+.PHONY: install dev check test migrate build deploy doctor desktop-build
 
 install:
 	pnpm install --frozen-lockfile
@@ -19,6 +19,10 @@ check:
 	pnpm --filter @app/api build
 	pnpm --filter @app/api lint
 	pnpm --filter @app/web build
+	pnpm --filter @app/desktop build
+
+desktop-build: check
+	pnpm --filter @app/desktop build:dmg
 
 test:
 	pnpm --filter @app/shared build
@@ -27,6 +31,7 @@ test:
 	pnpm --filter @app/api build
 	pnpm --filter @app/api test:security
 	pnpm --filter @app/api test:core
+	pnpm --filter @app/api test:desktop
 
 migrate:
 	pnpm --filter @app/shared build

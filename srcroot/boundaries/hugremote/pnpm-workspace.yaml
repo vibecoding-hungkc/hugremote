@@ -7,5 +7,6 @@ allowBuilds:
   '@scarf/scarf': false
   better-sqlite3: true
   cpu-features: true
+  electron: true
   node-pty: true
   ssh2: true

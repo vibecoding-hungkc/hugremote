@@ -4,7 +4,7 @@ Thời lượng dự kiến: ~6–8 ngày công
 UI vòng này: có màn mới — S13 Phiên trình duyệt, S14 Chuyển tiếp cổng; S6 thêm trạng thái tmux / mất kết nối; menu + thêm tmux + trình duyệt
 Rà lại vòng 3: 2026-11-24
 
-# Vòng 3 — Terminal dùng hằng ngày trên desktop: phím tắt macOS, tmux bền, mở lại tại chỗ, trình duyệt, chuyển tiếp cổng (Phase 3)
+# Vòng 3 — Terminal dùng hằng ngày trên desktop: phím tắt macOS, tmux bền, mở lại tại chỗ, trình duyệt, chuyển tiếp cổng (Phase MVP)
 
 ## 1. Mục tiêu vòng
 

@@ -283,7 +283,7 @@ export class AuthService implements OnModuleInit {
       id: user.id,
       role: user.role as UserRole,
       email: user.email ?? undefined,
-      mustChangePassword: !!user.mustChangePassword,
+      mustChangePassword: u.mustChangePassword,
       twoFactorEnabled: !!tfa?.enabled,
       recoveryCodesLeft: tfa?.enabled ? (JSON.parse(tfa.recoveryCodeHashes || '[]') as string[]).length : 0,
       preferences: this.parsePrefs(user.preferences),

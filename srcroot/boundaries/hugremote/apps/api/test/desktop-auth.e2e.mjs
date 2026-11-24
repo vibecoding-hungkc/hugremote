@@ -98,6 +98,15 @@ test('desktop loopback: cookie hugremote_desktop_token trong /auth/refresh cấp
   assert.ok(data.accessToken);
 });
 
+test('desktop loopback: GET /auth/me không bắt đổi mật khẩu dù owner còn mustChangePassword=1 trong DB (AC-51)', async () => {
+  const r = await fetch(`${B}/auth/me`, {
+    headers: { 'x-hugremote-desktop-secret': DESKTOP_SECRET },
+  });
+  assert.equal(r.status, 200);
+  const data = await r.json();
+  assert.equal(data.mustChangePassword, false, 'Desktop loopback phải bỏ qua bắt đổi mật khẩu khởi tạo');
+});
+
 test('desktop loopback: secret sai hoặc thiếu bị từ chối 401', async () => {
   const r1 = await fetch(`${B}/auth/desktop-session`, {
     method: 'POST',

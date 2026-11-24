@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>HugRemote — prototype vòng 1</title>
+<title>HugRemote prototype</title>
 <link rel="icon" href="data:,">
 <style>
 :root {
@@ -419,6 +419,13 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .chip.warn { border-color: var(--color-warning); color: var(--color-warning); }
 .chip.warn b { color: var(--color-warning); }
 .chip.danger, .chip.danger b { border-color: var(--color-danger); color: var(--color-danger); }
+.chip.on { border-color: var(--color-primary); color: var(--color-text); }
+.danger-t { color: var(--color-danger); }
+.input.sm { min-height: 28px; padding: 0 var(--space-sm); }
+input.sw { appearance: none; width: 34px; height: 20px; border-radius: 10px; background: var(--color-divider); position: relative; cursor: pointer; flex: none; margin: 0; }
+input.sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--color-text); transition: left .15s; }
+input.sw:checked { background: var(--color-primary); }
+input.sw:checked::after { left: 16px; }
 .attach { display: inline-flex; gap: var(--space-xs); align-items: center; font-size: var(--text-xs); padding: 2px var(--space-xs) 2px var(--space-sm); border-radius: var(--radius-pill); background: var(--color-surface-raised); }
 .slash { border: 1px solid var(--color-divider); border-radius: var(--radius); background: var(--color-bg); padding: var(--space-xs); }
 .slash .mi { display: flex; gap: var(--space-md); align-items: center; }
@@ -559,6 +566,9 @@ const DEMO = {
       { id: 't2', name: 'dev server', status: 'running', ago: '35 phút', owner: ME, cwd: '~/projects/demo-api' },
       { id: 't3', name: 'migrate', status: 'exited', ago: '10:42', owner: ME, cwd: '~/projects/demo-api' },
       { id: 't9', name: 'logs', status: 'running', ago: '1 giờ', owner: MEMBER, cwd: '~/projects/demo-api' },
+      { id: 't5', name: 'main', tmux: 'main', status: 'running', ago: '3 ngày', owner: ME, cwd: '~/projects/demo-api' },
+      { id: 't7', name: 'deploy', tmux: 'deploy', status: 'running', ago: 'hôm qua', owner: ME, cwd: '~/projects/demo-api' },
+      { id: 't6', name: 'zsh', status: 'lost', ago: 'trước khi tắt app', owner: ME, cwd: '~/projects/demo-api/src' },
     ],
     'local/hugremote': [{ id: 't4', name: 'zsh', status: 'running', ago: '12 phút', owner: ME, cwd: '~/Code/hugremote' }],
   },
@@ -572,8 +582,18 @@ const DEMO = {
   denied: [{ email: 'an.nguyen@gmail.com', at: '10:05 hôm nay', why: 'không có trong danh sách được phép' }],
   sso: { on: true, provider: 'oidc', allow: ['an@nhom.vn', 'binh@nhom.vn'], issuer: 'https://sso.nhom.vn/realms/hugremote' },
   imported: true,
+  /* vòng 3: phiên tmux có sẵn trên máy (tmux ls) + cổng đang nghe + chuyển tiếp cổng */
+  tmux: { 'demo-sshd': [{ name: 'main', windows: 3, created: '3 ngày trước', inUse: true }, { name: 'deploy', windows: 1, created: 'hôm qua', inUse: true }, { name: 'claude-night', windows: 2, created: '5 giờ trước' }] },
+  listening: { 'demo-sshd': [{ port: 3000, proc: 'node dist/main.js', proj: 'demo-api' }, { port: 5173, proc: 'vite --host', proj: 'demo-web' }, { port: 5432, proc: 'postgres' }] },
+  webs: { 'demo-sshd/demo-api': [{ id: 'w1', name: 'localhost:3000', url: 'http://localhost:3000/', status: 'running', ago: '20 phút', owner: ME }] },
+  forwards: [
+    { id: 'f1', host: 'demo-sshd', remote: 'localhost:3000', local: 3000, status: 'on', auto: true, label: 'demo-api' },
+    { id: 'f2', host: 'demo-sshd', remote: 'localhost:5432', local: 15432, status: 'on', auto: false, label: 'postgres' },
+    { id: 'f4', dir: 'R', host: 'demo-sshd', remote: 'localhost:11434', local: 11434, status: 'on', auto: true, label: 'ollama trên Mac' },
+    { id: 'f3', host: 'staging-vps', remote: 'localhost:8080', local: 8080, status: 'err', auto: true, label: 'staging', err: 'Máy staging-vps không kết nối được' },
+  ],
 };
-const FRESH = { hosts: [clone(DEMO.hosts[0])], pins: ['local'], memberPins: [], projects: { local: [{ id: 'home', name: 'Home', path: '~' }] }, claudes: {}, terms: {}, git: {}, devices: [clone(DEMO.devices[0])], members: [], denied: [], sso: { on: false, provider: 'oidc', allow: [], issuer: '' }, imported: false };
+const FRESH = { hosts: [clone(DEMO.hosts[0])], pins: ['local'], memberPins: [], projects: { local: [{ id: 'home', name: 'Home', path: '~' }] }, claudes: {}, terms: {}, git: {}, devices: [clone(DEMO.devices[0])], members: [], denied: [], sso: { on: false, provider: 'oidc', allow: [], issuer: '' }, imported: false, tmux: {}, listening: {}, forwards: [], webs: {} };
 let D = clone(DEMO);
 const FOLDERS = { '~': ['projects', 'Code', '.config'], '~/projects': ['demo-api ⎇', 'demo-web ⎇', 'scratch'], '~/projects/scratch': [], '~/Code': ['hugremote ⎇'] };
 
@@ -629,6 +649,17 @@ const TERM = {
   t3: `<span class="g">dev@demo-sshd</span>:<span class="b">~/projects/demo-api</span>$ pnpm migrate
 Migration InitSchema1700000000000 has been executed successfully.
 <span class="m">[Tiến trình đã kết thúc — mã 0]</span>`,
+  t5: `<span class="g">dev@demo-sshd</span>:<span class="b">~/projects/demo-api</span>$ claude
+<span class="m">╭──────────────────────────────────────────────╮</span>
+<span class="m">│</span> <span class="y">✻</span> Claude Code — ~/projects/demo-api           <span class="m">│</span>
+<span class="m">╰──────────────────────────────────────────────╯</span>
+<span class="b">&gt;</span> sửa lỗi CreateBookingDto is not defined
+  rồi chạy lại test<span class="cur"> </span>
+
+<span class="g">[main] 0:claude* 1:dev  2:logs                    "demo-sshd" 10:42</span>`,
+  t6: `<span class="g">dev@demo-sshd</span>:<span class="b">~/projects/demo-api/src</span>$ ls
+bookings  main.ts
+<span class="g">dev@demo-sshd</span>:<span class="b">~/projects/demo-api/src</span>$ `,
 };
 const freshTerm = (h, cwd) => { const u = h.user || 'hung', n = h.id === 'local' ? 'macbook' : h.name; return `<span class="g">${u}@${n}</span>:<span class="b">${cwd}</span>$ pwd
 ${cwd.replace('~', h.id === 'local' ? '/Users/hung' : '/home/' + u)}
@@ -666,6 +697,7 @@ const I = {
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>', upload: '<path d="M12 16V4M6 10l6-6 6 6M4 20h16"/>', download: '<path d="M12 4v12M6 10l6 6 6-6M4 20h16"/>', eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   pull: '<path d="M12 3v13M7 11l5 5 5-5M5 21h14"/>', push: '<path d="M12 21V8M7 13l5-5 5 5M5 3h14"/>', refresh: '<path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/>', commit: '<circle cx="12" cy="12" r="4"/><path d="M3 12h5M16 12h5"/>',
   check: '<path d="M5 12l5 5 9-10"/>', bell: '<path d="M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0"/>', target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>', bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', shield: '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/>', warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/>', folderplus: '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>', fwd: '<path d="M4 8h12M12 4l4 4-4 4M20 16H8M12 12l-4 4 4 4"/>', ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>', tmux: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v12M3 16h18M7 9l2 2-2 2"/>',
   wrapi: '<path d="M4 6h16M4 12h13a3 3 0 010 6h-4M4 18h5M15 16l-2 2 2 2"/>', save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/>', keyi: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/>', list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
 };
 const ic = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
@@ -679,8 +711,18 @@ const curUser = () => ui.role === 'member' ? MEMBER : ME;
 const visible = s => ui.role === 'owner' || s.owner === MEMBER;
 const claudesOf = (h, p) => (D.claudes[h + '/' + p] || []).filter(visible);
 const termsOf = (h, p) => (D.terms[h + '/' + p] || []).filter(visible);
-const sessionsOf = (h, p) => [...claudesOf(h, p).map(c => ({ ...c, kind: 'claude' })), ...termsOf(h, p).map(t => ({ ...t, kind: 'terminal' }))];
-const findSess = (h, p, id) => [...(D.claudes[h + '/' + p] || []), ...(D.terms[h + '/' + p] || [])].find(s => s.id === id);
+const websOf = (h, p) => (D.webs[h + '/' + p] || []).filter(visible);
+const sessionsOf = (h, p) => [...claudesOf(h, p).map(c => ({ ...c, kind: 'claude' })), ...termsOf(h, p).map(t => ({ ...t, kind: 'terminal' })), ...websOf(h, p).map(w => ({ ...w, kind: 'web' }))];
+const findSess = (h, p, id) => [...(D.claudes[h + '/' + p] || []), ...(D.terms[h + '/' + p] || []), ...(D.webs[h + '/' + p] || [])].find(s => s.id === id);
+const kIc = s => s.kind === 'claude' ? ['claude', 'claude-ic'] : s.kind === 'web' ? ['globe', ''] : [s.tmux ? 'tmux' : 'term', 'term-ic'];
+/* vòng 3 — phiên trình duyệt: một tab = một trang, nhập link khác thì đổi trang */
+const webName = u => u.startsWith('file://') ? u.split('/').pop() : u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+function newWeb(h, p, url) {
+  const L = D.listening[h] || [], d = L.find(x => x.proj === p) || L[0], u = url || (d ? `http://localhost:${d.port}/` : 'http://localhost:3000/');
+  const id = 'w' + Date.now().toString(36);
+  (D.webs[h + '/' + p] = D.webs[h + '/' + p] || []).push({ id, name: webName(u), url: u, status: 'running', ago: 'vừa mở', owner: curUser() });
+  go(`${pbase(h, p)}/web/${id}`);
+}
 const pins = () => ui.role === 'member' ? D.memberPins : D.pins;
 const pbase = (h, p) => `#/s/${h}/p/${p}`;
 const offline = () => ui.state === 'offline';
@@ -690,13 +732,14 @@ const gitOf = (h, p) => D.git[h + '/' + p];
 const midTrunc = (s, n) => s.length <= n ? s : s.slice(0, Math.ceil((n - 1) / 2)) + '…' + s.slice(s.length - Math.floor((n - 1) / 2));
 function toast(msg) { ui.toast = msg; renderOverlay(); clearTimeout(window.__tt); window.__tt = setTimeout(() => { ui.toast = null; renderOverlay(); }, 2400); }
 const shortAgo = s => s.status === 'awaiting' ? 'duyệt' : s.status === 'exited' ? s.ago : ({ '3 phút': '3p', '8 phút': '8p', 'hôm qua': '1 ngày', '2 giờ': '2g', '35 phút': '35p', '1 giờ': '1g', '12 phút': '12p', 'vừa mở': 'mới', 'vừa gửi': 'mới' }[s.ago] || s.ago);
-const durLabel = s => ({ running: 'đang chạy', awaiting: 'cần duyệt', done: 'xong', exited: 'kết thúc', stopped: 'đã dừng' }[s.status] + ' · ' + s.ago);
+const durLabel = s => ({ running: 'đang chạy', awaiting: 'cần duyệt', done: 'xong', exited: 'kết thúc', stopped: 'đã dừng', lost: 'mất kết nối', attaching: 'đang gắn lại' }[s.status] + ' · ' + s.ago);
 
 function route() {
   const p = (location.hash.replace(/^#/, '') || '/').split('/').filter(Boolean);
   if (p[0] === 'login') return { name: 'login' };
   if (p[0] === '_ds') return { name: 'ds' };
   if (p[0] === 'hosts') return { name: 'hosts' };
+  if (p[0] === 'ports') return { name: 'ports' };
   if (p[0] === 'settings') return { name: 'settings', sub: p[1] };
   if (p[0] === 's' && p[1]) {
     if (p[2] === 'new-project') return { name: 'newproj', host: p[1], path: decodeURIComponent(p[3] || '~') };
@@ -707,6 +750,7 @@ function route() {
       if (p[4] === 'files') return { ...b, name: 'files', file: p[5] ? decodeURIComponent(p[5]) : null, line: p[6] ? +p[6] : null };
       if (p[4] === 'git') return { ...b, name: 'git', sub: p[5] };
       if (p[4] === 'sessions') return { ...b, name: 'sessions' };
+      if (p[4] === 'web') return { ...b, name: 'web', sid: p[5] };
       return { ...b, name: 'proj' };
     }
   }
@@ -727,10 +771,30 @@ const empty = (icon, msg, btns) => `<div class="empty">${ic(icon, 'big muted')}<
 const errorBox = (h, p, btns) => `<div class="error" role="alert"><div class="h">${h}</div><p>${p}</p>${btns === '' ? '' : `<div class="btns">${btns || `<button class="btn sm" onclick="setState('normal')">${ic('refresh')}Thử lại</button>`}</div>`}</div>`;
 const skel = n => `<div class="list">${Array.from({ length: n }, () => `<div class="skel-row"><div class="skel" style="width:24px;height:24px"></div><div style="flex:1;display:grid;gap:var(--space-xs)"><div class="skel" style="width:55%"></div><div class="skel" style="width:35%;height:10px"></div></div></div>`).join('')}</div>`;
 const connBar = () => offline() ? `<div class="conn" role="status"><span class="dot warn"></span><span class="grow">Mất kết nối với HugRemote — đang thử lại (lần 3). Claude và terminal vẫn chạy trên máy; gửi, duyệt, lưu, commit tạm khoá tới khi nối lại. Nháp vẫn được giữ.</span><button class="btn sm" onclick="setState('normal')">${ic('refresh')}Thử ngay</button></div>` : '';
-const SB = { running: ['run', 'đang chạy'], awaiting: ['warn', 'cần duyệt'], done: ['ok', 'xong'], stopped: ['', 'đã dừng'], exited: ['', 'đã kết thúc'], ok: ['ok', 'kết nối được'], err: ['err', 'không kết nối được'], connecting: ['warn', 'đang nối'] };
+const SB = { running: ['run', 'đang chạy'], awaiting: ['warn', 'cần duyệt'], done: ['ok', 'xong'], stopped: ['', 'đã dừng'], exited: ['', 'đã kết thúc'], lost: ['err', 'mất kết nối'], attaching: ['warn', 'đang gắn lại'], on: ['ok', 'đang chuyển tiếp'], off: ['', 'đã tắt'], ok: ['ok', 'kết nối được'], err: ['err', 'không kết nối được'], connecting: ['warn', 'đang nối'] };
 const statusBadge = s => `<span class="badge ${s === 'awaiting' || s === 'connecting' ? 'warn' : ''}"><span class="dot ${SB[s][0]}"></span>${SB[s][1]}</span>`;
 const dotCls = s => SB[s] ? SB[s][0] : '';
-const newBtns = (h, p) => `<button class="btn primary" onclick="newClaude('${h}','${p}')">${ic('claude')}Phiên Claude mới</button><button class="btn" onclick="newTerminal('${h}','${p}')">${ic('term')}Terminal mới</button>`;
+const newBtns = (h, p) => `<button class="btn primary" onclick="newClaude('${h}','${p}')">${ic('claude')}Phiên Claude mới</button><button class="btn" onclick="newTerminal('${h}','${p}')">${ic('term')}Terminal mới</button>${h === 'local' ? '' : `<button class="btn" onclick="newTmux('${h}','${p}')">${ic('tmux')}Phiên tmux mới</button>`}<button class="btn" onclick="newWeb('${h}','${p}')">${ic('globe')}Trình duyệt mới</button>`;
+/* vòng 3 — phiên tmux: shell sống trong tmux trên máy đích, tắt/mở app thì tự gắn lại (tmux new -A -s <tên>) */
+function newTmux(h, p, name) {
+  const id = 'x' + Date.now().toString(36), L = D.tmux[h] = D.tmux[h] || [], base = proj(h, p).id;
+  let n = name || base; for (let i = 2; !name && L.some(s => s.name === n); i++) n = base + '-' + i;
+  if (!name) L.push({ name: n, windows: 1, created: 'vừa tạo', inUse: true });
+  else { const s = (D.tmux[h] || []).find(x => x.name === name); if (s) s.inUse = true; }
+  (D.terms[h + '/' + p] = D.terms[h + '/' + p] || []).push({ id, name: n, tmux: n, status: 'running', ago: 'vừa mở', owner: curUser(), cwd: proj(h, p).path });
+  go(`${pbase(h, p)}/terminal/${id}`);
+}
+/* vòng 3 — mở lại NGAY tab đang mất kết nối: giữ id, tên, thư mục; không đẻ tab mới */
+function reopenHere(h, p, sid) {
+  const s = findSess(h, p, sid); if (!s) return;
+  s.status = 'running'; s.ago = 'vừa mở lại'; s.reopened = true; render();
+}
+/* mô phỏng tắt rồi mở lại app desktop: shell thường mất, tmux tự gắn lại */
+function simulateRelaunch() {
+  for (const ts of Object.values(D.terms)) for (const t of ts) if (t.status === 'running') t.status = t.tmux ? 'attaching' : 'lost';
+  render(); toast('Đã mô phỏng: tắt rồi mở lại app');
+  setTimeout(() => { for (const ts of Object.values(D.terms)) for (const t of ts) if (t.status === 'attaching') t.status = 'running'; render(); }, 1400);
+}
 function newTerminal(h, p, cwd) {
   const id = 'n' + Date.now().toString(36), base = proj(h, p).path, c = cwd ? base + '/' + cwd : base;
   (D.terms[h + '/' + p] = D.terms[h + '/' + p] || []).push({ id, name: cwd ? 'zsh · ' + cwd.split('/').pop() : 'zsh', status: 'running', ago: 'vừa mở', owner: curUser(), cwd: c });
@@ -769,11 +833,14 @@ function rowMenu() {
   const it = (icon, label, act, cls = '', kbd = '') => `<div class="mi ${cls}" tabindex="0" onclick="ui.rowMenu=null;${act}"><b>${ic(icon)}<span class="grow">${label}</span>${kbd ? `<kbd>${kbd}</kbd>` : ''}</b></div>`;
   let items = '';
   const owner = ui.role === 'owner';
-  if (m.kind === 'host') items = (owner ? it('plus', 'Dự án mới trên máy này', `go('#/s/${m.h}/new-project')`) + (m.h !== 'local' ? it('edit', 'Sửa máy', `openHostForm('${m.h}')`) : '') : '') + it('unpin', 'Bỏ khỏi không gian làm việc', `unpinHost('${m.h}')`);
+  if (m.kind === 'host') items = (owner ? it('plus', 'Dự án mới trên máy này', `go('#/s/${m.h}/new-project')`) + (m.h !== 'local' ? it('edit', 'Sửa máy', `openHostForm('${m.h}')`) + it('fwd', 'Chuyển tiếp cổng của máy này', `ui.portHost='${m.h}';go('#/ports')`) : '') : '') + it('unpin', 'Bỏ khỏi không gian làm việc', `unpinHost('${m.h}')`);
   if (m.kind === 'project') items = it('claude', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`) + it('term', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`) + (owner ? it('edit', 'Đổi tên hiển thị', `openRename('project','${m.h}','${m.p}')`) + (m.p !== 'home' ? it('trash', 'Bỏ dự án khỏi không gian làm việc', `ui.dialog={k:'rmproj',h:'${m.h}',p:'${m.p}'};renderOverlay()`, 'danger') : '') : '');
   if (m.kind === 'session') { const s = findSess(m.h, m.p, m.sid); items = it('edit', 'Đổi tên hiển thị', `openRename('session','${m.h}','${m.p}','${m.sid}')`) + (s.kind === 'terminal' || D.terms[m.h + '/' + m.p] && D.terms[m.h + '/' + m.p].includes(s) ? it('x', 'Đóng phiên', `closeSession('${m.h}','${m.p}','${m.sid}')`, 'danger', A + 'W') : it('trash', 'Xoá phiên', `closeSession('${m.h}','${m.p}','${m.sid}')`, 'danger')); }
-  if (m.kind === 'plus') items = it('claude', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`, '', A + '⇧N') + it('term', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`, '', A + '⇧T');
-  if (m.kind === 'sessions') { const ss = sessionsOf(m.h, m.p); items = `<div class="grp">Claude</div>` + ss.filter(s => s.kind === 'claude').map((s, i) => it(s.kind === 'claude' ? 'claude' : 'term', `${esc(s.name)} <span class="muted xs">· ${SB[s.status][1]}${s.mode === 'Bypass' ? ' · Bypass' : ''}</span>`, `go('${pbase(m.h, m.p)}/claude/${s.id}')`, '', i < 9 ? A + (i + 1) : '')).join('') + `<div class="grp">Terminal</div>` + ss.filter(s => s.kind === 'terminal').map((s, i) => it('term', `${esc(s.name)} <span class="muted xs">· ${SB[s.status][1]}</span>`, `go('${pbase(m.h, m.p)}/terminal/${s.id}')`, '', (ss.filter(x => x.kind === 'claude').length + i) < 9 ? A + (ss.filter(x => x.kind === 'claude').length + i + 1) : '')).join('') + `<div class="grp"></div>` + it('plus', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`) + it('plus', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`); }
+  if (m.kind === 'plus') { const tx = D.tmux[m.h] || [];
+    items = it('claude', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`, '', A + '⇧N') + it('term', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`, '', A + '⇧T')
+      + (m.h === 'local' ? '' : it('tmux', 'Phiên tmux mới', `newTmux('${m.h}','${m.p}')`, '', A + '⇧M')) + it('globe', 'Trình duyệt mới', `newWeb('${m.h}','${m.p}')`, '', A + '⇧B')
+      + (tx.length && m.h !== 'local' ? `<div class="grp">tmux trên ${esc(host(m.h).name)}</div>` + tx.map(s => it('tmux', `${esc(s.name)} <span class="muted xs">· ${s.windows} cửa sổ${s.inUse ? ' · đang mở' : ''}</span>`, s.inUse ? `toast('Đã chuyển tới tab tmux ${s.name}')` : `newTmux('${m.h}','${m.p}','${s.name}')`)).join('') : ''); }
+  if (m.kind === 'sessions') { const ss = sessionsOf(m.h, m.p); items = `<div class="grp">Claude</div>` + ss.filter(s => s.kind === 'claude').map((s, i) => it(s.kind === 'claude' ? 'claude' : 'term', `${esc(s.name)} <span class="muted xs">· ${SB[s.status][1]}${s.mode === 'Bypass' ? ' · Bypass' : ''}</span>`, `go('${pbase(m.h, m.p)}/claude/${s.id}')`, '', i < 9 ? A + (i + 1) : '')).join('') + `<div class="grp">Terminal</div>` + ss.filter(s => s.kind === 'terminal').map((s, i) => it(s.tmux ? 'tmux' : 'term', `${esc(s.name)} <span class="muted xs">· ${SB[s.status][1]}</span>`, `go('${pbase(m.h, m.p)}/terminal/${s.id}')`, '', (ss.filter(x => x.kind === 'claude').length + i) < 9 ? A + (ss.filter(x => x.kind === 'claude').length + i + 1) : '')).join('') + (ss.some(s => s.kind === 'web') ? `<div class="grp">Trình duyệt</div>` + ss.filter(s => s.kind === 'web').map(s => it('globe', esc(s.name), `go('${pbase(m.h, m.p)}/web/${s.id}')`)).join('') : '') + `<div class="grp"></div>` + it('plus', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`) + it('plus', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`) + (m.h === 'local' ? '' : it('plus', 'Phiên tmux mới', `newTmux('${m.h}','${m.p}')`)) + it('plus', 'Trình duyệt mới', `newWeb('${m.h}','${m.p}')`); }
   if (m.kind === 'notif') { const L = notifItems(); items = `<div class="grp">Thông báo</div>` + (L.length ? L.map(x => { const p = proj(x.h, x.p), href = `${pbase(x.h, x.p)}/claude/${x.c.id}`; return `<div class="mi notif" tabindex="0" onclick="ui.rowMenu=null;go('${href}')"><b>${ic('claude', 'claude-ic')}<span class="grow ell">${esc(x.c.name)}</span>${x.a ? `<button class="btn primary sm icon" title="Cho phép (${A}Y)" aria-label="Cho phép" ${OFF()} onclick="event.stopPropagation();decide('${x.h}','${x.p}','${x.c.id}','${x.a.id}','allowed')">${ic('check')}</button><button class="btn sm icon" title="Từ chối (${A}N)" aria-label="Từ chối" ${OFF()} onclick="event.stopPropagation();decide('${x.h}','${x.p}','${x.c.id}','${x.a.id}','denied')">${ic('x')}</button>` : `<span class="badge"><span class="dot ok"></span>xong</span>`}</b><span class="d ell">${x.a ? `${x.a.what.replace('Claude muốn', 'Muốn')} <span class="mono">${x.a.path.split('/').pop()}</span>` : 'Vừa xong lượt'} · ${esc(host(x.h).name)} › ${esc(p ? p.name : x.p)}</span></div>`; }).join('') : `<div class="mi" style="cursor:default"><span class="d">Không có phiên nào cần bạn.</span></div>`) + `<div class="grp"></div>` + it('list', 'Tất cả phiên của dự án này', `ui.rowMenu={kind:'sessions',h:'${m.h}',p:'${m.p}',x:${m.x},y:${m.y}};renderOverlay()`); }
   if (m.kind === 'branch') { const g = gitOf(m.h, m.p); items = `<div class="grp">Nhánh cục bộ</div>` + [g.branch, ...['main', 'develop', 'feature/dat-lich'].filter(b => b !== g.branch)].map(b => it('git', b + (b === g.branch ? ' <span class="muted xs">· đang dùng</span>' : ''), b === g.branch ? '' : `switchBranch('${m.h}','${m.p}','${b}')`)).join('') + `<div class="grp">Remote</div>` + it('git', 'origin/release-1.0', `switchBranch('${m.h}','${m.p}','release-1.0')`) + it('plus', 'Nhánh mới từ ' + g.branch + '…', `toast('Gõ tên nhánh mới')`); }
   if (m.kind === 'split') items = [['claude', 'Claude', 'claude'], ['terminal', 'Terminal', 'term'], ['files', 'Files', 'file'], ['git', 'Git', 'git']].map(([k, l, icn]) => it(icn, `${l} ở ô bên phải`, `openSplit('${k}')`)).join('') + (ui.split ? it('x', 'Bỏ chia ô', `ui.split=null;render()`) : '');
@@ -784,7 +851,7 @@ function rowMenu() {
     const dir = m.sid && x && !x.d ? m.sid.split('/').slice(0, -1).join('/') : m.sid;
     if (!m.sid || (x && x.d)) items = it('fileplus', 'File mới' + (m.sid ? ' trong ' + m.sid.split('/').pop() : ''), `toast('Gõ tên file mới ngay trong cây')`) + it('folderplus', 'Thư mục mới', `toast('Gõ tên thư mục mới ngay trong cây')`) + it('upload', 'Tải lên vào đây', `ui.upload=true;render()`)
       + (m.sid ? it('download', 'Tải xuống (.zip)', `toast('Đang nén ${m.sid.split('/').pop()}.zip…')`) + it('term', 'Mở terminal tại đây', `newTerminal('${m.h}','${m.p}','${m.sid}')`) + it('claude', 'Gửi thư mục cho Claude…', `sendToClaude(event,'${m.h}','${m.p}','${m.sid}/')`) + it('copy', 'Sao chép đường dẫn', `toast('Đã sao chép ${full}')`) + it('edit', 'Đổi tên', `toast('Gõ tên mới ngay trong cây')`) + it('trash', 'Xoá thư mục…', `toast('Đã xoá ${m.sid}')`, 'danger') : '');
-    else items = it('file', 'Mở', `openFile('${m.sid}')`) + (innerWidth >= 768 ? it('split', 'Mở ở ô bên cạnh', `ui.split={kind:'files'};openFile('${m.sid}')`) : '') + it('claude', 'Gửi cho Claude…', `sendToClaude(event,'${m.h}','${m.p}','${m.sid}')`)
+    else items = it('file', 'Mở', `openFile('${m.sid}')`) + it('globe', 'Mở bằng trình duyệt', `newWeb('${m.h}','${m.p}','file://${full}')`) + (innerWidth >= 768 ? it('split', 'Mở ở ô bên cạnh', `ui.split={kind:'files'};openFile('${m.sid}')`) : '') + it('claude', 'Gửi cho Claude…', `sendToClaude(event,'${m.h}','${m.p}','${m.sid}')`)
       + it('term', 'Mở terminal tại thư mục chứa file', `newTerminal('${m.h}','${m.p}','${dir}')`) + it('copy', 'Sao chép đường dẫn', `toast('Đã sao chép ${full}')`, '', '⌥⌘C') + it('copy', 'Sao chép đường dẫn tương đối', `toast('Đã sao chép ${m.sid}')`, '', '⇧⌥⌘C')
       + (x && x.m ? it('git', 'Xem thay đổi so với commit', `openFile('${m.sid}');ui.diffMode=true;render()`) : '') + it('edit', 'Đổi tên / di chuyển', `toast('Sửa đường dẫn để đổi tên hoặc chuyển thư mục')`) + it('plus', 'Nhân bản', `toast('Đã tạo bản sao ${m.sid.split('/').pop()}')`) + it('download', 'Tải xuống', `toast('Đang tải ${m.sid.split('/').pop()}')`)
       + (x && x.m ? it('undo', 'Bỏ thay đổi chưa commit…', `ui.dialog={k:'discard',f:'${m.sid}'};renderOverlay()`, 'danger') : '') + it('trash', 'Xoá…', `toast('Đã xoá ${m.sid.split('/').pop()}')`, 'danger');
@@ -806,9 +873,9 @@ function tree(r) {
       const key = hid + '/' + p.id, pOpen = !!ui.open[key], cur = r.host === hid && r.proj === p.id;
       const ss = sessionsOf(hid, p.id), need2 = ss.filter(s => s.status === 'awaiting').length;
       out += `<div class="node l1 ${cur && !r.sid ? 'sel' : ''}" tabindex="0" onclick="openProject('${hid}','${p.id}')" oncontextmenu="openRowMenu(event,'project','${hid}','${p.id}')"><span onclick="event.stopPropagation();toggle('${key}')" title="${pOpen ? 'Thu gọn' : 'Mở'}">${ic('chev', 'chev ' + (pOpen ? 'open' : ''))}</span>${ic(p.id === 'home' ? 'home' : 'folder')}<span class="nm">${esc(p.name)}</span>${need2 ? `<span class="cnt" title="${need2} phiên cần duyệt">${need2}</span>` : ''}
-        ${ib('plus', 'Phiên mới: Claude hoặc Terminal', `openRowMenu(event,'plus','${hid}','${p.id}')`, 'act')}${ib('more', 'Thao tác với dự án ' + p.name, `openRowMenu(event,'project','${hid}','${p.id}')`, 'act')}</div>`;
+        ${ib('plus', 'Phiên mới', `openRowMenu(event,'plus','${hid}','${p.id}')`, 'act')}${ib('more', 'Thao tác với dự án ' + p.name, `openRowMenu(event,'project','${hid}','${p.id}')`, 'act')}</div>`;
       if (!pOpen) continue;
-      for (const s of ss) out += `<div class="node l2 ${r.sid === s.id ? 'sel' : ''}" tabindex="0" title="${esc(s.name)} — ${durLabel(s)}" onclick="go('${pbase(hid, p.id)}/${s.kind}/${s.id}')" oncontextmenu="openRowMenu(event,'session','${hid}','${p.id}','${s.id}')">${ic(s.kind === 'claude' ? 'claude' : 'term', s.kind === 'claude' ? 'claude-ic' : 'term-ic')}<span class="nm">${esc(s.name)}</span>${s.mode === 'Bypass' ? `<span title="Phiên đang ở chế độ Không hỏi gì (Bypass)">${ic('warn', 'warn-ic')}</span>` : ''}<span class="meta ${s.status === 'awaiting' ? 'warn' : ''}">${shortAgo(s)}</span><span class="dot ${dotCls(s.status)}"></span>${ib('more', 'Thao tác với phiên ' + s.name, `openRowMenu(event,'session','${hid}','${p.id}','${s.id}')`, 'act')}</div>`;
+      for (const s of ss) out += `<div class="node l2 ${r.sid === s.id ? 'sel' : ''}" tabindex="0" title="${esc(s.name)} — ${durLabel(s)}" onclick="go('${pbase(hid, p.id)}/${s.kind}/${s.id}')" oncontextmenu="openRowMenu(event,'session','${hid}','${p.id}','${s.id}')">${ic(...kIc(s))}<span class="nm">${esc(s.name)}</span>${s.mode === 'Bypass' ? `<span title="Phiên đang ở chế độ Không hỏi gì (Bypass)">${ic('warn', 'warn-ic')}</span>` : ''}<span class="meta ${s.status === 'awaiting' ? 'warn' : ''}">${shortAgo(s)}</span><span class="dot ${dotCls(s.status)}"></span>${ib('more', 'Thao tác với phiên ' + s.name, `openRowMenu(event,'session','${hid}','${p.id}','${s.id}')`, 'act')}</div>`;
       if (!ss.length) out += `<div class="node l2 muted" tabindex="0" onclick="openRowMenu(event,'plus','${hid}','${p.id}')">${ic('plus')}<span class="nm">Chưa có phiên — tạo phiên</span></div>`;
     }
   }
@@ -820,15 +887,15 @@ function treeHead() {
 }
 
 /* ---------- C15 thanh trên + C16 tab dự án ---------- */
-const inProject = r => ['term', 'claude', 'files', 'git', 'sessions'].includes(r.name);
+const inProject = r => ['term', 'claude', 'files', 'git', 'sessions', 'web'].includes(r.name);
 function projTabs(r, cls) {
   const b = pbase(r.host, r.proj);
   const need = claudesOf(r.host, r.proj).filter(c => c.status === 'awaiting').length;
   const ss = sessionsOf(r.host, r.proj), last = ui.lastTab[r.host + '/' + r.proj];
-  const sHref = last && (last.startsWith('claude') || last.startsWith('terminal')) && ss.some(s => last.endsWith('/' + s.id)) ? `${b}/${last}` : ss[0] ? `${b}/${ss[0].kind}/${ss[0].id}` : `${b}/sessions`;
-  const t = (on, label, icn, href, extra = '', key = '') => `<button class="ptab ${on ? 'on' : ''}" title="${label}${key ? ' (' + key + ')' : ''}" onclick="go('${href}')">${ic(icn)}${label}${extra}</button>`;
+  const sHref = last && (last.startsWith('claude') || last.startsWith('terminal') || last.startsWith('web')) && ss.some(s => last.endsWith('/' + s.id)) ? `${b}/${last}` : ss[0] ? `${b}/${ss[0].kind}/${ss[0].id}` : `${b}/sessions`;
+  const t = (on, label, icn, href, extra = '', key = '') => `<button class="ptab ${on ? 'on' : ''}" title="${label}${key ? ' (' + key + ')' : ''}" aria-label="${label}" onclick="go('${href}')">${ic(icn)}${cls === 'ptabs-d' ? '' : label}${extra}</button>`;
   const g = gitOf(r.host, r.proj), chg = g ? g.changes.length : 0;
-  return `<nav class="ptabs ${cls}" aria-label="Tab dự án">${t(['claude', 'term', 'sessions'].includes(r.name), 'Phiên', 'sessions', sHref, need ? `<span class="cnt">${need}</span>` : '', 'Ctrl+1')}${t(r.name === 'files', 'Files', 'file', b + '/files', '', 'Ctrl+2')}${t(r.name === 'git', 'Git', 'git', b + '/git', chg ? `<span class="badge">${chg}</span>` : '', 'Ctrl+3')}</nav>`;
+  return `<nav class="ptabs ${cls}" aria-label="Tab dự án">${t(['claude', 'term', 'sessions', 'web'].includes(r.name), 'Phiên', 'sessions', sHref, need ? `<span class="cnt">${need}</span>` : '', 'Ctrl+1')}${t(r.name === 'files', 'Files', 'file', b + '/files', '', 'Ctrl+2')}${t(r.name === 'git', 'Git', 'git', b + '/git', chg ? `<span class="badge">${chg}</span>` : '', 'Ctrl+3')}</nav>`;
 }
 function topbar(r, title) {
   const h = r.host && host(r.host), p = h && proj(r.host, r.proj);
@@ -839,10 +906,11 @@ function topbar(r, title) {
     ${backTo ? `<span class="only-mobile">${ib('back', 'Về không gian làm việc', `go('${backTo}')`)}</span>` : ''}
     <div class="grow">${h ? `<nav class="crumb" aria-label="Phạm vi hiện hành">${ic(h.kind === 'local' ? 'home' : 'server')}<b>${esc(h.name)}</b>${p ? `<span class="sep">›</span><b>${esc(p.name)}</b><span class="muted mono xs hide-mobile" title="${p.path}">${midTrunc(p.path, 40)}</span>` : ''}</nav>` : `<b>${title}</b>`}</div>
     ${inProject(r) ? projTabs(r, 'ptabs-d') : ''}
-    ${inProject(r) && !['term', 'claude'].includes(r.name) ? notifBtn(r) : ''}
-    ${ib('search', 'Chuyển nhanh (⌘K)', 'openSpot()')}
+    ${inProject(r) && !['term', 'claude', 'web'].includes(r.name) ? notifBtn(r) : ''}
+    <span class="only-mobile">${ib('search', 'Chuyển nhanh (⌘K)', 'openSpot()')}</span>
+    ${ui.role === 'owner' ? `<span class="hide-mobile">${ib('fwd', 'Chuyển tiếp cổng', "go('#/ports')", r.name === 'ports' ? 'on-primary' : '')}</span>` : ''}
     <span class="hide-mobile">${ib('keyi', 'Phím tắt (⌘/)', "ui.dialog={k:'keys'};renderOverlay()")}</span>
-    <span class="only-desk">${ib('cog', 'Cài đặt', "go('#/settings')")}</span>
+    <span class="hide-mobile">${ib('cog', 'Cài đặt', "go('#/settings')", r.name === 'settings' ? 'on-primary' : '')}</span>
   </header>${inProject(r) ? projTabs(r, 'ptabs-m') : ''}`;
 }
 function bottombar(r) {
@@ -1029,10 +1097,10 @@ function S5(r) {
 function sessionBar(r, curId, extra) {
   const list = sessionsOf(r.host, r.proj).concat(extra ? [extra] : []);
   const b = pbase(r.host, r.proj), cur = list.find(s => s.id === curId);
-  return `<div class="tabbar"><div class="tabs" role="tablist">${list.map((s, i) => `<div class="tab ${s.id === curId ? 'on' : ''} ${s.status === 'exited' ? 'ended' : ''}" role="tab" tabindex="0" title="${esc(s.name)} — ${s.id === 'new' ? 'mới' : durLabel(s)}${i < 9 ? ' (' + A + (i + 1) + ')' : ''}" onclick="go('${b}/${s.kind}/${s.id}')" oncontextmenu="${s.id === 'new' ? '' : `openRowMenu(event,'session','${r.host}','${r.proj}','${s.id}')`}">${ic(s.kind === 'claude' ? 'claude' : 'term', s.kind === 'claude' ? 'claude-ic' : 'term-ic')}<span class="tn">${esc(s.name)}</span>${s.mode === 'Bypass' ? ic('warn', 'warn-ic') : ''}<span class="dot ${dotCls(s.status)}"></span>${s.kind === 'terminal' && s.id !== 'new' ? ib('x', 'Đóng phiên ' + s.name + ' (' + A + 'W)', `event.stopPropagation();closeSession('${r.host}','${r.proj}','${s.id}')`) : '<span style="width:var(--space-xs)"></span>'}</div>`).join('')}</div>
-    <button class="sesspick" onclick="openRowMenu(event,'sessions','${r.host}','${r.proj}')">${cur ? ic(cur.kind === 'claude' ? 'claude' : 'term', cur.kind === 'claude' ? 'claude-ic' : 'term-ic') : ''}<span class="ell grow" style="text-align:left">${cur ? esc(cur.name) : 'Chọn phiên'}</span>${cur && cur.id !== 'new' ? `<span class="dot ${dotCls(cur.status)}"></span>` : ''}<span class="badge">${list.length} phiên</span>${ic('chevd')}</button>
+  return `<div class="tabbar"><div class="tabs" role="tablist">${list.map((s, i) => `<div class="tab ${s.id === curId ? 'on' : ''} ${s.status === 'exited' ? 'ended' : ''}" role="tab" tabindex="0" title="${esc(s.name)} — ${s.id === 'new' ? 'mới' : durLabel(s)}${i < 9 ? ' (' + A + (i + 1) + ')' : ''}" onclick="go('${b}/${s.kind}/${s.id}')" oncontextmenu="${s.id === 'new' ? '' : `openRowMenu(event,'session','${r.host}','${r.proj}','${s.id}')`}">${ic(...kIc(s))}<span class="tn">${esc(s.name)}</span>${s.mode === 'Bypass' ? ic('warn', 'warn-ic') : ''}<span class="dot ${dotCls(s.status)}"></span>${(s.kind === 'terminal' || s.kind === 'web') && s.id !== 'new' ? ib('x', 'Đóng phiên ' + s.name + ' (' + A + 'W)', `event.stopPropagation();closeSession('${r.host}','${r.proj}','${s.id}')`) : '<span style="width:var(--space-xs)"></span>'}</div>`).join('')}</div>
+    <button class="sesspick" onclick="openRowMenu(event,'sessions','${r.host}','${r.proj}')">${cur ? ic(...kIc(cur)) : ''}<span class="ell grow" style="text-align:left">${cur ? esc(cur.name) : 'Chọn phiên'}</span>${cur && cur.id !== 'new' ? `<span class="dot ${dotCls(cur.status)}"></span>` : ''}<span class="badge">${list.length} phiên</span>${ic('chevd')}</button>
     <div class="tools">${notifBtn(r)}${cur && cur.id !== 'new' ? ib('edit', 'Đổi tên phiên', `openRename('session','${r.host}','${r.proj}','${curId}')`) : ''}<span class="hide-mobile">${ib('split', ui.split ? 'Đang chia ô — đổi hoặc bỏ' : 'Chia ô (⌘\\ để ẩn thanh bên)', `openRowMenu(event,'split','${r.host}','${r.proj}')`, ui.split ? 'on-primary' : '')}</span>
-      ${ib('plus', 'Phiên mới: Claude hoặc Terminal', `openRowMenu(event,'plus','${r.host}','${r.proj}')`)}</div></div>`;
+      ${ib('plus', 'Phiên mới', `openRowMenu(event,'plus','${r.host}','${r.proj}')`)}</div></div>`;
 }
 function openSplit(kind) {
   const r = route(); let id = null;
@@ -1062,7 +1130,7 @@ function closeSession(h, p, sid) {
   ui.dialog = { k: 'close', h, p, sid }; renderOverlay();
 }
 function doClose(h, p, sid) {
-  const k = h + '/' + p; for (const g of [D.claudes, D.terms]) if (g[k]) g[k] = g[k].filter(s => s.id !== sid);
+  const k = h + '/' + p; for (const g of [D.claudes, D.terms, D.webs]) if (g[k]) g[k] = g[k].filter(s => s.id !== sid);
   ui.dialog = null; renderOverlay(); toast('Đã đóng phiên');
   const r = route(); if (r.sid === sid) openProject(h, p); else render();
 }
@@ -1070,7 +1138,9 @@ function doClose(h, p, sid) {
 /* ================= S6 TERMINAL ================= */
 function termPane(r, s) {
   if (ui.state === 'loading') return `<div class="ended-cover">Đang nối phiên "${esc(s.name)}"…</div>`;
-  if (s.status === 'exited') return `<pre class="term">${TERM[s.id] || ''}</pre><div class="ended-cover">Phiên đã kết thúc.<button class="btn sm" onclick="newTerminal('${r.host}','${r.proj}')">${ic('plus')}Terminal mới ở thư mục này</button></div>`;
+  if (s.status === 'attaching') return `<div class="ended-cover">${ic('tmux', 'big muted')}<span>Đang gắn lại tmux "<span class="mono">${esc(s.tmux)}</span>"…</span></div>`;
+  if (s.status === 'lost') return `<pre class="term">${TERM[s.id] || ''}</pre><div class="ended-cover">${errorBox('Mất kết nối — đang nối lại (lần 2)', `<span class="mono">${esc(s.cwd)}</span>`, `<button class="btn primary sm" onclick="reopenHere('${r.host}','${r.proj}','${s.id}')">${ic('refresh')}Mở lại tại đây</button><button class="btn sm" onclick="closeSession('${r.host}','${r.proj}','${s.id}')">Đóng tab</button>`)}</div>`;
+  if (s.status === 'exited') return `<pre class="term">${TERM[s.id] || ''}</pre><div class="ended-cover">Phiên đã kết thúc.<button class="btn sm" onclick="reopenHere('${r.host}','${r.proj}','${s.id}')">${ic('refresh')}Mở lại tại đây</button></div>`;
   return `<pre class="term" tabindex="0" aria-label="Terminal ${esc(s.name)} — chạm để gõ" onclick="document.getElementById('tin').focus();toast('Bàn phím đã bật — gõ trực tiếp vào terminal')">${TERM[s.id] || freshTerm(host(r.host), s.cwd || proj(r.host, r.proj).path)}</pre><textarea id="tin" class="sr" aria-label="Nhập vào terminal" autocapitalize="off" autocomplete="off" spellcheck="false"></textarea>`;
 }
 function S6(r) {
@@ -1451,7 +1521,8 @@ function doRename() {
   ui.dialog = null; render(); toast(`${ic('check')}Đã đổi tên thành ${esc(v)}`);
 }
 const PWA = matchMedia('(display-mode: standalone)').matches, A = PWA ? '⌘' : '⌥';
-const KEYS = [['⌘K / Ctrl+Alt+K', 'Chuyển nhanh: dự án, phiên, file, lệnh'], ['⌘P', 'Mở nhanh file (thêm :số để tới dòng)'], ['⌘⇧F', 'Tìm trong cả dự án'], ['⌘F · Ctrl+G', 'Tìm/thay trong file · tới dòng'], ['⌘S', 'Lưu file'], [A + 'W', 'Đóng tab file / phiên terminal'], [A + '1…' + A + '9', 'Chuyển tới phiên thứ n'], ['Ctrl+Tab', 'Phiên / file kế tiếp'], ['Ctrl+1 · 2 · 3', 'Tab Phiên · Files · Git'], [A + '⇧N · ' + A + '⇧T', 'Phiên Claude mới · terminal mới'], ['⌘\\', 'Ẩn/hiện thanh bên'], ['Enter · ⇧Enter', 'Gửi cho Claude · xuống dòng'], ['⇧Tab', 'Đổi chế độ quyền của phiên Claude'], ['Esc', 'Dừng Claude đang chạy · đóng hộp thoại'], [A + 'Y · ' + A + 'N', 'Cho phép · từ chối yêu cầu quyền đang chờ'], ['⌘Enter', 'Commit (ở Git)'], ['Phím cách', 'Thêm/bỏ file khỏi commit (ở Git)'], ['⌘/', 'Bảng phím tắt này']];
+const KEYS = [['⌘K / Ctrl+Alt+K', 'Chuyển nhanh: dự án, phiên, file, lệnh'], ['⌘P', 'Mở nhanh file (thêm :số để tới dòng)'], ['⌘⇧F', 'Tìm trong cả dự án'], ['⌘F · Ctrl+G', 'Tìm/thay trong file · tới dòng'], ['⌘S', 'Lưu file'], [A + 'W', 'Đóng tab file / phiên terminal'], [A + '1…' + A + '9', 'Chuyển tới phiên thứ n'], ['Ctrl+Tab', 'Phiên / file kế tiếp'], ['Ctrl+1 · 2 · 3 · 4', 'Tab Phiên · Files · Git · Trình duyệt'], [A + '⇧N · ' + A + '⇧T · ' + A + '⇧M', 'Phiên Claude mới · terminal mới · tmux mới'],
+  ['Terminal: ⌥← · ⌥→', 'Nhảy một từ'], ['Terminal: ⌘← · ⌘→', 'Về đầu / cuối dòng'], ['Terminal: ⌥⌫ · ⌘⌫', 'Xoá một từ · xoá tới đầu dòng'], ['Terminal: ⇧Enter', 'Xuống dòng trong Claude CLI (không gửi)'], ['Terminal: ⌘C · ⌘V', 'Chép vùng chọn (không bôi đen thì gửi Ctrl+C) · dán'], ['Terminal: ⌥ + kéo chuột', 'Chọn chữ cả khi app trong terminal bắt chuột (tmux, vim)'], ['⌘\\', 'Ẩn/hiện thanh bên'], ['Enter · ⇧Enter', 'Gửi cho Claude · xuống dòng'], ['⇧Tab', 'Đổi chế độ quyền của phiên Claude'], ['Esc', 'Dừng Claude đang chạy · đóng hộp thoại'], [A + 'Y · ' + A + 'N', 'Cho phép · từ chối yêu cầu quyền đang chờ'], ['⌘Enter', 'Commit (ở Git)'], ['Phím cách', 'Thêm/bỏ file khỏi commit (ở Git)'], ['⌘/', 'Bảng phím tắt này']];
 function dialogs() {
   const d = ui.dialog; if (!d) return '';
   const dlg = (warn, title, msg, ok, okCls, act, cancel = 'Huỷ', extraOk = '') => `<div class="scrim" onclick="if(event.target===this){ui.dialog=null;renderOverlay()}"><section class="dialog ${warn ? 'warn' : ''}" role="dialog" aria-label="${title}"><h2>${title}</h2><p>${msg}</p><div class="btns" style="justify-content:flex-end"><button class="btn" onclick="ui.dialog=null;renderOverlay()">${cancel}</button>${extraOk}${ok ? `<button class="btn ${okCls}" onclick="${act}">${ok}</button>` : ''}</div></section></div>`;
@@ -1646,7 +1717,7 @@ function DSPage() {
   /* C23–C27 */
   const modeMenu = W({ menu: 'mode-ds-m' }, () => { const h = composer(r, CS({ id: 'ds-m' }), false), s = h.indexOf('<div class="menu inline">'); return h.slice(s, h.indexOf('\n', s)).replace('class="menu inline"', 'class="menu" style="position:static;max-width:100%"'); });
   const c23 = sec(23, 'Menu nổi có mô tả', 'Vẽ ở lớp nổi (ở đây vẽ tĩnh trong khung); ↑↓ chọn, Enter mở, Esc đóng.',
-    cell('đóng (nút ⋯ của hàng cây, nút +)', `<div class="btns">${ib('more', 'Thao tác với dự án demo-api', '')}${ib('plus', 'Phiên mới: Claude hoặc Terminal', '')}${ib('split', 'Chia ô', '')}</div>`)
+    cell('đóng (nút ⋯ của hàng cây, nút +)', `<div class="btns">${ib('more', 'Thao tác với dự án demo-api', '')}${ib('plus', 'Phiên mới', '')}${ib('split', 'Chia ô', '')}</div>`)
     + cell('mở (+ chọn Claude / Terminal)', menu('plus'))
     + cell('mở · mục nguy hiểm (Bỏ — chữ đỏ)', menu('project'))
     + cell('mở · có mô tả · mục nguy hiểm (Bypass — chữ đỏ)', modeMenu)
@@ -1747,22 +1818,107 @@ function DSPage() {
     ${tokens}${c1}${c2}${c3}${c4}${c5}${c6}${c7}${c8}${c9}${c10}${c11}${c12}${c13}${c14}${c15}${c16}${c17}${c18}${c19}${c20}${c21}${c23}${c24}${c25}${c26}${c27}${c28}${c29}${c30}${c31}${c32}${c33}${c34}${c35}${c36}${c37}${c38}</main>`;
 }
 
+/* ================= S13 TRÌNH DUYỆT (vòng 3) ================= */
+const fwdFor = (h, port) => D.forwards.find(f => f.host === h && f.dir !== 'R' && +f.remote.split(':').pop() === +port);
+function bGo(url) { const r = route(), w = findSess(r.host, r.proj, r.sid); if (w) { w.url = url; w.name = webName(url); } render(); }
+function S13(r) {
+  const h = host(r.host), p = proj(r.host, r.proj), L = (D.listening[r.host] || []), w = websOf(r.host, r.proj).find(x => x.id === r.sid);
+  if (!w) return Sessions(r);
+  const url = w.url;
+  const isFile = url.startsWith('file://'), port = isFile ? 0 : +((url.match(/:(\d+)/) || [])[1] || 80), f = fwdFor(r.host, port), live = isFile || L.find(x => x.port === port);
+  const bar = `<div class="tabbar" style="gap:var(--space-xs);padding:var(--space-xs) var(--space-sm)">
+    ${ib('back', 'Lùi', "toast('Lùi trang')")}${ib('chev', 'Tiến', "toast('Tiến trang')")}${ib('refresh', 'Tải lại (⌘R)', "render();toast('Đã tải lại')")}
+    <form class="grow" style="display:flex" onsubmit="event.preventDefault();bGo(this.u.value)"><input name="u" class="input mono" aria-label="Địa chỉ" value="${esc(url)}" style="width:100%"></form>
+    ${isFile ? `<span class="badge">${ic('file')}${esc(h.name)}</span>` : `<span class="badge">${ic('fwd')}${f && f.status === 'on' ? `localhost:${f.local} → ${esc(h.name)}:${port}` : `${esc(h.name)}:${port}`}</span>`}
+    ${ib('ext', 'Mở bằng trình duyệt ngoài', `toast('Đã mở http://localhost:${f ? f.local : port}/ trong trình duyệt mặc định')`)}${ib('cog', 'Công cụ nhà phát triển (⌥⌘I)', "toast('Mở DevTools của trang')")}</div>`;
+  const chips = L.length ? `<div class="btns" style="padding:var(--space-xs) var(--space-sm);border-bottom:1px solid var(--color-divider)"><span class="muted xs">${esc(h.name)}</span>${L.map(x => `<button class="chip ${x.port === port ? 'on' : ''}" title="${esc(x.proc)}" onclick="bGo('http://localhost:${x.port}/')">:${x.port} <span class="muted xs">${esc(x.proc.split(' ')[0])}</span></button>`).join('')}</div>` : '';
+  let body;
+  if (ui.state === 'loading') body = `<div class="content"><div class="wrap">${skel(3)}</div></div>`;
+  else if (isFile) { const rel = url.replace('file://' + p.path + '/', ''), fc = FC[rel];
+    body = `<div class="pane" style="background:var(--color-bg);overflow:auto"><div class="wrap" style="padding:var(--space-xl)">${fc && fc.kind === 'md' ? fc.lines.map(l => l.startsWith('## ') ? `<h2>${esc(l.slice(3))}</h2>` : l.startsWith('# ') ? `<h1 style="margin-top:0">${esc(l.slice(2))}</h1>` : l ? `<p>${esc(l)}</p>` : '').join('') : fc && fc.lines ? `<pre class="mono">${esc(fc.lines.join('\n'))}</pre>` : `<h1 style="margin-top:0">${esc(rel.split('/').pop())}</h1>`}</div></div>`; }
+  else if (!live) body = `<div class="content"><div class="wrap">${errorBox(`Cổng ${port} trên ${esc(h.name)} không có gì đang chạy`, '', `<button class="btn sm" onclick="render()">${ic('refresh')}Thử lại</button>`)}</div></div>`;
+  else if (!f || f.status !== 'on') body = `<div class="content">${empty('fwd', `<span class="mono">${esc(h.name)}:${port}</span> · <span class="mono">${esc(live.proc)}</span>`, `<button class="btn primary" onclick="addForward('${r.host}',${port},'${esc(p.name)}');bGo('${url}')">${ic('fwd')}Chuyển tiếp và mở</button>`)}</div>`;
+  else body = `<div class="pane" style="background:var(--color-bg);overflow:auto"><div class="wrap" style="padding:var(--space-xl)">
+      <h1 style="margin-top:0">${esc(p.name)} <span class="badge">${esc(live.proc)}</span></h1>
+      <div class="list">${[['GET', '/api/health', '200'], ['POST', '/bookings', '201 · 409 khi trùng giờ'], ['GET', '/bookings?date=2026-11-24', '200']].map(([m, u, s]) => `<div class="row" style="cursor:default"><span class="badge mono">${m}</span><div class="t"><div class="t1 mono">${u}</div><div class="t2">${s}</div></div></div>`).join('')}</div></div></div>`;
+  return `<div class="content flush" data-screen="S13" aria-label="S13 Trình duyệt">${connBar()}${sessionBar(r, w.id)}${withSplit(r, `<div class="pane">${bar}${chips}${body}</div>`)}</div>`;
+}
+
+/* ================= S14 CHUYỂN TIẾP CỔNG (vòng 3) ================= */
+function addForward(h, port, label, local) {
+  const used = D.forwards.some(f => f.local === (local || port));
+  D.forwards.push({ id: 'f' + Date.now().toString(36), host: h, remote: 'localhost:' + port, local: used ? port + 10000 : (local || port), status: 'on', auto: false, label: label || '' });
+}
+function setLocal(id, v, el) {
+  const f = D.forwards.find(x => x.id === id), n = +v;
+  const clash = D.forwards.find(x => x.id !== id && x.local === n);
+  if (!n || n < 1024 || n > 65535 || clash) { el.classList.add('err'); el.value = f.local; return toast(clash ? `Cổng ${n} đang dùng cho ${clash.label || clash.remote}` : 'Cổng 1024–65535'); }
+  el.classList.remove('err'); f.local = n; render();
+}
+const freeLocal = p => { let n = p; while (D.forwards.some(f => f.local === n)) n += 10000; return n; };
+function fwdNow(h, port, label, el) {
+  const v = el ? +el.value : freeLocal(port);
+  if (D.forwards.some(f => f.local === v)) { if (el) el.classList.add('err'); return toast(`Cổng ${v} đang bận`); }
+  D.forwards.push({ id: 'f' + Date.now().toString(36), host: h, remote: 'localhost:' + port, local: v, status: 'on', auto: false, label: label || '' }); render();
+}
+function S14() {
+  if (ui.state === 'loading') return `<div class="content" data-screen="S14"><div class="wrap">${skel(3)}</div></div>`;
+  const hosts = [...new Set(D.forwards.map(f => f.host).concat(Object.keys(D.listening)))];
+  const hsel = ui.portHost && hosts.includes(ui.portHost) ? ui.portHost : hosts[0];
+  if (!hsel) return `<div class="content" data-screen="S14"><div class="wrap">${empty('fwd', 'Chưa có cổng nào.', `<button class="btn primary" onclick="ui.sheet='port';render()">${ic('plus')}Thêm chuyển tiếp</button>`)}</div></div>${ui.sheet === 'port' ? portSheet() : ''}`;
+  const h = host(hsel);
+  const F = D.forwards.filter(f => f.host === hsel), L = D.listening[hsel] || [];
+  const locIn = (f) => f.dir === 'R'
+    ? `<span class="mono muted xs">→ ${esc(h.name)}:</span><input class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng trên ${esc(h.name)}" value="${f.remote.split(':').pop()}" onchange="(D.forwards.find(x=>x.id==='${f.id}').remote='localhost:'+this.value);render()">`
+    : `<span class="mono muted xs">→ Mac:</span><input class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng trên máy này" value="${f.local}" onchange="setLocal('${f.id}',this.value,this)">`;
+  const fRow = f => { const port = f.remote.split(':').pop(), proc = f.dir === 'R' ? '' : (L.find(x => x.port === +port) || {}).proc; return `<div class="row" style="cursor:default">${ic(f.dir === 'R' ? 'up' : 'down')}
+      <div class="t"><div class="t1 mono">${f.dir === 'R' ? `Mac localhost:${f.local}` : `${esc(h.name)} ${esc(f.remote)}`}${f.label ? ` <span class="muted xs">· ${esc(f.label)}</span>` : ''}</div><div class="t2 ${f.status === 'err' ? 'danger-t' : 'mono'}">${f.status === 'err' ? esc(f.err) : esc(proc || '')}</div></div>
+      ${locIn(f)}<span class="hide-mobile">${statusBadge(f.status === 'err' ? 'err' : f.status)}</span>
+      ${f.status === 'on' && f.dir !== 'R' ? ib('globe', 'Mở bằng trình duyệt', `newWeb('${f.host}','${(D.projects[f.host] || [])[1] ? D.projects[f.host][1].id : 'home'}','http://localhost:${port}/')`) : ''}
+      ${ib(f.status === 'off' ? 'plug' : 'stop', f.status === 'off' ? 'Bật' : 'Tắt', `(D.forwards.find(x=>x.id==='${f.id}').status='${f.status === 'off' ? 'on' : 'off'}');render()`)}
+      ${ib('trash', 'Xoá', `D.forwards=D.forwards.filter(x=>x.id!=='${f.id}');render()`)}</div>`; };
+  const dRow = x => `<div class="row" style="cursor:default">${ic('server')}<div class="t"><div class="t1 mono">${esc(h.name)} localhost:${x.port}</div><div class="t2 mono">${esc(x.proc)}</div></div>
+      <span class="mono muted xs">→ Mac:</span><input id="dl-${x.port}" class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng trên máy này" value="${freeLocal(x.port)}">
+      <button class="btn sm" onclick="fwdNow('${hsel}',${x.port},'${x.proj || ''}',document.getElementById('dl-${x.port}'))">${ic('fwd')}Chuyển tiếp</button></div>`;
+  const det = L.filter(x => !fwdFor(hsel, x.port));
+  return `<div class="content" data-screen="S14" aria-label="S14 Chuyển tiếp cổng"><div class="wrap">
+    <div class="btns" style="margin-bottom:var(--space-md)"><div class="seg grow">${hosts.map(k => `<button class="${k === hsel ? 'on' : ''}" onclick="ui.portHost='${k}';render()">${esc(host(k).name)}</button>`).join('')}</div>
+      <button class="btn primary" onclick="ui.sheet='port';render()">${ic('plus')}Thêm</button></div>
+    ${F.length ? `<div class="list">${F.map(fRow).join('')}</div>` : ''}
+    ${det.length ? `<h2 class="sm" style="margin:var(--space-lg) 0 var(--space-sm)">Đang nghe</h2><div class="list">${det.map(dRow).join('')}</div>` : ''}
+    ${!F.length && !det.length ? empty('fwd', 'Chưa có cổng nào.', '') : ''}
+    </div></div>${ui.sheet === 'port' ? portSheet() : ''}`;
+}
+function portSheet() {
+  const hs = D.hosts.filter(h => h.kind !== 'local'), def = 8000, rev = ui.pfDir === 'R';
+  return `<div class="scrim" onclick="if(event.target===this){ui.sheet=null;render()}"><aside class="sheet" aria-label="Thêm chuyển tiếp cổng">
+    <div class="sheet-head">Thêm chuyển tiếp${ib('x', 'Đóng', 'ui.sheet=null;render()')}</div>
+    <div class="sheet-body">
+      <div class="field"><label for="pf-h">Máy</label><select id="pf-h" class="input mono">${hs.map(h => `<option value="${h.id}" ${h.id === (ui.portHost || 'demo-sshd') ? 'selected' : ''}>${esc(h.name)}</option>`).join('')}</select></div>
+      <div class="field"><label>Chiều</label><div class="seg"><button class="${rev ? '' : 'on'}" onclick="ui.pfDir='L';render()">${ic('down')}Máy SSH → Mac</button><button class="${rev ? 'on' : ''}" onclick="ui.pfDir='R';render()">${ic('up')}Mac → máy SSH</button></div></div>
+      <div class="grid2"><div class="field"><label for="pf-r">${rev ? 'Cổng mở trên máy SSH' : 'Cổng trên máy SSH'}</label><input id="pf-r" class="input mono" value="localhost:${def}" oninput="const m=this.value.match(/:(\\d+)$/);if(m&&!document.getElementById('pf-l').dataset.touched)document.getElementById('pf-l').value=freeLocal(+m[1])"></div>
+      <div class="field"><label for="pf-l">${rev ? 'Cổng service trên Mac' : 'Cổng trên Mac'}</label><input id="pf-l" class="input mono ${ui.state === 'error' ? 'err' : ''}" inputmode="numeric" value="${ui.state === 'error' ? 3000 : freeLocal(def)}" oninput="this.dataset.touched=1">${ui.state === 'error' ? '<span class="msg">Cổng 3000 đang dùng cho demo-api</span>' : ''}</div></div>
+      <div class="field"><label for="pf-n">Tên</label><input id="pf-n" class="input"></div>
+      <label class="chk"><input type="checkbox" role="switch" class="sw" checked id="pf-a">Tự bật khi mở app</label></div>
+    <div class="sheet-foot"><button class="btn" onclick="ui.sheet=null;render()">Huỷ</button><button class="btn primary" onclick="const h=document.getElementById('pf-h').value,r=document.getElementById('pf-r').value,l=+document.getElementById('pf-l').value;if((ui.pfDir||'L')==='L'&&D.forwards.some(f=>f.dir!=='R'&&f.local===l)){document.getElementById('pf-l').classList.add('err');return toast('Cổng '+l+' đang bận')}D.forwards.push({id:'f'+Date.now().toString(36),dir:ui.pfDir||'L',host:h,remote:r,local:l,status:'on',auto:document.getElementById('pf-a').checked,label:document.getElementById('pf-n').value});ui.portHost=h;ui.sheet=null;render()">${ic('fwd')}Chuyển tiếp</button></div></aside></div>`;
+}
+
 /* ================= KHUNG ================= */
 function render() {
   const r = route(), app = document.getElementById('app');
   if (r.name === 'ds') { app.innerHTML = DSPage(); document.querySelectorAll('[data-ds-end]').forEach(e => e.scrollTop = e.scrollHeight); renderProto(r); renderOverlay(); return; }
   if (r.name === 'proj') return openProject(r.host, r.proj);
   if (r.name === 'files') syncFileRoute(r);
-  if (['term', 'claude', 'files', 'git'].includes(r.name) && r.sid !== 'new') ui.lastTab[r.host + '/' + r.proj] = location.hash.split('/p/' + r.proj + '/')[1];
+  if (['term', 'claude', 'files', 'git', 'web'].includes(r.name) && r.sid !== 'new') ui.lastTab[r.host + '/' + r.proj] = location.hash.split('/p/' + r.proj + '/')[1];
   if (r.host) { ui.open[r.host] = true; if (r.proj) ui.open[r.host + '/' + r.proj] = true; }
   if (r.name === 'login') { app.innerHTML = S1(); renderProto(r); renderOverlay(); return; }
-  const screens = { hosts: () => S3(), settings: () => S7(r), newproj: () => S5(r), term: () => S6(r), claude: () => S10(r), files: () => S8(r), git: () => S9(r), sessions: () => Sessions(r) };
-  const main = topbar(r, { hosts: 'Máy', settings: 'Cài đặt', newproj: 'Dự án mới' }[r.name] || 'Không gian làm việc') + (screens[r.name] ? screens[r.name]() : connBar() + S2(r));
+  const screens = { hosts: () => S3(), settings: () => S7(r), newproj: () => S5(r), term: () => S6(r), claude: () => S10(r), files: () => S8(r), git: () => S9(r), sessions: () => Sessions(r), web: () => S13(r), ports: () => S14() };
+  const main = topbar(r, { hosts: 'Máy', settings: 'Cài đặt', newproj: 'Dự án mới', ports: 'Chuyển tiếp cổng' }[r.name] || 'Không gian làm việc') + (screens[r.name] ? screens[r.name]() : connBar() + S2(r));
   const full = inProject(r);
   app.innerHTML = `<div class="shell ${ui.sideOpen ? 'side-open' : ''} ${ui.noside ? 'noside' : ''}">
     ${innerWidth >= 768 ? `<aside class="sidebar" aria-label="Không gian làm việc"><div class="side-head"><span class="logo-dot"></span><a href="#/" style="color:inherit;text-decoration:none">HugRemote</a><span class="grow"></span><span class="only-narrow">${ib('x', 'Đóng', 'ui.sideOpen=false;render()')}</span></div>
       <button class="search-btn" onclick="openSpot()">${ic('search')}Chuyển nhanh<kbd>⌘K</kbd></button>${treeHead()}<nav class="tree">${tree(r)}</nav>
-      <div class="side-foot"><button class="btn ghost block" style="justify-content:flex-start" onclick="go('#/hosts')">${ic('server')}${ui.role === 'owner' ? 'Quản lý máy' : 'Máy'}</button><button class="btn ghost block" style="justify-content:flex-start" onclick="go('#/settings')">${ic('cog')}Cài đặt</button></div></aside>` : ''}
+      <div class="side-foot"><button class="btn ghost block" style="justify-content:flex-start" onclick="go('#/hosts')">${ic('server')}${ui.role === 'owner' ? 'Quản lý máy' : 'Máy'}</button></div></aside>` : ''}
     <div class="main">${main}${full ? '' : bottombar(r)}</div></div>`;
   const on = document.querySelector('.tab.on'); if (on) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   document.querySelectorAll('.chat').forEach(c => c.scrollTop = c.scrollHeight);
@@ -1788,7 +1944,8 @@ function renderProto(r) {
   const d = document.getElementById('proto'), wasOpen = d.open;
   const b = (label, on, act) => `<button class="${on ? 'on' : ''}" onclick="${act}">${label}</button>`;
   const P = '#/s/demo-sshd/p/demo-api';
-  d.innerHTML = `<summary>Prototype vòng 1 — bảng điều khiển</summary><div class="pb">
+  d.innerHTML = `<summary>Prototype — bảng điều khiển (vòng 3: S6 tmux/mở lại · S13 · S14)</summary><div class="pb">
+    <div>Vòng 3: ${b('S6 tmux', r.sid === 't5', `go('${P}/terminal/t5')`)}${b('S6 mất kết nối', r.sid === 't6', `go('${P}/terminal/t6')`)}${b('Mô phỏng tắt & mở lại app', false, 'simulateRelaunch()')}${b('S13 Trình duyệt', r.sid === 'w1', `go('${P}/web/w1')`)}${b('S13 cổng chưa chuyển tiếp', false, `newWeb('demo-sshd','demo-web','http://localhost:5173/')`)}${b('S14 Chuyển tiếp cổng', r.name === 'ports', "ui.portHost='';go('#/ports')")}</div>
     <div>Màn: ${b('S1', r.name === 'login', "go('#/login')")}${b('S2', r.name === 'home', "go('#/')")}${b('S3', r.name === 'hosts', "go('#/hosts')")}${b('S4', ui.dialog && ui.dialog.k === 'hostkey', "ui.hostkeyChanged=false;ui.dialog={k:'hostkey'};renderOverlay()")}${b('S5', r.name === 'newproj', "go('#/s/demo-sshd/new-project')")}${b('S6', r.name === 'term', `go('${P}/terminal/t1')`)}${b('S7', r.name === 'settings', "go('#/settings')")}${b('S8', r.name === 'files', `go('${P}/files')`)}${b('S9', r.name === 'git', `go('${P}/git')`)}${b('S10', r.name === 'claude', `go('${P}/claude/c1')`)}${b('S11', ui.spot, 'openSpot()')}${b('S12', ui.quick, 'openQuick()')}</div>
     <div>Design system: ${b('Trang mẫu component', r.name === 'ds', "go('#/_ds')")}</div>
     <div>Dữ liệu: ${b('Đang dùng (demo)', !ui.fresh, "setState('demo')")}${b('Instance mới tinh', ui.fresh, "setState('fresh')")}</div>
@@ -1801,12 +1958,14 @@ function renderProto(r) {
 setInterval(() => { if (ui.loginErr === 'locked' && ui.lockSec > 0) { ui.lockSec--; const t = document.getElementById('lockt'); if (t) t.textContent = String(Math.floor(ui.lockSec / 60)).padStart(2, '0') + ':' + String(ui.lockSec % 60).padStart(2, '0'); } }, 1000);
 addEventListener('keydown', e => {
   const r = route();
-  if (e.altKey && !e.metaKey && !e.ctrlKey && /^(Digit[1-9]|KeyW|KeyN|KeyT|KeyY)$/.test(e.code)) {
+  if (e.altKey && !e.metaKey && !e.ctrlKey && /^(Digit[1-9]|KeyW|KeyN|KeyT|KeyY|KeyM|KeyB)$/.test(e.code)) {
     const c = e.code.replace(/^(Digit|Key)/, '').toLowerCase();
     if (/^[1-9]$/.test(c) && r.proj) { const s = sessionsOf(r.host, r.proj)[+c - 1]; if (s) { e.preventDefault(); return go(`${pbase(r.host, r.proj)}/${s.kind}/${s.id}`); } }
-    if (c === 'w') { e.preventDefault(); if (r.name === 'files') return ui.fileOpen && closeFile(ui.fileOpen); if (r.name === 'term') return closeSession(r.host, r.proj, r.sid); }
+    if (c === 'w') { e.preventDefault(); if (r.name === 'files') return ui.fileOpen && closeFile(ui.fileOpen); if (r.name === 'term' || r.name === 'web') return closeSession(r.host, r.proj, r.sid); }
     if (e.shiftKey && c === 'n' && r.proj) { e.preventDefault(); return newClaude(r.host, r.proj); }
     if (e.shiftKey && c === 't' && r.proj) { e.preventDefault(); return newTerminal(r.host, r.proj); }
+    if (e.shiftKey && e.code === 'KeyM' && r.proj && r.host !== 'local') { e.preventDefault(); return newTmux(r.host, r.proj); }
+    if (e.shiftKey && e.code === 'KeyB' && r.proj) { e.preventDefault(); return newWeb(r.host, r.proj); }
     if (!e.shiftKey && (c === 'y' || c === 'n') && r.name === 'claude' && r.sid !== 'new') { const cs = findSess(r.host, r.proj, r.sid), a = cs && cs.msgs.find(m => m.t === 'ask' && !m.decision); if (a) { e.preventDefault(); return decide(r.host, r.proj, r.sid, a.id, c === 'y' ? 'allowed' : 'denied'); } }
   }
   const k = e.key.toLowerCase(), mod = e.metaKey || e.ctrlKey;
@@ -1821,7 +1980,7 @@ addEventListener('keydown', e => {
   if (r.name === 'files' && e.ctrlKey && k === 'g') { e.preventDefault(); return gotoLine(); }
   if (r.name === 'files' && mod && k === 's') { e.preventDefault(); return saveFile(); }
   if (r.name === 'files' && mod && k === 'w') { e.preventDefault(); return ui.fileOpen && closeFile(ui.fileOpen); }
-  if (r.name === 'term' && mod && k === 'w') { e.preventDefault(); return closeSession(r.host, r.proj, r.sid); }
+  if ((r.name === 'term' || r.name === 'web') && mod && k === 'w') { e.preventDefault(); return closeSession(r.host, r.proj, r.sid); }
   if (e.ctrlKey && ['1', '2', '3'].includes(k) && r.proj) { e.preventDefault(); return go(pbase(r.host, r.proj) + ['/sessions', '/files', '/git'][+k - 1]); }
   if (mod && /^[1-9]$/.test(k) && r.proj) { const ss = sessionsOf(r.host, r.proj), s = ss[+k - 1]; if (s) { e.preventDefault(); return go(`${pbase(r.host, r.proj)}/${s.kind}/${s.id}`); } }
   if (e.ctrlKey && e.key === 'Tab' && r.proj) {

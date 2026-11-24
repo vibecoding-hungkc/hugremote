@@ -1880,7 +1880,9 @@ def gate_r(r: Report) -> None:
     """
     rnd = current_round()
     print(f"\nGate R — Repeat (vòng {rnd})\n")
-    check_demo(r, rnd)
+    # Authority bỏ yêu cầu video demo khỏi gate R (DECISIONS 2026-11-24) — check_demo giữ lại
+    # để dùng tay khi muốn, nhưng không còn chặn quay vòng.
+    r.ok("video demo cuối vòng: không bắt buộc (DECISIONS 2026-11-24)")
 
     print()
     r.note("Không kiểm tự động được — tự xác nhận:")

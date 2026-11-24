@@ -3,7 +3,7 @@
 > Trạng thái sống. Người và agent cùng đọc/ghi. Cập nhật ngay khi đổi pha hoặc tick gate.
 
 ```
-Pha hiện tại : I
+Pha hiện tại : R
 Vòng          : 2
 Vòng mở       : 2026-11-23
 Phase         : MVP · mở ở vòng 1

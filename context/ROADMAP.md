@@ -40,7 +40,8 @@ last_reviewed: "2026-11-21"
 | Vòng | Phase | Phạm vi | Pha chạy | Phụ thuộc | Trạng thái |
 |---|---|---|---|---|---|
 | 1 | MVP | **Toàn bộ HugRemote mới** — 30 capability của intake (W1–W6 gộp): đăng nhập + 2FA + SSO, máy & dự án, terminal, Files, Git (cả lịch sử), Claude chat (stream, chạy nền, duyệt quyền, model, phiên CLI, giọng nói, đính kèm, hạn mức), chuyển nhanh, design system tối/sáng + vi/en, installer, nhập dữ liệu v1, tự cập nhật, nền bảo mật + pentest; + checklist P1 | V, I, P | — | xong (P1 xanh 2026-11-23; 49/49 AC; P2 không áp dụng — chỉ chạy local) |
-| 2 | Phase 3 | **CAP-OPS-05 — Ứng dụng macOS đóng gói**: `apps/desktop` (vỏ Electron bọc `apps/api`+`apps/web` đã build), lệnh build `.app`+`.dmg` ký ad-hoc, chế độ "phiên desktop" (loopback + cookie bí mật riêng mỗi lần mở, không cần mật khẩu) | V, I | vòng 1 | đang chạy |
+| 2 | Phase 3 | **CAP-OPS-05 — Ứng dụng macOS đóng gói**: `apps/desktop` (vỏ Electron bọc `apps/api`+`apps/web` đã build), lệnh build `.app`+`.dmg` ký ad-hoc, chế độ "phiên desktop" (loopback + cookie bí mật riêng mỗi lần mở, không cần mật khẩu) | V, I | vòng 1 | xong (2026-11-24; AC-50..52; không quay video — DECISIONS 2026-11-24) |
+| 3 | Phase 3 | **Terminal dùng hằng ngày trên desktop** (yêu cầu Authority 2026-11-24): phím tắt macOS + chép/dán trong terminal, phiên tmux tự gắn lại, mở lại tại tab mất kết nối, phiên trình duyệt, chuyển tiếp cổng hai chiều (`-L`/`-R`) — AC-53..59 | V, I, P (chỉ P1) | vòng 2 | đã rà với Authority 2026-11-24 — chờ chốt prototype |
 
 Authority gộp 6 vòng của kế hoạch cũ thành một vòng (DECISIONS 2026-11-21). Thứ tự 6 wave của
 `intake/ROADMAP.md §2` giữ làm **thứ tự triển khai bên trong vòng** (`intake/loops/l1/_PROPOSAL.md §21`).

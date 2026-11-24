@@ -58,7 +58,7 @@ intake:     mọi vòng  mọi vòng     ── chỉ ở vòng khai trong _PROP
 | **I — Implement** | Meta challenge builder → scaffold từ stack skill → walking skeleton → luồng lõi → tự dùng thử |
 | **P — Polish & Publish** | Prod-ready checklist 4 nhóm → deploy PaaS |
 | **E — Evaluate** | Đo phản ứng, fix bug, tối ưu, thử nghiệm |
-| **R — Repeat** | Quyết định go / pivot / kill. **Quay video demo cuối vòng** (§1.5). Đóng vòng, **mở vòng mới** (§1.2): vòng sau là một lượt V→I→(P)→(E)→(R) nữa trên cùng repo, không phải "code tiếp" |
+| **R — Repeat** | Quyết định go / pivot / kill. Video demo cuối vòng tuỳ chọn (§1.5). Đóng vòng, **mở vòng mới** (§1.2): vòng sau là một lượt V→I→(P)→(E)→(R) nữa trên cùng repo, không phải "code tiếp" |
 
 **Pha nào bắt buộc — khác nhau theo đường vào:**
 
@@ -111,7 +111,7 @@ Không có stage machine. Gate chỉ báo, không chặn: `python3 scripts/gate.
 | | Tracking đang đếm thật · ngưỡng go/pivot/kill ghi TRƯỚC khi nhìn số | người |
 | | Sổ EXPERIMENTS **của vòng này** có dòng số liệu thật (vòng 1: `EXPERIMENTS.md`; vòng N ≥2: `EXPERIMENTS-v<N>.md`) | ✓ |
 | **R** | Quyết định go / pivot / kill ghi ở `DECISIONS.md` + sổ EXPERIMENTS của vòng. *(intake)* Vòng không chạy `E` → không có số liệu, R rút về sổ sách: quay video demo, đóng vòng, mở vòng kế theo kế hoạch | người |
-| | **Video demo cuối vòng** (§1.5) — **mọi vòng, cả hai đường**, kể cả vòng chỉ V+I: `context/DEMOS.md` có mục `## Vòng N` · file liệt kê nằm ở `demos/vong-<N>/`, có thật, không rỗng · có UI thì có ít nhất một video · mọi AC của `PRD.md §3` có mặt trong mục · không bước nào `✗` | ✓ |
+| | *(Không còn bắt buộc — Authority bỏ khỏi gate R, DECISIONS 2026-11-24; gate không kiểm)* Video demo cuối vòng (§1.5): `context/DEMOS.md` có mục `## Vòng N` · file liệt kê nằm ở `demos/vong-<N>/`, có thật, không rỗng · có UI thì có ít nhất một video · mọi AC của `PRD.md §3` có mặt trong mục · không bước nào `✗` | ✓ |
 | | `ROADMAP.md` cập nhật — backlog §3, và *(intake)* trạng thái vòng ở §1 | người |
 | | Vòng mới mở bằng `scripts/repeat.py --go` — archive snapshot, sổ sách theo vòng, **không reset gì** (§1.2). Script chạy `gate.py R` trước — đỏ thì **từ chối** quay vòng | ✓ script |
 
@@ -212,6 +212,8 @@ Vì sao chỉ V và I bắt buộc: **V** là chỗ duy nhất scope được kh
 **Đổi kế hoạch giữa chừng** đi đúng một đường: sửa `ROADMAP.md §1` **và** `_PROPOSAL.md` của vòng liên quan, ghi lý do vào `## Điều chỉnh khi mở vòng` của proposal đó. Authority muốn đổi thì thả `.md` vào `l<N>/` (hoặc nói qua chat ở pha V, meta ghi hộ). Thêm vòng ngoài kế hoạch cũng vậy — thêm dòng ở `ROADMAP.md §1` rồi tạo `_PROPOSAL.md` tương ứng, nếu không thì `repeat.py` mở ra một vòng rỗng và `gate.py V` fail-closed đúng chỗ đó.
 
 ### 1.5 Video demo cuối vòng
+
+> **Tuỳ chọn từ 2026-11-24** — Authority bỏ yêu cầu video khỏi `gate.py R` (DECISIONS 2026-11-24). Phần dưới giữ làm hướng dẫn khi muốn quay.
 
 Vòng nào đóng cũng để lại **một video đi trọn kịch bản demo của vòng trên sản phẩm thật** — quay ở pha R, trước `repeat.py --go`, ở **cả hai đường và mọi vòng**, kể cả vòng intake chỉ V+I: R lúc đó rút về sổ sách, nhưng sổ sách gồm cả video.
 

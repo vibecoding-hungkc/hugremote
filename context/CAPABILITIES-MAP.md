@@ -27,16 +27,16 @@ last_reviewed: "2026-11-23"
 | CAP-PROJ-03 — Máy đã ghim, đồng bộ giữa thiết bị | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-TERM-01 — Phiên PTY chạy nền, nối lại, lưu phía server | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-TERM-02 — Bàn phím cảm ứng cho terminal + `visualViewport` | MVP | P-MOBILE | 1 | — | xong (vòng 1) |
-| CAP-FILE-01 — Duyệt, sửa, xem trước file của dự án | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
+| CAP-FILE-01 — Duyệt, sửa, xem trước file của dự án | MVP | P-MOBILE, P-DESK | 1, 3 | AC-60, AC-61 | xong (vòng 1) · vòng 3 bổ sung |
 | CAP-FILE-02 — Tạo/đổi tên/xoá, tải lên/xuống, zip | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-GIT-01 — Trạng thái, diff, stage, commit, pull/push, nhánh | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-GIT-02 — Lịch sử commit + diff theo commit | Phase 2 | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-AI-01 — Phiên Claude stream, chạy nền, nối lại, dừng | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-AI-02 — Thẻ duyệt quyền + menu chế độ quyền | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
-| CAP-AI-03 — Model/effort từ CLI + context usage | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
+| CAP-AI-03 — Model/effort từ CLI + context usage | MVP | P-MOBILE, P-DESK | 1, 3 | AC-62 | xong (vòng 1) · vòng 3 bổ sung |
 | CAP-AI-04 — Một danh sách phiên Claude (gộp CLI) | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-AI-05 — Slash command, đính kèm, giọng nói, IME | Phase 2 | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
-| CAP-AI-06 — Hạn mức dùng Claude | Phase 2 | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
+| CAP-AI-06 — Hạn mức dùng Claude | Phase 2 | P-MOBILE, P-DESK | 1, 3 | AC-63 | xong (vòng 1) · vòng 3 bổ sung |
 | CAP-AI-07 — Phân quyền chủ phiên cho người dùng SSO | Phase 2 | P-TEAM | 1 | — | xong (vòng 1) |
 | CAP-UX-01 — Vỏ ứng dụng + một mô hình điều hướng + deep link | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-UX-02 — Design system, tối/sáng, AA, i18n vi/en đủ | MVP | P-MOBILE, P-DESK, P-HOST | 1 | — | xong (vòng 1) |
@@ -45,13 +45,18 @@ last_reviewed: "2026-11-23"
 | CAP-OPS-02 — Nhập dữ liệu từ v1.x | MVP | P-HOST | 1 | — | xong (vòng 1) |
 | CAP-OPS-03 — Tự cập nhật trong app có quay lại | Phase 2 | P-HOST | 1 | — | xong (vòng 1) |
 | CAP-OPS-04 — `/api/health` + `hugremote doctor` | MVP | P-HOST | 1 | — | xong (vòng 1) |
-| CAP-OPS-05 — Ứng dụng macOS đóng gói, notarize | Phase 3 | P-DESK, P-HOST | 2 | AC-50, AC-51, AC-52 | vòng này |
+| CAP-OPS-05 — Ứng dụng macOS đóng gói, notarize | Phase 3 | P-DESK, P-HOST | 2 | — | xong (vòng 2) |
+| CAP-TERM-03 — Phím tắt macOS + chép/dán trong terminal | MVP | P-DESK | 3 | AC-53 | vòng này |
+| CAP-TERM-04 — Phiên tmux bền + mở lại tại tab mất kết nối | MVP | P-DESK, P-HOST | 3 | AC-54, AC-55, AC-56 | vòng này |
+| CAP-NET-01 — Chuyển tiếp cổng hai chiều + phát hiện cổng đang nghe | MVP | P-DESK, P-HOST | 3 | AC-57, AC-58 | vòng này |
+| CAP-WEB-01 — Phiên trình duyệt trong app desktop | MVP | P-DESK | 3 | AC-59 | vòng này |
 | CAP-SEC-01 — Nền bảo mật xuyên suốt | MVP | P-MOBILE, P-DESK, P-HOST, P-TEAM | 1 | — | xong (vòng 1) |
 
 ## 2. Lát cắt vòng này
 
-Vòng 2 giao **CAP-OPS-05 — Ứng dụng macOS đóng gói**: `apps/desktop` (vỏ Electron bọc `apps/api` + `apps/web`),
-đóng gói `.app` và `.dmg` ký ad-hoc, tự động xác thực loopback không cần mật khẩu.
+Vòng 3 giao **4 capability mới** (CAP-TERM-03, CAP-TERM-04, CAP-NET-01, CAP-WEB-01 — Authority yêu cầu qua chat
+2026-11-24, không có trong intake gốc) và **bổ sung 3 capability đã có** (CAP-FILE-01, CAP-AI-03, CAP-AI-06).
+AC-53..63, chi tiết ở `intake/loops/l3/_PROPOSAL.md §6`.
 
 ## 3. Change log
 
@@ -62,3 +67,4 @@ Vòng 2 giao **CAP-OPS-05 — Ứng dụng macOS đóng gói**: `apps/desktop` (
 | 2026-11-21 | Gộp: 30 capability giao ở vòng 1 | Authority chốt ở pha V |
 | 2026-11-21 | Cột AC thêm AC-36..AC-49 (49 AC); không thêm capability | Prototype lượt 3–7 + rà soát reviewer (DECISIONS D1–D17) |
 | 2026-11-23 | Mở vòng 2: CAP-OPS-05 (AC-50, AC-51, AC-52) | Chỉ thị Authority qua chat, dời từ Phase 3 lên làm ngay |
+| 2026-11-24 | Vòng 2 xong. Mở vòng 3: thêm CAP-TERM-03, CAP-TERM-04, CAP-NET-01, CAP-WEB-01; bổ sung CAP-FILE-01, CAP-AI-03, CAP-AI-06 (AC-53..63) | Yêu cầu Authority qua chat 2026-11-24 |

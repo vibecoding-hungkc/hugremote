@@ -51,6 +51,10 @@ cây + vùng chính tab/chia ô kiểu Orca) và mobile (<768px: toàn màn + th
 | S10 | Phiên — Claude | Giao việc cho Claude, duyệt quyền một chạm, theo dõi từ xa | Thanh phiên trộn C8 (cùng S6, ⚠ Bypass) + chuông C38 → danh sách phiên (gộp CLI) → luồng chat (đầy đủ hoặc gọn C37): tin người dùng, suy nghĩ (thu gọn), văn bản, thẻ công cụ, thẻ duyệt quyền, tóm tắt lượt C33 → tin xếp hàng C34 → ô soạn C36 (riêng từng phiên): ô nhập + mic + quyền; đính kèm · gọn · Context `227k/1000k` · Hạn mức 5 giờ · Model + mức suy nghĩ · Dừng/Gửi | Gửi (đang chạy → xếp hàng) · Huỷ tin chờ · Dừng (Esc) · Cho phép/Từ chối · Đổi model/chế độ (⇧Tab) · Bật gọn · Tiếp tục phiên CLI · Đổi tên · **+** · Chia ô với Terminal/Files/Git | Rỗng: "Hỏi Claude điều gì đó về dự án này" + gợi ý · Lỗi: chưa cài Claude CLI trên máy, hàng chờ đầy, C13 đang nối lại (Gửi/duyệt khoá, nháp giữ) · "Claude đang suy nghĩ…" |
 | S11 | Chuyển nhanh (hộp nổi) | Tới đúng dự án/phiên/file trong ≤3 thao tác | Ô tìm → kết quả nhóm theo máy: dự án, phiên Claude (chấm trạng thái, ⚠ Bypass), phiên terminal, file (khớp tên trước); member chỉ thấy phiên của mình | Gõ · ↑↓ · Enter mở · Esc đóng | Rỗng: phiên cần bạn + đang chạy · "Không thấy …" · đang tìm |
 | S12 | Mở nhanh file ⌘P (hộp nổi) | Developer mở file theo tên trong dự án hiện tại, tới dòng | Ô tìm (khớp mờ, `:số` = tới dòng) → file đang mở + vừa thay đổi khi trống → kết quả theo độ khớp | Gõ · ↑↓ · Enter mở · Esc đóng | Rỗng: file đang mở + vừa đổi · "Không có file nào khớp" · — |
+| S13 | Phiên trình duyệt (vòng 3, chỉ app desktop) | P-DESK xem web app đang chạy trên máy SSH mà không rời app | Thanh phiên trộn C8 (biểu tượng quả địa cầu, tên = địa chỉ) → thanh địa chỉ (lùi · tiến · tải lại · ô URL · nhãn đường chuyển tiếp `localhost:L → máy:cổng` · mở ngoài · DevTools) → chip cổng đang nghe trên máy → trang | Gõ link (đổi trang trong chính phiên) · bấm chip cổng · Chuyển tiếp và mở · Mở ngoài | Cổng chưa chuyển tiếp: `máy:cổng · tiến trình` + *Chuyển tiếp và mở* · cổng không nghe: lỗi + Thử lại · đang tải: khung xương |
+| S14 | Chuyển tiếp cổng (vòng 3, owner) | P-DESK/P-HOST đưa cổng giữa Mac và máy SSH, hai chiều | Lọc theo máy → danh sách chuyển tiếp: chiều ↓ (máy SSH → Mac) / ↑ (Mac → máy SSH), địa chỉ nguồn + tên, ô cổng đích sửa được, trạng thái → *Đang nghe*: cổng chưa chuyển tiếp + tiến trình + ô cổng điền sẵn + Chuyển tiếp → sheet Thêm (máy, chiều, cổng hai đầu tự điền theo nhau, tên, *Tự bật khi mở app*) | Thêm · Chuyển tiếp từng cổng · sửa cổng đích · Tắt/Bật · Xoá · Mở bằng trình duyệt | Rỗng: "Chưa có cổng nào." + Thêm · lỗi: trùng cổng (ô đỏ + câu báo), máy mất kết nối (chữ đỏ, tự thử lại 10 giây) · đang tải: khung xương |
+
+**Delta vòng 3 trên màn cũ** (chốt 2026-11-24): **S6** — loại phiên tmux (biểu tượng riêng, tên = tên session tmux, không tiền tố), trạng thái *đang gắn lại* (tmux) và *Mất kết nối — đang nối lại (lần n)* + *Mở lại tại đây* / *Đóng tab* (terminal thường); menu **+** thêm *Phiên tmux mới* (⌥⇧M, chỉ máy SSH) + nhóm *tmux trên <máy>* + *Trình duyệt mới* (⌥⇧B, chỉ desktop). **S8** — trạng thái cây (thư mục mở, file ẩn, cuộn) giữ theo dự án; Home bật file ẩn sẵn; menu file thêm *Mở bằng trình duyệt*. **S10** — chip ô soạn chỉ còn giá trị (context, model, quyền), bỏ nút khiên cạnh mic, bỏ chip hạn mức; popup model có hai thanh % hạn mức phiên 5 giờ + tuần. **Header desktop** — tab Phiên · Files · Git chỉ biểu tượng (điện thoại giữ chữ); bỏ nút Chuyển nhanh khi có thanh bên; thêm nút Chuyển tiếp cổng (owner); Cài đặt chỉ trên header. Bỏ các dòng chữ hướng dẫn trên màn mới.
 
 ## 2. Sơ đồ điều hướng
 
@@ -135,6 +139,20 @@ URL hash: #/login · #/s/<máy>/p/<dự án> · …/claude/<phiên> · …/termi
 | AC-47 | S1 | Quên mật khẩu → hướng dẫn `hugremote reset-password` |
 | AC-48 | S1 | Quay về trang định mở; đếm ngược khi bị khoá |
 | AC-49 | S6, S10, S8, S9 | Phím tắt desktop, bảng ⌘/ |
+| AC-50 | S2, S6, S10 | Vòng 2 — app desktop bọc nguyên giao diện web (không màn mới) |
+| AC-51 | S2 | Vòng 2 — mở app vào thẳng không gian làm việc, không qua S1 |
+| AC-52 | S2 | Vòng 2 — lệnh build `.app`/`.dmg` (CLI); kết quả là app mở vào S2 |
+| AC-53 | S6 | Bảng phím tắt ⌘/ có nhóm Terminal |
+| AC-54 | S6 | Menu + (tmux mới, tmux trên máy), tab tmux |
+| AC-55 | S6 | Trạng thái *đang gắn lại* |
+| AC-56 | S6 | *Mất kết nối — đang nối lại* + *Mở lại tại đây* |
+| AC-57 | S14 | Danh sách hai chiều, sheet Thêm, lỗi trùng cổng |
+| AC-58 | S14, S13 | *Đang nghe* (S14), chip cổng (S13) |
+| AC-59 | S13, S6, S8 | Menu + *Trình duyệt mới*; menu file *Mở bằng trình duyệt* |
+| AC-60 | S8 | Cây giữ trạng thái khi đổi tab |
+| AC-61 | S8 | Home bật file ẩn sẵn |
+| AC-62 | S10 | Chip chỉ giá trị, bỏ nút khiên |
+| AC-63 | S10 | Popup model: thanh % hạn mức |
 
 ## 4. File prototype tương tác
 
@@ -192,4 +210,10 @@ cho test so ảnh pha I (G-16).
 | 9 | 2026-11-22 | "Thanh tab của session chiều cao đang cao quá, chiếm nhiều chiều dài, cả phần header. Các nút lưu vẫn chưa dùng icon, vẫn còn label. Badge trạng thái chưa lưu — đã có icon màu trên tab name nên không cần badge nữa." | Token `--bar-h` 48→36px trên desktop (thanh trên, thanh tab phiên/file, đầu editor — kiểu Orca), token mới `--bar-h-touch` 44px gán lại dưới 1024px để giữ vùng chạm; nút Lưu file chỉ còn icon (mờ khi sạch, tô màu khi có thay đổi); bỏ huy hiệu "chưa lưu" — chấm màu trên tab là chỉ báo duy nhất. Sửa ở gói trước (`tokens.json`, C1/C8/C15/C17) rồi dịch sang context |
 | 10 | 2026-11-22 | "Oke. Cập nhật component và prototype, context, prototype html rồi sang validate pha I đi." | Rà lần cuối: gói `intake/design-systems/hugremote/` (54 token, 37 component, ảnh `screens/`), `context/DESIGN-SYSTEM.md`, `PROTOTYPE.md`, `prototype/hugremote/index.html` khớp nhau. **Authority chốt** prototype + gói design system + `SOLUTION.md` phần A; khoá scope |
 
-Chốt bởi Authority: 2026-11-22
+| 11 | 2026-11-24 | Vòng 3 (chat): phím tắt terminal, tmux ở nút +, mở đè tab mất kết nối, trình duyệt, chuyển tiếp cổng | Dựng S13, S14; S6 tmux/mất kết nối; menu + |
+| 12 | 2026-11-24 | "Bỏ các dòng chữ hướng dẫn; cho tạo nhiều phiên tmux; file thêm Mở bằng trình duyệt; chuyển tiếp cho sửa port đích, điền sẵn, bấm từng cổng" | Bỏ chữ hướng dẫn; tmux tên tự đánh số; menu file; S14 ô cổng sửa được + nút từng cổng |
+| 13 | 2026-11-24 | "Bỏ tìm kiếm trên header, bỏ cài đặt ở sidebar, forward port lên header, tab header chỉ icon, tên tmux không tiền tố" | Sửa header/thanh bên |
+| 14 | 2026-11-24 | 14 câu làm rõ: trình duyệt thành loại phiên ở nút +, mỗi phiên một trang; chuyển tiếp hai chiều; bỏ tự động chuyển tiếp; tmux chỉ máy SSH; mất kết nối vừa tự nối lại vừa hiện nút | S13 thành phiên; S14 hai chiều; ẩn tmux ở Máy này |
+| 15 | 2026-11-24 | "Thư mục không giữ trạng thái; Home chưa xem được file ẩn; ô chat ẩn chữ context/model/quyền, bỏ nút khiên; popup model có session/week limit dạng %" → "chỉ hiện trong popup" → "oke chốt prototype" | S8 Home + giữ trạng thái; S10 chip gọn; popup model thanh %; bỏ chip hạn mức |
+
+Chốt bởi Authority: 2026-11-24

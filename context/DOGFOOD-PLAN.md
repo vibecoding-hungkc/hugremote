@@ -1,7 +1,7 @@
 ---
 type: dogfood-plan
 tier: T1
-last_reviewed: "2026-11-23"
+last_reviewed: "2026-11-24"
 ---
 
 # DOGFOOD PLAN — hugremote
@@ -11,39 +11,42 @@ last_reviewed: "2026-11-23"
 > `gate.py I` / `P2` kiểm §4. Danh mục vai, tín hiệu bật, luật chia đợt: skill `viper-roles`.
 > **Một trang.** Authority đọc §1–§2 để biết vòng này được thử bằng con mắt nào.
 
-Vòng: 2
+Vòng: 3
 
 ## 1. Chọn vai
 
 | Vai | Bật | Căn cứ |
 |---|---|---|
-| `smoke` | bật | luôn bật — luồng lõi và mọi AC đã giao không được gãy |
-| `newbie` | bật | PERSONAS §1 P-HOST — lần đầu cài ứng dụng desktop từ file .dmg, kiểm tra tự động đăng nhập loopback không cần mật khẩu |
-| `edge` | bật | ARCHITECTURE §6 — cổng loopback bị chiếm, API crash giữa chừng, mất kết nối local PTY |
-| `picky` | tắt | Vòng này không có màn mới, dùng lại 100% giao diện web đã dogfood ở vòng 1 |
-| `a11y` | tắt | Không có UI mới |
-| `locale` | tắt | Không có chuỗi hiển thị / i18n mới |
-| `mobile` | tắt | Ứng dụng desktop cho macOS, không chạy trên thiết bị di động |
-| `power` | bật | PERSONAS §1 P-DESK — kiểm tra phím tắt macOS (⌘W, ⌘Q, ⌘C, ⌘V, ⌘K, ⌘P), menu native |
-| `rushed` | tắt | Không có form nhập liệu mới |
-| `breaker` | bật | Kiểm tra cookie loopback: giả mạo request từ bên ngoài vào loopback port, truy cập khi thiếu token secret |
-| `concurrent` | tắt | App chạy đơn lẻ trên một máy macOS |
-| `money` | tắt | PRD §7 — không thu tiền |
-| `operator` | bật | Kiểm tra lệnh build .dmg, kiểm tra chữ ký mã ad-hoc, lệnh doctor |
-| `integrator` | tắt | Không có IdP hay dịch vụ bên thứ ba mới |
+| `smoke` | bật | luôn bật — luồng lõi + AC-1..52 các vòng trước + AC-53..63 vòng này |
+| `newbie` | tắt | `_PROPOSAL.md §8` — vòng này không có luồng người mới (không đổi S1/S2/thẻ Bắt đầu); người dùng là P-DESK đã quen app |
+| `edge` | bật | `ARCHITECTURE.md §6` delta vòng 3 — mất kết nối, tmux bị kill bên ngoài, cổng bận, máy SSH tắt khi đang chuyển tiếp, cổng không nghe |
+| `picky` | bật | `PROTOTYPE.md §1` — màn mới S13, S14, header đổi (tab chỉ biểu tượng), ô chat S10 gọn; `DESIGN-SYSTEM.md §4` C39–C42 mới |
+| `a11y` | bật | `PRD.md §3` AC-62 + header chỉ biểu tượng — nhãn phải còn ở `aria-label`/tooltip; S14 dùng bàn phím (ô cổng, công tắc C42) |
+| `locale` | tắt | Vòng này không thêm ngày giờ/tiền/tìm theo tên; chuỗi mới đi theo luật i18n vòng 1 (CAP-UX-02), `picky` soát chuỗi chưa dịch |
+| `mobile` | bật | `PERSONAS.md §1` P-MOBILE + responsive — header đổi phải giữ chữ trên điện thoại; mục tmux/trình duyệt ẩn đúng ở web điện thoại; không vỡ thanh dưới |
+| `power` | bật | `PERSONAS.md §1` P-DESK dùng hằng ngày — AC-53 phím tắt trong Claude CLI/vim/tmux; nhiều tab tmux + trình duyệt; S14 nhiều chuyển tiếp |
+| `rushed` | tắt | Không có form nhiều bước mới; sheet Thêm chuyển tiếp ngắn, ca bấm hai lần do `concurrent` + `edge` phủ |
+| `breaker` | bật | `_PROPOSAL.md §14` — member gọi `/api/port-forwards` (403), tên tmux có `;`/`$()`, webview điều hướng ra ngoài, listener ngoài 127.0.0.1 |
+| `concurrent` | bật | `ARCHITECTURE.md §6` — hai tab cùng gắn một session tmux, hai lần bật cùng một cổng, sửa cổng đích khi đang có kết nối |
+| `money` | tắt | `PRD.md §7` — không thu tiền |
+| `operator` | bật | `_PROPOSAL.md §12` — *Tự bật khi mở app*, khởi động lại API giữ tmux + chuyển tiếp, migration thêm cột/bảng trên dữ liệu vòng 2 |
+| `integrator` | tắt | Không có API công khai / webhook / dịch vụ ngoài mới (`ssh2` forwarding là nội bộ) |
 
 ## 2. Vai bật làm gì
 
-> **Mỗi vai một tài khoản riêng.** Đợt 0 chạy `smoke` một mình; đợt 1 và đợt 2 chạy tối đa 3 vai/đợt.
+> **Mỗi vai một tài khoản riêng** (`<vai>@dogfood.local`, owner — trừ `breaker` dùng thêm một member SSO). Đợt 0 `smoke` một mình; đợt 1–3 tối đa 3 vai; vai ghi dữ liệu chung (`breaker`, `concurrent`, `operator`) đi đợt cuối; seed lại giữa các đợt. Phần chỉ kiểm được trên Mac (phím ⌘ thật, webview) chạy bằng Playwright Electron trên máy này và ghi rõ ở §4; Authority xác nhận trên Mac ở pha R.
 
 | Vai | Đợt | Persona | Tài khoản | Nơi thử | Việc vòng này |
 |---|---|---|---|---|---|
-| `smoke` | 0 | P-DESK | `smoke@desktop.local` | macOS app (localhost) | Đi hết §3: mở app, kiểm tra loopback auth, chạy terminal, Claude |
-| `newbie` | 1 | P-HOST | `newbie@desktop.local` | macOS app | Tải .dmg, mount, chạy app lần đầu, xác nhận vào thẳng không cần gõ mật khẩu |
-| `edge` | 1 | P-DESK | `edge@desktop.local` | macOS app | Chạy khi port bị chiếm hoặc kill process backend |
-| `power` | 1 | P-DESK | `power@desktop.local` | macOS app | Kiểm tra các phím tắt ⌘Q, ⌘W, ⌘C, ⌘V, ⌘K, ⌘P, chia đôi terminal |
-| `breaker` | 2 | P-HOST | `breaker@desktop.local` | curl / trình duyệt ngoài | Cố gắng gọi loopback API từ curl hoặc browser ngoài không có secret token |
-| `operator` | 2 | P-HOST | `operator@desktop.local` | CLI terminal | Chạy `make desktop-build`, kiểm tra file .app, .dmg và `codesign -v` |
+| `smoke` | 0 | P-DESK | `smoke@dogfood.local` | local (web + Electron) | Đi hết §3 (vòng 1–3) |
+| `power` | 1 | P-DESK | `power@dogfood.local` | local Electron | AC-53 mọi tổ hợp trong `claude`, `vim`, tmux; 3 tab tmux + 2 phiên trình duyệt; S14 thêm 5 chuyển tiếp, sửa cổng đích |
+| `edge` | 1 | P-DESK | `edge@dogfood.local` | local Electron | AC-55/56: tắt mạng, restart API, kill tmux bên ngoài; cổng bận; máy SSH tắt khi đang chuyển tiếp; S13 cổng không nghe |
+| `picky` | 1 | P-DESK | `picky@dogfood.local` | local web 1440 | S13, S14, header, S10 chip + popup model đối chiếu prototype + C39–C42 |
+| `a11y` | 2 | P-DESK | `a11y@dogfood.local` | local web | Chỉ bàn phím: tab header (biểu tượng có tên đọc được), menu +, S14 ô cổng + công tắc, popup model |
+| `mobile` | 2 | P-MOBILE | `mobile@dogfood.local` | local web 390×844 | Header giữ chữ, không có mục tmux cho Máy này / không có Trình duyệt mới; S8 Home file ẩn; S10 chip gọn |
+| `breaker` | 3 | P-TEAM (member) + P-HOST | `breaker@dogfood.local` | curl + web | Member → 403 forwards/listening-ports; tên tmux bậy → 400; webview `http://example.com` bị chặn; `ss -ltn` không có listener ngoài 127.0.0.1 |
+| `concurrent` | 3 | P-DESK | `concurrent@dogfood.local` | 2 cửa sổ | Hai tab gắn cùng session tmux; bật cùng cổng hai lần; sửa cổng đích khi `curl` đang chạy |
+| `operator` | 3 | P-HOST | `operator@dogfood.local` | CLI + Electron | Migration trên DB vòng 2; ⌘Q/mở lại 3 lần: tmux gắn lại, chuyển tiếp *Tự bật* bật lại, chuyển tiếp tắt vẫn tắt |
 
 ## 3. Danh sách smoke hồi quy
 
@@ -78,6 +81,13 @@ Vòng: 2
 | 27 | AC-44 + AC-47 + AC-48 thiết bị, quên mật khẩu, link sâu | 1 | đăng nhập 2 trình duyệt → Thiết bị → đăng xuất trình duyệt kia; `hugremote reset-password` → đăng nhập mật khẩu tạm; mở link `…/files/src/app.ts/12` khi chưa đăng nhập; sai mật khẩu 5 lần | trình duyệt kia về S1; bị bắt đổi mật khẩu, 2FA còn; về đúng file dòng 12; đếm ngược mm:ss |
 | 28 | AC-5 + AC-31 + AC-49 máy an toàn, cập nhật, phím tắt | 1 | xoá `demo-jump` (đang là jump); sửa `demo-sshd` để trống khoá; Cập nhật khi có 2 phiên chạy → Khi rảnh; ⌘/ ở tab thường rồi PWA, ⌥1/⌥W | chặn xoá, nêu máy phụ thuộc; khoá giữ nguyên; hộp nêu 2 phiên, run "Đang chờ" rồi chạy khi rảnh; bảng phím đúng môi trường |
 | 29 | AC-50 + AC-51 + AC-52 macOS desktop app | 2 | Khởi chạy app HugRemote trên macOS → kiểm tra đăng nhập tự động qua loopback secret → mở Terminal và Claude | App khởi động bình thường, vào thẳng không gian làm việc mà không cần nhập mật khẩu |
+| 30 | AC-53 phím tắt | 3 | `claude` → gõ, ⇧Enter, gõ tiếp; ⌥⌫, ⌘⌫, ⌥←, ⌘←; bôi đen ⌘C rồi dán; bỏ chọn ⌘C | xuống dòng không gửi; xoá/nhảy đúng; dán đúng; ⌘C không chọn → Claude dừng |
+| 31 | AC-54 + AC-55 tmux | 3 | + → Phiên tmux mới ×2 → `pnpm dev` ở tab 1 → ⌘Q → mở lại | hai session `demo-api`, `demo-api-2`; tab tự gắn lại, `pnpm dev` còn chạy |
+| 32 | AC-56 mở lại tại chỗ | 3 | terminal thường → restart API → *Mở lại tại đây* | shell mới cùng tab, cùng tên, số tab không đổi |
+| 33 | AC-57 + AC-58 chuyển tiếp | 3 | S14 → Chuyển tiếp `:5173` từ *Đang nghe*; Thêm `-R` 11434; trùng cổng 3000 | `curl localhost:5173` trên Mac OK; `curl localhost:11434` trên máy SSH OK; trùng → ô đỏ |
+| 34 | AC-59 phiên trình duyệt | 3 | + → Trình duyệt mới → chip `:3000` → gõ link khác; menu file README → Mở bằng trình duyệt | trang hiện trong tab; đổi trang trong cùng tab; README render |
+| 35 | AC-60 + AC-61 Files | 3 | Home → Files thấy `.ssh` → mở `.ssh` → sang Phiên → về Files → F5 | `.ssh` vẫn mở sau đổi tab và sau F5 |
+| 36 | AC-62 + AC-63 ô chat | 3 | S10: xem chip; mở popup model | chip chỉ giá trị, không nút khiên, không chip hạn mức; popup có 2 thanh % + giờ reset |
 
 ## 4. Kết quả
 
@@ -87,10 +97,3 @@ Vòng: 2
 
 | Ngày | Vai | Nơi | Trình duyệt | Nặng | Vừa | Nhẹ | Ghi chú |
 |---|---|---|---|---|---|---|---|
-| 2026-11-24 | smoke | local | electron | 0 | 1 | 0 | Đợt 0: Khởi chạy app HugRemote, phát hiện symlink bên trong bundle trỏ ra ngoài khiến codesign báo lỗi; đã chuẩn hoá symlink và ký thành công |
-| 2026-11-24 | newbie | local | pw-slot-1 | 0 | 0 | 0 | Đợt 1: Mount file HugRemote.dmg, mở app, xác thực loopback tự động cấp quyền owner không cần mật khẩu/2FA |
-| 2026-11-24 | edge | local | pw-slot-2 | 0 | 0 | 0 | Đợt 1: Giả lập chiếm cổng 8099, app tự động cấp phát cổng thay thế; tiến trình backend tắt đột ngột hiển thị thông báo lỗi |
-| 2026-11-24 | power | local | pw-slot-3 | 0 | 0 | 0 | Đợt 1: Thử nghiệm menu native macOS, các phím tắt ⌘Q, ⌘W, ⌘C, ⌘V, ⌘K, ⌘P hoạt động mượt mà, nhớ kích thước cửa sổ 1200x800 |
-| 2026-11-24 | breaker | local | curl | 0 | 0 | 0 | Đợt 2: Gọi loopback API trực tiếp từ curl không có header/cookie bí mật → 401; IP ngoài loopback → 403 |
-| 2026-11-24 | operator | local | cli | 0 | 0 | 0 | Đợt 2: Chạy make desktop-build đóng gói file .app và .dmg, xác nhận chữ ký mã ad-hoc (codesign --verify) hợp lệ |
-| 2026-11-24 | smoke | local | electron | 0 | 0 | 0 | Lượt cuối: Chạy lại toàn bộ luồng lõi, package smoke test, 4/4 e2e desktop auth tests pass |

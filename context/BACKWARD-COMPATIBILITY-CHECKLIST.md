@@ -31,13 +31,21 @@ last_reviewed: "2026-11-21"
 
 | Endpoint / operation | Version | Request: field bắt buộc | Response: field client đang dùng | Ai đang gọi |
 |---|---|---|---|---|
-| | | | | |
+| `POST /api/projects/:id/terminals` | `terminal-api.v1` | — (`name?`, `cwd?` tuỳ chọn; vòng 3 thêm `tmux?` tuỳ chọn) | `id, name, cwd, status` | apps/web |
+| `GET /api/projects/:id/terminals` · `PATCH/DELETE /api/terminal-sessions/:id` | `terminal-api.v1` | — | `id, name, status, exitCode, owner` | apps/web |
+| `/ws/terminal?sessionId&cols&rows&ticket` | `terminal-ws.v1` | `sessionId, ticket` | phím thô, `resize`, `ping/pong`, `exit` | apps/web |
+| `GET /api/projects/:id/fs?path=&hidden=` | `files-api.v1` | `path` | `entries[{name,path,type,hidden,ignored,git}]` | apps/web |
+| `GET /api/claude/...` hạn mức (CAP-AI-06) | `claude-api.v1` | — | `fiveHour{pct,resetAt}`, `week{pct,resetAt}` | apps/web (vòng 3 chuyển chỗ hiện sang popup model) |
+| Cookie `hugremote_desktop_token` + preload `window.hugremoteDesktop` | `desktop-loopback.v1` | secret 32-byte | `version` (vòng 3 thêm `openWebView/closeWebView`) | apps/desktop → apps/api, apps/web |
 
 ### 1b. Bảng dữ liệu (DB schema)
 
 | Bảng | Cột đang được code / báo cáo / export dùng | Ràng buộc đáng nhớ (unique, FK…) |
 |---|---|---|
-| | | |
+| `terminal_sessions` | `id, project_id, owner_user_id, name, cwd, status, exit_code, created_at, last_attached_at` (vòng 3 thêm nullable `tmux_name`, `last_cwd`) | FK project_id; restart service → `exited` (trừ phiên tmux từ vòng 3) |
+| `projects` | `id, host_id, name, root_path, is_home` | unique (host_id, root_path); mỗi máy một `is_home` |
+| `port_forwards` (vòng 3) | `id, direction, host_id, remote_host, remote_port, local_port, label, auto_start` | unique local_port khi `L` |
+| `web_sessions` (vòng 3) | `id, project_id, owner_user_id, url, name` | FK project_id |
 
 ### 1c. Cache entity
 
@@ -49,7 +57,7 @@ last_reviewed: "2026-11-21"
 
 | Topic / queue / event-type | Payload schema | Producer → Consumer |
 |---|---|---|
-| | | |
+| `events.v1` SSE: `session_status`, `interaction_requested`, `file_changed`… (vòng 3 thêm `forward_status`) | `{type, ...}` tolerant reader | apps/api → apps/web |
 
 ### 1e. Webhook
 

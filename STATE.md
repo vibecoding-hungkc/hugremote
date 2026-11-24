@@ -3,12 +3,12 @@
 > Trạng thái sống. Người và agent cùng đọc/ghi. Cập nhật ngay khi đổi pha hoặc tick gate.
 
 ```
-Pha hiện tại : V
+Pha hiện tại : I
 Vòng          : 3
 Vòng mở       : 2026-11-24
 Phase         : MVP · mở ở vòng 1
 Đường vào     : intake
-Pha vòng này  : V, I
+Pha vòng này  : V, I, P (chỉ P1)
 Ngày          : D1
 Stack         : stack-nestjs-react-fullstack (lệch: SQLite, Vite) — monorepo srcroot/boundaries/hugremote
 URL local     : (chưa có)
@@ -39,25 +39,25 @@ URL production: (chưa có)
 > Bản thao tác. Định nghĩa chuẩn ở `VIPER.md §1.1` — lệch nhau thì sửa chỗ này cho khớp (luật #4).
 
 **V — Validate**
-- [ ] `context/PRD.md`: pain point + đối tượng cụ thể
-- [ ] `context/PRD.md`: AC — phỏng vấn 3–7 · intake ≥3 không trần, mọi AC có mặt ở `CAPABILITIES-MAP.md`
-- [ ] `context/PRD.md`: out-of-scope tường minh
-- [ ] `context/PRD.md`: 1 success metric có số
+- [x] `context/PRD.md`: pain point + đối tượng cụ thể
+- [x] `context/PRD.md`: AC — phỏng vấn 3–7 · intake ≥3 không trần, mọi AC có mặt ở `CAPABILITIES-MAP.md`
+- [x] `context/PRD.md`: out-of-scope tường minh
+- [x] `context/PRD.md`: 1 success metric có số
 - [ ] (vòng 1 — phỏng vấn) `context/INTERVIEW.md`: 14 mục, mỗi mục có dòng `Bằng chứng:` — *không áp: đường intake vòng 1*
 - [ ] (vòng 1 — intake, thay dòng trên, `VIPER.md §1.3`) `intake/PRD.md` render thật · `INTERVIEW.md` mang `NGUỒN: INTAKE` + bảng truy vết · `context/CAPABILITIES-MAP.md` đã tách
 - [ ] (vòng 1 — intake) **kế hoạch vòng** (`VIPER.md §1.4`): `ROADMAP.md §1` có bảng chia vòng, mỗi dòng có `intake/loops/l<N>/_PROPOSAL.md` tương ứng
 - [ ] (vòng ≥2 — phỏng vấn; thay hai dòng INTERVIEW; INTERVIEW đóng băng) `intake/loops/l<N>/` có ≥1 tài liệu vòng thật từ Authority — đồng thời là chữ ký chốt — *không áp: đường intake vòng 1*
-- [ ] (vòng ≥2 — intake; thay dòng trên) `l<N>/_PROPOSAL.md` thật (có `Pha vòng này`) + dòng `Rà lại vòng N: <ISO>` ngày ≥ `Vòng mở`
-- [ ] `context/PERSONAS.md`: persona + năng lực được cấp + ma trận vai × hành động
-- [ ] `context/TECHSTACK.md` chốt + 1 dòng lý do trong `DECISIONS.md`
-- [ ] `context/DECISIONS.md`: ≥2 quyết định của vòng này (vòng ≥2: dưới mốc `(vòng N)`, ngày ≥ `Vòng mở`)
-- [ ] `context/ARCHITECTURE.md` (sơ đồ + mô hình dữ liệu + luồng lõi; intake: thêm boundary/experience + contract)
-- [ ] Design system: có UI → `context/DESIGN-SYSTEM.md` chốt **trước** prototype (token dùng thật · không dùng token ngoài bảng · tương phản AA · component có màn dùng · khớp gói `intake/design-systems/` nếu có) · backend-only → marker `KHÔNG CÓ UI`
-- [ ] Prototype: có UI → file tương tác **từ token/component đã chốt** (`prototype/index.html`, hoặc `prototype/<experience>/index.html` ở đường intake) + mọi màn khai ở `PROTOTYPE.md §1` đã dựng + **Authority đã chốt** (`PROTOTYPE.md §5`) · backend-only → marker `KHÔNG CÓ UI` · intake vòng ≥2 khai `UI vòng này: không có màn mới` → bỏ qua
-- [ ] **Bộ giải pháp** (`context/SOLUTION.md`): Phase khớp dòng `Phase` ở trên · phần A đủ A1–A5 + `Authority chốt Phase` (vòng đầu Phase: Authority vừa chốt) · phần B đúng vòng này, mỗi AC một dòng giải pháp
-- [ ] `context/DOGFOOD-PLAN.md` của vòng này: mọi vai danh mục có bật/tắt + căn cứ · `smoke` luôn bật, đợt 0 · đợt ≤3 vai · mỗi vai một tài khoản · §3 smoke hồi quy
-- [ ] Challenge pha V **PASS** (§Challenge log) — tài liệu trả lời được 3–5 câu khó nhất
-- [ ] **Scope khoá** — từ đây không hỏi Authority nữa
+- [x] (vòng ≥2 — intake; thay dòng trên) `l<N>/_PROPOSAL.md` thật (có `Pha vòng này`) + dòng `Rà lại vòng N: <ISO>` ngày ≥ `Vòng mở`
+- [x] `context/PERSONAS.md`: persona + năng lực được cấp + ma trận vai × hành động
+- [x] `context/TECHSTACK.md` chốt + 1 dòng lý do trong `DECISIONS.md`
+- [x] `context/DECISIONS.md`: ≥2 quyết định của vòng này (vòng ≥2: dưới mốc `(vòng N)`, ngày ≥ `Vòng mở`)
+- [x] `context/ARCHITECTURE.md` (sơ đồ + mô hình dữ liệu + luồng lõi; intake: thêm boundary/experience + contract)
+- [x] Design system: có UI → `context/DESIGN-SYSTEM.md` chốt **trước** prototype (token dùng thật · không dùng token ngoài bảng · tương phản AA · component có màn dùng · khớp gói `intake/design-systems/` nếu có) · backend-only → marker `KHÔNG CÓ UI`
+- [x] Prototype: có UI → file tương tác **từ token/component đã chốt** (`prototype/index.html`, hoặc `prototype/<experience>/index.html` ở đường intake) + mọi màn khai ở `PROTOTYPE.md §1` đã dựng + **Authority đã chốt** (`PROTOTYPE.md §5`) · backend-only → marker `KHÔNG CÓ UI` · intake vòng ≥2 khai `UI vòng này: không có màn mới` → bỏ qua
+- [x] **Bộ giải pháp** (`context/SOLUTION.md`): Phase khớp dòng `Phase` ở trên · phần A đủ A1–A5 + `Authority chốt Phase` (vòng đầu Phase: Authority vừa chốt) · phần B đúng vòng này, mỗi AC một dòng giải pháp
+- [x] `context/DOGFOOD-PLAN.md` của vòng này: mọi vai danh mục có bật/tắt + căn cứ · `smoke` luôn bật, đợt 0 · đợt ≤3 vai · mỗi vai một tài khoản · §3 smoke hồi quy
+- [x] Challenge pha V **PASS** (§Challenge log) — tài liệu trả lời được 3–5 câu khó nhất
+- [x] **Scope khoá** — từ đây không hỏi Authority nữa
 
 **I — Implement**
 - [ ] Challenge PASS (ghi ở §Challenge log dưới)
@@ -68,9 +68,9 @@ URL production: (chưa có)
 - [ ] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
 
 **P1 — sẵn sàng deploy lần đầu** (`gate.py P1`)
-- [ ] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? **Có** (STATE.md: "Pha vòng này: V, I, P (chỉ P1)") → chạy P1
+- [ ] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? **Có** — vòng 3: `V, I, P (chỉ P1)` → chạy P1
 - [ ] `context/PRODUCTION-READY.md` 4 nhóm xanh, **trừ** mục gắn `(sau deploy)`
-- [ ] Vòng ≥2: `BACKWARD-COMPATIBILITY-CHECKLIST.md §3` xanh — **n/a, vòng 1**
+- [ ] Vòng ≥2: `BACKWARD-COMPATIBILITY-CHECKLIST.md §3` xanh
 - [ ] `make test` · `make deploy` · `make doctor` đã hiện thực
 - [ ] `make check && make test` xanh
 - [ ] Phép thử phân quyền A↛B đã chạy ở local — dogfood `breaker` 28/28 route (1 lỗ hổng 2FA vá) + review pha P1 tìm thêm 1 lỗ hổng WS terminal (vá + test hồi quy) + `core-flow.e2e.mjs` (member↛owner)
@@ -115,6 +115,11 @@ Meta ra câu hỏi khó dựa trên context, chấm PASS/FAIL. **Pha V**: 3–5 
 | 2026-11-23 | P1 | Trước checklist production-ready: member biết `sessionId` terminal hoặc `hostId` của owner (đoán hoặc nhìn thấy trong URL/log mạng) — có bao nhiêu đường chạm được vào đó mà KHÔNG qua kiểm chủ sở hữu, tính cả đường không lộ ở UI (WS mở trực tiếp, route browse dùng cho tạo dự án)? | FAIL lúc đầu → PASS sau vá | Soi ra 2 đường thủng thật: (1) `terminal.gateway.ts` ghi phím vào PTY TRƯỚC khi `attach()` xác nhận chủ phiên — đã vá (đệm hàng đợi, xả sau khi attach OK) + `terminal.gateway.spec.ts`; (2) `GET /hosts/:id/browse` không có `@Roles(OWNER)` — member duyệt được toàn bộ cây thư mục mọi máy, đã vá + test ở `core-flow.e2e.mjs`. Cả hai không bị `breaker` dogfood (click tay) bắt được — chỉ lộ qua review tĩnh đọc code |
 | 2026-11-23 | V | Electron desktop app khởi động khi cổng 8099 bị ứng dụng khác chiếm thì xử lý thế nào, và làm sao ngăn trình duyệt khác trên máy đánh cắp secret cookie loopback? | PASS | Electron dò tìm port trống tiếp theo và truyền cổng vào child process qua env; loopback cookie sinh ngẫu nhiên 32-byte per-launch, chỉ gán cho session của BrowserWindow trong Electron và backend chỉ chấp nhận kết nối từ 127.0.0.1 khớp secret |
 | 2026-11-23 | I | Electron main process spawn child process API trên macOS như thế nào để nạp đủ PATH người dùng khi mở từ Finder/Spotlight, và chống orphan process khi app thoát đột ngột? | PASS | Nạp environment PATH từ shell người dùng qua shellEnv trước khi spawn API; gắn listener exit/SIGINT và pipe stdin giám sát, child process tự thoát sau 2s nếu mất kết nối IPC hoặc mất pipe cha |
+| 2026-11-24 | V | Sau khi mở lại app, tab tmux trỏ tới session đã bị kill bên ngoài, trong lúc tab khác cũng muốn gắn cùng session — server làm gì, người dùng thấy gì? | PASS | ARCHITECTURE §6 (vòng 3): `tmux new-session -A` tạo lại rỗng cùng tên + dải "đã bị đóng bên ngoài"; menu + bấm session đang mở → chuyển tới tab đó, không mở tab thứ hai; SOLUTION B1 AC-55 |
+| 2026-11-24 | V | Sửa cổng đích của một chuyển tiếp đang có `curl` chạy qua, cổng mới lại bị app khác chiếm — mất chuyển tiếp cũ không? | FAIL lúc đầu → PASS sau vá | SOLUTION B1 AC-57 ghi "dừng cũ rồi mở mới, lỗi thì giữ cũ" — tự mâu thuẫn. Vá: mở listener mới trước, thành công mới đóng cũ; lỗi → 409, giữ nguyên (SOLUTION B1 + ARCHITECTURE §6) |
+| 2026-11-24 | V | Mở link sâu `#/s/…/web/w1` của phiên trình duyệt từ điện thoại (web thường) thì thấy gì? | FAIL lúc đầu → PASS sau vá | Tài liệu chỉ nói ẩn mục *Trình duyệt mới*, không nói phiên `web` đã có hiện ra sao ngoài desktop. Vá: không hiện ở thanh Phiên/cây/chuyển nhanh; link sâu → errorBox + nút về tab Phiên (ARCHITECTURE §6, SOLUTION B1 AC-59; theo Q-8) |
+| 2026-11-24 | V | Đang gõ tiếng Việt bằng bộ gõ (IME) trong Claude CLI, bấm ⌘C không có vùng chọn — có lỡ dừng Claude không? | PASS | `_PROPOSAL.md §13`: `isComposing` → handler không chặn; ngoài IME, ⌘C không vùng chọn gửi Ctrl+C là hành vi Authority chốt (Q-3); DECISIONS 2026-11-24 (bảng phím chỉ áp trên Mac) |
+| 2026-11-24 | V | Member (SSO) có tạo được chuyển tiếp cổng hay phiên tmux, và nếu gọi thẳng API thì sao? | PASS | `_PROPOSAL.md §14` + G-17: chuyển tiếp/listening-ports owner-only → 403; member dùng tmux/terminal chỉ trong phiên của mình (G-13); breaker kiểm ở DOGFOOD-PLAN §2 đợt 3 |
 
 ---
 

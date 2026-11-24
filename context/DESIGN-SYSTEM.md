@@ -247,6 +247,10 @@ ví dụ màn quản trị nội bộ và app cho khách hàng không dùng chun
 | C36 | [Ô soạn Claude gọn](../intake/design-systems/hugremote/components/c36-o-soan-claude-gon.md) | S10 | trống · đang gõ · Claude đang chạy (có Dừng; Gửi vẫn bật → tin xếp hàng C34, không có trạng thái khoá vì bận) · đang ghi âm · gợi ý `/` mở · Bypass (biểu tượng ⚠ đỏ) · mất kết nối (Gửi khoá) |
 | C37 | [Chế độ gọn của hội thoại Claude](../intake/design-systems/hugremote/components/c37-che-do-gon-hoi-thoai.md) | S10 | bật · tắt |
 | C38 | [Nút thông báo (chuông)](../intake/design-systems/hugremote/components/c38-nut-thong-bao.md) | S6, S10, S8, S9 | không có gì · có phiên cần duyệt (chuông tô `--color-primary` + số) · vừa duyệt (dòng biến mất) · mất kết nối (✓/✗ khoá) |
+| C39 | Thanh địa chỉ trình duyệt (vòng 3) | S13 | có trang · đang tải · cổng chưa chuyển tiếp · cổng không nghe · file (`file://`) |
+| C40 | Hàng chuyển tiếp cổng (vòng 3) | S14 | đang chuyển tiếp · đã tắt · lỗi (mất kết nối / bị cấm) · ô cổng lỗi trùng · chưa chuyển tiếp (đang nghe) |
+| C41 | Thanh % hạn mức (vòng 3, dùng class `.prog`) | S10 (popup model) | <80% (`--color-primary`) · ≥80% (`--color-warning`) · không có dữ liệu (ẩn) |
+| C42 | Công tắc bật/tắt (vòng 3) | S14 (sheet Thêm: *Tự bật khi mở app*) | bật · tắt · focus |
 
 ## 5. Ba khuôn trạng thái dùng chung
 

@@ -41,32 +41,41 @@ instance chung (vai `member`). Hôm nay họ đang dùng HugRemote v1.x sau Clou
 
 Chân dung chi tiết + năng lực từng vai + ma trận phân quyền: `context/PERSONAS.md`.
 
-## 3. Tiêu chí chấp nhận (AC) — vòng 2
+## 3. Tiêu chí chấp nhận (AC) — vòng 3
 
-Vòng 2 = **CAP-OPS-05 — Ứng dụng macOS đóng gói**: `apps/desktop` (vỏ Electron bọc `apps/api` + `apps/web` đã build), lệnh build `.app` + `.dmg` ký ad-hoc, chế độ "phiên desktop" (loopback + cookie bí mật riêng mỗi lần mở, không cần mật khẩu). Toàn bộ 49 AC của vòng 1 là hợp đồng còn hiệu lực (legacy, `VIPER.md §1.2`), lưu nguyên vẹn ở `context/archive/vong-1/PRD.md`.
+Vòng 3 = **Terminal dùng hằng ngày trên desktop**: phím tắt macOS + chép/dán trong terminal, phiên tmux bền, mở lại tại tab mất kết nối, phiên trình duyệt trong app desktop, chuyển tiếp cổng hai chiều, Files giữ trạng thái + Home thấy file ẩn, ô chat Claude gọn + hạn mức trong popup model. Nguồn: yêu cầu Authority qua chat 2026-11-24 (14 câu làm rõ ở `intake/loops/l3/_PROPOSAL.md §17`). 49 AC vòng 1 + 3 AC vòng 2 là hợp đồng còn hiệu lực (legacy, `VIPER.md §1.2`), nằm ở `context/archive/vong-1/PRD.md` và `context/archive/vong-2/PRD.md`. Chi tiết Cho trước/Khi/Thì từng AC: `_PROPOSAL.md §6`.
 
 | # | Làm được gì | Coi là xong khi | Capability |
 |---|---|---|---|
-| AC-50 | Đóng gói ứng dụng desktop macOS nguyên bản | `apps/desktop` (Electron main + preload) khởi động `apps/api` local dưới dạng child process và tải `apps/web` trong cửa sổ BrowserWindow native; hỗ trợ đầy đủ phím tắt macOS (⌘C, ⌘V, ⌘W, ⌘Q), khôi phục kích thước cửa sổ và hiển thị icon ứng dụng | CAP-OPS-05 |
-| AC-51 | Xác thực loopback một chạm an toàn | Khi mở từ ứng dụng Electron, main process sinh token bí mật tạm thời (ephemeral loopback secret cookie), gắn vào session của BrowserWindow; `apps/api` xác thực loopback request và tự động cấp quyền `owner` mà không cần nhập mật khẩu hay 2FA; chặn truy cập loopback secret từ các Origin lạ hoặc bên ngoài `127.0.0.1` | CAP-OPS-05 |
-| AC-52 | Lệnh đóng gói `.app` và `.dmg` kèm ký ad-hoc | Makefile có lệnh đóng gói build `.app` và tệp cài đặt `.dmg` cho macOS (hỗ trợ Apple Silicon arm64 / Intel x64), ký mã tự động ad-hoc (`codesign --sign - --force --deep`); mở `.dmg` kéo vào Applications chạy được ngay | CAP-OPS-05 |
+| AC-53 | Gõ trong terminal bằng phím tắt macOS | ⇧Enter xuống dòng trong Claude CLI (gửi `ESC CR`); ⌥←/→ nhảy từ, ⌘←/→ đầu/cuối dòng, ⌥⌫ xoá từ, ⌘⌫ xoá tới đầu dòng; ⌘C có vùng chọn → chép, không vùng chọn → gửi Ctrl+C; ⌘V dán; ⌥+kéo chọn được chữ khi app bắt chuột | CAP-TERM-03 |
+| AC-54 | Tạo nhiều phiên tmux trên máy SSH từ nút + | *Phiên tmux mới* tạo một session tmux mới mỗi lần (tên `<dự án>`, `<dự án>-2`…); nhóm *tmux trên <máy>* liệt kê `tmux ls`, bấm để gắn; "Máy này" không có mục tmux; máy chưa cài tmux → lỗi "Máy chưa cài tmux"; × đóng tab = tắt hẳn session (có xác nhận) | CAP-TERM-04 |
+| AC-55 | tmux sống qua lần tắt/mở app | ⌘Q rồi mở lại (hoặc WS đứt) → tab tmux tự gắn lại đúng session, lệnh đang chạy trong tmux vẫn chạy | CAP-TERM-04 |
+| AC-56 | Mở lại terminal thường ngay tại tab mất kết nối | Mất kết nối → app tự nối lại ngầm **và** hiện ngay nút *Mở lại tại đây*; bấm → shell mới trong chính tab đó (cùng id, tên, thư mục cuối biết được), số tab không tăng | CAP-TERM-04 |
+| AC-57 | Chuyển tiếp cổng hai chiều | Màn Chuyển tiếp cổng (nút header, owner): thêm/sửa cổng đích/tắt/xoá chuyển tiếp máy SSH → Mac (`-L`) và Mac → máy SSH (`-R`); cổng điền sẵn, sửa được; trùng cổng → báo lỗi, không ghi đè; *Tự bật khi mở app*; chỉ bind 127.0.0.1; không có chế độ tự động chuyển tiếp; member → 403 | CAP-NET-01 |
+| AC-58 | Thấy các cổng đang mở trên máy SSH | S14 và phiên trình duyệt liệt kê cổng TCP đang nghe (`ss -ltnp`, fallback `lsof`) kèm tiến trình; bấm *Chuyển tiếp* từng cổng | CAP-NET-01 |
+| AC-59 | Xem web app của máy SSH ngay trong app desktop | *Trình duyệt mới* ở nút + (chỉ app desktop) mở một phiên trình duyệt trong thanh Phiên; mỗi phiên một trang, nhập link đổi trang; chưa chuyển tiếp → *Chuyển tiếp và mở*; cổng không nghe → lỗi rõ; menu file *Mở bằng trình duyệt* mở file trong phiên mới | CAP-WEB-01 |
+| AC-60 | Files giữ trạng thái khi đổi tab | Mở thư mục → sang tab Phiên → quay lại Files: thư mục vẫn mở, cờ file ẩn và vị trí cuộn giữ nguyên, theo từng dự án, qua cả tải lại trang | CAP-FILE-01 |
+| AC-61 | Thấy file ẩn ở Home | Tab Files của dự án Home hiện `.ssh`, `.zshrc`, `.config`… mặc định; nút 👁 bật/tắt được và được nhớ | CAP-FILE-01 |
+| AC-62 | Ô chat Claude gọn | Chip context / model / quyền chỉ hiện giá trị (nhãn ở tooltip + `aria-label`); không còn nút khiên cạnh mic; không còn chip hạn mức ở ô chat | CAP-AI-03 |
+| AC-63 | Xem hạn mức trong popup model | Popup chọn model có hai thanh %: phiên 5 giờ và tuần, kèm giờ reset; ≥80% đổi màu cảnh báo | CAP-AI-06 |
 
 ## 4. Ưu tiên — vòng này giao gì, phần còn lại nằm đâu
 
-Vòng 2 tập trung duy nhất vào capability **CAP-OPS-05 (ứng dụng macOS đóng gói)**. Kế hoạch chi tiết nằm ở `intake/loops/l2/_PROPOSAL.md`, lộ trình tổng thể ở `ROADMAP.md §1`, bản đồ năng lực ở `CAPABILITIES-MAP.md`.
+Vòng 3 giao 11 AC theo thứ tự triển khai `_PROPOSAL.md §21` (phím tắt → mở lại tại chỗ → tmux → chuyển tiếp cổng → trình duyệt → Files → ô chat), rồi pha P1. Thứ tự cắt khi trễ: `_PROPOSAL.md §20`. Lộ trình tổng thể `ROADMAP.md §1`, năng lực `CAPABILITIES-MAP.md`.
 
 ## 5. Out-of-scope — chắc chắn KHÔNG làm ở vòng này
 
-- Ký Apple Developer ID thật + Notarize qua máy chủ Apple (Authority chưa cấp tài khoản Apple Developer; vòng này ký ad-hoc)
-- Ứng dụng desktop cho Windows / Linux (.exe / .deb / AppImage) — vòng này chỉ tập trung macOS
-- Tự động kiểm tra bản cập nhật Electron qua Auto-Updater
-- Màn hình UI mới (vòng này bọc toàn bộ SPA của web vòng 1, `UI vòng này: không có màn mới`)
-- Production/PaaS, analytics gửi ra ngoài, pha E (vòng này chỉ chạy local)
+- Trình duyệt khi dùng HugRemote từ điện thoại / trình duyệt máy khác (cần proxy ngược) — chỉ app desktop (Q-8)
+- Nhiều trang trong một phiên trình duyệt (Q-9) · tự động chuyển tiếp cổng (Q-11) · SOCKS `-D`
+- tmux trên "Máy này" (Q-6) · cài tmux hộ (Q-5) · tmux window thay cho session (Q-4a)
+- Chuyển tiếp cổng cho vai member
+- Deploy production (P2), pha E, video demo cuối vòng (DECISIONS 2026-11-24)
+- Ký Apple Developer ID thật, app desktop Windows/Linux, auto-updater desktop (giữ như vòng 2)
 
 ## 6. Giả thuyết + success metric
 
-**Vòng này không chạy pha E** (chỉ chạy local, V và I bắt buộc theo `_PROPOSAL.md`). Metric của vòng 2:
-**Authority cài đặt thành công tệp .dmg và sử dụng HugRemote trên macOS desktop app liên tục ≥ 3 ngày**, thời gian khởi động app < 2.5s. Kiểm tra tự động bằng `make test` và dogfood.
+**Vòng này không chạy pha E** (chỉ chạy local; pha V, I, P1). Metric của vòng 3:
+**Authority dùng app desktop làm việc cả ngày ≥ 3 ngày liên tiếp mà không mở iTerm / `ssh -L` / trình duyệt riêng cho dự án** (tự báo ở pha R). Tiêu chí xong của vòng là 11 AC §3 qua `make test` + dogfood theo `DOGFOOD-PLAN.md`.
 
 ---
 

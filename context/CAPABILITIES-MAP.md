@@ -31,7 +31,7 @@ last_reviewed: "2026-11-23"
 | CAP-FILE-02 — Tạo/đổi tên/xoá, tải lên/xuống, zip | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-GIT-01 — Trạng thái, diff, stage, commit, pull/push, nhánh | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-GIT-02 — Lịch sử commit + diff theo commit | Phase 2 | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
-| CAP-AI-01 — Phiên Claude stream, chạy nền, nối lại, dừng | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
+| CAP-AI-01 — Phiên Claude stream, chạy nền, nối lại, dừng | MVP | P-MOBILE, P-DESK | 1, 3 | AC-64, AC-65 | xong (vòng 1) · vòng 3 bổ sung |
 | CAP-AI-02 — Thẻ duyệt quyền + menu chế độ quyền | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
 | CAP-AI-03 — Model/effort từ CLI + context usage | MVP | P-MOBILE, P-DESK | 1, 3 | AC-62 | xong (vòng 1) · vòng 3 bổ sung |
 | CAP-AI-04 — Một danh sách phiên Claude (gộp CLI) | MVP | P-MOBILE, P-DESK | 1 | — | xong (vòng 1) |
@@ -56,7 +56,7 @@ last_reviewed: "2026-11-23"
 
 Vòng 3 giao **4 capability mới** (CAP-TERM-03, CAP-TERM-04, CAP-NET-01, CAP-WEB-01 — Authority yêu cầu qua chat
 2026-11-24, không có trong intake gốc) và **bổ sung 3 capability đã có** (CAP-FILE-01, CAP-AI-03, CAP-AI-06).
-AC-53..63, chi tiết ở `intake/loops/l3/_PROPOSAL.md §6`.
+AC-53..65 (AC-64, AC-65 bổ sung sau khoá scope cho CAP-AI-01), chi tiết ở `intake/loops/l3/_PROPOSAL.md §6`.
 
 ## 3. Change log
 

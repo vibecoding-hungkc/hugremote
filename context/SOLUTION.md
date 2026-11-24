@@ -138,6 +138,8 @@ Vòng: 3
 | AC-61 | `apps/web`: giá trị mặc định `hidden = project.isHome`; `apps/api` giữ nguyên (đã lọc đúng theo `hidden`) — pha I **tái hiện trước**: nếu bật 👁 ở Home vẫn không có dotfile thì sửa ở `files.service.list` / `ctx` (đường dẫn `~` remote) | Home local và Home SSH đều phải thấy `.ssh`; `.git` vẫn ẩn | e2e trên `demo-sshd` Home thấy `.ssh` |
 | AC-62 | `apps/web` claude composer (C36): chip context/model/quyền chỉ render giá trị, nhãn vào `title` + `aria-label`; bỏ nút khiên cạnh mic; bỏ chip hạn mức | Bypass vẫn đỏ + ⚠ ở chip quyền; ⇧Tab vẫn đổi quyền | e2e snapshot composer · dogfood `picky` |
 | AC-63 | `apps/web` popup model (menu C23 trong C36): khối hạn mức trên cùng mục "Mức suy nghĩ" — hai C41 thanh % (`--color-primary`, ≥80% `--color-warning`) + giờ reset; số lấy từ API hạn mức vòng 1 (CAP-AI-06) | CLI không trả hạn mức → khối ẩn; đang tải → khung xương | e2e mở popup thấy 2 thanh |
+| AC-64 | `apps/web` `styles/components.css`: `.col` `max-width` 820px → 1280px; `.composer .in` giữ 820px | Tin người dùng giữ `max-width: 85%`; điện thoại không đổi (đã full width) | e2e đo bề ngang |
+| AC-65 | `apps/web` `styles/components.css`: thêm khối `.md` (bảng `border-collapse` + viền `--color-divider` + `th` nền `--color-surface-raised`; bọc `<table>` trong `.tbl` cuộn ngang qua `marked` renderer `table`; `pre` khung + cuộn; `code`, `ul/ol`, `h1–h3`, `blockquote`) — chỉ token (G-10); đối chiếu CSS `.md` ở `prototype/hugremote/index.html` | Bảng rất rộng → cuộn trong `.tbl`, không đẩy vỡ khung; DOMPurify vẫn chạy sau marked | e2e snapshot tin có bảng · dogfood `picky` |
 
 ### B2. Thay đổi kỹ thuật của vòng
 

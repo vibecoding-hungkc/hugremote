@@ -41,7 +41,7 @@ Vòng: 3
 | `smoke` | 0 | P-DESK | `smoke@dogfood.local` | local (web + Electron) | Đi hết §3 (vòng 1–3) |
 | `power` | 1 | P-DESK | `power@dogfood.local` | local Electron | AC-53 mọi tổ hợp trong `claude`, `vim`, tmux; 3 tab tmux + 2 phiên trình duyệt; S14 thêm 5 chuyển tiếp, sửa cổng đích |
 | `edge` | 1 | P-DESK | `edge@dogfood.local` | local Electron | AC-55/56: tắt mạng, restart API, kill tmux bên ngoài; cổng bận; máy SSH tắt khi đang chuyển tiếp; S13 cổng không nghe |
-| `picky` | 1 | P-DESK | `picky@dogfood.local` | local web 1440 | S13, S14, header, S10 chip + popup model đối chiếu prototype + C39–C42 |
+| `picky` | 1 | P-DESK | `picky@dogfood.local` | local web 1440 | S13, S14, header, S10 chip + popup model + khung nội dung rộng + bảng/code markdown (AC-64/65) đối chiếu prototype + C39–C42 |
 | `a11y` | 2 | P-DESK | `a11y@dogfood.local` | local web | Chỉ bàn phím: tab header (biểu tượng có tên đọc được), menu +, S14 ô cổng + công tắc, popup model |
 | `mobile` | 2 | P-MOBILE | `mobile@dogfood.local` | local web 390×844 | Header giữ chữ, không có mục tmux cho Máy này / không có Trình duyệt mới; S8 Home file ẩn; S10 chip gọn |
 | `breaker` | 3 | P-TEAM (member) + P-HOST | `breaker@dogfood.local` | curl + web | Member → 403 forwards/listening-ports; tên tmux bậy → 400; webview `http://example.com` bị chặn; `ss -ltn` không có listener ngoài 127.0.0.1 |
@@ -88,6 +88,7 @@ Vòng: 3
 | 34 | AC-59 phiên trình duyệt | 3 | + → Trình duyệt mới → chip `:3000` → gõ link khác; menu file README → Mở bằng trình duyệt | trang hiện trong tab; đổi trang trong cùng tab; README render |
 | 35 | AC-60 + AC-61 Files | 3 | Home → Files thấy `.ssh` → mở `.ssh` → sang Phiên → về Files → F5 | `.ssh` vẫn mở sau đổi tab và sau F5 |
 | 36 | AC-62 + AC-63 ô chat | 3 | S10: xem chip; mở popup model | chip chỉ giá trị, không nút khiên, không chip hạn mức; popup có 2 thanh % + giờ reset |
+| 37 | AC-64 + AC-65 nội dung Claude | 3 | S10 ở 1600px: phiên có bảng markdown | khung nội dung rộng, ô soạn hẹp hơn; bảng có viền + tiêu đề; code block có khung |
 
 ## 4. Kết quả
 

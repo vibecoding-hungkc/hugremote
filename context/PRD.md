@@ -58,10 +58,12 @@ Vòng 3 = **Terminal dùng hằng ngày trên desktop**: phím tắt macOS + ch�
 | AC-61 | Thấy file ẩn ở Home | Tab Files của dự án Home hiện `.ssh`, `.zshrc`, `.config`… mặc định; nút 👁 bật/tắt được và được nhớ | CAP-FILE-01 |
 | AC-62 | Ô chat Claude gọn | Chip context / model / quyền chỉ hiện giá trị (nhãn ở tooltip + `aria-label`); không còn nút khiên cạnh mic; không còn chip hạn mức ở ô chat | CAP-AI-03 |
 | AC-63 | Xem hạn mức trong popup model | Popup chọn model có hai thanh %: phiên 5 giờ và tuần, kèm giờ reset; ≥80% đổi màu cảnh báo | CAP-AI-06 |
+| AC-64 | Đọc câu trả lời Claude trên khung rộng | S10: khung nội dung hội thoại rộng tối đa 1280px (trước 820px), ô soạn giữ nguyên 820px căn giữa; tin người dùng vẫn ≤85% bề ngang | CAP-AI-01 |
+| AC-65 | Markdown trong câu trả lời Claude hiện đúng | Bảng có viền ô, hàng tiêu đề nền khác, cuộn ngang khi rộng; code block có khung + cuộn ngang; code inline, danh sách, tiêu đề, trích dẫn có kiểu riêng — CSS `.md` lấy từ token (gốc lỗi: khối `.md` ở `ChatView.tsx` chưa có CSS nào) | CAP-AI-01 |
 
 ## 4. Ưu tiên — vòng này giao gì, phần còn lại nằm đâu
 
-Vòng 3 giao 11 AC theo thứ tự triển khai `_PROPOSAL.md §21` (phím tắt → mở lại tại chỗ → tmux → chuyển tiếp cổng → trình duyệt → Files → ô chat), rồi pha P1. Thứ tự cắt khi trễ: `_PROPOSAL.md §20`. Lộ trình tổng thể `ROADMAP.md §1`, năng lực `CAPABILITIES-MAP.md`.
+Vòng 3 giao 13 AC theo thứ tự triển khai `_PROPOSAL.md §21` (phím tắt → mở lại tại chỗ → tmux → chuyển tiếp cổng → trình duyệt → Files → ô chat), rồi pha P1. Thứ tự cắt khi trễ: `_PROPOSAL.md §20`. Lộ trình tổng thể `ROADMAP.md §1`, năng lực `CAPABILITIES-MAP.md`.
 
 ## 5. Out-of-scope — chắc chắn KHÔNG làm ở vòng này
 
@@ -75,7 +77,7 @@ Vòng 3 giao 11 AC theo thứ tự triển khai `_PROPOSAL.md §21` (phím tắt
 ## 6. Giả thuyết + success metric
 
 **Vòng này không chạy pha E** (chỉ chạy local; pha V, I, P1). Metric của vòng 3:
-**Authority dùng app desktop làm việc cả ngày ≥ 3 ngày liên tiếp mà không mở iTerm / `ssh -L` / trình duyệt riêng cho dự án** (tự báo ở pha R). Tiêu chí xong của vòng là 11 AC §3 qua `make test` + dogfood theo `DOGFOOD-PLAN.md`.
+**Authority dùng app desktop làm việc cả ngày ≥ 3 ngày liên tiếp mà không mở iTerm / `ssh -L` / trình duyệt riêng cho dự án** (tự báo ở pha R). Tiêu chí xong của vòng là 13 AC §3 qua `make test` + dogfood theo `DOGFOOD-PLAN.md`.
 
 ---
 

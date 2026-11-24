@@ -41,6 +41,7 @@ tab mất kết nối mở lại ngay tại chỗ, và xem được web app đan
 | Phiên trình duyệt (mục 4) | 1.5 ngày công |
 | Files giữ trạng thái + Home file ẩn (mục 6) | 0.5 ngày công |
 | Ô chat gọn + hạn mức trong popup model (mục 7) | 0.5 ngày công |
+| Khung nội dung rộng + CSS markdown (mục 8) | 0.25 ngày công |
 | Pha P1 — checklist production-ready + soi bug/viết test | 1 ngày công |
 
 ## 4. Phạm vi — capability giao ở vòng này
@@ -54,6 +55,7 @@ tab mất kết nối mở lại ngay tại chỗ, và xem được web app đan
 | 5. Chuyển tiếp cổng (CAP-NET-01) | P-DESK, P-HOST | `apps/api` (ssh forward), `apps/web` | AC-57, AC-58 |
 | 6. (CAP-FILE-01) Files giữ trạng thái cây + file ẩn ở Home (bổ sung 2026-11-24) | P-DESK | `apps/web` (files.store, FilesView) | AC-60, AC-61 |
 | 7. (CAP-AI-03, CAP-AI-06) Ô chat Claude gọn + hạn mức trong popup model (bổ sung 2026-11-24) | P-DESK | `apps/web` (claude composer) | AC-62, AC-63 |
+| 8. (CAP-AI-01) Khung nội dung Claude rộng hơn + render markdown đúng (bổ sung sau khoá scope, Authority 2026-11-24) | P-DESK | `apps/web` (styles, ChatView) | AC-64, AC-65 |
 
 ## 5. Ngoài phạm vi vòng này
 
@@ -84,6 +86,8 @@ tab mất kết nối mở lại ngay tại chỗ, và xem được web app đan
 | AC-61 | Dự án **Home** (`~`) | Mở tab Files | Hiện file ẩn (`.ssh`, `.zshrc`, `.config`…) **mặc định bật** ở Home (dự án khác mặc định tắt như cũ); nút 👁 vẫn bật/tắt được và được nhớ (AC-60). Pha I tái hiện trước khi sửa: nếu bật 👁 vẫn không thấy dotfile ở Home thì là lỗi phía API — sửa luôn | e2e + dogfood |
 | AC-62 | Ô chat Claude (S10) | — | Hàng chip chỉ hiện **giá trị**, không chữ nhãn: context `230k/1000k`, model `Sonnet 4.8 · Vừa`, quyền `Tự sửa file` (nhãn chuyển vào tooltip + `aria-label`); bỏ nút khiên cạnh mic (đổi quyền vẫn bằng chip quyền và ⇧Tab) | e2e |
 | AC-63 | Popup chọn model | Mở popup | Có hai thanh % hạn mức: **phiên 5 giờ** và **tuần**, kèm giờ reset — **chỉ hiện trong popup**, bỏ chip hạn mức khỏi hàng chip ô chat (Authority 2026-11-24); ≥80% đổi màu cảnh báo; số lấy từ nguồn hạn mức đã có ở vòng 1 | e2e |
+| AC-64 | Phiên Claude (S10) trên desktop | Mở phiên | Khung nội dung hội thoại rộng tối đa 1280px; ô soạn giữ 820px căn giữa | e2e (đo bề ngang `.col` và `.composer .in`) |
+| AC-65 | Claude trả lời có bảng / code / danh sách markdown | Render | Bảng có viền + tiêu đề + cuộn ngang; code block có khung; inline code, danh sách, tiêu đề, trích dẫn có kiểu — CSS `.md` từ token | e2e snapshot + dogfood `picky` |
 
 ## 7. Luồng người dùng
 
@@ -109,6 +113,7 @@ Prototype: `prototype/hugremote/index.html` (bảng điều khiển → hàng "V
 - **S13 Phiên trình duyệt** — một loại phiên mới ở nút + (*Trình duyệt mới*, ⌥⇧B), nằm chung thanh tab Phiên và cây như Claude/terminal/tmux, biểu tượng quả địa cầu, tên tab = địa chỉ trang. **Mỗi phiên xem một trang**; nhập link khác thì đổi trang ngay trong phiên đó; mở nhiều phiên = nhiều trang. Có thanh địa chỉ, chip cổng đang nghe, nhãn đường chuyển tiếp, mở ngoài, DevTools; trạng thái chưa chuyển tiếp / cổng không nghe / đang tải. Chỉ có trong app desktop (chốt Q-3).
 - **S14 Chuyển tiếp cổng** — nút biểu tượng trên header (owner) + menu máy: danh sách hai chiều, lọc theo máy, cổng đang nghe chưa chuyển tiếp, sheet thêm mới (lỗi trùng cổng).
 - **S8 Files**: Home có cây thư mục với file ẩn bật sẵn; trạng thái cây giữ khi đổi tab.
+- **S10 nội dung**: khung hội thoại rộng 1280px (ô soạn giữ 820px); markdown có bảng viền, code block khung.
 - **S10 ô chat**: chip context / model / quyền chỉ còn giá trị; bỏ nút khiên cạnh mic; popup model có thanh hạn mức phiên 5 giờ + tuần.
 - **Header / thanh bên desktop (chỉnh theo Authority 2026-11-24)**: tab Phiên · Files · Git chỉ biểu tượng (bỏ tab Trình duyệt — đã thành loại phiên) (tooltip + nhãn ẩn; điện thoại giữ chữ); bỏ nút Chuyển nhanh trên header khi có thanh bên (giữ ô ở thanh bên; điện thoại vẫn có nút); bỏ nút Cài đặt ở chân thanh bên (giữ trên header); tên phiên tmux = tên tmux, không tiền tố, phân biệt bằng biểu tượng.
 
@@ -280,7 +285,7 @@ Quyết định kỹ thuật của vòng: `context/DECISIONS.md` dưới mốc `
 | 4 | AC-57/58 chuyển tiếp cổng | `psql -p 15432` nối được |
 | 5 | AC-59 Trình duyệt | trang :3000 hiện trong app |
 | 6 | AC-60/61 Files | thư mục còn mở sau khi đổi tab |
-| 7 | AC-62/63 ô chat + popup model | popup có 2 thanh % |
+| 7 | AC-62/63 ô chat + popup model; AC-64/65 khung rộng + markdown | popup có 2 thanh %; bảng có viền |
 | 8 | Pha P1: checklist production-ready + soi bug/viết test | `gate.py P1` xanh |
 
 ## 22. Định nghĩa xong
@@ -310,3 +315,4 @@ Quyết định kỹ thuật của vòng: `context/DECISIONS.md` dưới mốc `
 | Ngày | Điều chỉnh | Lý do |
 |---|---|---|
 | 2026-11-24 | Proposal lập mới ở pha V vòng 3 (không có sẵn từ kế hoạch vòng 1); thêm mục 6–7 (AC-60..63) sau phản hồi bổ sung; pha P (chỉ P1) theo Q-14; Phase giữ MVP | Yêu cầu Authority qua chat 2026-11-24; DECISIONS 2026-11-24 |
+| 2026-11-24 | Sau khoá scope, Authority bổ sung mục 8 (AC-64, AC-65) | Chỉ CSS/hiển thị trên S10, ~0.25 ngày công; Authority trực tiếp yêu cầu — DECISIONS 2026-11-24 |

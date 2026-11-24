@@ -54,7 +54,7 @@ cây + vùng chính tab/chia ô kiểu Orca) và mobile (<768px: toàn màn + th
 | S13 | Phiên trình duyệt (vòng 3, chỉ app desktop) | P-DESK xem web app đang chạy trên máy SSH mà không rời app | Thanh phiên trộn C8 (biểu tượng quả địa cầu, tên = địa chỉ) → thanh địa chỉ (lùi · tiến · tải lại · ô URL · nhãn đường chuyển tiếp `localhost:L → máy:cổng` · mở ngoài · DevTools) → chip cổng đang nghe trên máy → trang | Gõ link (đổi trang trong chính phiên) · bấm chip cổng · Chuyển tiếp và mở · Mở ngoài | Cổng chưa chuyển tiếp: `máy:cổng · tiến trình` + *Chuyển tiếp và mở* · cổng không nghe: lỗi + Thử lại · đang tải: khung xương |
 | S14 | Chuyển tiếp cổng (vòng 3, owner) | P-DESK/P-HOST đưa cổng giữa Mac và máy SSH, hai chiều | Lọc theo máy → danh sách chuyển tiếp: chiều ↓ (máy SSH → Mac) / ↑ (Mac → máy SSH), địa chỉ nguồn + tên, ô cổng đích sửa được, trạng thái → *Đang nghe*: cổng chưa chuyển tiếp + tiến trình + ô cổng điền sẵn + Chuyển tiếp → sheet Thêm (máy, chiều, cổng hai đầu tự điền theo nhau, tên, *Tự bật khi mở app*) | Thêm · Chuyển tiếp từng cổng · sửa cổng đích · Tắt/Bật · Xoá · Mở bằng trình duyệt | Rỗng: "Chưa có cổng nào." + Thêm · lỗi: trùng cổng (ô đỏ + câu báo), máy mất kết nối (chữ đỏ, tự thử lại 10 giây) · đang tải: khung xương |
 
-**Delta vòng 3 trên màn cũ** (chốt 2026-11-24): **S6** — loại phiên tmux (biểu tượng riêng, tên = tên session tmux, không tiền tố), trạng thái *đang gắn lại* (tmux) và *Mất kết nối — đang nối lại (lần n)* + *Mở lại tại đây* / *Đóng tab* (terminal thường); menu **+** thêm *Phiên tmux mới* (⌥⇧M, chỉ máy SSH) + nhóm *tmux trên <máy>* + *Trình duyệt mới* (⌥⇧B, chỉ desktop). **S8** — trạng thái cây (thư mục mở, file ẩn, cuộn) giữ theo dự án; Home bật file ẩn sẵn; menu file thêm *Mở bằng trình duyệt*. **S10** — chip ô soạn chỉ còn giá trị (context, model, quyền), bỏ nút khiên cạnh mic, bỏ chip hạn mức; popup model có hai thanh % hạn mức phiên 5 giờ + tuần. **Header desktop** — tab Phiên · Files · Git chỉ biểu tượng (điện thoại giữ chữ); bỏ nút Chuyển nhanh khi có thanh bên; thêm nút Chuyển tiếp cổng (owner); Cài đặt chỉ trên header. Bỏ các dòng chữ hướng dẫn trên màn mới.
+**Delta vòng 3 trên màn cũ** (chốt 2026-11-24): **S6** — loại phiên tmux (biểu tượng riêng, tên = tên session tmux, không tiền tố), trạng thái *đang gắn lại* (tmux) và *Mất kết nối — đang nối lại (lần n)* + *Mở lại tại đây* / *Đóng tab* (terminal thường); menu **+** thêm *Phiên tmux mới* (⌥⇧M, chỉ máy SSH) + nhóm *tmux trên <máy>* + *Trình duyệt mới* (⌥⇧B, chỉ desktop). **S8** — trạng thái cây (thư mục mở, file ẩn, cuộn) giữ theo dự án; Home bật file ẩn sẵn; menu file thêm *Mở bằng trình duyệt*. **S10** — khung nội dung hội thoại rộng 1280px (ô soạn giữ 820px), markdown hiện bảng có viền / code block có khung; chip ô soạn chỉ còn giá trị (context, model, quyền), bỏ nút khiên cạnh mic, bỏ chip hạn mức; popup model có hai thanh % hạn mức phiên 5 giờ + tuần. **Header desktop** — tab Phiên · Files · Git chỉ biểu tượng (điện thoại giữ chữ); bỏ nút Chuyển nhanh khi có thanh bên; thêm nút Chuyển tiếp cổng (owner); Cài đặt chỉ trên header. Bỏ các dòng chữ hướng dẫn trên màn mới.
 
 ## 2. Sơ đồ điều hướng
 
@@ -153,6 +153,8 @@ URL hash: #/login · #/s/<máy>/p/<dự án> · …/claude/<phiên> · …/termi
 | AC-61 | S8 | Home bật file ẩn sẵn |
 | AC-62 | S10 | Chip chỉ giá trị, bỏ nút khiên |
 | AC-63 | S10 | Popup model: thanh % hạn mức |
+| AC-64 | S10 | Khung nội dung 1280px, ô soạn 820px |
+| AC-65 | S10 | Bảng viền, code block, danh sách (phiên "Refactor auth") |
 
 ## 4. File prototype tương tác
 
@@ -215,5 +217,6 @@ cho test so ảnh pha I (G-16).
 | 13 | 2026-11-24 | "Bỏ tìm kiếm trên header, bỏ cài đặt ở sidebar, forward port lên header, tab header chỉ icon, tên tmux không tiền tố" | Sửa header/thanh bên |
 | 14 | 2026-11-24 | 14 câu làm rõ: trình duyệt thành loại phiên ở nút +, mỗi phiên một trang; chuyển tiếp hai chiều; bỏ tự động chuyển tiếp; tmux chỉ máy SSH; mất kết nối vừa tự nối lại vừa hiện nút | S13 thành phiên; S14 hai chiều; ẩn tmux ở Máy này |
 | 15 | 2026-11-24 | "Thư mục không giữ trạng thái; Home chưa xem được file ẩn; ô chat ẩn chữ context/model/quyền, bỏ nút khiên; popup model có session/week limit dạng %" → "chỉ hiện trong popup" → "oke chốt prototype" | S8 Home + giữ trạng thái; S10 chip gọn; popup model thanh %; bỏ chip hạn mức |
+| 16 | 2026-11-24 | "Mở rộng khung content của session Claude, giữ nguyên khung chat; content render md chưa đúng, bảng không có khung" | `.col` 820→1280px; thêm CSS `.md` (bảng, code, danh sách, trích dẫn); phiên Refactor auth có bảng mẫu |
 
 Chốt bởi Authority: 2026-11-24

@@ -1742,6 +1742,8 @@ export interface components {
             cwd?: string;
             /** @description Vòng 3: tên session tmux — có thì PTY chạy `tmux new-session -A -s <tên>` (G-17 whitelist). */
             tmux?: string;
+            /** @description Session MỚI: `tmux` là tên gốc, server thêm `-2`, `-3`… tới tên trống trên máy. */
+            tmuxFresh?: boolean;
         };
         TmuxSessionDto: {
             name: string;

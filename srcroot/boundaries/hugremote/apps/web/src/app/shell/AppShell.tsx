@@ -96,6 +96,9 @@ function Topbar() {
           </span>
         )}
         <span className="hide-mobile">
+          <Button variant="ghost" size="sm" iconOnly icon="keyi" label={`${t('keys.title')} (⌘/)`} onClick={() => ui.set({ keys: true })} />
+        </span>
+        <span className="hide-mobile">
           <Button variant="ghost" size="sm" iconOnly icon="cog" tone={loc.pathname === '/settings' ? 'primary' : undefined} label={t('nav.settings')} onClick={() => nav('/settings')} />
         </span>
       </header>

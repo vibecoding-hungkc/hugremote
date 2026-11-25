@@ -26,7 +26,7 @@ const toDto = (t: TerminalSessionEntity): TerminalDto => ({
   tmuxName: t.tmuxName ?? undefined,
 });
 
-const TMUX_NAME = /^[A-Za-z0-9_-]{1,64}$/; // không có `.`/`:` — tmux tự đổi chúng trong tên session
+const TMUX_NAME = /^[A-Za-z0-9_][A-Za-z0-9_-]{0,63}$/; // không có `.`/`:` (tmux tự đổi), không mở đầu bằng `-` (giống cờ)
 const tmuxArgv = (name: string) => ['tmux', 'new-session', '-A', '-s', name];
 
 @Injectable()
@@ -104,12 +104,43 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
     return joined;
   }
 
-  async create(u: AuthUser, projectId: string, name?: string, cwd?: string, tmux?: string): Promise<TerminalDto> {
+  // ponytail: một khoá chung cho mọi bước kiểm-rồi-tạo (tên tmux, reopen, gắn lại lười) — tách khoá theo máy nếu thấy chậm
+  private chain: Promise<unknown> = Promise.resolve();
+  private serial<T>(fn: () => Promise<T>): Promise<T> {
+    const r = this.chain.then(fn, fn);
+    this.chain = r.catch(() => undefined);
+    return r;
+  }
+
+  /** Dogfood concurrent: hai tab cùng tạo tmux → trùng tên / hai bản ghi một session. Phiên tmux đi qua `serial`. */
+  create(u: AuthUser, projectId: string, name?: string, cwd?: string, tmux?: string, tmuxFresh?: boolean): Promise<TerminalDto> {
+    return tmux === undefined
+      ? this.createNow(u, projectId, name, cwd)
+      : this.serial(() => this.createNow(u, projectId, name, cwd, tmux, tmuxFresh));
+  }
+
+  private async createNow(
+    u: AuthUser,
+    projectId: string,
+    name?: string,
+    cwd?: string,
+    tmux?: string,
+    tmuxFresh?: boolean,
+  ): Promise<TerminalDto> {
     const { project, rt } = await this.ws.context(projectId);
     if (this.ptys.count >= LIMITS.TERMINAL_MAX_SESSIONS)
       throw AppError.conflict(ErrorCode.SESSION_LIMIT, { max: LIMITS.TERMINAL_MAX_SESSIONS });
     const dir = this.resolveCwd(project.hostId, project.rootPath, cwd);
-    if (tmux !== undefined) await this.assertTmux(project.hostId, tmux);
+    if (tmux !== undefined) {
+      await this.assertTmux(project.hostId, tmux);
+      if (tmuxFresh) tmux = await this.freeTmuxName(project.hostId, tmux);
+      else {
+        await this.assertTmuxAccess(u, project.hostId, tmux);
+        // đã có phiên của chính mình gắn session này → trả phiên đó, không mở tab thứ hai (ARCHITECTURE §6)
+        const mine = (await this.tmuxHolders(tmux, project.hostId)).find((x) => x.ownerUserId === u.id && x.status === 'running');
+        if (mine) return toDto(mine);
+      }
+    }
     const id = crypto.randomUUID();
     let pty;
     try {
@@ -152,14 +183,25 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
     const t = await this.owned(u, id);
     await this.repo.delete(id);
     this.ptys.kill(id);
-    if (t.tmuxName) {
+    // thiết bị khác đang mở phiên này làm mới danh sách → tab tự gỡ (dogfood concurrent)
+    this.events.publish({
+      type: 'session_status',
+      data: { sessionId: id, kind: 'terminal', projectId: t.projectId, status: 'deleted' },
+      ownerUserId: t.ownerUserId,
+    });
+    // tắt hẳn session chỉ khi không còn phiên nào khác (của bất kỳ ai) gắn cùng tên trên máy đó
+    if (t.tmuxName && !(await this.tmuxHolders(t.tmuxName, (await this.ws.get(t.projectId)).hostId)).length) {
       const { rt } = await this.ws.context(t.projectId);
       await rt.exec(['tmux', 'kill-session', '-t', `=${t.tmuxName}`]).catch(() => undefined);
     }
   }
 
   /** AC-56: shell mới cho đúng bản ghi cũ (giữ id, tên) — tab không đổi. Phiên tmux: gắn lại session. */
-  async reopen(u: AuthUser, id: string): Promise<TerminalDto> {
+  reopen(u: AuthUser, id: string): Promise<TerminalDto> {
+    return this.serial(() => this.reopenNow(u, id)); // hai tab cùng bấm → một 201, một 409 (không rò shell)
+  }
+
+  private async reopenNow(u: AuthUser, id: string): Promise<TerminalDto> {
     const t = await this.owned(u, id);
     if (this.ptys.has(id)) throw AppError.conflict(ErrorCode.SESSION_STILL_RUNNING);
     await this.spawnFor(t, 80, 24);
@@ -173,13 +215,52 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** `tmux ls` của máy (AC-54) — kèm id phiên HugRemote đang gắn, nếu có. */
-  async tmuxSessions(projectId: string): Promise<TmuxSessionDto[]> {
+  /** G-13: member chỉ thấy session gắn với phiên của mình; owner thấy cả máy nhưng `sessionId` chỉ của mình. */
+  async tmuxSessions(u: AuthUser, projectId: string): Promise<TmuxSessionDto[]> {
     const { project, rt } = await this.ws.context(projectId);
     await this.assertTmux(project.hostId);
     const r = await rt.exec(['tmux', 'list-sessions', '-F', '#{session_name}:#{session_windows}:#{session_created}']);
     if (r.code !== 0) return []; // chưa có tmux server = chưa có session nào
-    const mine = new Map((await this.repo.all()).filter((x) => x.tmuxName && x.projectId === projectId).map((x) => [x.tmuxName!, x.id]));
-    return parseTmuxLs(r.stdout.toString()).map((x) => ({ ...x, sessionId: mine.get(x.name) }));
+    const mine = new Map(
+      (await this.repo.all())
+        .filter((x) => x.tmuxName && x.projectId === projectId && x.ownerUserId === u.id)
+        .map((x) => [x.tmuxName!, x.id]),
+    );
+    const all = parseTmuxLs(r.stdout.toString()).map((x) => ({ ...x, sessionId: mine.get(x.name) }));
+    return u.role === UserRole.OWNER ? all : all.filter((x) => mine.has(x.name));
+  }
+
+  /** `base`, `base-2`, `base-3`… — tên đầu tiên chưa có session trên máy và chưa phiên nào giữ. */
+  private async freeTmuxName(hostId: string, base: string) {
+    const rt = await this.hosts.runtime(hostId);
+    const stem = base.slice(0, 56);
+    for (let i = 1; i < 1000; i++) {
+      const n = i === 1 ? stem : `${stem}-${i}`;
+      const r = await rt.exec(['tmux', 'has-session', '-t', `=${n}`]).catch(() => null);
+      if (r?.code !== 0 && !(await this.tmuxHolders(n, hostId)).length) return n;
+    }
+    throw AppError.conflict(ErrorCode.SESSION_LIMIT, { max: 1000 });
+  }
+
+  /** Phiên (mọi người dùng) đang gắn session tmux `name` trên máy `hostId`. */
+  private async tmuxHolders(name: string, hostId: string) {
+    const rows = (await this.repo.all()).filter((x) => x.tmuxName === name);
+    const out: TerminalSessionEntity[] = [];
+    for (const x of rows) if ((await this.ws.get(x.projectId).catch(() => null))?.hostId === hostId) out.push(x);
+    return out;
+  }
+
+  /**
+   * Dogfood breaker 2026-11-25: `new-session -A` gắn vào session sẵn có → tạo terminal trùng tên = chiếm phiên người khác.
+   * Không ai được gắn vào session mà phiên của người khác đang giữ; member chỉ được tạo session mới hoặc gắn lại session của mình.
+   */
+  private async assertTmuxAccess(u: AuthUser, hostId: string, name: string) {
+    const holders = await this.tmuxHolders(name, hostId);
+    if (holders.some((x) => x.ownerUserId !== u.id)) throw AppError.forbidden(ErrorCode.NOT_SESSION_OWNER);
+    if (u.role === UserRole.OWNER || holders.length) return;
+    const rt = await this.hosts.runtime(hostId);
+    const r = await rt.exec(['tmux', 'has-session', '-t', `=${name}`]).catch(() => null);
+    if (r?.code === 0) throw AppError.forbidden(ErrorCode.NOT_SESSION_OWNER); // session có sẵn trên máy, không phải của member
   }
 
   private async assertTmux(hostId: string, name?: string) {
@@ -209,8 +290,28 @@ export class TerminalService implements OnModuleInit, OnModuleDestroy {
   async attach(u: AuthUser, id: string, viewer: PtyViewer, cols: number, rows: number): Promise<boolean> {
     const t = await this.owned(u, id);
     // AC-55: phiên tmux còn `running` nhưng chưa có PTY (sau restart / bị reap) → gắn lại lười
-    if (t.status === 'running' && t.tmuxName && !this.ptys.has(id)) await this.spawnFor(t, cols, rows);
+    let recreated = false;
+    if (t.status === 'running' && t.tmuxName && !this.ptys.has(id))
+      await this.serial(async () => {
+        if (this.ptys.has(id)) return;
+        recreated = !(await this.tmuxAlive(t).catch(() => true)); // session bị đóng ngoài HugRemote → `new-session -A` tạo mới
+        await this.spawnFor(t, cols, rows);
+        if (recreated) this.log.warn(`${id}: tmux "${t.tmuxName}" đã bị đóng bên ngoài — đã tạo mới`);
+        else this.log.log(`${id}: gắn lại tmux "${t.tmuxName}"`);
+      });
+    // terminal thường `running` mà không có PTY (restart API, hoặc request rơi vào tiến trình cũ đang tắt) → đã chết thật:
+    // ghi `exited` + phát sự kiện để client hiện "Phiên đã kết thúc" thay vì nối lại mãi (dogfood smoke lượt cuối F1)
+    if (t.status === 'running' && !t.tmuxName && !this.ptys.has(id)) {
+      await this.repo.update(id, { status: 'exited', exitCode: null });
+      this.events.publish({
+        type: 'session_status',
+        data: { sessionId: id, kind: 'terminal', projectId: t.projectId, status: 'exited' },
+        ownerUserId: t.ownerUserId,
+      });
+      return false;
+    }
     if (t.status !== 'running' || !this.ptys.attach(id, viewer, cols, rows)) return false;
+    if (recreated) viewer.sendControl({ type: 'notice', code: 'TMUX_RECREATED' }); // ARCHITECTURE §6: dải báo
     await this.repo.update(id, { lastAttachedAt: new Date().toISOString() });
     return true;
   }

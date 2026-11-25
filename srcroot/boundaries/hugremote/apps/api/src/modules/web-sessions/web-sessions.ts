@@ -10,11 +10,20 @@ import type { WebSessionDto, WebSessionPatch } from './dto/web-session.dto';
 import { WebSessionEntity } from './web-session.entity';
 
 /** Chỉ trang chạy trên localhost/127.0.0.1 (qua chuyển tiếp cổng) hoặc file trong dự án — G-17, ARCHITECTURE §6. */
-export function checkWebUrl(raw: string): { url: string; name: string } {
+export function checkWebUrl(raw: string, root?: string): { url: string; name: string } {
   const s = raw.trim();
   if (/^file:\/\//i.test(s)) {
     const p = s.slice(7);
-    if (!p || p.includes('\0') || /(^|\/)\.\.(\/|$)/.test(p)) throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
+    let dec: string;
+    try {
+      dec = decodeURIComponent(p); // `%2f..%2f` cũng là `..`
+    } catch {
+      throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
+    }
+    if (!p || dec.includes('\0') || /(^|\/)\.\.(\/|$)/.test(dec)) throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
+    // chỉ file trong dự án (dogfood breaker: `file:///etc/passwd` từng được nhận) — web dựng URL là `file://${rootPath}/${rel}`
+    const base = root?.replace(/\/+$/, '');
+    if (base === undefined || (dec !== base && !dec.startsWith(`${base}/`))) throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
     return { url: `file://${p}`, name: p.split('/').filter(Boolean).pop() ?? p };
   }
   let u: URL;
@@ -23,7 +32,7 @@ export function checkWebUrl(raw: string): { url: string; name: string } {
   } catch {
     throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
   }
-  if (!/^https?:$/.test(u.protocol) || !['localhost', '127.0.0.1'].includes(u.hostname))
+  if (!/^https?:$/.test(u.protocol) || !['localhost', '127.0.0.1'].includes(u.hostname) || u.port === '0')
     throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
   return { url: u.toString(), name: `${u.host}${u.pathname === '/' ? '' : u.pathname}` };
 }
@@ -52,8 +61,8 @@ export class WebSessionsService {
   }
 
   async create(u: AuthUser, projectId: string, raw: string): Promise<WebSessionDto> {
-    await this.ws.get(projectId);
-    const { url, name } = checkWebUrl(raw);
+    const project = await this.ws.get(projectId);
+    const { url, name } = checkWebUrl(raw, project.rootPath);
     const w = Object.assign(new WebSessionEntity(), {
       id: crypto.randomUUID(),
       projectId,
@@ -70,7 +79,7 @@ export class WebSessionsService {
   /** Nhập link khác = đổi trang ngay trong phiên này (Q-9). */
   async patch(u: AuthUser, id: string, b: WebSessionPatch): Promise<WebSessionDto> {
     const w = await this.owned(u, id);
-    const nav = b.url !== undefined ? checkWebUrl(b.url) : null;
+    const nav = b.url !== undefined ? checkWebUrl(b.url, (await this.ws.get(w.projectId)).rootPath) : null;
     const next = { url: nav?.url ?? w.url, name: b.name?.trim() || nav?.name || w.name, lastOpenedAt: new Date().toISOString() };
     await this.rows.update({ id }, next);
     return toDto({ ...w, ...next });

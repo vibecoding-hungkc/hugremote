@@ -260,6 +260,9 @@ export class SshPool {
       },
     };
     const client = new Client();
+    // ssh2 có thể phát 'error' lần hai (vd. "Connection lost before handshake" sau hết readyTimeout) — không ai nghe thì
+    // thành uncaughtException và cả API thoát (dogfood edge 2026-11-25). Lỗi thật đã xử ở `once` bên dưới / `drop` của pool.
+    client.on('error', () => undefined);
     try {
       await new Promise<void>((resolve, reject) => {
         client.once('ready', () => resolve());
@@ -272,6 +275,7 @@ export class SshPool {
         client.connect(base);
       });
     } catch (e) {
+      client.end();
       jump?.end();
       this.log.warn(
         `${t.id}: không nối được ${t.hostName}:${t.port}${jump ? ' (qua máy trung gian)' : ''} — ${(e as SshError).kind ?? (e as Error).message}`,

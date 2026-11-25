@@ -85,6 +85,10 @@ export function Composer(p: ComposerProps) {
       /* chế độ riêng tư */
     }
   }, [draft, p.userId, p.sid]);
+  // Sang tab Claude bằng phím (⌥1, Ctrl+Tab) → gõ được ngay; chỉ khi có chuột/bàn phím, tránh bật bàn phím ảo trên điện thoại
+  useEffect(() => {
+    if (matchMedia('(pointer: fine)').matches) ta.current?.focus({ preventScroll: true });
+  }, [p.sid]);
   useEffect(() => {
     const el = ta.current;
     if (!el) return;
@@ -95,8 +99,39 @@ export function Composer(p: ComposerProps) {
     if (!menu) return;
     const off = (e: MouseEvent) => !tools.current?.contains(e.target as Node) && setMenu(null);
     document.addEventListener('mousedown', off);
-    return () => document.removeEventListener('mousedown', off);
+    // a11y: mở popup → focus mục đang chọn; ↑↓ đi giữa các mục; Esc đóng và trả focus về chip đã mở
+    const items = () => [...(tools.current?.querySelectorAll<HTMLElement>('.menu [role=menuitemradio]') ?? [])];
+    (items().find((x) => x.getAttribute('aria-checked') === 'true') ?? items()[0])?.focus();
+    const key = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setMenu(null);
+        tools.current?.querySelector<HTMLElement>(`[data-chip=${menu}]`)?.focus();
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        const l = items();
+        const i = l.indexOf(document.activeElement as HTMLElement);
+        if (i < 0) return;
+        e.preventDefault();
+        l[(i + (e.key === 'ArrowDown' ? 1 : -1) + l.length) % l.length]?.focus();
+      }
+    };
+    document.addEventListener('keydown', key, true);
+    return () => {
+      document.removeEventListener('mousedown', off);
+      document.removeEventListener('keydown', key, true);
+    };
   }, [menu]);
+  /** Enter/Space trên mục menu = bấm (div role=menuitemradio không tự có hành vi phím). */
+  const pick = (fn: () => void) => ({
+    onClick: fn,
+    onKeyDown: (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fn();
+      }
+    },
+  });
 
   const modeLabel = (m: string) => t(`claude.mode_${m}`, { defaultValue: m });
   const bypass = p.mode === (PermissionMode.BYPASS as string);
@@ -261,10 +296,10 @@ export function Composer(p: ComposerProps) {
                     role="menuitemradio"
                     aria-checked={curModel?.value === m.value}
                     tabIndex={0}
-                    onClick={() => {
+                    {...pick(() => {
                       p.onModel({ model: m.value });
                       setMenu(null);
-                    }}
+                    })}
                   >
                     <b>{m.displayName}</b>
                     <span className="d">
@@ -279,6 +314,7 @@ export function Composer(p: ComposerProps) {
                       {curModel.efforts.map((e) => (
                         <button
                           key={e}
+                          aria-pressed={effort === e}
                           className={effort === e ? 'on' : ''}
                           onClick={() => {
                             p.onModel({ effort: e });
@@ -305,11 +341,11 @@ export function Composer(p: ComposerProps) {
                       role="menuitemradio"
                       aria-checked={p.mode === m}
                       tabIndex={0}
-                      onClick={() => {
+                      {...pick(() => {
                         setMenu(null);
                         if (isBy) p.onBypass();
                         else p.onMode(m);
-                      }}
+                      })}
                     >
                       <b>
                         {isBy && <Icon name="warn" />}
@@ -338,7 +374,15 @@ export function Composer(p: ComposerProps) {
                   {fmtK(used)}/{fmtK(cap)}
                 </b>
               </span>
-              <button className="chip" title={`${t('claude.model')} — ${t('claude.modelTip')}`} aria-label={t('claude.model')} onClick={() => setMenu(menu === 'model' ? null : 'model')}>
+              <button
+                className="chip"
+                data-chip="model"
+                aria-haspopup="menu"
+                aria-expanded={menu === 'model'}
+                title={`${t('claude.model')} — ${t('claude.modelTip')}`}
+                aria-label={`${t('claude.model')}: ${(curModel?.displayName ?? p.model ?? '…').replace(/\s*\(recommended\)/i, '')}${effort ? ` · ${t(`claude.effort_${effort}`, { defaultValue: effort })}` : ''}`}
+                onClick={() => setMenu(menu === 'model' ? null : 'model')}
+              >
                 <b>
                   {(curModel?.displayName ?? p.model ?? '…').replace(/\s*\(recommended\)/i, '')}
                   {effort ? ` · ${t(`claude.effort_${effort}`, { defaultValue: effort })}` : ''}
@@ -347,6 +391,9 @@ export function Composer(p: ComposerProps) {
               </button>
               <button
                 className={`chip ${bypass ? 'danger' : ''}`}
+                data-chip="mode"
+                aria-haspopup="menu"
+                aria-expanded={menu === 'mode'}
                 title={`${t('claude.mode')} — ${t('claude.modeTip', { desc: t(`claude.mode_${p.mode}_d`) })}`}
                 aria-label={`${t('claude.mode')}: ${modeLabel(p.mode)}`}
                 onClick={() => setMenu(menu === 'mode' ? null : 'mode')}

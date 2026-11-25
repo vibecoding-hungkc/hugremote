@@ -39,10 +39,11 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    // Mở app: chỉ bật lại những chuyển tiếp có "Tự bật khi mở app"
+    // Mở app: bật lại chuyển tiếp có "Tự bật khi mở app" mà người dùng chưa tắt; không Tự bật → về tắt.
+    // (dogfood operator: trước đây Tự bật ghi đè cả lựa chọn Tắt của người dùng)
     for (const f of await this.rows.find()) {
-      if (f.enabled !== f.autoStart) await this.rows.update({ id: f.id }, { enabled: f.autoStart });
-      if (f.autoStart) void this.start(f).catch(() => undefined);
+      if (!f.autoStart && f.enabled) await this.rows.update({ id: f.id }, { enabled: false });
+      if (f.autoStart && f.enabled) await this.startOrRetry(f);
     }
     this.timer = setInterval(() => void this.tick(), TICK_MS);
     this.timer.unref();
@@ -74,6 +75,10 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
     });
     await this.assertFree(f);
     await this.start(f); // lỗi cổng bận → ném trước khi ghi DB
+    if (f.direction === 'R' && this.live.get(f.id)?.error === ErrorCode.REMOTE_PORT_IN_USE) {
+      this.stop(f.id); // cổng trên máy SSH đã có tiến trình khác giữ — báo 409 như -L, không tạo bản ghi lỗi
+      throw AppError.conflict(ErrorCode.REMOTE_PORT_IN_USE, { port: f.remotePort });
+    }
     await this.rows.insert(f);
     return this.dto(f);
   }
@@ -170,7 +175,7 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
       await this.probe(f, l);
       return;
     }
-    const l: Live = { status: 'err', error: 'Đang nối…', row: f };
+    const l: Live = { status: 'err', error: 'FORWARD_CONNECTING', row: f };
     this.live.set(f.id, l);
     await this.bindRemote(f, l);
   }
@@ -181,9 +186,15 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
       const c = await this.hosts.pool.client(await this.hosts.target(f.hostId));
       c.forwardOut('127.0.0.1', sock.localPort ?? 0, f.remoteHost, f.remotePort, (err, stream) => {
         if (err) {
-          this.mark(f.id, 'err', /denied|prohibited/i.test(err.message) ? 'FORWARDING_DENIED' : err.message);
+          const code = /denied|prohibited/i.test(err.message)
+            ? 'FORWARDING_DENIED'
+            : /refused/i.test(err.message)
+              ? 'REMOTE_NOT_LISTENING'
+              : err.message;
+          this.mark(f.id, 'err', code);
           return sock.destroy();
         }
+        if (this.live.get(f.id)?.error === 'REMOTE_NOT_LISTENING') this.mark(f.id, 'on', undefined);
         sock.pipe(stream).pipe(sock);
         stream.on('error', () => sock.destroy());
         sock.on('error', () => stream.destroy());
@@ -201,14 +212,22 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
       this.attachTcpHandler(c);
       await new Promise<void>((res, rej) =>
         c.forwardIn('127.0.0.1', f.remotePort, (err) =>
-          err ? rej(/denied|prohibited|forward/i.test(err.message) ? new Error('FORWARDING_DENIED') : err) : res(),
+          err
+            ? rej(
+                /unable to bind/i.test(err.message)
+                  ? new Error(ErrorCode.REMOTE_PORT_IN_USE)
+                  : /denied|prohibited|forward/i.test(err.message)
+                    ? new Error('FORWARDING_DENIED')
+                    : err,
+              )
+            : res(),
         ),
       );
       l.client = c;
       l.status = 'on';
       l.error = undefined;
       c.once('close', () => {
-        if (this.live.get(f.id) === l) Object.assign(l, { status: 'err', error: 'Mất kết nối SSH', client: undefined });
+        if (this.live.get(f.id) === l) Object.assign(l, { status: 'err', error: 'SSH_DISCONNECTED', client: undefined });
       });
     } catch (e) {
       Object.assign(l, { status: 'err', error: (e as Error).message, client: undefined });
@@ -234,9 +253,22 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
   private async probe(f: PortForwardEntity, l: Live) {
     try {
       await this.hosts.pool.client(await this.hosts.target(f.hostId));
-      if (l.error !== 'FORWARDING_DENIED') Object.assign(l, { status: 'on', error: undefined });
+      // hai lỗi này chỉ biết được khi có kết nối thật đi qua — probe (chỉ kiểm máy tới được) không xoá
+      if (l.error !== 'FORWARDING_DENIED' && l.error !== 'REMOTE_NOT_LISTENING') Object.assign(l, { status: 'on', error: undefined });
     } catch (e) {
       Object.assign(l, { status: 'err', error: (e as Error).message });
+    }
+  }
+
+  /** Mở không được (cổng bận, máy chưa tới được) → giữ lỗi có mã + log; `tick()` thử lại 10 giây một lần. */
+  private async startOrRetry(f: PortForwardEntity) {
+    try {
+      await this.start(f);
+      this.log.log(`${f.id}: bật ${f.direction} ${f.hostId} ${f.remotePort} ↔ 127.0.0.1:${f.localPort}`);
+    } catch (e) {
+      const code = e instanceof AppError ? e.code : (e as Error).message;
+      this.live.set(f.id, { status: 'err', error: code, row: f });
+      this.log.warn(`${f.id}: chưa bật được (${code}) — thử lại sau ${TICK_MS / 1000} giây`);
     }
   }
 
@@ -244,6 +276,11 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
     for (const f of await this.rows.find({ where: { enabled: true } })) {
       const l = this.live.get(f.id);
       if (!l) continue;
+      if (!l.server && !l.client && f.direction === 'L') {
+        this.live.delete(f.id);
+        await this.startOrRetry(f);
+        continue;
+      }
       if (f.direction === 'L') await this.probe(f, l);
       else await this.bindRemote(f, l);
     }

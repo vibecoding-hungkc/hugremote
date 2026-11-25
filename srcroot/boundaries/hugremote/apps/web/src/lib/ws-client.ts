@@ -16,7 +16,15 @@ export class TerminalSocket {
   constructor(
     private readonly sessionId: string,
     private readonly size: () => { cols: number; rows: number },
-    private readonly on: { data: (d: Uint8Array) => void; exit: (code: number | null) => void; gone: () => void; reconnecting: (n: number) => void; open: () => void },
+    private readonly on: {
+      data: (d: Uint8Array) => void;
+      exit: (code: number | null) => void;
+      gone: () => void;
+      reconnecting: (n: number) => void;
+      open: () => void;
+      notice?: (code: string) => void;
+      replay?: () => void;
+    },
   ) {
     void this.open();
   }
@@ -43,8 +51,10 @@ export class TerminalSocket {
     ws.onmessage = (ev) => {
       if (typeof ev.data === 'string') {
         try {
-          const m = JSON.parse(ev.data) as { type?: string; code?: number };
-          if (m.type === 'exit') return this.on.exit(m.code ?? null);
+          const m = JSON.parse(ev.data) as { type?: string; code?: number | string };
+          if (m.type === 'exit') return this.on.exit(typeof m.code === 'number' ? m.code : null);
+          if (m.type === 'notice') return this.on.notice?.(String(m.code));
+          if (m.type === 'replay') return this.on.replay?.();
           if (m.type === 'pong') return;
         } catch {
           /* chuỗi thường */

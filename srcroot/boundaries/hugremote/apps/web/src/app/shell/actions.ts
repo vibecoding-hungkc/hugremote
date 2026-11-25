@@ -43,8 +43,9 @@ export function useNewSession() {
       }
     }
     try {
-      const tmux = kind === 'tmux' ? (opts.tmux ?? (await nextTmuxName(projectId))) : undefined;
-      const term = await workspaceApi.createTerminal(projectId, { ...(opts.cwd ? { cwd: opts.cwd } : {}), ...(tmux ? { tmux } : {}) });
+      const fresh = kind === 'tmux' && !opts.tmux;
+      const tmux = kind === 'tmux' ? (opts.tmux ?? (await tmuxBase(projectId))) : undefined;
+      const term = await workspaceApi.createTerminal(projectId, { ...(opts.cwd ? { cwd: opts.cwd } : {}), ...(tmux ? { tmux } : {}), ...(fresh ? { tmuxFresh: true } : {}) });
       await qc.invalidateQueries({ queryKey: qk.terminals });
       nav(`${base}/terminal/${term.id}`);
     } catch (e) {
@@ -53,14 +54,10 @@ export function useNewSession() {
   };
 }
 
-/** Tên session tmux mới: tên dự án (đã lọc ký tự), trùng `tmux ls` thì thêm `-2`, `-3`… (AC-54). */
-async function nextTmuxName(projectId: string): Promise<string> {
-  const [p, ls] = await Promise.all([workspaceApi.project(projectId), workspaceApi.tmuxSessions(projectId)]);
-  const base = (p.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'tmux').slice(0, 56);
-  const taken = new Set(ls.map((x) => x.name));
-  let n = base;
-  for (let i = 2; taken.has(n); i++) n = `${base}-${i}`;
-  return n;
+/** Tên gốc session tmux mới: tên dự án (đã lọc ký tự) — server thêm `-2`, `-3`… tới tên trống (AC-54, `tmuxFresh`). */
+async function tmuxBase(projectId: string): Promise<string> {
+  const p = await workspaceApi.project(projectId);
+  return (p.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^[-]+|-+$/g, '') || 'tmux').slice(0, 56);
 }
 
 /**
@@ -83,7 +80,7 @@ export function usePlusMenu() {
     items.push({ icon: 'tmux', label: t('session.newTmux'), kbd: '⌥⇧M', onSelect: () => void newSession('tmux', hostId, projectId) }, ...web);
     for (const x of ls)
       items.push({
-        group: t('session.tmuxOn'),
+        group: t('session.tmuxOn', { host: hostId }), // hostId = alias trong ssh config (tên hiện ở cây)
         icon: 'tmux',
         label: `${x.name} · ${t('session.tmuxWindows', { n: x.windows })}${x.sessionId ? ' · ' + t('session.tmuxOpen') : ''}`,
         onSelect: () => (x.sessionId ? nav(`${pbase(hostId, projectId)}/terminal/${x.sessionId}`) : void newSession('tmux', hostId, projectId, { tmux: x.name })),

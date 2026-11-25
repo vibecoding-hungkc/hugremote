@@ -16,6 +16,8 @@ interface Live {
   lastViewerAt: number;
   exited: boolean;
   exitCode: number | null;
+  /** Đã có người xem → buffer chứa câu hỏi terminal (DA…) đã được trả lời; lần sau replay báo client đừng trả lời lại. */
+  viewed?: boolean;
 }
 
 /**
@@ -76,7 +78,11 @@ export class PtyManager {
     l.pty.resize(cols, rows);
     l.viewers.add(v);
     l.lastViewerAt = Date.now();
-    if (l.size) v.send(Buffer.concat(l.buffer));
+    if (l.size) {
+      if (l.viewed) v.sendControl({ type: 'replay' }); // gói nhị phân kế tiếp là buffer cũ
+      v.send(Buffer.concat(l.buffer));
+    }
+    l.viewed = true;
     return true;
   }
 

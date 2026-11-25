@@ -23,7 +23,7 @@ const disp = (f: string) => {
 
 /** S9 — Git: nhánh + ahead/behind, fetch/pull/push (icon + số), thay đổi staged/chưa, diff, commit ⌘Enter, lịch sử. */
 export function GitView({ projectId, history, onHistory, onOpenFile, focusPath, compact }: { projectId: string; history: boolean; onHistory: (on: boolean) => void; onOpenFile: (path: string) => void; focusPath?: string; compact?: boolean }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const online = useConnection((s) => s.online);
   const openDialog = useDialogs((s) => s.open);
@@ -254,7 +254,7 @@ export function GitView({ projectId, history, onHistory, onOpenFile, focusPath, 
             <div className="t grow">
               <div className="sm ell">{c.subject}</div>
               <div className="xs muted ell">
-                <span className="mono">{c.short}</span> · {c.author} · {new Date(c.date).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                <span className="mono">{c.short}</span> · {c.author} · {new Date(c.date).toLocaleString(i18n.language, { dateStyle: 'short', timeStyle: 'short' })}
               </div>
             </div>
             <Button variant="ghost" size="sm" iconOnly icon="copy" className="act" label={t('git.copySha')} onClick={(e) => (e.stopPropagation(), void navigator.clipboard?.writeText(c.sha).then(() => toast(t('files.copied', { path: c.short }))))} />

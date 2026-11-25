@@ -71,7 +71,8 @@ export function WebPage() {
     };
   }, [bridge, cur?.id, url, isFile]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (missing === 'gone') return <Navigate to="/" replace state={{ notice: 'sessionGone' }} />;
+  // web thường không liệt kê phiên trình duyệt (trừ file://) → link sâu tới phiên http hiện errorBox Q-8 thay vì về `/`
+  if (missing === 'gone' && bridge) return <Navigate to="/" replace state={{ notice: 'sessionGone' }} />;
   if (sessions.isLoading || !cur)
     return !bridge ? (
       <div className="content" data-screen="S13">

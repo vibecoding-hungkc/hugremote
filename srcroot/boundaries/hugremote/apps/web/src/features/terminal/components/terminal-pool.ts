@@ -16,8 +16,11 @@ export interface PooledTerm {
   fit: FitAddon;
   el: HTMLDivElement;
   sock?: TerminalSocket;
-  state: { exited: boolean; gone: boolean; reconnecting: number };
+  state: { exited: boolean; gone: boolean; reconnecting: number; notice?: string };
   listeners: Set<() => void>;
+  /** Server báo `replay` → gói nhị phân kế tiếp là buffer cũ (đã có người xem); `muted` khi xterm đang ghi nó. */
+  awaitReplay?: boolean;
+  muted?: boolean;
 }
 
 const pool = new Map<string, PooledTerm>();
@@ -57,7 +60,7 @@ export function getTerm(id: string): PooledTerm {
   if (existing) return existing;
   const el = document.createElement('div');
   el.className = 'xterm-host';
-  el.style.cssText = 'position:absolute;inset:0;padding:var(--space-sm)';
+  el.style.cssText = 'position:absolute;inset:0';
   const term = new Terminal({
     fontFamily: cssVar('--font-mono'),
     fontSize: 14,
@@ -71,6 +74,8 @@ export function getTerm(id: string): PooledTerm {
   term.loadAddon(fit);
   term.loadAddon(new WebLinksAddon());
   term.open(el);
+  // padding đặt trên .xterm: FitAddon chỉ trừ padding của chính term.element — đặt ở khung ngoài thì hàng cuối bị cắt
+  term.element!.style.padding = 'var(--space-sm)';
   const p: PooledTerm = {
     id,
     term,
@@ -80,6 +85,8 @@ export function getTerm(id: string): PooledTerm {
     listeners: new Set(),
   };
   term.onData((d) => {
+    // Replay chứa lại câu hỏi cũ của tmux/vim (DA, màu…) → xterm trả lời lần nữa, shell nhận thành chữ rác `0;276;0c`
+    if (p.muted && d.startsWith('\x1b')) return;
     // Ctrl giữ một lần trên thanh phím + phím gõ từ bàn phím ảo → ký tự điều khiển (AC-11)
     const c = useCtrlLatch.getState();
     if (c.on && d.length === 1 && /[a-z@[\\\]^_ ]/i.test(d)) {
@@ -131,11 +138,20 @@ export function attachTerm(p: PooledTerm, container: HTMLElement) {
   if (!p.sock) {
     const notify = () => p.listeners.forEach((l) => l());
     p.sock = new TerminalSocket(p.id, () => ({ cols: p.term.cols, rows: p.term.rows }), {
-      data: (d) => p.term.write(d),
+      data: (d) => {
+        if (!p.awaitReplay) return p.term.write(d);
+        p.awaitReplay = false;
+        p.muted = true;
+        p.term.reset(); // nối lại: replay là toàn bộ buffer — ghi chồng lên màn cũ thì output lặp hai lần (dogfood edge)
+        p.term.write(d, () => (p.muted = false));
+      },
       exit: () => ((p.state.exited = true), notify()),
       gone: () => ((p.state.gone = true), notify()),
       reconnecting: (n) => ((p.state.reconnecting = n), notify()),
       open: () => ((p.state.reconnecting = 0), notify()),
+      // chỉ buffer CŨ mới chặn lời đáp: session vừa tạo thì câu hỏi DA của tmux là câu hỏi thật, phải trả lời
+      replay: () => (p.awaitReplay = true),
+      notice: (code) => ((p.state.notice = code), notify()),
     });
   }
 }

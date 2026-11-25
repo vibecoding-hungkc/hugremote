@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Length, Matches, MaxLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, Length, Matches, MaxLength } from 'class-validator';
 import { TerminalStatus } from '@app/shared';
 
 export class CreateTerminalDto {
@@ -7,7 +7,9 @@ export class CreateTerminalDto {
   /** Tương đối gốc dự án, phải nằm trong gốc (G-4) — "Mở terminal tại đây". */
   @IsOptional() @IsString() @MaxLength(1024) cwd?: string;
   /** Vòng 3: tên session tmux — có thì PTY chạy `tmux new-session -A -s <tên>` (G-17 whitelist). */
-  @IsOptional() @IsString() @Matches(/^[A-Za-z0-9_-]{1,64}$/) tmux?: string;
+  @IsOptional() @IsString() @Matches(/^[A-Za-z0-9_][A-Za-z0-9_-]{0,63}$/) tmux?: string;
+  /** Session MỚI: `tmux` là tên gốc, server thêm `-2`, `-3`… tới tên trống trên máy (member không thấy `tmux ls` đầy đủ). */
+  @IsOptional() @IsBoolean() tmuxFresh?: boolean;
 }
 
 export class RenameTerminalDto {

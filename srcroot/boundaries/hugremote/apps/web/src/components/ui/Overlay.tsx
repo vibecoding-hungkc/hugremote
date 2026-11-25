@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { create } from 'zustand';
 import { Icon, type IconName } from './Icon';
@@ -30,6 +30,37 @@ export function ToastHost() {
   );
 }
 
+// ---------------- Focus cho lớp nổi (a11y) ----------------
+const FOCUSABLE = 'input:not([disabled]), textarea, select, button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Lớp nổi giữ focus: mở → focus phần tử `first`; Esc → đóng; Tab vòng trong lớp (`tab: 'trap'`) hoặc đóng lớp
+ * (`tab: 'close'`, cho menu); đóng → trả focus về phần tử đã mở nó. `onClose` đọc qua ref để effect chỉ chạy một lần.
+ */
+export function useModalFocus(ref: React.RefObject<HTMLElement | null>, onClose: () => void, opts: { first?: string; tab: 'trap' | 'close' }) {
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    ref.current?.querySelector<HTMLElement>(opts.first ?? FOCUSABLE)?.focus();
+    const key = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape' && !e.isComposing) return close.current();
+      if (e.key !== 'Tab' || !ref.current) return;
+      if (opts.tab === 'close') return close.current();
+      const l = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((x) => x.offsetParent !== null);
+      if (!l.length) return;
+      const i = l.indexOf(document.activeElement as HTMLElement);
+      if (e.shiftKey && i <= 0) (e.preventDefault(), l[l.length - 1].focus());
+      else if (!e.shiftKey && (i === l.length - 1 || i < 0)) (e.preventDefault(), l[0].focus());
+    };
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('keydown', key);
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 // ---------------- C23 Menu nổi ----------------
 export interface MenuItem {
   icon?: IconName;
@@ -45,21 +76,24 @@ export interface MenuItem {
 /** Menu nổi có mô tả — vẽ ở lớp nổi (portal) nên không bị vùng cuộn cắt; ↑↓ Enter Esc. */
 export function Menu({ anchor, items, onClose, width = 290, children }: { anchor: DOMRect; items?: MenuItem[]; onClose: () => void; width?: number; children?: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    ref.current?.querySelector<HTMLElement>('.mi[tabindex]')?.focus();
-    const esc = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, [onClose]);
+  useModalFocus(ref, onClose, { first: '.mi[tabindex]', tab: 'close' });
   const keys = (e: KeyboardEvent) => {
     const list = Array.from(ref.current?.querySelectorAll<HTMLElement>('.mi[tabindex]') ?? []);
     const i = list.indexOf(document.activeElement as HTMLElement);
     if (e.key === 'ArrowDown') (e.preventDefault(), (list[i + 1] ?? list[0])?.focus());
     if (e.key === 'ArrowUp') (e.preventDefault(), (list[i - 1] ?? list[list.length - 1])?.focus());
+    if (e.key === 'Home') (e.preventDefault(), list[0]?.focus());
+    if (e.key === 'End') (e.preventDefault(), list[list.length - 1]?.focus());
     if (e.key === 'Enter' && document.activeElement?.classList.contains('mi')) (e.preventDefault(), (document.activeElement as HTMLElement).click());
   };
   const x = Math.max(8, Math.min(anchor.left, innerWidth - width - 8));
-  const y = Math.min(anchor.bottom + 4, innerHeight - 220);
+  // Đo chiều cao thật rồi kẹp trong màn: không đủ chỗ phía dưới → lật lên trên nút mở (menu file dài trên điện thoại)
+  const [y, setY] = useState(anchor.bottom + 4);
+  useLayoutEffect(() => {
+    const h = ref.current?.offsetHeight ?? 0;
+    const below = anchor.bottom + 4;
+    setY(below + h <= innerHeight - 8 ? below : Math.max(8, Math.min(anchor.top - 4 - h, innerHeight - 8 - h)));
+  }, [anchor]);
   let lastGroup: string | undefined;
   return createPortal(
     <div className="scrim" style={{ background: 'transparent' }} onClick={onClose}>
@@ -102,13 +136,7 @@ export function Menu({ anchor, items, onClose, width = 290, children }: { anchor
 // ---------------- C9 Hộp thoại ----------------
 export function Dialog({ title, children, onClose, danger, label }: { title: ReactNode; children: ReactNode; onClose: () => void; danger?: boolean; label?: string }) {
   const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const first = ref.current?.querySelector<HTMLElement>('input, textarea, button.primary, button.danger, button');
-    first?.focus();
-    const esc = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && !e.isComposing && onClose();
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, [onClose]);
+  useModalFocus(ref, onClose, { first: 'input, textarea, button.primary, button.danger, button', tab: 'trap' });
   return createPortal(
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <section ref={ref} className={`dialog ${danger ? 'danger' : ''}`} role="dialog" aria-modal="true" aria-label={label ?? (typeof title === 'string' ? title : undefined)}>

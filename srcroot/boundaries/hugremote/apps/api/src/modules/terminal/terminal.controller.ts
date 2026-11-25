@@ -23,13 +23,13 @@ export class TerminalController {
 
   @Post('projects/:id/terminals')
   create(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: CreateTerminalDto): Promise<TerminalDto> {
-    return this.terminals.create(u, id, dto.name, dto.cwd, dto.tmux);
+    return this.terminals.create(u, id, dto.name, dto.cwd, dto.tmux, dto.tmuxFresh);
   }
 
   /** Vòng 3 — AC-54: `tmux ls` của máy chứa dự án. */
   @Get('projects/:id/tmux-sessions')
-  tmux(@Param('id') id: string): Promise<TmuxSessionDto[]> {
-    return this.terminals.tmuxSessions(id);
+  tmux(@CurrentUser() u: AuthUser, @Param('id') id: string): Promise<TmuxSessionDto[]> {
+    return this.terminals.tmuxSessions(u, id);
   }
 
   /** Vòng 3 — AC-56: mở lại ngay tại tab cũ (giữ id). */

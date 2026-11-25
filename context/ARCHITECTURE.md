@@ -144,9 +144,13 @@ Lỗi trả về theo một khuôn: `{ code: "<MA_LOI>", message?: string, detai
 | Chuyển tiếp cổng khi máy SSH mất kết nối (vòng 3) | status `err` + lý do; thử lại mỗi 10 giây; kết nối lại → `on`; listener cục bộ giữ cổng để không bị app khác chiếm |
 | Cổng cục bộ đã bị tiến trình khác chiếm (vòng 3) | `EADDRINUSE` → 409 `LOCAL_PORT_IN_USE`, gợi ý cổng +10000; không ghi đè chuyển tiếp đang có |
 | Máy SSH cấm TCP forwarding (vòng 3) | `ssh2` báo từ chối → status `err` `FORWARDING_DENIED` ("Máy không cho chuyển tiếp cổng — AllowTcpForwarding") |
-| Phiên trình duyệt trỏ ra ngoài localhost (vòng 3) | Chặn ở API (400) và ở `will-navigate` của webview; link ngoài → mở bằng trình duyệt mặc định của macOS |
+| Phiên trình duyệt trỏ ra ngoài localhost (vòng 3) | Chặn ở API (400; cả cổng 0, và `file://` ngoài `rootPath` của dự án — kể cả dạng `%2f..`) và ở `will-navigate` của webview; link ngoài → mở bằng trình duyệt mặc định của macOS |
 | Phiên trình duyệt mở ngoài app desktop (vòng 3) | Web thường / điện thoại: phiên `web` không hiện ở thanh Phiên, cây, chuyển nhanh; link sâu `…/web/:id` → errorBox "Phiên trình duyệt chỉ mở được trong app HugRemote trên máy tính" + nút về tab Phiên (Q-8) |
 | Sửa cổng đích khi đang có kết nối (vòng 3) | Mở listener mới trước, thành công mới đóng cũ; kết nối đang chạy trên cổng cũ giữ tới khi tự đóng; mở mới lỗi → 409, giữ nguyên chuyển tiếp cũ |
+| Session tmux người khác đang giữ (vòng 3, dogfood breaker) | `POST …/terminals {tmux}` trùng tên session mà phiên của người khác đang giữ → 403 `NOT_SESSION_OWNER`; member chỉ gắn session của mình hoặc tạo mới (`tmuxFresh` — server chọn `<tên>-N` trống); `tmux-sessions` của member chỉ liệt kê session của mình, `sessionId` luôn chỉ của người gọi; xoá phiên chỉ `kill-session` khi không còn phiên nào khác giữ tên đó |
+| Tạo / mở lại phiên đồng thời (vòng 3, dogfood concurrent) | Tạo tmux, `reopen`, gắn lại lười đi qua một khoá tuần tự trong `TerminalService` → hai tab cùng bấm: hai tên khác nhau / cùng một phiên / một 201 + một 409, không rò shell; xoá phiên phát `session_status` để thiết bị khác gỡ tab |
+| Mở app với chuyển tiếp (vòng 3, dogfood operator) | Chỉ bật lại chuyển tiếp có *Tự bật* **và** người dùng chưa tắt; không *Tự bật* → về tắt; mở cổng lỗi lúc khởi động → `err` có mã (`LOCAL_PORT_IN_USE`…) + log, `tick()` thử lại mỗi 10 giây |
+| Máy SSH mất giữa lúc bắt tay (vòng 3, dogfood edge) | `ssh2` có thể phát `error` lần hai sau `readyTimeout` → client luôn có listener `error` thường trực + `end()` khi nối lỗi; API không bao giờ thoát vì máy SSH chết |
 
 ## 7. Luồng lõi
 

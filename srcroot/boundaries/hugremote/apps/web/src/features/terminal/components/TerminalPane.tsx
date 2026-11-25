@@ -66,14 +66,22 @@ export function TerminalPane({ sessionId, exited, tmuxName, onClose, onKeyTarget
 
   const gone = exited || p?.state.exited || p?.state.gone;
   const retrying = !!p?.state.reconnecting && !gone;
+  // Shell thoát thật (exit, tmux bị kill) ≠ mất kết nối: nói đúng, và để output cuối còn nhìn thấy (dải dưới đáy)
+  const ended = !retrying && !!(exited || p?.state.exited);
   return (
     <div className="pane" style={{ position: 'relative', background: 'var(--term-bg)' }}>
       {!exited && <div ref={box} style={{ position: 'absolute', inset: 0 }} onClick={() => p?.term.focus()} aria-label={t('term.area')} />}
       {retrying && tmuxName && <div className="ended-cover">{t('term.tmuxAttaching', { name: tmuxName })}</div>}
+      {p?.state.notice === 'TMUX_RECREATED' && (
+        <div className="pane-notice" role="status">
+          <span className="grow">{t('term.tmuxRecreated', { name: tmuxName })}</span>
+          <Button variant="ghost" size="sm" iconOnly icon="x" label={t('common.close')} onClick={() => ((p.state.notice = undefined), force())} />
+        </div>
+      )}
       {(gone || (retrying && !tmuxName)) && (
-        <div className="ended-cover">
+        <div className={`ended-cover ${ended ? 'bar' : ''}`}>
           <ErrorBox
-            title={retrying ? t('term.lostRetry', { n: p!.state.reconnecting }) : t('term.lost')}
+            title={retrying ? t('term.lostRetry', { n: p!.state.reconnecting }) : ended ? t('term.ended') : t('term.lost')}
             actions={
               <>
                 <Button variant="primary" size="sm" icon="refresh" disabled={busy} onClick={() => void reopen()}>

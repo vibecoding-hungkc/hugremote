@@ -60,12 +60,12 @@ URL production: (chưa có)
 - [x] **Scope khoá** — từ đây không hỏi Authority nữa
 
 **I — Implement**
-- [ ] Challenge PASS (ghi ở §Challenge log dưới)
-- [ ] `make dev` · `make check` · `make migrate` đã hiện thực
-- [ ] Đã có commit code ngoài commit khởi tạo
-- [ ] Luồng lõi end-to-end bấm được ở local
-- [ ] `make check` xanh
-- [ ] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
+- [x] Challenge PASS (ghi ở §Challenge log dưới)
+- [x] `make dev` · `make check` · `make migrate` đã hiện thực
+- [x] Đã có commit code ngoài commit khởi tạo
+- [x] Luồng lõi end-to-end bấm được ở local
+- [x] `make check` xanh
+- [x] `/viper-dogfood` xong theo `context/DOGFOOD-PLAN.md` — meta tự dùng + mọi vai bật (`smoke` đầu + cuối), kết quả ghi §4, phát hiện đã xử hoặc đã ghi
 
 **P1 — sẵn sàng deploy lần đầu** (`gate.py P1`)
 - [ ] (intake) Vòng này có khai `P` trong `_PROPOSAL.md`? **Có** — vòng 3: `V, I, P (chỉ P1)` → chạy P1
@@ -143,4 +143,25 @@ Thứ tìm được khi dùng thử nhưng chưa sửa (nhỏ thì sửa ngay, n
 
 | Ngày | Vai phát hiện | Vấn đề | Xử lý |
 |---|---|---|---|
-| | | | |
+| 2026-11-25 | meta | S6: hàng cuối terminal (thanh trạng thái tmux) bị cắt nửa — padding đặt ở khung ngoài, FitAddon không trừ | Đã sửa: padding lên `.xterm` (`terminal-pool.ts`) |
+| 2026-11-25 | meta | S6: F5 phiên tmux → shell nhận chữ rác `0;276;0c` (xterm trả lời lại câu hỏi DA trong replay) | Đã sửa: chặn lời đáp ESC khi đang ghi gói replay (`terminal-pool.ts`) |
+| 2026-11-25 | smoke | S10 chia ô ở 1280px: ô Claude ~395px, chip bị cắt chữ | Chưa xử — `edge`/`picky` đo lại |
+| 2026-11-25 | smoke | S9 mất mạng: chunk `GitPage` lazy-load lỗi → tab Git trống nếu chưa tải trước | Chưa xử — cân nhắc preload chunk khi vào dự án |
+| 2026-11-25 | smoke | S4 tin jump host: hộp ghi "Máy: demo-behind-jump" nhưng địa chỉ là của demo-jump | Chưa xử — nhẹ |
+| 2026-11-25 | smoke | AC-38 chuông: sau ✓ dòng đổi thành "xong" thay vì biến mất (§3 kỳ vọng biến mất) | Chưa xử — đối chiếu PROTOTYPE trước khi sửa |
+| 2026-11-25 | smoke | Phiên Claude mới hiện context `31k/1000k` của phiên trước; Git file mới hiện `+0 −0`; diff sau commit hiện cả file là thêm mới | Chưa xử — nhẹ |
+| 2026-11-25 | smoke | Lịch sử Git dùng ngày kiểu Mỹ khi giao diện tiếng Việt | Đã sửa: `toLocaleString(i18n.language)` (`GitView.tsx`) |
+| 2026-11-25 | smoke | Nút Xoá máy bị khoá chỉ nêu lý do trong `title`; màn đổi mật khẩu sau `reset-password` ghi "First sign-in"; bộ chọn phiên mobile hiện gợi ý ⌥1…⌥6; thu hồi thiết bị/member: tab kia chỉ về S1 khi F5 | Chưa xử — nhẹ |
+| 2026-11-25 | power | S14: sheet Thêm quên chiều vừa chọn; xoá chuyển tiếp không xác nhận/hoàn tác; ⌥W đóng tab cuối nhảy về tab đầu; hộp đóng tab tmux không nói session bị tắt hẳn; ⌘K rỗng chỉ liệt kê phiên đang chạy; banner mất kết nối đếm mọi request lỗi (lần 49 sau 8 giây, `lib/connection.ts`); thanh tab tràn ở 1280 mất nút × | Chưa xử — nhẹ |
+| 2026-11-25 | edge, operator | Thiếu dải "Phiên tmux đã bị đóng bên ngoài, đã tạo mới" khi API dựng lại session (ARCHITECTURE §6) | Đã sửa: WS `{type:"notice",code:"TMUX_RECREATED"}` → `.pane-notice` |
+| 2026-11-25 | edge | Ô cổng tự bỏ dấu chấm (`6100.5` → `61005`); lỗi nhập sai sheet S14 chỉ toast chung; chưa có gợi ý cổng +10000 khi bận; có mạng lại sau 15 lần thử không tự nối; màn Phiên báo "chưa có phiên" khi cây còn phiên đã kết thúc; API nhận phiên web cổng 0 | Chưa xử — nhẹ |
+| 2026-11-25 | edge | `dogfood.sh start` đăng nhập seed bằng mật khẩu cũ khi restart → 127.0.0.1 bị khoá 429 | Môi trường — restart chỉ khi cần |
+| 2026-11-25 | picky | Lệch prototype nhẹ: popup model đặt thanh hạn mức trên danh sách model; chip quyền ở trái thay vì cạnh Gửi; hàng chuyển tiếp thiếu dòng tiến trình + câu trùng cổng không nêu cái đang giữ; ô cổng S14 14px (prototype 16px — `.input.sm`); h2 "Đang nghe" 400; `.md table` co theo nội dung; nút cổng trên header không có `aria-current` | Chưa xử — nhẹ |
+| 2026-11-25 | picky | Tương phản thành phần &lt;3:1: viền chip `--color-divider` trên `--color-bg` 1.28, rãnh C42 khi tắt 1.19 — giống prototype đã chốt | Ghi cho Authority (đổi token → `DESIGN-SYSTEM.md §7`) |
+| 2026-11-25 | a11y | Cây trái không đi bằng ↑↓, mọi treeitem là một chỗ dừng Tab, tên gộp tên nút con, thiếu `aria-level`; S14 các hàng cùng tên ("Cổng trên Mac", "Chuyển tiếp") không nêu cổng/máy; thanh chọn máy `tablist` con là `button`; menu không có tên, nhóm tmux là text trần; `tablist` rỗng ở màn dự án chưa có phiên; ⌘K/⌘/ đóng xong focus về BODY (Spotlight tự dựng, chưa dùng `useModalFocus`) | Chưa xử — nhẹ |
+| 2026-11-25 | mobile | Thanh phím: → và ↵ khuất sau nút mở ngăn; gợi ý phím desktop (⌥⇧N, ⌥⌘C, "⇧Tab", "chuột phải = menu") hiện trên điện thoại; xoay ngang 844×390 nhận bố cục desktop; menu + liệt kê tmux của instance khác khi dùng chung user SSH | Chưa xử — nhẹ |
+| 2026-11-25 | breaker | Phiên web `file:///home/dev/projects/…` (đường tuyệt đối của chính dự án) bị chặn vì so khớp với `rootPath` dạng `~/…`; phiên `file://` mở trên web thường hiện "chỉ mở trong app" (AC-59 chỉ desktop — không chặn luồng); `PERSONAS.md §2` chưa có dòng cho chuyển tiếp/tmux/phiên web vòng 3; `WebPage` gọi forwards/listening cho cả member (403 trong console) | Chưa xử — nhẹ |
+| 2026-11-25 | concurrent | Hai xterm khác cỡ cùng gắn một session tmux: tab lớn còn thanh trạng thái cũ ở đáy; S6 `SessionsPage` luôn ghi "chưa có phiên nào" cả khi có phiên | Chưa xử — nhẹ |
+| 2026-11-25 | operator | Log vận hành thiếu dòng migration đã chạy; `doctor` không kiểm chuyển tiếp/tmux/phiên bản migration; S14 không hiện/sửa được cờ *Tự bật* từng chuyển tiếp; báo cổng bận không nêu ai giữ, chưa gợi ý +10000; migration tự chạy lúc khởi động không sao lưu DB trước (chưa kiểm luồng `hugremote update`); BACKWARD-COMPATIBILITY §1b chưa ghi cột `port_forwards.enabled` | Chưa xử — nhẹ |
+| 2026-11-25 | smoke (lượt cuối) | F2 SSO "Lưu và bật" nhận Client ID trống; F3 popover chuông không tự đóng khi đổi route hash; F4 chip "Hỏi trước" tràn trong ô chia hẹp ~350px (sửa chip xuống dòng chỉ theo viewport — cần container query); F5 mic trên origin không an toàn im lặng; F6 hộp Phím tắt (⌘/) Esc → focus BODY; phiên kết thúc xoá trắng xterm (`!exited` gỡ `box`); hàng S14 trùng cổng không có câu báo/`aria-invalid`; nút lọc máy S14 thiếu `aria-pressed`; member SSO ở "Máy này" chạy dưới user OS của owner (xác nhận thiết kế) | Chưa xử — nhẹ (F2 vừa-nhẹ) |
+| 2026-11-25 | smoke | Môi trường dogfood: hai instance cùng host chung cookie refresh; `dogfood.sh start` ghi đè `ssh/config`; Keycloak `redirectUris` thiếu cổng 4711–4719 | Chạy tuần tự, mỗi lúc một instance |

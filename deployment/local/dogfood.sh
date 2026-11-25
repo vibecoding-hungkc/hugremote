@@ -33,11 +33,13 @@ sed "s#$here/ssh/conf.d#$dir/ssh/conf.d#" "$here/ssh/config" > "$dir/ssh/config"
 cp -n "$here/ssh/conf.d/"*.conf "$dir/ssh/conf.d/" 2>/dev/null || true
 chmod 700 "$dir/ssh"; chmod 600 "$dir/ssh/config"
 # dự án demo riêng trong container (chung máy SSH, khác thư mục)
-if docker ps --format '{{.Names}}' | grep -q demo-sshd; then
-  docker exec -u dev hugremote-local-demo-sshd-1 sh -c "[ -d ~/projects/df-$role ] || cp -r ~/projects/demo-api ~/projects/df-$role" || true
+sshd="$(docker ps --format '{{.Names}} {{.Ports}}' | awk '/2222->22/{print $1; exit}')"  # container nào đang giữ cổng 2222
+if [ -n "$sshd" ]; then
+  docker exec -u dev "$sshd" sh -c "[ -d ~/projects/df-$role ] || cp -r ~/projects/demo-api ~/projects/df-$role" || true
 fi
 
-DATA_DIR="$dir/data" PORT="$port" HOST=127.0.0.1 APP_URL="http://localhost:$port" APP_ENV=development \
+# DF_HOST/DF_PUBLIC: cho trình duyệt dogfood ở máy khác (vd. Playwright MCP trên Mac) — mặc định chỉ loopback
+DATA_DIR="$dir/data" PORT="$port" HOST="${DF_HOST:-127.0.0.1}" APP_URL="http://${DF_PUBLIC:-localhost}:$port" APP_ENV=development \
 AUTH_PASSWORD="khoitao-$role-123" SSH_CONFIG_PATH="$dir/ssh/config" ALLOWED_ROOT="$dir/work" WORKSPACE_ROOT="$dir/work" \
 CLAUDE_BIN_PATH="$here/fake-claude/claude" WEB_DIST="$APP/apps/web/dist" \
 UPDATE_REPO="file://$here/releases.git" \

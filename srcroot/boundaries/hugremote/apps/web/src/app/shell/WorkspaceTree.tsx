@@ -43,14 +43,9 @@ export function WorkspaceTree() {
 
   const pop = (e: MouseEvent<HTMLElement>, items: MenuItem[]) => setMenu({ rect: e.currentTarget.getBoundingClientRect(), items });
 
-  const plusItems = (hostId: string, p: Project): MenuItem[] => [
-    { icon: 'claude', label: t('session.newClaude'), kbd: '⌥⇧N', onSelect: () => newSession('claude', hostId, p.id) },
-    { icon: 'term', label: t('session.newTerminal'), kbd: '⌥⇧T', onSelect: () => newSession('terminal', hostId, p.id) },
-  ];
-
-  const projectItems = (hostId: string, p: Project): MenuItem[] => [
-    ...plusItems(hostId, p),
-    ...(owner
+  // Một nút ⋯ cho dòng dự án: phiên mới (+ tmux có sẵn) ở trên, thao tác dự án ở nhóm dưới (Authority 2026-11-25)
+  const projectItems = (hostId: string, p: Project): MenuItem[] =>
+    (owner
       ? [
           {
             icon: 'edit' as const,
@@ -96,8 +91,7 @@ export function WorkspaceTree() {
               ]
             : []),
         ]
-      : []),
-  ];
+      : []) as MenuItem[];
 
   const sessionItems = (s: SessionItem): MenuItem[] => [
     {
@@ -190,12 +184,20 @@ export function WorkspaceTree() {
                           ui.toggle(key, true);
                           openProject(nav, h.id, p.id, me.data?.preferences.lastTab?.[p.id], ss);
                         }}
-                        onPlus={(e) => {
+                        onMore={(e) => {
                           const rect = e.currentTarget.getBoundingClientRect();
-                          void plusMenu(h.id, p.id).then((items) => setMenu({ rect, items }));
+                          void plusMenu(h.id, p.id).then((items) =>
+                            // danh sách tmux có thể dài → để cuối, thao tác dự án không bị đẩy khỏi tầm nhìn
+                            setMenu({
+                              rect,
+                              items: [
+                                ...items.filter((x) => !x.group),
+                                ...projectItems(h.id, p).map((x) => ({ ...x, group: t('tree.projectGroup') })),
+                                ...items.filter((x) => x.group),
+                              ],
+                            }),
+                          );
                         }}
-                        plusLabel={t('tree.newSession')}
-                        onMore={(e) => pop(e, projectItems(h.id, p))}
                         moreLabel={t('tree.projectActions', { name: p.name })}
                       />
                       {pOpen &&

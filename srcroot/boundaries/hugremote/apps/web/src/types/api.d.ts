@@ -1829,6 +1829,8 @@ export interface components {
             title: string;
             updatedAt: string;
             recent: boolean;
+            /** @description Phiên HugRemote của mình đã gắn (chỉ có khi `?all=1`). */
+            linkedId?: string;
         };
         LimitWindowDto: {
             pct: number;

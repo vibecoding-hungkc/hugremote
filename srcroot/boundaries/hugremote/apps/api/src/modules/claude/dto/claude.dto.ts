@@ -23,6 +23,8 @@ export class CliSessionDto {
   @ApiProperty() title!: string;
   @ApiProperty() updatedAt!: string;
   @ApiProperty() recent!: boolean;
+  /** Phiên HugRemote của mình đã gắn (chỉ có khi `?all=1`). */
+  @ApiPropertyOptional() linkedId?: string;
 }
 
 export class SendMessageDto {

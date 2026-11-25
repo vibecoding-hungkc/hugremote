@@ -50,20 +50,38 @@ export function WebPage() {
       const r = el.getBoundingClientRect();
       return { x: r.left, y: r.top, width: r.width, height: r.height };
     };
-    void bridge.web.show(cur.id, url, b());
-    const ro = new ResizeObserver(() => bridge.web.bounds(cur.id, b()));
+    // view native luôn nằm trên HTML → có menu/hộp thoại (`.scrim`) thì ẩn view, đóng thì hiện lại
+    let covered = false;
+    const sync = () => {
+      covered = !!document.querySelector('.scrim');
+      if (covered) bridge.web.hide(cur.id);
+      else bridge.web.bounds(cur.id, b());
+    };
+    void bridge.web.show(cur.id, url, b()).then(sync);
+    const ro = new ResizeObserver(() => !covered && bridge.web.bounds(cur.id, b()));
     ro.observe(el);
-    const onWin = () => bridge.web.bounds(cur.id, b());
+    const onWin = () => !covered && bridge.web.bounds(cur.id, b());
     window.addEventListener('resize', onWin);
+    const mo = new MutationObserver(() => {
+      if (!!document.querySelector('.scrim') !== covered) sync();
+    });
+    mo.observe(document.body, { childList: true, subtree: true }); // có hộp thoại render tại chỗ (QuickOpen, Spotlight…), không qua portal
+    // có mạng lại mà trang đang báo lỗi tải → tải lại (phiên tự hồi sau mất kết nối)
+    let failed = false;
+    const onOnline = () => failed && bridge.web.nav(cur.id, 'reload');
+    window.addEventListener('online', onOnline);
     const off = bridge.web.onState((s) => {
       if (s.id !== cur.id) return;
       setSt(s);
+      failed = !!s.error;
       // trang tự đi sang link khác (bấm link trong trang) → lưu lại địa chỉ của phiên
       if (s.url && s.url !== url && !s.loading && /^https?:\/\//.test(s.url)) void webApi.patch(cur.id, { url: s.url }).then(() => qc.invalidateQueries({ queryKey: qk.web }));
     });
     return () => {
       ro.disconnect();
+      mo.disconnect();
       window.removeEventListener('resize', onWin);
+      window.removeEventListener('online', onOnline);
       off();
       bridge.web.hide(cur.id);
     };

@@ -12,6 +12,7 @@ import { useConnection } from '../../lib/connection';
 import { startEvents } from '../../lib/events';
 import { midTrunc } from '../../lib/text';
 import { useUi } from '../../stores/ui.store';
+import { ClaudeHistory } from './ClaudeHistory';
 import { NotifBell } from './NotifBell';
 import { QuickOpen } from './QuickOpen';
 import { pbase } from './sessions';
@@ -85,7 +86,12 @@ function Topbar() {
           )}
         </div>
         {inProject && <ProjectTabs hostId={hostId} projectId={projectId} />}
-        {inProject && !/\/(sessions|terminal\/|claude\/)/.test(loc.pathname) && <NotifBell hostId={hostId} projectId={projectId} />}
+        {inProject && !/\/(sessions|terminal\/|claude\/)/.test(loc.pathname) && (
+          <>
+            <NotifBell hostId={hostId} projectId={projectId} />
+            <ClaudeHistory hostId={hostId!} projectId={projectId!} />
+          </>
+        )}
         {/* vòng 3: tìm kiếm chỉ ở thanh bên khi có thanh bên; điện thoại giữ nút */}
         <span className="only-mobile">
           <Button variant="ghost" size="sm" iconOnly icon="search" label={`${t('nav.quickSwitch')} (⌘K)`} onClick={() => ui.set({ spot: true })} />

@@ -9,6 +9,7 @@ import { Menu, type MenuItem } from '../../components/ui/Overlay';
 import { StatusDot } from '../../components/ui/Status';
 import { useUi } from '../../stores/ui.store';
 import { closeNeedsConfirm, closeSessionApi, renameSessionApi, usePlusMenu } from './actions';
+import { ClaudeHistory } from './ClaudeHistory';
 import { NotifBell } from './NotifBell';
 import { pbase, sessionIcon, useSessions, type SessionItem } from './sessions';
 
@@ -99,6 +100,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
       </button>
       <div className="tools">
         <NotifBell hostId={hostId} projectId={projectId} />
+        <ClaudeHistory hostId={hostId} projectId={projectId} />
         {cur && (
           <Button
             variant="ghost"

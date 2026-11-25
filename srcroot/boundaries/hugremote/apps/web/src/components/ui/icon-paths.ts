@@ -51,6 +51,7 @@ export const ICON_PATHS = {
   "commit": "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M3 12h5M16 12h5\"/>",
   "check": "<path d=\"M5 12l5 5 9-10\"/>",
   "bell": "<path d=\"M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0\"/>",
+  "history": "<path d=\"M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 3\"/>",
   "target": "<circle cx=\"12\" cy=\"12\" r=\"8\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/>",
   "bolt": "<path d=\"M13 2L4 14h7l-1 8 9-12h-7z\"/>",
   "shield": "<path d=\"M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z\"/>",

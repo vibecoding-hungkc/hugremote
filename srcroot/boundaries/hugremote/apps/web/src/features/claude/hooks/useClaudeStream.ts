@@ -102,6 +102,7 @@ export function useClaudeStream(sessionId: string | undefined) {
     let last: number | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const open = async () => {
+      timer = undefined;
       if (stopped) return;
       try {
         const { ticket } = await claudeApi.ticket();
@@ -136,11 +137,21 @@ export function useClaudeStream(sessionId: string | undefined) {
         timer = setTimeout(() => void open(), Math.min(5000, 800 * attempt));
       }
     };
+    // có mạng lại / quay lại tab khi đang chờ nối lại → thử ngay (Authority 2026-11-25: phiên phải tự hồi)
+    const now = () => {
+      if (stopped || es || !timer || document.visibilityState === 'hidden') return;
+      clearTimeout(timer);
+      void open();
+    };
+    window.addEventListener('online', now);
+    document.addEventListener('visibilitychange', now);
     void open();
     return () => {
       stopped = true;
       clearTimeout(timer);
       es?.close();
+      window.removeEventListener('online', now);
+      document.removeEventListener('visibilitychange', now);
     };
   }, [sessionId]);
   return state;

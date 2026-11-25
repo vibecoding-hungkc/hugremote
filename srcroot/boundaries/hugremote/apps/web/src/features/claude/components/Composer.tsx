@@ -229,7 +229,7 @@ export function Composer(p: ComposerProps) {
                 }}
               >
                 <b>/{c.name}</b>
-                <span className="muted ell">{c.description}</span>
+                <span className="muted">{c.description}</span>
               </div>
             ))}
           </div>
@@ -287,6 +287,12 @@ export function Composer(p: ComposerProps) {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+                {!five && !week && (
+                  // CLI chỉ báo hạn mức kèm một lượt chat → chưa có lượt nào trên máy này thì nói rõ, không ẩn im lặng
+                  <div className="mi" style={{ cursor: 'default' }}>
+                    <span className="d">{t('claude.limitsUnknown')}</span>
                   </div>
                 )}
                 {models.map((m) => (

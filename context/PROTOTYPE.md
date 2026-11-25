@@ -221,5 +221,7 @@ cho test so ảnh pha I (G-16).
 | 14 | 2026-11-24 | 14 câu làm rõ: trình duyệt thành loại phiên ở nút +, mỗi phiên một trang; chuyển tiếp hai chiều; bỏ tự động chuyển tiếp; tmux chỉ máy SSH; mất kết nối vừa tự nối lại vừa hiện nút | S13 thành phiên; S14 hai chiều; ẩn tmux ở Máy này |
 | 15 | 2026-11-24 | "Thư mục không giữ trạng thái; Home chưa xem được file ẩn; ô chat ẩn chữ context/model/quyền, bỏ nút khiên; popup model có session/week limit dạng %" → "chỉ hiện trong popup" → "oke chốt prototype" | S8 Home + giữ trạng thái; S10 chip gọn; popup model thanh %; bỏ chip hạn mức |
 | 16 | 2026-11-24 | "Mở rộng khung content của session Claude, giữ nguyên khung chat; content render md chưa đúng, bảng không có khung" | `.col` 820→1280px; thêm CSS `.md` (bảng, code, danh sách, trích dẫn); phiên Refactor auth có bảng mẫu |
+| 17 | 2026-11-25 | "Gợi ý /lệnh vẫn bị ngắt 2 dòng; thêm icon lịch sử cạnh chuông (xoá + bấm = resume); khung chat bỏ nền ngoài, cao 1.5×, viền gradient" | Tên lệnh `nowrap`, mô tả clamp 2 dòng; menu `hist` cạnh `notifBtn`; `.composer` nền trong suốt, `.cbox` viền gradient, textarea min-height 1.5× |
+| 18 | 2026-11-25 | "Dự án trong workspace có cả + và ⋯ — gộp menu + vào ⋯" | `rowMenu` kind `project` = menu `plus` + nhóm "Dự án" (trước danh sách tmux); bỏ nút + ở dòng dự án |
 
 Chốt bởi Authority: 2026-11-24

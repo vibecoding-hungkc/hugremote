@@ -43,8 +43,15 @@ export class ClaudeController {
 
   /** Phiên Claude CLI có sẵn trong thư mục dự án, chưa gắn với phiên nào ở HugRemote (AC-23). */
   @Get('projects/:id/claude/cli-sessions')
-  cliSessions(@Param('id') id: string): Promise<CliSessionDto[]> {
-    return this.claude.cliSessions(id);
+  cliSessions(@CurrentUser() u: AuthUser, @Param('id') id: string, @Query('all') all?: string): Promise<CliSessionDto[]> {
+    return this.claude.cliSessions(u, id, all === '1');
+  }
+
+  /** Xoá khỏi lịch sử CLI (file `.jsonl` trên máy đích) + phiên HugRemote đã gắn, nếu có. */
+  @Delete('projects/:id/claude/cli-sessions/:cliId')
+  @HttpCode(204)
+  async removeCli(@CurrentUser() u: AuthUser, @Param('id') id: string, @Param('cliId') cliId: string) {
+    await this.claude.removeCliSession(u, id, cliId);
   }
 
   /** Hạn mức 5 giờ / tuần do CLI báo; CLI không báo → rỗng, web ẩn chip (AC-25). */

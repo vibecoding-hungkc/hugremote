@@ -52,7 +52,15 @@ export function setupWebViews(win: BrowserWindow) {
     views.set(id, v);
     return v;
   };
-  const fit = (b: Bounds): Bounds => ({ x: Math.round(b.x), y: Math.round(b.y), width: Math.max(0, Math.round(b.width)), height: Math.max(0, Math.round(b.height)) });
+  // Bounds đo bằng px CSS của renderer; app đang phóng to/thu nhỏ (⌘+/⌘−) thì 1px CSS ≠ 1 DIP → nhân hệ số zoom,
+  // rồi kẹp trong vùng nội dung cửa sổ (Authority 2026-11-25: khung web rộng hơn app).
+  const fit = (b: Bounds): Bounds => {
+    const z = win.webContents.getZoomFactor();
+    const [cw, ch] = win.getContentSize();
+    const x = Math.max(0, Math.round(b.x * z));
+    const y = Math.max(0, Math.round(b.y * z));
+    return { x, y, width: Math.max(0, Math.min(Math.round(b.width * z), cw - x)), height: Math.max(0, Math.min(Math.round(b.height * z), ch - y)) };
+  };
 
   ipcMain.handle('web:show', async (e, id: string, url: string, b: Bounds) => {
     if (e.sender !== win.webContents || !allowedWebUrl(url)) return false;
@@ -64,7 +72,13 @@ export function setupWebViews(win: BrowserWindow) {
     state(id, v);
     return true;
   });
-  ipcMain.on('web:bounds', (e, id: string, b: Bounds) => e.sender === win.webContents && views.get(id)?.setBounds(fit(b)));
+  // bounds kèm hiện lại: renderer ẩn view khi có menu/hộp thoại phủ lên (view native luôn đè lên HTML), đóng menu → gửi bounds
+  ipcMain.on('web:bounds', (e, id: string, b: Bounds) => {
+    const v = views.get(id);
+    if (e.sender !== win.webContents || !v) return;
+    v.setBounds(fit(b));
+    v.setVisible(true);
+  });
   ipcMain.on('web:hide', (e, id: string) => e.sender === win.webContents && views.get(id)?.setVisible(false));
   ipcMain.on('web:close', (e, id: string) => {
     const v = views.get(id);

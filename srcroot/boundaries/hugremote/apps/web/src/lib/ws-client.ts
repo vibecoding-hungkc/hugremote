@@ -3,8 +3,9 @@ import { api } from './api-client';
 import { useConnection } from './connection';
 
 /**
- * WebSocket terminal với vé 30s (terminal-ws.v1). Rớt → nối lại backoff 1→5s, tối đa 15 lần, xin vé mới,
- * server replay buffer. Đóng 4404 (phiên không còn) → không nối lại.
+ * WebSocket terminal với vé 30s (terminal-ws.v1). Rớt → nối lại backoff 1→5s, KHÔNG giới hạn số lần (Mac ngủ / mất mạng
+ * lâu vẫn tự hồi — Authority 2026-11-25), có mạng lại (`online`) hoặc quay lại tab → thử ngay; xin vé mới, server replay
+ * buffer. Đóng 4404 (phiên không còn — kể cả PTY bị thu hồi sau 30 phút không socket) → không nối lại.
  */
 export class TerminalSocket {
   private ws: WebSocket | null = null;
@@ -26,10 +27,21 @@ export class TerminalSocket {
       replay?: () => void;
     },
   ) {
+    window.addEventListener('online', this.now);
+    document.addEventListener('visibilitychange', this.now);
     void this.open();
   }
 
+  /** Đang chờ nối lại mà có mạng / tab hiện lại → khỏi đợi hết backoff. */
+  private now = () => {
+    if (this.closed || this.ws || !this.timer || document.visibilityState === 'hidden') return;
+    clearTimeout(this.timer);
+    this.timer = undefined;
+    void this.open();
+  };
+
   private async open() {
+    this.timer = undefined;
     if (this.closed) return;
     let ticket: string;
     try {
@@ -73,7 +85,6 @@ export class TerminalSocket {
   private retry() {
     if (this.closed) return;
     this.attempt++;
-    if (this.attempt > 15) return this.on.gone();
     if (this.attempt > 1) useConnection.getState().set(false);
     this.on.reconnecting(this.attempt);
     this.timer = setTimeout(() => void this.open(), Math.min(5000, 1000 * this.attempt));
@@ -91,6 +102,8 @@ export class TerminalSocket {
   close() {
     this.closed = true;
     clearTimeout(this.timer);
+    window.removeEventListener('online', this.now);
+    document.removeEventListener('visibilitychange', this.now);
     this.ws?.close();
   }
 }

@@ -6,7 +6,8 @@ export type QueueItem = S['QueueItemDto'];
 
 export const claudeApi = {
   all: () => api<ClaudeSession[]>('/claude/sessions'),
-  cliSessions: (projectId: string) => api<S['CliSessionDto'][]>(`/projects/${projectId}/claude/cli-sessions`),
+  cliSessions: (projectId: string, all = false) => api<S['CliSessionDto'][]>(`/projects/${projectId}/claude/cli-sessions${all ? '?all=1' : ''}`),
+  removeCli: (projectId: string, cliId: string) => api<void>(`/projects/${projectId}/claude/cli-sessions/${cliId}`, { method: 'DELETE' }),
   create: (projectId: string, b: S['CreateClaudeSessionDto']) => api<ClaudeSession>(`/projects/${projectId}/claude/sessions`, { body: b }),
   patch: (id: string, b: S['PatchClaudeDto']) => api<ClaudeSession>(`/claude/sessions/${id}`, { method: 'PATCH', body: b }),
   remove: (id: string) => api<void>(`/claude/sessions/${id}`, { method: 'DELETE' }),

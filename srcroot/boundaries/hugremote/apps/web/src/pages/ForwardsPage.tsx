@@ -125,6 +125,10 @@ function ForwardRow({ f, onChanged, onError }: { f: Forward; onChanged: () => vo
       {f.status === 'on' && !rev && desktop() && (
         <Button variant="ghost" size="sm" iconOnly icon="globe" label={t('files.openInBrowser')} onClick={() => void openWeb(f.hostId, f.localPort)} />
       )}
+      {/* trình duyệt hệ thống: app desktop chuyển window.open sang shell.openExternal; web thường chỉ đúng khi đang mở HugRemote ngay trên máy chạy nó */}
+      {f.status === 'on' && !rev && (desktop() || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) && (
+        <Button variant="ghost" size="sm" iconOnly icon="ext" label={t('web.external')} onClick={() => window.open(`http://localhost:${f.localPort}/`, '_blank', 'noopener')} />
+      )}
       {f.status === 'off' ? (
         <Button variant="ghost" size="sm" iconOnly icon="plug" label={t('fw.enable')} onClick={() => act(forwardsApi.update(f.id, { enabled: true }))} />
       ) : (

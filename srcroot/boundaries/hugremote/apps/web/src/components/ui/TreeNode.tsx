@@ -22,8 +22,6 @@ export function TreeNode({
   statusTitle,
   extra,
   onClick,
-  onPlus,
-  plusLabel,
   onMore,
   moreLabel,
 }: {
@@ -44,8 +42,6 @@ export function TreeNode({
   statusTitle?: string;
   extra?: ReactNode;
   onClick: () => void;
-  onPlus?: (e: MouseEvent<HTMLButtonElement>) => void;
-  plusLabel?: string;
   onMore?: (e: MouseEvent<HTMLElement>) => void;
   moreLabel?: string;
 }) {
@@ -88,20 +84,6 @@ export function TreeNode({
       {!!count && <span className="cnt">{count}</span>}
       {meta && <span className={`meta ${metaWarn ? 'warn' : ''}`}>{meta}</span>}
       {status && <StatusDot status={status} title={statusTitle} />}
-      {onPlus && (
-        <Button
-          variant="ghost"
-          size="sm"
-          iconOnly
-          icon="plus"
-          label={plusLabel}
-          className="act"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPlus(e);
-          }}
-        />
-      )}
       {onMore && (
         <Button
           variant="ghost"

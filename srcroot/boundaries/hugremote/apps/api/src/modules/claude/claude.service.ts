@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, type MessageEvent } from '@nestjs/common';
 import * as crypto from 'node:crypto';
 import { concat, filter, interval, map, merge, Observable, of, Subject } from 'rxjs';
@@ -7,7 +9,7 @@ import type { AppConfig } from '../../config/app-config';
 import { AppError } from '../../common/app-error';
 import type { AuthUser } from '../../common/auth-user';
 import type { ChatItem, NormOp } from '../../integrations/claude-cli/protocol';
-import { listCliSessions, type CliSession } from '../../integrations/claude-cli/cli-sessions';
+import { cliProjectSlug, listCliSessions, type CliSession } from '../../integrations/claude-cli/cli-sessions';
 import { probeCli, type CliOptions } from '../../integrations/claude-cli/probe';
 import type { RateLimitInfo } from '../../integrations/claude-cli/protocol';
 import { ClaudeTurn } from '../../integrations/claude-cli/runner';
@@ -63,7 +65,20 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     private readonly events: EventsService,
   ) {}
 
+  /** Hạn mức đã biết được lưu ra đĩa — khởi động lại API (cập nhật app, mở lại Mac) không mất số (Authority 2026-11-25). */
+  private get limitsFile() {
+    return path.join(this.cfg.dataDir, 'claude-limits.json');
+  }
+
   async onModuleInit() {
+    try {
+      for (const [h, v] of Object.entries(
+        JSON.parse(fs.readFileSync(this.limitsFile, 'utf8')) as Record<string, Partial<Record<'five_hour' | 'weekly', RateLimitInfo>>>,
+      ))
+        this.limitsByHost.set(h, v);
+    } catch {
+      /* chưa có file */
+    }
     await this.repo.resetRunning();
     this.ws.registerHooks({
       countSessions: (projectId) => this.repo.countRunningInProject(projectId),
@@ -175,16 +190,31 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Phiên Claude CLI có sẵn trong thư mục dự án mà chưa gắn với phiên HugRemote nào (AC-23). */
-  async cliSessions(projectId: string) {
+  async cliSessions(u: AuthUser, projectId: string, all = false) {
     const { project, rt } = await this.ws.context(projectId);
     const abs = await rt.realpath(project.rootPath);
+    const mine = (await this.repo.byProject(projectId)).filter((x) => u.role === UserRole.OWNER || x.ownerUserId === u.id);
+    const linkedTo = new Map(mine.map((x) => [x.cliSessionId, x.id]));
     const linked = new Set((await this.repo.byProject(projectId)).map((x) => x.cliSessionId));
     const list = await listCliSessions(rt, abs).catch((e: Error): CliSession[] => {
       this.log.warn(`cli sessions ${project.hostId}: ${e.message}`);
       return [];
     });
     // sửa trong 2 phút gần đây → có thể đang chạy ở terminal khác (cảnh báo trước khi tiếp tục)
-    return list.filter((c) => !linked.has(c.id)).map((c) => ({ ...c, recent: Date.now() - Date.parse(c.updatedAt) < 120_000 }));
+    // all: lịch sử (nút đồng hồ cạnh chuông) — gồm cả phiên đã gắn của mình, bỏ phiên của người khác (G-13)
+    return list
+      .filter((c) => (all ? !linked.has(c.id) || linkedTo.has(c.id) : !linked.has(c.id)))
+      .map((c) => ({ ...c, recent: Date.now() - Date.parse(c.updatedAt) < 120_000, linkedId: linkedTo.get(c.id) }));
+  }
+
+  /** Xoá một phiên khỏi lịch sử CLI (`~/.claude/projects/<slug>/<id>.jsonl` trên máy đích) + phiên HugRemote gắn với nó. */
+  async removeCliSession(u: AuthUser, projectId: string, cliId: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(cliId)) throw AppError.badRequest(ErrorCode.VALIDATION_FAILED);
+    const { project, rt } = await this.ws.context(projectId);
+    const had = (await this.repo.byProject(projectId)).find((x) => x.cliSessionId === cliId);
+    if (had) await this.remove(u, had.id); // phiên của người khác → 403 trước khi đụng file
+    const abs = await rt.realpath(project.rootPath);
+    await rt.exec(['sh', '-c', `rm -f -- "$HOME/.claude/projects/${cliProjectSlug(abs)}/${cliId}.jsonl"`], { timeoutMs: 15_000 });
   }
 
   async patch(u: AuthUser, id: string, d: { name?: string; permissionMode?: string; model?: string; effort?: string; confirm?: boolean }) {
@@ -385,7 +415,9 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   async limits(projectId: string) {
     const project = await this.ws.get(projectId);
     const l = this.limitsByHost.get(project.hostId) ?? {};
-    const pick = (i?: RateLimitInfo) => (i && i.pct !== null ? { pct: i.pct, resetAt: i.resetAt } : undefined);
+    // cửa sổ đã qua mốc reset → số cũ không còn đúng, coi như chưa biết
+    const pick = (i?: RateLimitInfo) =>
+      i && i.pct !== null && !(i.resetAt && Date.parse(i.resetAt) < Date.now()) ? { pct: i.pct, resetAt: i.resetAt } : undefined;
     return { fiveHour: pick(l.five_hour), weekly: pick(l.weekly) };
   }
 
@@ -401,6 +433,9 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       const cur = this.limitsByHost.get(project.hostId) ?? {};
       if (op.info.pct === null && cur[op.info.kind]?.pct != null) return; // bản không có % không đè bản có %
       this.limitsByHost.set(project.hostId, { ...cur, [op.info.kind]: op.info });
+      fs.promises
+        .writeFile(this.limitsFile, JSON.stringify(Object.fromEntries(this.limitsByHost)), { mode: 0o600 })
+        .catch((e: Error) => this.log.warn(`lưu hạn mức: ${e.message}`));
       return;
     }
     if (op.op === 'upsert') {

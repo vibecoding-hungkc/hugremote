@@ -417,13 +417,14 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .askbar { display: none; }
 .caret { display: inline-block; width: 8px; height: 1em; background: var(--color-text); vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
-.composer { flex: none; border-top: 1px solid var(--color-divider); background: var(--color-surface); padding: var(--space-sm) var(--space-md) var(--space-md); }
+.composer { flex: none; background: transparent; padding: var(--space-sm) var(--space-md) var(--space-md); }
 .composer .in { max-width: 820px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-sm); }
 .composer .bar { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; position: relative; }
-.cbox { border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-bg); padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm); display: grid; gap: var(--space-xs); }
-.cbox:focus-within { border-color: var(--color-primary); }
+.cbox { border: 1px solid transparent; border-radius: var(--radius); background: linear-gradient(var(--color-bg), var(--color-bg)) padding-box, linear-gradient(120deg, var(--color-accent-claude), var(--color-primary), var(--color-accent-terminal)) border-box; padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm); display: grid; gap: var(--space-xs); }
+.cbox:focus-within { border-width: 2px; padding: calc(var(--space-xs) - 1px) calc(var(--space-xs) - 1px) calc(var(--space-xs) - 1px) calc(var(--space-sm) - 1px); }
 .crow { display: flex; align-items: center; gap: var(--space-xs); position: relative; min-width: 0; }
 .crow textarea { flex: 1; min-width: 0; border: 0; background: transparent; resize: none; outline: none; padding: var(--space-sm) 0; font-size: var(--text-base); line-height: 1.4; max-height: 160px; }
+.cbox > .crow:not(.tools) textarea { min-height: calc(1.5 * (1.4em + 2 * var(--space-sm))); }
 .crow .chip { min-height: 28px; }
 .cscroll { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-xs); overflow-x: auto; scrollbar-width: none; }
 .cscroll .chip { flex: none; }
@@ -444,7 +445,8 @@ input.sw:checked::after { left: 16px; }
 .attach { display: inline-flex; gap: var(--space-xs); align-items: center; font-size: var(--text-xs); padding: 2px var(--space-xs) 2px var(--space-sm); border-radius: var(--radius-pill); background: var(--color-surface-raised); }
 .slash { border: 1px solid var(--color-divider); border-radius: var(--radius); background: var(--color-bg); padding: var(--space-xs); }
 .slash .mi { display: flex; gap: var(--space-md); align-items: center; }
-.slash .mi b { font-family: var(--font-mono); min-width: 90px; }
+.slash .mi b { font-family: var(--font-mono); min-width: 90px; flex: none; white-space: nowrap; }
+.slash .mi .muted { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 
 /* S11 S12 */
 .spot { margin: 12vh auto auto; width: 620px; max-width: calc(100% - 2 * var(--space-lg)); background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--color-border); overflow: hidden; align-self: flex-start; }
@@ -515,6 +517,7 @@ input.sw:checked::after { left: 16px; }
   .ptab, .btn.sm, .chip, .seg button, .mi, .tab, .node, .grow-row { min-height: var(--tap); }
   .btn.sm.icon { width: var(--tap); }
   .tabbar .tabs { display: none; }
+  .sesspick .badge { display: none; }
   .sesspick { display: flex; flex: 1; min-width: 0; align-items: center; gap: var(--space-sm); padding: 0 var(--space-md); background: transparent; border: 0; cursor: pointer; font-size: var(--text-sm); }
   .keybar { display: block; }
   .edkeys { display: flex; gap: var(--space-xs); overflow-x: auto; padding: var(--space-xs); border-top: 1px solid var(--color-divider); background: var(--color-surface); flex: none; }
@@ -712,7 +715,7 @@ const I = {
   clip: '<path d="M20 12l-8 8a5 5 0 01-7-7l9-9a3 3 0 014 4l-9 9a1 1 0 01-1-1l8-8"/>', copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3"/>', send: '<path d="M4 12l16-8-6 16-2-6z"/>',
   stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>', upload: '<path d="M12 16V4M6 10l6-6 6 6M4 20h16"/>', download: '<path d="M12 4v12M6 10l6 6 6-6M4 20h16"/>', eye: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   pull: '<path d="M12 3v13M7 11l5 5 5-5M5 21h14"/>', push: '<path d="M12 21V8M7 13l5-5 5 5M5 3h14"/>', refresh: '<path d="M20 11a8 8 0 10-2.3 5.7M20 4v7h-7"/>', commit: '<circle cx="12" cy="12" r="4"/><path d="M3 12h5M16 12h5"/>',
-  check: '<path d="M5 12l5 5 9-10"/>', bell: '<path d="M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0"/>', target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>', bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', shield: '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/>', warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/>', folderplus: '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>',
+  check: '<path d="M5 12l5 5 9-10"/>', bell: '<path d="M6 16V11a6 6 0 0112 0v5l2 2H4zM10 20a2 2 0 004 0"/>',  history: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 3"/>', target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>', bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>', shield: '<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/>', warn: '<path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17h.01"/>', folderplus: '<path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M12 11v5M9.5 13.5h5"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/>', fwd: '<path d="M4 8h12M12 4l4 4-4 4M20 16H8M12 12l-4 4 4 4"/>', ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/>', tmux: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v12M3 16h18M7 9l2 2-2 2"/>',
   wrapi: '<path d="M4 6h16M4 12h13a3 3 0 010 6h-4M4 18h5M15 16l-2 2 2 2"/>', save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/>', keyi: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/>', list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
 };
@@ -849,12 +852,12 @@ function notifItems() {
 }
 function notifBtn(r) {
   const n = notifItems().filter(x => x.a).length;
-  return `<span style="position:relative;display:inline-flex">${ib('bell', n ? `${n} phiên cần duyệt` : 'Thông báo', `openRowMenu(event,'notif','${r.host}','${r.proj}')`, n ? 'on-primary' : '')}${n ? `<span class="cnt" style="position:absolute;top:-2px;right:-4px;pointer-events:none">${n}</span>` : ''}</span>`;
+  return `<span style="position:relative;display:inline-flex">${ib('bell', n ? `${n} phiên cần duyệt` : 'Thông báo', `openRowMenu(event,'notif','${r.host}','${r.proj}')`, n ? 'on-primary' : '')}${n ? `<span class="cnt" style="position:absolute;top:-2px;right:-4px;pointer-events:none">${n}</span>` : ''}</span>${ib('history', 'Lịch sử chat Claude', `openRowMenu(event,'hist','${r.host}','${r.proj}')`)}`;
 }
 /* ---------- C23 menu nổi ---------- */
 function openRowMenu(e, kind, h, p, sid) {
   e.preventDefault(); e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect();
-  const w = kind === 'notif' ? 368 : 290; ui.rowMenu = { kind, h, p, sid, x: Math.max(8, Math.min(r.left, innerWidth - w)), y: Math.min(r.bottom + 4, innerHeight - 200) }; renderOverlay();
+  const w = kind === 'notif' || kind === 'hist' ? 368 : 290; ui.rowMenu = { kind, h, p, sid, x: Math.max(8, Math.min(r.left, innerWidth - w)), y: Math.min(r.bottom + 4, innerHeight - 200) }; renderOverlay();
   setTimeout(() => { const f = document.querySelector('.menu .mi'); if (f) f.focus(); });
 }
 function menuKeys(e) {
@@ -869,14 +872,16 @@ function rowMenu() {
   let items = '';
   const owner = ui.role === 'owner';
   if (m.kind === 'host') items = (owner ? it('plus', 'Dự án mới trên máy này', `go('#/s/${m.h}/new-project')`) + (m.h !== 'local' ? it('edit', 'Sửa máy', `openHostForm('${m.h}')`) + it('fwd', 'Chuyển tiếp cổng của máy này', `ui.portHost='${m.h}';go('#/ports')`) : '') : '') + it('unpin', 'Bỏ khỏi không gian làm việc', `unpinHost('${m.h}')`);
-  if (m.kind === 'project') items = it('claude', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`) + it('term', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`) + (owner ? it('edit', 'Đổi tên hiển thị', `openRename('project','${m.h}','${m.p}')`) + (m.p !== 'home' ? it('trash', 'Bỏ dự án khỏi không gian làm việc', `ui.dialog={k:'rmproj',h:'${m.h}',p:'${m.p}'};renderOverlay()`, 'danger') : '') : '');
+  // dòng dự án chỉ còn nút ⋯: menu phiên mới (như nút +) + nhóm thao tác dự án (Authority 2026-11-25)
+  const projExtra = m.kind !== 'project' ? '' : (owner ? `<div class="grp">Dự án</div>` + it('edit', 'Đổi tên hiển thị', `openRename('project','${m.h}','${m.p}')`) + (m.p !== 'home' ? it('trash', 'Bỏ dự án khỏi không gian làm việc', `ui.dialog={k:'rmproj',h:'${m.h}',p:'${m.p}'};renderOverlay()`, 'danger') : '') : '');
   if (m.kind === 'session') { const s = findSess(m.h, m.p, m.sid); items = it('edit', 'Đổi tên hiển thị', `openRename('session','${m.h}','${m.p}','${m.sid}')`) + (s.kind === 'terminal' || D.terms[m.h + '/' + m.p] && D.terms[m.h + '/' + m.p].includes(s) ? it('x', 'Đóng phiên', `closeSession('${m.h}','${m.p}','${m.sid}')`, 'danger', A + 'W') : it('trash', 'Xoá phiên', `closeSession('${m.h}','${m.p}','${m.sid}')`, 'danger')); }
-  if (m.kind === 'plus') { const tx = D.tmux[m.h] || [];
+  if (m.kind === 'plus' || m.kind === 'project') { const tx = D.tmux[m.h] || [];
     items = it('claude', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`, '', A + '⇧N') + it('term', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`, '', A + '⇧T')
-      + (m.h === 'local' ? '' : it('tmux', 'Phiên tmux mới', `newTmux('${m.h}','${m.p}')`, '', A + '⇧M')) + it('globe', 'Trình duyệt mới', `newWeb('${m.h}','${m.p}')`, '', A + '⇧B')
+      + (m.h === 'local' ? '' : it('tmux', 'Phiên tmux mới', `newTmux('${m.h}','${m.p}')`, '', A + '⇧M')) + it('globe', 'Trình duyệt mới', `newWeb('${m.h}','${m.p}')`, '', A + '⇧B') + projExtra
       + (tx.length && m.h !== 'local' ? `<div class="grp">tmux trên ${esc(host(m.h).name)}</div>` + tx.map(s => it('tmux', `${esc(s.name)} <span class="muted xs">· ${s.windows} cửa sổ${s.inUse ? ' · đang mở' : ''}</span>`, s.inUse ? `toast('Đã chuyển tới tab tmux ${s.name}')` : `newTmux('${m.h}','${m.p}','${s.name}')`)).join('') : ''); }
   if (m.kind === 'sessions') { const ss = sessionsOf(m.h, m.p); items = `<div class="grp">Claude</div>` + ss.filter(s => s.kind === 'claude').map((s, i) => it(s.kind === 'claude' ? 'claude' : 'term', `${esc(s.name)} <span class="muted xs">· ${SB[s.status][1]}${s.mode === 'Bypass' ? ' · Bypass' : ''}</span>`, `go('${pbase(m.h, m.p)}/claude/${s.id}')`, '', i < 9 ? A + (i + 1) : '')).join('') + `<div class="grp">Terminal</div>` + ss.filter(s => s.kind === 'terminal').map((s, i) => it(s.tmux ? 'tmux' : 'term', `${esc(s.name)} <span class="muted xs">· ${SB[s.status][1]}</span>`, `go('${pbase(m.h, m.p)}/terminal/${s.id}')`, '', (ss.filter(x => x.kind === 'claude').length + i) < 9 ? A + (ss.filter(x => x.kind === 'claude').length + i + 1) : '')).join('') + (ss.some(s => s.kind === 'web') ? `<div class="grp">Trình duyệt</div>` + ss.filter(s => s.kind === 'web').map(s => it('globe', esc(s.name), `go('${pbase(m.h, m.p)}/web/${s.id}')`)).join('') : '') + `<div class="grp"></div>` + it('plus', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}')`) + it('plus', 'Terminal mới', `newTerminal('${m.h}','${m.p}')`) + (m.h === 'local' ? '' : it('plus', 'Phiên tmux mới', `newTmux('${m.h}','${m.p}')`)) + it('plus', 'Trình duyệt mới', `newWeb('${m.h}','${m.p}')`); }
   if (m.kind === 'notif') { const L = notifItems(); items = `<div class="grp">Thông báo</div>` + (L.length ? L.map(x => { const p = proj(x.h, x.p), href = `${pbase(x.h, x.p)}/claude/${x.c.id}`; return `<div class="mi notif" tabindex="0" onclick="ui.rowMenu=null;go('${href}')"><b>${ic('claude', 'claude-ic')}<span class="grow ell">${esc(x.c.name)}</span>${x.a ? `<button class="btn primary sm icon" title="Cho phép (${A}Y)" aria-label="Cho phép" ${OFF()} onclick="event.stopPropagation();decide('${x.h}','${x.p}','${x.c.id}','${x.a.id}','allowed')">${ic('check')}</button><button class="btn sm icon" title="Từ chối (${A}N)" aria-label="Từ chối" ${OFF()} onclick="event.stopPropagation();decide('${x.h}','${x.p}','${x.c.id}','${x.a.id}','denied')">${ic('x')}</button>` : `<span class="badge"><span class="dot ok"></span>xong</span>`}</b><span class="d ell">${x.a ? `${x.a.what.replace('Claude muốn', 'Muốn')} <span class="mono">${x.a.path.split('/').pop()}</span>` : 'Vừa xong lượt'} · ${esc(host(x.h).name)} › ${esc(p ? p.name : x.p)}</span></div>`; }).join('') : `<div class="mi" style="cursor:default"><span class="d">Không có phiên nào cần bạn.</span></div>`) + `<div class="grp"></div>` + it('list', 'Tất cả phiên của dự án này', `ui.rowMenu={kind:'sessions',h:'${m.h}',p:'${m.p}',x:${m.x},y:${m.y}};renderOverlay()`); }
+  if (m.kind === 'hist') { const L = claudesOf(m.h, m.p); items = `<div class="grp">Lịch sử chat Claude</div>` + (L.length ? L.map(c => `<div class="mi notif" tabindex="0" onclick="ui.rowMenu=null;go('${pbase(m.h, m.p)}/claude/${c.id}')"><b>${ic('claude', 'claude-ic')}<span class="grow ell">${esc(c.name)}</span><button class="btn ghost sm icon" aria-label="Xoá khỏi lịch sử ${esc(c.name)}" title="Xoá khỏi lịch sử" onclick="event.stopPropagation();ui.rowMenu=null;toast('Đã xoá ${esc(c.name)} khỏi lịch sử (file ~/.claude/projects/… trên máy đích)')">${ic('trash')}</button></b><span class="d ell" style="display:block">${c.ago || ''}${c.cli ? ' · từ Claude CLI' : ' · đang mở ở HugRemote'}</span></div>`).join('') : `<div class="mi"><span class="d">Thư mục dự án chưa có phiên Claude nào.</span></div>`); }
   if (m.kind === 'branch') { const g = gitOf(m.h, m.p); items = `<div class="grp">Nhánh cục bộ</div>` + [g.branch, ...['main', 'develop', 'feature/dat-lich'].filter(b => b !== g.branch)].map(b => it('git', b + (b === g.branch ? ' <span class="muted xs">· đang dùng</span>' : ''), b === g.branch ? '' : `switchBranch('${m.h}','${m.p}','${b}')`)).join('') + `<div class="grp">Remote</div>` + it('git', 'origin/release-1.0', `switchBranch('${m.h}','${m.p}','release-1.0')`) + it('plus', 'Nhánh mới từ ' + g.branch + '…', `toast('Gõ tên nhánh mới')`); }
   if (m.kind === 'split') items = [['claude', 'Claude', 'claude'], ['terminal', 'Terminal', 'term'], ['files', 'Files', 'file'], ['git', 'Git', 'git']].map(([k, l, icn]) => it(icn, `${l} ở ô bên phải`, `openSplit('${k}')`)).join('') + (ui.split ? it('x', 'Bỏ chia ô', `ui.split=null;render()`) : '');
   if (m.kind === 'sendclaude') items = claudesOf(m.h, m.p).filter(c => c.owner === curUser()).map(c => it('claude', `${esc(c.name)} <span class="muted xs">· ${SB[c.status][1]}</span>`, `attachTo('${m.h}','${m.p}','${c.id}','${m.sid}')`)).join('') + it('plus', 'Phiên Claude mới', `newClaude('${m.h}','${m.p}','${m.sid}')`);
@@ -891,7 +896,7 @@ function rowMenu() {
       + (x && x.m ? it('git', 'Xem thay đổi so với commit', `openFile('${m.sid}');ui.diffMode=true;render()`) : '') + it('edit', 'Đổi tên / di chuyển', `toast('Sửa đường dẫn để đổi tên hoặc chuyển thư mục')`) + it('plus', 'Nhân bản', `toast('Đã tạo bản sao ${m.sid.split('/').pop()}')`) + it('download', 'Tải xuống', `toast('Đang tải ${m.sid.split('/').pop()}')`)
       + (x && x.m ? it('undo', 'Bỏ thay đổi chưa commit…', `ui.dialog={k:'discard',f:'${m.sid}'};renderOverlay()`, 'danger') : '') + it('trash', 'Xoá…', `toast('Đã xoá ${m.sid.split('/').pop()}')`, 'danger');
   }
-  return `<div class="scrim" style="background:transparent" onclick="ui.rowMenu=null;renderOverlay()"><div class="menu" role="menu" style="left:${m.x}px;top:${m.y}px;${m.kind === 'notif' ? 'width:360px' : ''}" onclick="event.stopPropagation()" onkeydown="menuKeys(event)">${items}</div></div>`;
+  return `<div class="scrim" style="background:transparent" onclick="ui.rowMenu=null;renderOverlay()"><div class="menu" role="menu" style="left:${m.x}px;top:${m.y}px;${m.kind === 'notif' || m.kind === 'hist' ? 'width:360px' : ''}" onclick="event.stopPropagation()" onkeydown="menuKeys(event)">${items}</div></div>`;
 }
 
 /* ---------- C11 cây ---------- */
@@ -908,7 +913,7 @@ function tree(r) {
       const key = hid + '/' + p.id, pOpen = !!ui.open[key], cur = r.host === hid && r.proj === p.id;
       const ss = sessionsOf(hid, p.id), need2 = ss.filter(s => s.status === 'awaiting').length;
       out += `<div class="node l1 ${cur && !r.sid ? 'sel' : ''}" tabindex="0" onclick="openProject('${hid}','${p.id}')" oncontextmenu="openRowMenu(event,'project','${hid}','${p.id}')"><span onclick="event.stopPropagation();toggle('${key}')" title="${pOpen ? 'Thu gọn' : 'Mở'}">${ic('chev', 'chev ' + (pOpen ? 'open' : ''))}</span>${ic(p.id === 'home' ? 'home' : 'folder')}<span class="nm">${esc(p.name)}</span>${need2 ? `<span class="cnt" title="${need2} phiên cần duyệt">${need2}</span>` : ''}
-        ${ib('plus', 'Phiên mới', `openRowMenu(event,'plus','${hid}','${p.id}')`, 'act')}${ib('more', 'Thao tác với dự án ' + p.name, `openRowMenu(event,'project','${hid}','${p.id}')`, 'act')}</div>`;
+        ${ib('more', 'Phiên mới và thao tác với dự án ' + p.name, `openRowMenu(event,'project','${hid}','${p.id}')`, 'act')}</div>`;
       if (!pOpen) continue;
       for (const s of ss) out += `<div class="node l2 ${r.sid === s.id ? 'sel' : ''}" tabindex="0" title="${esc(s.name)} — ${durLabel(s)}" onclick="go('${pbase(hid, p.id)}/${s.kind}/${s.id}')" oncontextmenu="openRowMenu(event,'session','${hid}','${p.id}','${s.id}')">${ic(...kIc(s))}<span class="nm">${esc(s.name)}</span>${s.mode === 'Bypass' ? `<span title="Phiên đang ở chế độ Không hỏi gì (Bypass)">${ic('warn', 'warn-ic')}</span>` : ''}<span class="meta ${s.status === 'awaiting' ? 'warn' : ''}">${shortAgo(s)}</span><span class="dot ${dotCls(s.status)}"></span>${ib('more', 'Thao tác với phiên ' + s.name, `openRowMenu(event,'session','${hid}','${p.id}','${s.id}')`, 'act')}</div>`;
       if (!ss.length) out += `<div class="node l2 muted" tabindex="0" onclick="openRowMenu(event,'plus','${hid}','${p.id}')">${ic('plus')}<span class="nm">Chưa có phiên — tạo phiên</span></div>`;
@@ -1928,7 +1933,7 @@ function S14() {
   const fRow = f => { const port = f.remote.split(':').pop(), proc = f.dir === 'R' ? '' : (L.find(x => x.port === +port) || {}).proc; return `<div class="row" style="cursor:default">${ic(f.dir === 'R' ? 'up' : 'down')}
       <div class="t"><div class="t1 mono">${f.dir === 'R' ? `localhost:${f.local}` : esc(f.remote)}${f.label ? ` <span class="muted xs">· ${esc(f.label)}</span>` : ''}</div><div class="t2 ${f.status === 'err' ? 'danger-t' : 'mono'}">${f.status === 'err' ? esc(f.err) : esc(proc || '')}</div></div>
       ${locIn(f)}<span class="hide-mobile">${statusBadge(f.status === 'err' ? 'err' : f.status)}</span>
-      ${f.status === 'on' && f.dir !== 'R' ? ib('globe', 'Mở bằng trình duyệt', `newWeb('${f.host}','${(D.projects[f.host] || [])[1] ? D.projects[f.host][1].id : 'home'}','http://localhost:${port}/')`) : ''}
+      ${f.status === 'on' && f.dir !== 'R' ? ib('globe', 'Mở bằng trình duyệt', `newWeb('${f.host}','${(D.projects[f.host] || [])[1] ? D.projects[f.host][1].id : 'home'}','http://localhost:${port}/')`) : ''}${f.status === 'on' && f.dir !== 'R' ? ib('ext', 'Mở bằng trình duyệt ngoài', `toast('Đã mở http://localhost:${port}/ bằng trình duyệt hệ thống')`) : ''}
       ${ib(f.status === 'off' ? 'plug' : 'stop', f.status === 'off' ? 'Bật' : 'Tắt', `(D.forwards.find(x=>x.id==='${f.id}').status='${f.status === 'off' ? 'on' : 'off'}');render()`)}
       ${ib('trash', 'Xoá', `D.forwards=D.forwards.filter(x=>x.id!=='${f.id}');render()`)}</div>`; };
   // *Đang nghe* không còn ở màn chính — nằm trong sheet Thêm (chỉnh 2026-11-25)

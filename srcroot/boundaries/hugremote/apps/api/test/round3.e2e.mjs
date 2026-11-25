@@ -136,3 +136,75 @@ test('AC-54/55: tmux trên máy SSH — tạo, liệt kê, sống qua restart AP
   ls = await j(await call('GET', `/projects/${proj.id}/tmux-sessions`));
   assert.ok(!ls.some((x) => x.name === name), 'đóng tab tmux phải tắt hẳn session (Q-4)');
 });
+
+// ---------------- AC-57/58: chuyển tiếp cổng hai chiều ----------------
+const http = require('node:http');
+const Database = require('better-sqlite3');
+function memberToken() {
+  const b64 = (b) => b.toString('base64url');
+  const db = new Database(path.join(tmp, 'data', 'hugremote.db'));
+  const id = crypto.randomUUID(), fam = crypto.randomUUID(), iso = new Date().toISOString();
+  db.prepare(`INSERT INTO users (id, role, email, must_change_password, preferences, created_at) VALUES (?, 'member', ?, 0, '{}', ?)`).run(id, `m-${id.slice(0, 6)}@dogfood.local`, iso);
+  db.prepare(`INSERT INTO refresh_tokens (id, user_id, family_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)`).run(crypto.randomUUID(), id, fam, crypto.randomBytes(16).toString('hex'), iso, new Date(Date.now() + 86_400_000).toISOString());
+  db.close();
+  const h = b64(Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+  const now = Math.floor(Date.now() / 1000);
+  const p = b64(Buffer.from(JSON.stringify({ sub: id, role: 'member', fam, mcp: false, stage: 'full', iat: now, exp: now + 3600 })));
+  return `${h}.${p}.${b64(crypto.createHmac('sha256', env().JWT_SECRET).update(`${h}.${p}`).digest())}`;
+}
+const get = (port) => fetch(`http://127.0.0.1:${port}/`).then((r) => r.text());
+
+test('AC-57/58: -L và -R thật qua SSH, trùng cổng 409, sửa cổng, tắt, member 403, tự bật lại sau restart', async (t) => {
+  if (!(await sshUp())) return t.skip('demo-sshd :2222 chưa chạy');
+  const proj = await j(await call('POST', '/projects', { hostId: 'demo-sshd', rootPath: '~/projects/demo-api' }));
+  const sh = await j(await call('POST', `/projects/${proj.id}/terminals`, { name: 'fw' }));
+  await run(sh.id, 'cd /tmp && echo hr-fw-ok > index.html && (nohup python3 -m http.server 18765 --bind 127.0.0.1 >/dev/null 2>&1 &) ; sleep 1; echo server-$((40+2))', 'server-42');
+
+  const ports = await j(await call('GET', '/hosts/demo-sshd/listening-ports'));
+  assert.ok(ports.some((p) => p.port === 18765), JSON.stringify(ports));
+  assert.ok(!ports.some((p) => p.port === 22), 'cổng 22 không được liệt kê');
+
+  // -L
+  const L1 = await freePort();
+  const fl = await j(await call('POST', '/port-forwards', { direction: 'L', hostId: 'demo-sshd', remotePort: 18765, localPort: L1, label: 'py', autoStart: true }));
+  assert.equal(fl.status, 'on', JSON.stringify(fl));
+  assert.match(await get(L1), /hr-fw-ok/);
+  const dup = await j(await call('POST', '/port-forwards', { direction: 'L', hostId: 'demo-sshd', remotePort: 18765, localPort: L1 }));
+  assert.equal(dup.code, 'LOCAL_PORT_IN_USE', JSON.stringify(dup));
+  const L2 = await freePort();
+  const moved = await j(await call('PATCH', `/port-forwards/${fl.id}`, { localPort: L2 }));
+  assert.equal(moved.localPort, L2);
+  assert.match(await get(L2), /hr-fw-ok/);
+  await assert.rejects(get(L1), 'cổng cũ phải đóng sau khi sửa');
+
+  // -R: service trên "Mac" (tiến trình test) → máy SSH gọi về
+  const mac = http.createServer((_q, s) => s.end('tu-mac-len')).listen(0, '127.0.0.1');
+  await new Promise((r) => mac.once('listening', r));
+  const fr = await j(await call('POST', '/port-forwards', { direction: 'R', hostId: 'demo-sshd', remotePort: 18766, localPort: mac.address().port, autoStart: false }));
+  assert.equal(fr.status, 'on', JSON.stringify(fr));
+  await run(sh.id, `python3 -c "import urllib.request as u;print('R='+u.urlopen('http://127.0.0.1:18766').read().decode())"`, 'R=tu-mac-len');
+
+  // owner-only (G-17)
+  const mt = memberToken();
+  const mr = await fetch(B + '/port-forwards', { headers: { authorization: `Bearer ${mt}` } });
+  assert.equal(mr.status, 403);
+
+  // restart: -L (autoStart) bật lại, -R (không autoStart) thành off
+  await restart();
+  await login();
+  await new Promise((r) => setTimeout(r, 1500));
+  const list = await j(await call('GET', '/port-forwards'));
+  assert.equal(list.find((x) => x.id === fl.id)?.status, 'on', JSON.stringify(list));
+  assert.equal(list.find((x) => x.id === fr.id)?.status, 'off', JSON.stringify(list));
+  assert.match(await get(L2), /hr-fw-ok/);
+
+  // tắt → cổng đóng; xoá
+  const off = await j(await call('PATCH', `/port-forwards/${fl.id}`, { enabled: false }));
+  assert.equal(off.status, 'off');
+  await assert.rejects(get(L2));
+  for (const f of list) assert.equal((await call('DELETE', `/port-forwards/${f.id}`)).status, 204);
+  mac.close();
+  await call('POST', `/terminals/${sh.id}/reopen`); // shell thường đã exited sau restart (AC-56)
+  await run(sh.id, 'pkill -f "http.server 18765"; echo done-$((1+1))', 'done-2');
+  await call('DELETE', `/terminals/${sh.id}`);
+});

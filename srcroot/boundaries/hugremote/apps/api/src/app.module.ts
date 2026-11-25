@@ -20,6 +20,7 @@ import { GitModule } from './modules/git/git.module';
 import { SsoModule } from './modules/sso/sso.module';
 import { SystemModule } from './modules/system/system.module';
 import { ClaudeModule } from './modules/claude/claude.module';
+import { ForwardsModule } from './modules/forwards/forwards.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ClaudeModule } from './modules/claude/claude.module';
     ClaudeModule,
     SystemModule,
     SsoModule,
+    ForwardsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

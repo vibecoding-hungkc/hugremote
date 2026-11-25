@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { pbase, useSessions } from './sessions';
 
-/** C16 — tab dự án Phiên · Files · Git (Ctrl+1/2/3). Phiên = gộp Claude + terminal (Authority lượt 1). */
+/** C16 — tab dự án Phiên · Files · Git (Ctrl+1/2/3). Phiên = gộp Claude + terminal (Authority lượt 1). Desktop chỉ biểu tượng (vòng 3). */
 export function ProjectTabs({ hostId, projectId, mobile }: { hostId: string; projectId: string; mobile?: boolean }) {
   const { t } = useTranslation();
   const nav = useNavigate();
@@ -15,9 +15,9 @@ export function ProjectTabs({ hostId, projectId, mobile }: { hostId: string; pro
   const need = sessions.filter((s) => s.status === 'awaiting').length;
   const sessHref = sessions[0] ? `${base}/${sessions[0].kind}/${sessions[0].id}` : `${base}/sessions`;
   const tab = (key: string, label: string, icon: 'sessions' | 'file' | 'git', href: string, kbd: string, extra?: React.ReactNode) => (
-    <button className={`ptab ${on === key ? 'on' : ''}`} title={`${label} (${kbd})`} aria-current={on === key ? 'page' : undefined} onClick={() => nav(on === key && key === 'sessions' ? loc.pathname : href)}>
+    <button className={`ptab ${on === key ? 'on' : ''}`} title={`${label} (${kbd})`} aria-label={label} aria-current={on === key ? 'page' : undefined} onClick={() => nav(on === key && key === 'sessions' ? loc.pathname : href)}>
       <Icon name={icon} />
-      {label}
+      {mobile && label /* vòng 3: desktop chỉ biểu tượng, điện thoại giữ chữ */}
       {extra}
     </button>
   );

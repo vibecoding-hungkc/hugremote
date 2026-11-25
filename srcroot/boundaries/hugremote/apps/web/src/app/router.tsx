@@ -24,6 +24,7 @@ export const router = createHashRouter([
     children: [
       { path: '/', element: <WorkspacePage /> },
       { path: '/hosts', element: <HostsPage /> },
+      { path: '/ports', lazy: () => import('../pages/ForwardsPage').then((m) => ({ Component: m.ForwardsPage })) },
       { path: '/settings', lazy: () => import('../pages/SettingsPage').then((m) => ({ Component: m.SettingsPage })) },
       { path: '/s/:hostId/new-project/:path?', element: <NewProjectPage /> },
       {

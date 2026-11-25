@@ -157,7 +157,6 @@ Prototype: `prototype/hugremote/index.html` (bảng điều khiển → hàng "V
 | `terminal-api.v1` | `GET /api/projects/:id/tmux-sessions` | mới | 400 `TMUX_NOT_INSTALLED` |
 | `forwards.v1` | `GET/POST/PATCH/DELETE /api/port-forwards`, `GET /api/hosts/:id/listening-ports` | mới | owner-only |
 | `web-sessions-api.v1` | `GET/POST /api/projects/:id/web-sessions`, `PATCH/DELETE /api/web-sessions/:id` | mới | chỉ localhost/127.0.0.1/file trong gốc |
-| `events.v1` | `forward_status` | sửa (thêm sự kiện) | client cũ bỏ qua |
 
 Chi tiết đầy đủ: `context/ARCHITECTURE.md §5`.
 

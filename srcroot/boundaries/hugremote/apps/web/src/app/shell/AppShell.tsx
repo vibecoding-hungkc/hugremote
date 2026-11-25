@@ -47,7 +47,8 @@ function Topbar() {
   const hosts = useHosts();
   const project = useProject(projectId);
   const host = hosts.data?.hosts.find((h) => h.id === hostId);
-  const titles: Record<string, string> = { '/hosts': t('nav.hosts'), '/settings': t('nav.settings') };
+  const owner = useMe().data?.role === 'owner';
+  const titles: Record<string, string> = { '/hosts': t('nav.hosts'), '/settings': t('nav.settings'), '/ports': t('fw.title') };
   const title = titles[loc.pathname] ?? (loc.pathname.includes('/new-project') ? t('nav.newProject') : t('nav.workspace'));
   const inProject = !!(hostId && projectId);
   return (
@@ -85,9 +86,17 @@ function Topbar() {
         </div>
         {inProject && <ProjectTabs hostId={hostId} projectId={projectId} />}
         {inProject && !/\/(sessions|terminal\/|claude\/)/.test(loc.pathname) && <NotifBell hostId={hostId} projectId={projectId} />}
-        <Button variant="ghost" size="sm" iconOnly icon="search" label={`${t('nav.quickSwitch')} (⌘K)`} onClick={() => ui.set({ spot: true })} />
-        <span className="only-desk">
-          <Button variant="ghost" size="sm" iconOnly icon="cog" label={t('nav.settings')} onClick={() => nav('/settings')} />
+        {/* vòng 3: tìm kiếm chỉ ở thanh bên khi có thanh bên; điện thoại giữ nút */}
+        <span className="only-mobile">
+          <Button variant="ghost" size="sm" iconOnly icon="search" label={`${t('nav.quickSwitch')} (⌘K)`} onClick={() => ui.set({ spot: true })} />
+        </span>
+        {owner && (
+          <span className="hide-mobile">
+            <Button variant="ghost" size="sm" iconOnly icon="fwd" tone={loc.pathname === '/ports' ? 'primary' : undefined} label={t('fw.title')} onClick={() => nav('/ports')} />
+          </span>
+        )}
+        <span className="hide-mobile">
+          <Button variant="ghost" size="sm" iconOnly icon="cog" tone={loc.pathname === '/settings' ? 'primary' : undefined} label={t('nav.settings')} onClick={() => nav('/settings')} />
         </span>
       </header>
       {inProject && <ProjectTabs hostId={hostId} projectId={projectId} mobile />}
@@ -163,10 +172,6 @@ export function AppShell() {
           <Link className="btn ghost block" style={{ justifyContent: 'flex-start' }} to="/hosts">
             <Icon name="server" />
             {me.data?.role === 'owner' ? t('nav.manageHosts') : t('nav.hosts')}
-          </Link>
-          <Link className="btn ghost block" style={{ justifyContent: 'flex-start' }} to="/settings">
-            <Icon name="cog" />
-            {t('nav.settings')}
           </Link>
         </div>
       </aside>

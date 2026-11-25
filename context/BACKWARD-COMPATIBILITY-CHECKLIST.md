@@ -57,7 +57,7 @@ last_reviewed: "2026-11-21"
 
 | Topic / queue / event-type | Payload schema | Producer → Consumer |
 |---|---|---|
-| `events.v1` SSE: `session_status`, `interaction_requested`, `file_changed`… (vòng 3 thêm `forward_status`) | `{type, ...}` tolerant reader | apps/api → apps/web |
+| `events.v1` SSE: `session_status`, `interaction_requested`, `file_changed`…  | `{type, ...}` tolerant reader | apps/api → apps/web |
 
 ### 1e. Webhook
 

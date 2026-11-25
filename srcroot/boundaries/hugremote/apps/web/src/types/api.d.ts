@@ -1426,6 +1426,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/port-forwards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ForwardsController_list"];
+        put?: never;
+        post: operations["ForwardsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/port-forwards/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["ForwardsController_remove"];
+        options?: never;
+        head?: never;
+        patch: operations["ForwardsController_update"];
+        trace?: never;
+    };
+    "/api/hosts/{id}/listening-ports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ForwardsController_listening"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1905,6 +1953,44 @@ export interface components {
         AllowEmailDto: {
             /** Format: email */
             email: string;
+        };
+        ForwardDto: {
+            id: string;
+            /** @enum {string} */
+            direction: "L" | "R";
+            hostId: string;
+            remoteHost: string;
+            remotePort: number;
+            localPort: number;
+            label?: string;
+            autoStart: boolean;
+            enabled: boolean;
+            /** @enum {string} */
+            status: "on" | "off" | "err";
+            error?: string;
+        };
+        CreateForwardDto: {
+            /** @enum {string} */
+            direction: "L" | "R";
+            hostId: string;
+            /** @description Phía máy SSH: đích của `-L` (thường localhost; có thể máy khác trong mạng của nó). `-R` luôn bind 127.0.0.1 (G-17). */
+            remoteHost?: string;
+            remotePort: number;
+            /** @description Cổng trên Mac: `-L` = cổng nghe (≥1024), `-R` = cổng service đang chạy trên Mac. */
+            localPort: number;
+            label?: string;
+            autoStart?: boolean;
+        };
+        UpdateForwardDto: {
+            remotePort?: number;
+            localPort?: number;
+            label?: string;
+            autoStart?: boolean;
+            enabled?: boolean;
+        };
+        ListeningPortDto: {
+            port: number;
+            proc: string;
         };
     };
     responses: never;
@@ -4150,6 +4236,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SsoConfigDto"];
+                };
+            };
+        };
+    };
+    ForwardsController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForwardDto"][];
+                };
+            };
+        };
+    };
+    ForwardsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateForwardDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForwardDto"];
+                };
+            };
+        };
+    };
+    ForwardsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ForwardsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateForwardDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForwardDto"];
+                };
+            };
+        };
+    };
+    ForwardsController_listening: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListeningPortDto"][];
                 };
             };
         };

@@ -62,8 +62,8 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó. AC vòng 1–2 l
 | AC-54 | ☑ | Nhiều phiên tmux ở nút + (chỉ máy SSH) — `2a098da`, e2e round3 |
 | AC-55 | ☑ | tmux gắn lại qua restart, cùng shell — `2a098da`, e2e round3 |
 | AC-56 | ☑ | Mở lại tại tab mất kết nối, giữ id — `2a098da`, e2e round3 |
-| AC-57 | ☐ | Chuyển tiếp cổng hai chiều |
-| AC-58 | ☐ | Cổng đang nghe trên máy SSH |
+| AC-57 | ☑ | Chuyển tiếp cổng hai chiều — e2e round3 (-L/-R thật, 409, sửa cổng, 403 member, tự bật sau restart) |
+| AC-58 | ☑ | Cổng đang nghe (`ss`/`lsof`) — unit parse + e2e |
 | AC-59 | ☐ | Phiên trình duyệt (app desktop) |
 | AC-60 | ☐ | Files giữ trạng thái cây |
 | AC-61 | ☐ | Home hiện file ẩn sẵn |

@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { signAndVerifyMacApp, buildMacDmg } from './macos-installer.mjs';
+import { prunePayload } from './prune-payload.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +45,11 @@ const shellPkg = {
   private: true,
 };
 fs.writeFileSync(path.join(shellDir, 'package.json'), JSON.stringify(shellPkg, null, 2), 'utf8');
-fs.cpSync(path.join(desktopDir, 'dist'), path.join(shellDir, 'dist'), { recursive: true });
+// chỉ mã chạy: bản cũ chép cả dist/HugRemote.dmg của lần build trước vào app → mỗi lần build dmg phình thêm (2026-11-25)
+fs.cpSync(path.join(desktopDir, 'dist'), path.join(shellDir, 'dist'), {
+  recursive: true,
+  filter: (src) => !/\.(dmg|map)$|\.d\.c?ts$/.test(src),
+});
 fs.cpSync(path.join(desktopDir, 'resources'), path.join(shellDir, 'resources'), { recursive: true });
 
 // 2. Chuẩn bị payload (API + Web + Shared)
@@ -56,6 +61,9 @@ execFileSync(
   ['--filter', '@app/api', 'deploy', '--prod', deployedApiDir],
   { cwd: repoRoot, stdio: 'inherit' }
 );
+
+console.log('2b. Dọn payload: bỏ binary nền tảng khác, mã nguồn C/TS, @types, source map...');
+prunePayload(deployedApiDir, arch);
 
 console.log('3. Sao chép web dist & shared dist vào payload...');
 const deployedWebDir = path.join(payloadDir, 'apps', 'web', 'dist');
@@ -161,10 +169,9 @@ buildMacDmg({
   volumeName: 'HugRemote',
 });
 
-// Tạo symlink hoặc copy ra thư mục dist chung
-const distDir = path.join(desktopDir, 'dist');
-fs.mkdirSync(distDir, { recursive: true });
-const targetDistDmg = path.join(distDir, 'HugRemote.dmg');
+// Bản sao tên cố định — để ở out/, KHÔNG để trong dist/ (dist/ được chép vào app ở bước 1)
+fs.rmSync(path.join(desktopDir, 'dist', 'HugRemote.dmg'), { force: true }); // dọn bản cũ còn sót từ script trước
+const targetDistDmg = path.join(outDir, 'HugRemote.dmg');
 fs.copyFileSync(dmgPath, targetDistDmg);
 try {
   execFileSync('xattr', ['-cr', targetDistDmg]);
@@ -175,5 +182,5 @@ console.log('\n=========================================');
 console.log('ĐÓNG GÓI MACOS HOÀN TẤT THÀNH CÔNG:');
 console.log(`- Ứng dụng .app : ${appPath}`);
 console.log(`- Tệp cài đặt .dmg: ${dmgPath}`);
-console.log(`- Thư mục dist    : ${path.join(distDir, 'HugRemote.dmg')}`);
+console.log(`- Bản tên cố định : ${targetDistDmg}`);
 console.log('=========================================\n');

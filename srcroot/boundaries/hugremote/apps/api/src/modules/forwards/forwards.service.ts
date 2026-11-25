@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as crypto from 'node:crypto';
 import * as net from 'node:net';
@@ -6,6 +6,7 @@ import type { Client } from 'ssh2';
 import { Repository } from 'typeorm';
 import { ErrorCode } from '@app/shared';
 import { AppError } from '../../common/app-error';
+import { APP_CONFIG, type AppConfig } from '../../config/app-config';
 import { HostsService, LOCAL_HOST_ID } from '../hosts/hosts.service';
 import type { CreateForwardDto, ForwardDto, ListeningPortDto, UpdateForwardDto } from './dto/forward.dto';
 import { PortForwardEntity } from './forward.entity';
@@ -36,6 +37,7 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectRepository(PortForwardEntity) private readonly rows: Repository<PortForwardEntity>,
     private readonly hosts: HostsService,
+    @Inject(APP_CONFIG) private readonly cfg: AppConfig,
   ) {}
 
   async onModuleInit() {
@@ -126,14 +128,19 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
     await this.rows.delete({ id });
   }
 
-  /** AC-58: cổng TCP đang nghe trên máy SSH (`ss`, không có thì `lsof`). Bỏ cổng 22. */
+  /**
+   * AC-58: cổng TCP đang nghe (`ss`, không có thì `lsof` — macOS). Bỏ cổng 22.
+   * `local` = máy chạy HugRemote (Mac) — nguồn cho chiều `-R` (Authority 2026-11-25); bỏ cổng của chính HugRemote
+   * và listener `-L` do HugRemote mở, vì đó không phải service của người dùng.
+   */
   async listening(hostId: string): Promise<ListeningPortDto[]> {
-    if (hostId === LOCAL_HOST_ID) throw AppError.badRequest(ErrorCode.FORWARD_LOCAL_HOST);
     const rt = await this.hosts.runtime(hostId);
     const ss = await rt.exec(['ss', '-ltnpH']).catch(() => null);
-    if (ss && ss.code === 0) return parseSs(ss.stdout.toString());
-    const ls = await rt.exec(['lsof', '-iTCP', '-sTCP:LISTEN', '-nP']).catch(() => null);
-    return ls && ls.code === 0 ? parseLsof(ls.stdout.toString()) : [];
+    const ls = ss && ss.code === 0 ? null : await rt.exec(['lsof', '-iTCP', '-sTCP:LISTEN', '-nP']).catch(() => null);
+    const out = ss && ss.code === 0 ? parseSs(ss.stdout.toString()) : ls && ls.code === 0 ? parseLsof(ls.stdout.toString()) : [];
+    if (hostId !== LOCAL_HOST_ID) return out;
+    const ours = new Set([this.cfg.port, ...[...this.live.values()].filter((l) => l.server).map((l) => l.row.localPort)]);
+    return out.filter((p) => !ours.has(p.port));
   }
 
   // ------------------------------------------------------------------------------------------------

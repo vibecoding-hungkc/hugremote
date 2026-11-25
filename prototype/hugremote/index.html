@@ -258,6 +258,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 /* C6 C9 C23 C27 */
 .scrim { position: fixed; inset: 0; background: var(--color-scrim); z-index: 40; display: flex; }
 .sheet { margin-left: auto; width: 420px; max-width: 100%; height: 100%; background: var(--color-surface); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.sheet.wide { width: max(420px, 50vw); }
 .sheet-head { height: var(--bar-h); flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--space-sm) 0 var(--space-lg); border-bottom: 1px solid var(--color-divider); font-weight: 600; }
 .sheet-body { flex: 1; overflow: auto; padding: var(--space-lg); }
 .sheet-foot { padding: var(--space-md) var(--space-lg); border-top: 1px solid var(--color-divider); display: flex; gap: var(--space-sm); justify-content: flex-end; flex-wrap: wrap; }
@@ -599,15 +600,16 @@ const DEMO = {
   /* vòng 3: phiên tmux có sẵn trên máy (tmux ls) + cổng đang nghe + chuyển tiếp cổng */
   tmux: { 'demo-sshd': [{ name: 'main', windows: 3, created: '3 ngày trước', inUse: true }, { name: 'deploy', windows: 1, created: 'hôm qua', inUse: true }, { name: 'claude-night', windows: 2, created: '5 giờ trước' }] },
   listening: { 'demo-sshd': [{ port: 3000, proc: 'node dist/main.js', proj: 'demo-api' }, { port: 5173, proc: 'vite --host', proj: 'demo-web' }, { port: 5432, proc: 'postgres' }] },
+  localListening: [{ port: 11434, proc: 'ollama serve' }, { port: 4000, proc: 'node mock-server.js' }, { port: 6379, proc: 'redis-server' }],
   webs: { 'demo-sshd/demo-api': [{ id: 'w1', name: 'localhost:3000', url: 'http://localhost:3000/', status: 'running', ago: '20 phút', owner: ME }] },
   forwards: [
     { id: 'f1', host: 'demo-sshd', remote: 'localhost:3000', local: 3000, status: 'on', auto: true, label: 'demo-api' },
     { id: 'f2', host: 'demo-sshd', remote: 'localhost:5432', local: 15432, status: 'on', auto: false, label: 'postgres' },
-    { id: 'f4', dir: 'R', host: 'demo-sshd', remote: 'localhost:11434', local: 11434, status: 'on', auto: true, label: 'ollama trên Mac' },
+    { id: 'f4', dir: 'R', host: 'demo-sshd', remote: 'localhost:11434', local: 11434, status: 'on', auto: true, label: 'ollama trên local' },
     { id: 'f3', host: 'staging-vps', remote: 'localhost:8080', local: 8080, status: 'err', auto: true, label: 'staging', err: 'Máy staging-vps không kết nối được' },
   ],
 };
-const FRESH = { hosts: [clone(DEMO.hosts[0])], pins: ['local'], memberPins: [], projects: { local: [{ id: 'home', name: 'Home', path: '~' }] }, claudes: {}, terms: {}, git: {}, devices: [clone(DEMO.devices[0])], members: [], denied: [], sso: { on: false, provider: 'oidc', allow: [], issuer: '' }, imported: false, tmux: {}, listening: {}, forwards: [], webs: {} };
+const FRESH = { hosts: [clone(DEMO.hosts[0])], pins: ['local'], memberPins: [], projects: { local: [{ id: 'home', name: 'Home', path: '~' }] }, claudes: {}, terms: {}, git: {}, devices: [clone(DEMO.devices[0])], members: [], denied: [], sso: { on: false, provider: 'oidc', allow: [], issuer: '' }, imported: false, tmux: {}, listening: {}, localListening: [], forwards: [], webs: {} };
 let D = clone(DEMO);
 const FOLDERS = { '~': ['projects', 'Code', '.config'], '~/projects': ['demo-api ⎇', 'demo-web ⎇', 'scratch'], '~/projects/scratch': [], '~/Code': ['hugremote ⎇'] };
 
@@ -1130,7 +1132,7 @@ function S5(r) {
 function sessionBar(r, curId, extra) {
   const list = sessionsOf(r.host, r.proj).concat(extra ? [extra] : []);
   const b = pbase(r.host, r.proj), cur = list.find(s => s.id === curId);
-  return `<div class="tabbar"><div class="tabs" role="tablist">${list.map((s, i) => `<div class="tab ${s.id === curId ? 'on' : ''} ${s.status === 'exited' ? 'ended' : ''}" role="tab" tabindex="0" title="${esc(s.name)} — ${s.id === 'new' ? 'mới' : durLabel(s)}${i < 9 ? ' (' + A + (i + 1) + ')' : ''}" onclick="go('${b}/${s.kind}/${s.id}')" oncontextmenu="${s.id === 'new' ? '' : `openRowMenu(event,'session','${r.host}','${r.proj}','${s.id}')`}">${ic(...kIc(s))}<span class="tn">${esc(s.name)}</span>${s.mode === 'Bypass' ? ic('warn', 'warn-ic') : ''}<span class="dot ${dotCls(s.status)}"></span>${(s.kind === 'terminal' || s.kind === 'web') && s.id !== 'new' ? ib('x', 'Đóng phiên ' + s.name + ' (' + A + 'W)', `event.stopPropagation();closeSession('${r.host}','${r.proj}','${s.id}')`) : '<span style="width:var(--space-xs)"></span>'}</div>`).join('')}</div>
+  return `<div class="tabbar"><div class="tabs" role="tablist">${list.map((s, i) => `<div class="tab ${s.id === curId ? 'on' : ''} ${s.status === 'exited' ? 'ended' : ''}" role="tab" tabindex="0" title="${esc(s.name)} — ${s.id === 'new' ? 'mới' : durLabel(s)}${i < 9 ? ' (' + A + (i + 1) + ')' : ''}" onclick="go('${b}/${s.kind}/${s.id}')" oncontextmenu="${s.id === 'new' ? '' : `openRowMenu(event,'session','${r.host}','${r.proj}','${s.id}')`}">${ic(...kIc(s))}<span class="tn">${esc(s.name)}</span>${s.mode === 'Bypass' ? ic('warn', 'warn-ic') : ''}<span class="dot ${dotCls(s.status)}"></span>${s.id !== 'new' ? ib('x', 'Đóng phiên ' + s.name + ' (' + A + 'W)', `event.stopPropagation();closeSession('${r.host}','${r.proj}','${s.id}')`) : '<span style="width:var(--space-xs)"></span>'}</div>`).join('')}</div>
     <button class="sesspick" onclick="openRowMenu(event,'sessions','${r.host}','${r.proj}')">${cur ? ic(...kIc(cur)) : ''}<span class="ell grow" style="text-align:left">${cur ? esc(cur.name) : 'Chọn phiên'}</span>${cur && cur.id !== 'new' ? `<span class="dot ${dotCls(cur.status)}"></span>` : ''}<span class="badge">${list.length} phiên</span>${ic('chevd')}</button>
     <div class="tools">${notifBtn(r)}${cur && cur.id !== 'new' ? ib('edit', 'Đổi tên phiên', `openRename('session','${r.host}','${r.proj}','${curId}')`) : ''}<span class="hide-mobile">${ib('split', ui.split ? 'Đang chia ô — đổi hoặc bỏ' : 'Chia ô (⌘\\ để ẩn thanh bên)', `openRowMenu(event,'split','${r.host}','${r.proj}')`, ui.split ? 'on-primary' : '')}</span>
       ${ib('plus', 'Phiên mới', `openRowMenu(event,'plus','${r.host}','${r.proj}')`)}</div></div>`;
@@ -1159,7 +1161,8 @@ function Sessions(r) {
 }
 function closeSession(h, p, sid) {
   const s = findSess(h, p, sid); if (!s) return;
-  if (s.status === 'exited' || s.status === 'done' || s.status === 'stopped') return doClose(h, p, sid);
+  const isClaude = (D.claudes[h + '/' + p] || []).some(c => c.id === sid);
+  if (!isClaude && (s.status === 'exited' || s.status === 'done' || s.status === 'stopped')) return doClose(h, p, sid);
   ui.dialog = { k: 'close', h, p, sid }; renderOverlay();
 }
 function doClose(h, p, sid) {
@@ -1574,7 +1577,7 @@ function dialogs() {
     <div class="field" style="margin:0"><label for="rn">Tên hiển thị</label><input id="rn" class="input" value="${esc(d.val)}" onkeydown="if(event.key==='Enter'&&!event.isComposing)doRename()"></div>
     <div class="btns" style="justify-content:flex-end"><button class="btn" onclick="ui.dialog=null;renderOverlay()">Huỷ</button><button class="btn primary" onclick="doRename()">Lưu</button></div></section></div>`;
   if (d.k === 'rmproj') { const p = proj(d.h, d.p), n = sessionsOf(d.h, d.p).filter(s => s.status === 'running' || s.status === 'awaiting').length; return dlg(1, `Bỏ dự án "${esc(p.name)}"?`, `Dự án biến mất khỏi không gian làm việc${n ? ` và <b>${n} phiên đang chạy sẽ bị dừng</b>` : ''}. <b>Thư mục <span class="mono">${p.path}</span> trên máy không bị xoá</b> — tạo lại dự án lúc nào cũng được.`, 'Bỏ dự án', 'danger', `D.projects['${d.h}']=D.projects['${d.h}'].filter(x=>x.id!=='${d.p}');delete D.claudes['${d.h}/${d.p}'];delete D.terms['${d.h}/${d.p}'];ui.dialog=null;go('#/');toast('Đã bỏ dự án ${esc(p.name)}')`); }
-  if (d.k === 'close') { const s = findSess(d.h, d.p, d.sid); return dlg(0, `Đóng phiên "${esc(s.name)}"?`, s.status === 'running' ? 'Tiến trình trong phiên đang chạy và sẽ bị dừng. Không hoàn tác được.' : 'Phiên sẽ bị xoá khỏi danh sách.', 'Đóng phiên', 'danger', `doClose('${d.h}','${d.p}','${d.sid}')`); }
+  if (d.k === 'close') { const s = findSess(d.h, d.p, d.sid); return dlg(0, `Đóng phiên "${esc(s.name)}"?`, (D.claudes[d.h + '/' + d.p] || []).some(c => c.id === d.sid) ? 'Lịch sử hội thoại của phiên này trong HugRemote sẽ bị xoá; Claude đang chạy (nếu có) sẽ dừng. Phiên CLI trên máy vẫn còn và tiếp tục được.' : s.status === 'running' ? 'Tiến trình trong phiên đang chạy và sẽ bị dừng. Không hoàn tác được.' : 'Phiên sẽ bị xoá khỏi danh sách.', 'Đóng phiên', 'danger', `doClose('${d.h}','${d.p}','${d.sid}')`); }
   if (d.k === 'unsaved') return dlg(0, `Lưu thay đổi ở ${d.f.split('/').pop()}?`, 'Bạn có thay đổi chưa lưu. Đóng mà không lưu thì mất các thay đổi đó.', 'Lưu', 'primary', `ui.fileOpen='${d.f}';saveFile();closeFile('${d.f}',true);ui.dialog=null;renderOverlay()`, 'Huỷ', `<button class="btn on-danger" onclick="ui.dialog=null;closeFile('${d.f}',true);renderOverlay()">Bỏ thay đổi</button>`);
   if (d.k === 'discard') return dlg(1, `Bỏ thay đổi ở ${d.f.split('/').pop()}?`, `File quay về bản commit gần nhất (<span class="mono">git restore</span>). Thay đổi chưa commit sẽ mất, kể cả phần Claude vừa sửa.`, 'Bỏ thay đổi', 'danger', `const g=gitOf(route().host,route().proj);g.changes=g.changes.filter(x=>x.f!=='${d.f}');ui.gitSel=null;ui.dialog=null;render();toast('Đã khôi phục ${d.f.split('/').pop()}')`);
   if (d.k === 'delhost') { const h = host(d.id); return d.deps.length ? dlg(1, `Chưa xoá được ${esc(h.name)}`, `Máy này đang là máy trung gian (jump host) của <b>${d.deps.join(', ')}</b>. Đổi jump host của các máy đó trước, rồi mới xoá.`, '', '', '', 'Đã hiểu') : dlg(1, `Xoá máy ${esc(h.name)}?`, `Gỡ khối Host khỏi <span class="mono">${h.src || '~/.ssh/config'}</span>, đóng mọi phiên và bỏ các dự án của máy này khỏi HugRemote. Thư mục trên máy không bị đụng.`, 'Xoá máy', 'danger', `D.hosts=D.hosts.filter(h=>h.id!=='${d.id}');D.pins=D.pins.filter(x=>x!=='${d.id}');ui.dialog=null;ui.sheet=null;render();toast('Đã xoá máy')`); }
@@ -1872,7 +1875,7 @@ function S13(r) {
     <form class="grow" style="display:flex" onsubmit="event.preventDefault();bGo(this.u.value)"><input name="u" class="input mono" aria-label="Địa chỉ" value="${esc(url)}" style="width:100%"></form>
     ${isFile ? `<span class="badge">${ic('file')}${esc(h.name)}</span>` : `<span class="badge">${ic('fwd')}${f && f.status === 'on' ? `localhost:${f.local} → ${esc(h.name)}:${port}` : `${esc(h.name)}:${port}`}</span>`}
     ${ib('ext', 'Mở bằng trình duyệt ngoài', `toast('Đã mở http://localhost:${f ? f.local : port}/ trong trình duyệt mặc định')`)}${ib('cog', 'Công cụ nhà phát triển (⌥⌘I)', "toast('Mở DevTools của trang')")}</div>`;
-  const chips = L.length ? `<div class="btns" style="padding:var(--space-xs) var(--space-sm);border-bottom:1px solid var(--color-divider)"><span class="muted xs">${esc(h.name)}</span>${L.map(x => `<button class="chip ${x.port === port ? 'on' : ''}" title="${esc(x.proc)}" onclick="bGo('http://localhost:${x.port}/')">:${x.port} <span class="muted xs">${esc(x.proc.split(' ')[0])}</span></button>`).join('')}</div>` : '';
+  // chỉnh 2026-11-25: bỏ hàng chip cổng; mở được mọi trang http(s)
   let body;
   if (ui.state === 'loading') body = `<div class="content"><div class="wrap">${skel(3)}</div></div>`;
   else if (isFile) { const rel = url.replace('file://' + p.path + '/', ''), fc = FC[rel];
@@ -1882,7 +1885,7 @@ function S13(r) {
   else body = `<div class="pane" style="background:var(--color-bg);overflow:auto"><div class="wrap" style="padding:var(--space-xl)">
       <h1 style="margin-top:0">${esc(p.name)} <span class="badge">${esc(live.proc)}</span></h1>
       <div class="list">${[['GET', '/api/health', '200'], ['POST', '/bookings', '201 · 409 khi trùng giờ'], ['GET', '/bookings?date=2026-11-24', '200']].map(([m, u, s]) => `<div class="row" style="cursor:default"><span class="badge mono">${m}</span><div class="t"><div class="t1 mono">${u}</div><div class="t2">${s}</div></div></div>`).join('')}</div></div></div>`;
-  return `<div class="content flush" data-screen="S13" aria-label="S13 Trình duyệt">${connBar()}${sessionBar(r, w.id)}${withSplit(r, `<div class="pane">${bar}${chips}${body}</div>`)}</div>`;
+  return `<div class="content flush" data-screen="S13" aria-label="S13 Trình duyệt">${connBar()}${sessionBar(r, w.id)}${withSplit(r, `<div class="pane">${bar}${body}</div>`)}</div>`;
 }
 
 /* ================= S14 CHUYỂN TIẾP CỔNG (vòng 3) ================= */
@@ -1902,46 +1905,61 @@ function fwdNow(h, port, label, el) {
   if (D.forwards.some(f => f.local === v)) { if (el) el.classList.add('err'); return toast(`Cổng ${v} đang bận`); }
   D.forwards.push({ id: 'f' + Date.now().toString(36), host: h, remote: 'localhost:' + port, local: v, status: 'on', auto: false, label: label || '' }); render();
 }
+/** Chuyển tiếp một cổng. L: src = cổng máy SSH, dst = cổng local. R: src = cổng service local, dst = cổng mở trên máy SSH. */
+function pfGo(dir, h, src, dstId, label) {
+  const el = document.getElementById(dstId), dst = +el.value, srcEl = document.getElementById(dstId + '-src');
+  if (src === 0) src = srcEl ? +srcEl.value : 0;
+  if (!src || !dst || dst > 65535) { el.classList.add('err'); return toast('Cổng 1–65535'); }
+  const clash = dir === 'R' ? D.forwards.find(f => f.dir === 'R' && f.host === h && +f.remote.split(':').pop() === dst) : D.forwards.find(f => f.dir !== 'R' && f.local === dst);
+  if (clash) { el.classList.add('err'); return toast(dir === 'R' ? `Cổng ${dst} trên máy SSH đã có chuyển tiếp` : 'Cổng local này đang được dùng'); }
+  D.forwards.push({ id: 'f' + Date.now().toString(36), dir, host: h, remote: 'localhost:' + (dir === 'R' ? dst : src), local: dir === 'R' ? src : dst, status: 'on', auto: !!(document.getElementById('pf-a') || {}).checked, label: label || '' });
+  ui.portHost = h; render();
+}
 function S14() {
   if (ui.state === 'loading') return `<div class="content" data-screen="S14"><div class="wrap">${skel(3)}</div></div>`;
   const hosts = [...new Set(D.forwards.map(f => f.host).concat(Object.keys(D.listening)))];
   const hsel = ui.portHost && hosts.includes(ui.portHost) ? ui.portHost : hosts[0];
   if (!hsel) return `<div class="content" data-screen="S14"><div class="wrap">${empty('fwd', 'Chưa có cổng nào.', `<button class="btn primary" onclick="ui.sheet='port';render()">${ic('plus')}Thêm chuyển tiếp</button>`)}</div></div>${ui.sheet === 'port' ? portSheet() : ''}`;
-  const h = host(hsel);
   const F = D.forwards.filter(f => f.host === hsel), L = D.listening[hsel] || [];
+  // địa chỉ không kèm tên máy — đã chọn máy ở bộ lọc (chỉnh 2026-11-25)
   const locIn = (f) => f.dir === 'R'
-    ? `<span class="mono muted xs">→ ${esc(h.name)}:</span><input class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng trên ${esc(h.name)}" value="${f.remote.split(':').pop()}" onchange="(D.forwards.find(x=>x.id==='${f.id}').remote='localhost:'+this.value);render()">`
-    : `<span class="mono muted xs">→ Mac:</span><input class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng trên máy này" value="${f.local}" onchange="setLocal('${f.id}',this.value,this)">`;
+    ? `<span class="mono muted xs">→ SSH:</span><input class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng trên máy SSH" value="${f.remote.split(':').pop()}" onchange="(D.forwards.find(x=>x.id==='${f.id}').remote='localhost:'+this.value);render()">`
+    : `<span class="mono muted xs">→ local:</span><input class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng local" value="${f.local}" onchange="setLocal('${f.id}',this.value,this)">`;
   const fRow = f => { const port = f.remote.split(':').pop(), proc = f.dir === 'R' ? '' : (L.find(x => x.port === +port) || {}).proc; return `<div class="row" style="cursor:default">${ic(f.dir === 'R' ? 'up' : 'down')}
-      <div class="t"><div class="t1 mono">${f.dir === 'R' ? `Mac localhost:${f.local}` : `${esc(h.name)} ${esc(f.remote)}`}${f.label ? ` <span class="muted xs">· ${esc(f.label)}</span>` : ''}</div><div class="t2 ${f.status === 'err' ? 'danger-t' : 'mono'}">${f.status === 'err' ? esc(f.err) : esc(proc || '')}</div></div>
+      <div class="t"><div class="t1 mono">${f.dir === 'R' ? `localhost:${f.local}` : esc(f.remote)}${f.label ? ` <span class="muted xs">· ${esc(f.label)}</span>` : ''}</div><div class="t2 ${f.status === 'err' ? 'danger-t' : 'mono'}">${f.status === 'err' ? esc(f.err) : esc(proc || '')}</div></div>
       ${locIn(f)}<span class="hide-mobile">${statusBadge(f.status === 'err' ? 'err' : f.status)}</span>
       ${f.status === 'on' && f.dir !== 'R' ? ib('globe', 'Mở bằng trình duyệt', `newWeb('${f.host}','${(D.projects[f.host] || [])[1] ? D.projects[f.host][1].id : 'home'}','http://localhost:${port}/')`) : ''}
       ${ib(f.status === 'off' ? 'plug' : 'stop', f.status === 'off' ? 'Bật' : 'Tắt', `(D.forwards.find(x=>x.id==='${f.id}').status='${f.status === 'off' ? 'on' : 'off'}');render()`)}
       ${ib('trash', 'Xoá', `D.forwards=D.forwards.filter(x=>x.id!=='${f.id}');render()`)}</div>`; };
-  const dRow = x => `<div class="row" style="cursor:default">${ic('server')}<div class="t"><div class="t1 mono">${esc(h.name)} localhost:${x.port}</div><div class="t2 mono">${esc(x.proc)}</div></div>
-      <span class="mono muted xs">→ Mac:</span><input id="dl-${x.port}" class="input mono sm" style="width:84px" inputmode="numeric" aria-label="Cổng trên máy này" value="${freeLocal(x.port)}">
-      <button class="btn sm" onclick="fwdNow('${hsel}',${x.port},'${x.proj || ''}',document.getElementById('dl-${x.port}'))">${ic('fwd')}Chuyển tiếp</button></div>`;
-  const det = L.filter(x => !fwdFor(hsel, x.port));
+  // *Đang nghe* không còn ở màn chính — nằm trong sheet Thêm (chỉnh 2026-11-25)
   return `<div class="content" data-screen="S14" aria-label="S14 Chuyển tiếp cổng"><div class="wrap">
     <div class="btns" style="margin-bottom:var(--space-md)"><div class="seg grow">${hosts.map(k => `<button class="${k === hsel ? 'on' : ''}" onclick="ui.portHost='${k}';render()">${esc(host(k).name)}</button>`).join('')}</div>
       <button class="btn primary" onclick="ui.sheet='port';render()">${ic('plus')}Thêm</button></div>
-    ${F.length ? `<div class="list">${F.map(fRow).join('')}</div>` : ''}
-    ${det.length ? `<h2 class="sm" style="margin:var(--space-lg) 0 var(--space-sm)">Đang nghe</h2><div class="list">${det.map(dRow).join('')}</div>` : ''}
-    ${!F.length && !det.length ? empty('fwd', 'Chưa có cổng nào.', '') : ''}
+    ${F.length ? `<div class="list">${F.map(fRow).join('')}</div>` : empty('fwd', 'Chưa có cổng nào.', '')}
     </div></div>${ui.sheet === 'port' ? portSheet() : ''}`;
 }
+/**
+ * Sheet Thêm (rộng 1/2 màn, chỉnh 2026-11-25): cả hai chiều là danh sách — dòng "cổng khác" trên đầu, rồi các cổng đang nghe
+ * ở đầu nguồn; mỗi dòng ô cổng đầu đích + *Chuyển tiếp*; chân chỉ có Đóng. SSH → local: nguồn = máy SSH. local → SSH: nguồn = máy local.
+ */
 function portSheet() {
-  const hs = D.hosts.filter(h => h.kind !== 'local'), def = 8000, rev = ui.pfDir === 'R';
-  return `<div class="scrim" onclick="if(event.target===this){ui.sheet=null;render()}"><aside class="sheet" aria-label="Thêm chuyển tiếp cổng">
+  const hs = D.hosts.filter(h => h.kind !== 'local'), rev = ui.pfDir === 'R', h = ui.pfHost || ui.portHost || 'demo-sshd';
+  const src = rev ? (D.localListening || []) : (D.listening[h] || []);
+  const done = x => D.forwards.some(f => f.host === h && (rev ? f.dir === 'R' && f.local === x.port : f.dir !== 'R' && +f.remote.split(':').pop() === x.port));
+  const sug = x => rev ? x.port : freeLocal(x.port);
+  const row = (x, i) => { const id = `pf-d-${i}`; return `<div class="row" style="cursor:default">${ic(rev ? 'up' : 'server')}
+      <div class="t"><div class="t1 mono">localhost:${x ? x.port : `<input id="${id}-src" class="input mono sm" style="width:112px" inputmode="numeric" placeholder="cổng khác" aria-label="${rev ? 'Cổng service local' : 'Cổng trên máy SSH'}" oninput="const d=document.getElementById('${id}');d.value=this.value?(${rev ? '+this.value' : 'freeLocal(+this.value)'}):''">`}</div>${x ? `<div class="t2 mono">${esc(x.proc)}</div>` : ''}</div>
+      <span class="mono muted xs">→ ${rev ? 'SSH' : 'local'}:</span><input id="${id}" class="input mono sm" style="width:84px" inputmode="numeric" aria-label="${rev ? 'Cổng trên máy SSH' : 'Cổng local'}" value="${x ? sug(x) : ''}" onkeydown="if(event.key==='Enter')pfGo('${rev ? 'R' : 'L'}','${h}',${x ? x.port : 0},'${id}','${x ? esc(x.proc.split(' ')[0]) : ''}')">
+      <button class="btn sm" onclick="pfGo('${rev ? 'R' : 'L'}','${h}',${x ? x.port : 0},'${id}','${x ? esc(x.proc.split(' ')[0]) : ''}')">${ic('fwd')}Chuyển tiếp</button></div>`; };
+  return `<div class="scrim" onclick="if(event.target===this){ui.sheet=null;render()}"><aside class="sheet wide" aria-label="Thêm chuyển tiếp cổng">
     <div class="sheet-head">Thêm chuyển tiếp${ib('x', 'Đóng', 'ui.sheet=null;render()')}</div>
     <div class="sheet-body">
-      <div class="field"><label for="pf-h">Máy</label><select id="pf-h" class="input mono">${hs.map(h => `<option value="${h.id}" ${h.id === (ui.portHost || 'demo-sshd') ? 'selected' : ''}>${esc(h.name)}</option>`).join('')}</select></div>
-      <div class="field"><label>Chiều</label><div class="seg"><button class="${rev ? '' : 'on'}" onclick="ui.pfDir='L';render()">${ic('down')}Máy SSH → Mac</button><button class="${rev ? 'on' : ''}" onclick="ui.pfDir='R';render()">${ic('up')}Mac → máy SSH</button></div></div>
-      <div class="grid2"><div class="field"><label for="pf-r">${rev ? 'Cổng mở trên máy SSH' : 'Cổng trên máy SSH'}</label><input id="pf-r" class="input mono" value="localhost:${def}" oninput="const m=this.value.match(/:(\\d+)$/);if(m&&!document.getElementById('pf-l').dataset.touched)document.getElementById('pf-l').value=freeLocal(+m[1])"></div>
-      <div class="field"><label for="pf-l">${rev ? 'Cổng service trên Mac' : 'Cổng trên Mac'}</label><input id="pf-l" class="input mono ${ui.state === 'error' ? 'err' : ''}" inputmode="numeric" value="${ui.state === 'error' ? 3000 : freeLocal(def)}" oninput="this.dataset.touched=1">${ui.state === 'error' ? '<span class="msg">Cổng 3000 đang dùng cho demo-api</span>' : ''}</div></div>
-      <div class="field"><label for="pf-n">Tên</label><input id="pf-n" class="input"></div>
-      <label class="chk"><input type="checkbox" role="switch" class="sw" checked id="pf-a">Tự bật khi mở app</label></div>
-    <div class="sheet-foot"><button class="btn" onclick="ui.sheet=null;render()">Huỷ</button><button class="btn primary" onclick="const h=document.getElementById('pf-h').value,r=document.getElementById('pf-r').value,l=+document.getElementById('pf-l').value;if((ui.pfDir||'L')==='L'&&D.forwards.some(f=>f.dir!=='R'&&f.local===l)){document.getElementById('pf-l').classList.add('err');return toast('Cổng '+l+' đang bận')}D.forwards.push({id:'f'+Date.now().toString(36),dir:ui.pfDir||'L',host:h,remote:r,local:l,status:'on',auto:document.getElementById('pf-a').checked,label:document.getElementById('pf-n').value});ui.portHost=h;ui.sheet=null;render()">${ic('fwd')}Chuyển tiếp</button></div></aside></div>`;
+      <div class="field"><label for="pf-h">Máy</label><select id="pf-h" class="input mono" onchange="ui.pfHost=this.value;render()">${hs.map(x => `<option value="${x.id}" ${x.id === h ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
+      <div class="field"><label>Chiều</label><div class="seg"><button class="${rev ? '' : 'on'}" onclick="ui.pfDir='L';render()">${ic('down')}SSH → local</button><button class="${rev ? 'on' : ''}" onclick="ui.pfDir='R';render()">${ic('up')}local → SSH</button></div></div>
+      <label class="chk" style="margin-bottom:var(--space-lg)"><input type="checkbox" role="switch" class="sw" checked id="pf-a">Tự bật khi mở app</label>
+      <h2 class="sm" style="margin:0 0 var(--space-sm)">${rev ? 'Đang nghe trên local' : 'Đang nghe'}</h2>
+      <div class="list">${row(null, 'x')}${src.filter(x => !done(x)).map((x, i) => row(x, i)).join('')}</div></div>
+    <div class="sheet-foot"><button class="btn" onclick="ui.sheet=null;render()">Đóng</button></div></aside></div>`;
 }
 
 /* ================= KHUNG ================= */

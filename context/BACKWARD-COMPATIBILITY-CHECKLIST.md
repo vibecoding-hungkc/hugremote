@@ -42,7 +42,7 @@ last_reviewed: "2026-11-21"
 
 | Bảng | Cột đang được code / báo cáo / export dùng | Ràng buộc đáng nhớ (unique, FK…) |
 |---|---|---|
-| `terminal_sessions` | `id, project_id, owner_user_id, name, cwd, status, exit_code, created_at, last_attached_at` (vòng 3 thêm nullable `tmux_name`, `last_cwd`) | FK project_id; restart service → `exited` (trừ phiên tmux từ vòng 3) |
+| `terminal_sessions` | `id, project_id, owner_user_id, name, cwd, status, exit_code, created_at, last_attached_at` (vòng 3 thêm nullable `tmux_name`) | FK project_id; restart service → `exited` (trừ phiên tmux từ vòng 3) |
 | `projects` | `id, host_id, name, root_path, is_home` | unique (host_id, root_path); mỗi máy một `is_home` |
 | `port_forwards` (vòng 3) | `id, direction, host_id, remote_host, remote_port, local_port, label, auto_start` | unique local_port khi `L` |
 | `web_sessions` (vòng 3) | `id, project_id, owner_user_id, url, name` | FK project_id |

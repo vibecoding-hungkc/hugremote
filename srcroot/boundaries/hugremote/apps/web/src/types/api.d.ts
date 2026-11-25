@@ -52,6 +52,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/desktop-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AuthController_desktopSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/refresh": {
         parameters: {
             query?: never;
@@ -511,6 +527,40 @@ export interface paths {
         get: operations["TerminalController_all"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/tmux-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Vòng 3 — AC-54: `tmux ls` của máy chứa dự án. */
+        get: operations["TerminalController_tmux"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/terminals/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Vòng 3 — AC-56: mở lại ngay tại tab cũ (giữ id). */
+        post: operations["TerminalController_reopen"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1532,6 +1582,9 @@ export interface components {
             keyType: string;
             host?: string;
             port?: number;
+            /** @description Máy chưa lưu: đi qua máy trung gian nào, user nào (để tin khoá của máy đích sau jump — dogfood smoke #6). */
+            proxyJump?: string;
+            user?: string;
         };
         SshKeyDto: {
             path: string;
@@ -1585,11 +1638,20 @@ export interface components {
             createdAt: string;
             lastAttachedAt?: string;
             ownerUserId: string;
+            tmuxName?: string;
         };
         CreateTerminalDto: {
             name?: string;
             /** @description Tương đối gốc dự án, phải nằm trong gốc (G-4) — "Mở terminal tại đây". */
             cwd?: string;
+            /** @description Vòng 3: tên session tmux — có thì PTY chạy `tmux new-session -A -s <tên>` (G-17 whitelist). */
+            tmux?: string;
+        };
+        TmuxSessionDto: {
+            name: string;
+            windows: number;
+            createdAt: string;
+            sessionId?: string;
         };
         RenameTerminalDto: {
             name: string;
@@ -1715,11 +1777,12 @@ export interface components {
             createdAt: string;
         };
         AnswerDto: {
-            /** @enum {string} */
-            decision: "allow" | "deny" | "always";
+            /** @description Câu trả lời cho `AskUserQuestion` (AC-21): map `question -> nhãn đã chọn`. */
             answers?: {
                 [key: string]: string;
             };
+            /** @enum {string} */
+            decision: "allow" | "deny" | "always";
         };
         UpdateStepDto: {
             name: string;
@@ -2005,6 +2068,25 @@ export interface operations {
                 "application/json": components["schemas"]["VerifyTwoFactorDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponseDto"];
+                };
+            };
+        };
+    };
+    AuthController_desktopSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -2770,6 +2852,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TerminalDto"][];
+                };
+            };
+        };
+    };
+    TerminalController_tmux: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TmuxSessionDto"][];
+                };
+            };
+        };
+    };
+    TerminalController_reopen: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TerminalDto"];
                 };
             };
         };

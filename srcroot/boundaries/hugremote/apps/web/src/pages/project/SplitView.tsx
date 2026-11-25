@@ -105,7 +105,7 @@ export function SplitView({ hostId, projectId, currentId, children }: { hostId: 
         ) : isClaude ? (
           <ClaudePage key={cur.id} embed={{ hostId, projectId, sid: cur.id }} />
         ) : (
-          <TerminalPane key={cur.id} sessionId={cur.id} exited={cur.status === 'exited'} onNew={() => void newHere('terminal')} />
+          <TerminalPane key={cur.id} sessionId={cur.id} exited={cur.status === 'exited'} tmuxName={cur.tmux} onClose={() => set({ split: null })} />
         )}
       </>
     );

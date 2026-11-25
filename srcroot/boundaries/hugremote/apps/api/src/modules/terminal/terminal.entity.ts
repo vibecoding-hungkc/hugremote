@@ -11,4 +11,6 @@ export class TerminalSessionEntity {
   @Column('integer', { name: 'exit_code', nullable: true }) exitCode!: number | null;
   @Column('text', { name: 'created_at' }) createdAt!: string;
   @Column('text', { name: 'last_attached_at', nullable: true }) lastAttachedAt!: string | null;
+  /** Vòng 3: có = phiên tmux, sống qua restart (ARCHITECTURE §6). */
+  @Column('text', { name: 'tmux_name', nullable: true }) tmuxName!: string | null;
 }

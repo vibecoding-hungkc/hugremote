@@ -17,4 +17,6 @@ export const workspaceApi = {
   createTerminal: (projectId: string, b: S['CreateTerminalDto'] = {}) => api<Terminal>(`/projects/${projectId}/terminals`, { body: b }),
   renameTerminal: (id: string, name: string) => api<Terminal>(`/terminals/${id}`, { method: 'PATCH', body: { name } }),
   closeTerminal: (id: string) => api<void>(`/terminals/${id}`, { method: 'DELETE' }),
+  reopenTerminal: (id: string) => api<Terminal>(`/terminals/${id}/reopen`, { method: 'POST' }),
+  tmuxSessions: (projectId: string) => api<S['TmuxSessionDto'][]>(`/projects/${projectId}/tmux-sessions`),
 };

@@ -32,6 +32,7 @@ test:
 	pnpm --filter @app/api test:security
 	pnpm --filter @app/api test:core
 	pnpm --filter @app/api test:desktop
+	pnpm --filter @app/api test:round3
 
 migrate:
 	pnpm --filter @app/shared build

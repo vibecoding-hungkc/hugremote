@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { TerminalSessionEntity } from './terminal.entity';
 
 @Injectable()
@@ -25,9 +25,9 @@ export class TerminalRepository {
   delete(id: string) {
     return this.rows.delete({ id });
   }
-  /** Khởi động lại dịch vụ → mọi phiên đang chạy thành đã kết thúc (ARCHITECTURE §6). */
+  /** Khởi động lại dịch vụ → mọi phiên shell thường đang chạy thành đã kết thúc; phiên tmux giữ `running` để gắn lại (AC-55). */
   markAllExited() {
-    return this.rows.update({ status: 'running' }, { status: 'exited' });
+    return this.rows.update({ status: 'running', tmuxName: IsNull() }, { status: 'exited' });
   }
   countRunningInProject(projectId: string) {
     return this.rows.count({ where: { projectId, status: 'running' } });

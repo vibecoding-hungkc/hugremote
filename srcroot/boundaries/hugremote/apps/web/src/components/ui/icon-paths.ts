@@ -2,6 +2,10 @@
 // Không thêm icon ngoài bộ này khi chưa thêm vào gói design system.
 export const ICON_PATHS = {
   "term": "<path d=\"M4 6l5 5-5 5M11 17h9\"/>",
+  "tmux": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M12 4v12M3 16h18M7 9l2 2-2 2\"/>",
+  "globe": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18\"/>",
+  "fwd": "<path d=\"M4 8h12M12 4l4 4-4 4M20 16H8M12 12l-4 4 4 4\"/>",
+  "ext": "<path d=\"M14 4h6v6M20 4l-9 9M18 14v6H4V6h6\"/>",
   "claude": "<path d=\"M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z\"/>",
   "file": "<path d=\"M6 3h8l4 4v14H6z\"/><path d=\"M14 3v4h4\"/>",
   "fileplus": "<path d=\"M6 3h8l4 4v14H6z\"/><path d=\"M14 3v4h4M12 11v6M9 14h6\"/>",

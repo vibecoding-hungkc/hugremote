@@ -18,7 +18,13 @@ export interface SessionItem {
   bypass?: boolean;
   /** Số yêu cầu quyền đang chờ (Claude). */
   pending?: number;
+  /** Vòng 3: phiên terminal chạy trong tmux (biểu tượng riêng, tên = tên session). */
+  tmux?: string;
 }
+
+/** Biểu tượng + class của một phiên — một chỗ cho tab, cây, bộ chọn, chuyển nhanh. */
+export const sessionIcon = (s: Pick<SessionItem, 'kind' | 'tmux'>) =>
+  s.kind === 'claude' ? ({ name: 'claude', cls: 'claude-ic' } as const) : ({ name: s.tmux ? ('tmux' as const) : ('term' as const), cls: 'term-ic' as const });
 
 const CLAUDE_STATUS: Record<string, Status> = { running: 'running', awaiting_input: 'awaiting', done: 'done', cancelled: 'stopped', error: 'err', idle: 'idle' };
 
@@ -49,6 +55,7 @@ export function useSessions() {
         status: (t.status === 'running' ? 'running' : 'exited') as Status,
         at: t.lastAttachedAt ?? t.createdAt,
         created: t.createdAt,
+        tmux: t.tmuxName ?? undefined,
       })),
     ],
     [terms.data, claudes.data],

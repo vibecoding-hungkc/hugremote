@@ -14,8 +14,8 @@ import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk, useHosts, usePins, useProjectsOf, useSetPins } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
 import type { Project } from '../../types/schemas';
-import { openProject, useNewSession } from './actions';
-import { pbase, sessionHref, shortAgo, useSessions, type SessionItem } from './sessions';
+import { openProject, useNewSession, usePlusMenu } from './actions';
+import { pbase, sessionHref, sessionIcon, shortAgo, useSessions, type SessionItem } from './sessions';
 
 type MenuState = { rect: DOMRect; items: MenuItem[] } | null;
 
@@ -33,6 +33,7 @@ export function WorkspaceTree() {
   const ui = useUi();
   const sessions = useSessions();
   const newSession = useNewSession();
+  const plusMenu = usePlusMenu();
   const openDialog = useDialogs((s) => s.open);
   const [menu, setMenu] = useState<MenuState>(null);
 
@@ -194,7 +195,10 @@ export function WorkspaceTree() {
                           ui.toggle(key, true);
                           openProject(nav, h.id, p.id, me.data?.preferences.lastTab?.[p.id], ss);
                         }}
-                        onPlus={(e) => pop(e, plusItems(h.id, p))}
+                        onPlus={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          void plusMenu(h.id, p.id).then((items) => setMenu({ rect, items }));
+                        }}
                         plusLabel={t('tree.newSession')}
                         onMore={(e) => pop(e, projectItems(h.id, p))}
                         moreLabel={t('tree.projectActions', { name: p.name })}
@@ -204,7 +208,7 @@ export function WorkspaceTree() {
                           <TreeNode
                             key={s.id}
                             level={2}
-                            icon={s.kind === 'claude' ? 'claude' : 'term'}
+                            icon={sessionIcon(s).name}
                             iconClass={s.kind === 'claude' ? 'claude-ic' : 'term-ic'}
                             name={s.name}
                             title={s.name}

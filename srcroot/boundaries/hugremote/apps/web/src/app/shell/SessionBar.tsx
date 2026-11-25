@@ -12,9 +12,9 @@ import { ck } from '../../features/claude/hooks/useClaude';
 import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
-import { useNewSession } from './actions';
+import { usePlusMenu } from './actions';
 import { NotifBell } from './NotifBell';
-import { pbase, useSessions, type SessionItem } from './sessions';
+import { pbase, sessionIcon, useSessions, type SessionItem } from './sessions';
 
 /** C8 thanh phiên (tab trộn Claude trước, terminal sau) + C32 bộ chọn phiên trên mobile. Dùng chung S6/S10. */
 export function SessionBar({ hostId, projectId, currentId }: { hostId: string; projectId: string; currentId?: string }) {
@@ -23,7 +23,6 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const qc = useQueryClient();
   const list = useSessions().byProject.get(projectId) ?? [];
   const cur = list.find((s) => s.id === currentId);
-  const newSession = useNewSession();
   const openDialog = useDialogs((s) => s.open);
   const [menu, setMenu] = useState<{ rect: DOMRect; items: MenuItem[] } | null>(null);
   const base = pbase(hostId, projectId);
@@ -43,17 +42,17 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
     if (s.status !== 'running' && s.status !== 'awaiting') return void run();
     openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t('session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
-  const plus = (e: MouseEvent<HTMLElement>) =>
-    pop(e, [
-      { icon: 'claude', label: t('session.newClaude'), kbd: '⌥⇧N', onSelect: () => void newSession('claude', hostId, projectId) },
-      { icon: 'term', label: t('session.newTerminal'), kbd: '⌥⇧T', onSelect: () => void newSession('terminal', hostId, projectId) },
-    ]);
+  const plusMenu = usePlusMenu();
+  const plus = (e: MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    void plusMenu(hostId, projectId).then((items) => setMenu({ rect, items }));
+  };
   const picker = (e: MouseEvent<HTMLElement>) =>
     pop(
       e,
       list.map((s, i) => ({
         group: s.kind === 'claude' ? 'Claude' : 'Terminal',
-        icon: s.kind === 'claude' ? ('claude' as const) : ('term' as const),
+        icon: sessionIcon(s).name,
         label: (
           <>
             {s.name} <span className="muted xs">· {t(`status.${s.status}`)}</span>
@@ -77,7 +76,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
             onClick={() => nav(`${base}/${s.kind}/${s.id}`)}
             onKeyDown={(e) => e.key === 'Enter' && nav(`${base}/${s.kind}/${s.id}`)}
           >
-            <Icon name={s.kind === 'claude' ? 'claude' : 'term'} className={s.kind === 'claude' ? 'claude-ic' : 'term-ic'} />
+            <Icon name={sessionIcon(s).name} className={sessionIcon(s).cls} />
             <span className="tn">{s.name}</span>
             {s.bypass && <Icon name="warn" className="del" />}
             <StatusDot status={s.status} />
@@ -100,7 +99,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
         ))}
       </div>
       <button className="sesspick" onClick={picker}>
-        {cur && <Icon name={cur.kind === 'claude' ? 'claude' : 'term'} className={cur.kind === 'claude' ? 'claude-ic' : 'term-ic'} />}
+        {cur && <Icon name={sessionIcon(cur).name} className={sessionIcon(cur).cls} />}
         <span className="ell grow" style={{ textAlign: 'left' }}>
           {cur ? cur.name : t('session.pick')}
         </span>

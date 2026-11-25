@@ -11,7 +11,7 @@ import { filesApi } from '../../features/files/api/files.api';
 import { useHosts, usePins, useProjectsOf } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
 import { useNewSession } from './actions';
-import { pbase, useSessions } from './sessions';
+import { pbase, sessionIcon, useSessions } from './sessions';
 
 interface Item {
   g: string;
@@ -51,7 +51,7 @@ export function Spotlight({ hostId, projectId, onClose }: { hostId?: string; pro
         for (const s of sessions.filter((x) => x.projectId === p.id))
           out.push({
             g: h.name,
-            icon: s.kind === 'claude' ? 'claude' : 'term',
+            icon: sessionIcon(s).name,
             cls: s.kind === 'claude' ? 'claude-ic' : 'term-ic',
             t: s.name,
             s: `${s.kind === 'claude' ? 'Claude' : 'Terminal'} · ${p.name}`,
@@ -179,7 +179,7 @@ export function KeysDialog({ onClose }: { onClose: () => void }) {
     [`${A}1…${A}9`, t('keys.nth')],
     ['Ctrl+Tab', t('keys.next')],
     ['Ctrl+1 · 2 · 3', t('keys.tabs')],
-    [`${A}⇧N · ${A}⇧T`, t('keys.newSession')],
+    [`${A}⇧N · ${A}⇧T · ${A}⇧M`, t('keys.newSession')],
     ['⌘\\', t('keys.side')],
     ['Enter · ⇧Enter', t('keys.send')],
     ['⇧Tab', t('keys.mode')],

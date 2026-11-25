@@ -77,7 +77,7 @@ tab mất kết nối mở lại ngay tại chỗ, và xem được web app đan
 | AC-53 | Terminal đang mở trên macOS (desktop hoặc trình duyệt) | Bấm ⇧Enter · ⌥←/⌥→ · ⌘←/⌘→ · ⌥⌫ · ⌘⌫ · ⌘C · ⌘V | Gửi lần lượt `ESC CR` · `ESC b`/`ESC f` · `Ctrl-A`/`Ctrl-E` · `ESC DEL` · `Ctrl-U` (chuẩn macOS — Q-2); ⌘C **có** vùng chọn → chép vào clipboard, không gửi gì; ⌘C **không** vùng chọn → gửi `Ctrl-C` (Q-3); ⌘V dán. ⌥+kéo chọn được chữ cả khi app bắt chuột | unit (bảng phím → byte) + e2e + dogfood power |
 | AC-54 | Máy **SSH** có `tmux` ("Máy này" không có mục tmux — Q-6) | Chọn *Phiên tmux mới* / bấm một phiên trong nhóm *tmux trên <máy>* ở menu + | Mỗi lần tạo = **một session tmux mới** (không phải window — Q-4a); nhiều session trên cùng máy/dự án, tên tự sinh `<dự án>`, `<dự án>-2`, … (đổi tên được); API chạy `tmux new-session -A -s <tên>` trong PTY; tab đánh dấu tmux; menu liệt kê `tmux ls` của máy, phiên đang mở ở tab → chuyển tới tab đó; máy không có tmux → lỗi "Máy chưa cài tmux", không cài hộ (Q-5); bấm × đóng tab tmux = **tắt hẳn session** (`tmux kill-session`) sau hộp thoại xác nhận như terminal thường (Q-4) | integration + dogfood |
 | AC-55 | Có tab tmux đang mở | App/API khởi động lại hoặc WebSocket đứt | Tab tự gắn lại cùng phiên tmux, không cần bấm; tiến trình bên trong vẫn chạy | e2e + dogfood smoke |
-| AC-56 | Tab terminal thường mất kết nối (tắt/mở app, hoặc mạng đứt) / kết thúc | — | Vừa tự nối lại ngầm (cơ chế vòng 1) **vừa** hiện ngay nút *Mở lại tại đây* (Q-7); nối lại được thì nút tự ẩn; bấm nút → shell mới trong **cùng tab** (cùng id, tên, cwd cuối cùng biết được); không thêm tab | e2e |
+| AC-56 | Tab terminal thường mất kết nối (tắt/mở app, hoặc mạng đứt) / kết thúc | — | Vừa tự nối lại ngầm (cơ chế vòng 1) **vừa** hiện ngay nút *Mở lại tại đây* (Q-7); nối lại được thì nút tự ẩn; bấm nút → shell mới trong **cùng tab** (cùng id, tên, thư mục lúc tạo); không thêm tab | e2e |
 | AC-57 | Owner, máy SSH kết nối được | Thêm / tắt / xoá chuyển tiếp **hai chiều**: máy SSH → Mac (`-L`, `localhost:<L> ← <máy>:<host:port>`) và Mac → máy SSH (`-R`, cổng mở trên máy SSH trỏ về service trên Mac; chỉ bind 127.0.0.1 phía máy SSH); mỗi hàng có biểu tượng chiều, cổng phía đích sửa được; bấm *Chuyển tiếp* từng cổng đang nghe (không có chế độ tự động chuyển tiếp — chốt 2026-11-24) | Cổng trên máy này **điền sẵn** (= cổng phía máy đó, bận thì +10000) và **sửa được** cả trước lẫn sau khi chuyển tiếp; nghe chỉ trên 127.0.0.1; trùng cổng cục bộ → 409 `LOCAL_PORT_IN_USE`; bật "tự bật" → tự bật lại khi API khởi động; máy mất kết nối → trạng thái lỗi + tự thử lại 10 giây; member gọi → 403 | integration + breaker |
 | AC-58 | Owner mở tab Trình duyệt hoặc S14 | — | Liệt kê cổng TCP đang nghe trên máy (`ss -ltnp`, fallback `lsof`) kèm tiến trình; làm mới khi mở màn | integration |
 | AC-59 | Đang dùng app desktop | Chọn *Trình duyệt mới* ở nút + (hoặc *Mở bằng trình duyệt* ở file / ở S14), gõ `http://localhost:<cổng máy SSH>` | Mở một **phiên trình duyệt** (tab trong thanh Phiên, lưu lại như phiên khác); mỗi phiên một trang, nhập link khác đổi trang; trang hiện trong app (webview tách phiên khỏi HugRemote) qua chuyển tiếp; chưa chuyển tiếp → nút *Chuyển tiếp và mở*; cổng không nghe → lỗi rõ; có lùi/tiến/tải lại/mở ngoài. Menu chuột phải của file ở tab Files có *Mở bằng trình duyệt* → mở file đó (html/md/ảnh… render, file khác hiện thô) trong một phiên trình duyệt mới | e2e + dogfood |
@@ -123,7 +123,7 @@ Prototype: `prototype/hugremote/index.html` (bảng điều khiển → hàng "V
 
 | Module / thư mục | Việc | Không được làm |
 |---|---|---|
-| `modules/terminal` | `tmux` trong tạo phiên, `reopen`, `tmux-sessions`, kill khi xoá; `last_cwd` từ OSC 7; khởi động giữ phiên tmux `running` | Không nối chuỗi lệnh shell (G-17) |
+| `modules/terminal` | `tmux` trong tạo phiên, `reopen`, `tmux-sessions`, kill khi xoá; khởi động giữ phiên tmux `running` | Không nối chuỗi lệnh shell (G-17) |
 | `modules/forwards` (mới) | Bảng `port_forwards`, listener `-L`/`-R` trên client SSH dùng chung, `listening-ports`, `forward_status` | Không bind ngoài 127.0.0.1; không mở cho member |
 | `modules/web-sessions` (mới) | CRUD `web_sessions`, kiểm URL | Không proxy nội dung trang |
 | migrations | Thêm cột/bảng như §11 | Không đổi/xoá cột cũ |
@@ -152,9 +152,9 @@ Prototype: `prototype/hugremote/index.html` (bảng điều khiển → hàng "V
 
 | Contract | Endpoint · event | Mới / sửa | Ghi chú |
 |---|---|---|---|
-| `terminal-api.v1` | `POST /api/terminal-sessions` | sửa — thêm trường tuỳ chọn `tmux: { name }` | Thiếu trường = hành vi cũ |
-| `terminal-api.v1` | `POST /api/terminal-sessions/:id/reopen` | mới | 409 nếu phiên đang chạy |
-| `terminal-api.v1` | `GET /api/hosts/:id/tmux-sessions` | mới | 422 `TMUX_NOT_INSTALLED` |
+| `terminal-api.v1` | `POST /api/terminal-sessions` | sửa — thêm trường tuỳ chọn `tmux?: string` | Thiếu trường = hành vi cũ |
+| `terminal-api.v1` | `POST /api/terminals/:id/reopen` | mới | 409 nếu phiên đang chạy |
+| `terminal-api.v1` | `GET /api/projects/:id/tmux-sessions` | mới | 400 `TMUX_NOT_INSTALLED` |
 | `forwards.v1` | `GET/POST/PATCH/DELETE /api/port-forwards`, `GET /api/hosts/:id/listening-ports` | mới | owner-only |
 | `web-sessions-api.v1` | `GET/POST /api/projects/:id/web-sessions`, `PATCH/DELETE /api/web-sessions/:id` | mới | chỉ localhost/127.0.0.1/file trong gốc |
 | `events.v1` | `forward_status` | sửa (thêm sự kiện) | client cũ bỏ qua |
@@ -165,7 +165,7 @@ Chi tiết đầy đủ: `context/ARCHITECTURE.md §5`.
 
 | Bảng | Mới / sửa | Trường |
 |---|---|---|
-| `terminal_sessions` | sửa (cột nullable) | `tmux_name`, `last_cwd` |
+| `terminal_sessions` | sửa (cột nullable) | `tmux_name` |
 | `port_forwards` | mới | `id, direction ('L'|'R'), host_id, remote_host, remote_port, local_port (UNIQUE khi direction='L'), label, auto_start, created_at` |
 | `web_sessions` | mới | `id, project_id, owner_user_id, url, name, created_at, last_opened_at` |
 
@@ -175,7 +175,7 @@ Chi tiết đầy đủ: `context/ARCHITECTURE.md §5`.
 
 | Luật | Mặc định | Chỉnh ở đâu | Vi phạm thì | Thông điệp người dùng thấy |
 |---|---|---|---|---|
-| Tên session tmux | `<dự án>`, trùng thì `<dự án>-2`, `-3`… | Đổi tên phiên (alias) | Tên ngoài whitelist → 400 | "Tên chỉ gồm chữ, số, `_ . -`" |
+| Tên session tmux | `<dự án>`, trùng thì `<dự án>-2`, `-3`… | Đổi tên phiên (alias) | Tên ngoài whitelist → 400 | "Tên chỉ gồm chữ, số, `_ -`" |
 | tmux chỉ trên máy SSH | "Máy này" không có mục tmux | Cố định (Q-6) | 400 `TMUX_LOCAL_NOT_SUPPORTED` | — (mục bị ẩn) |
 | Cổng cục bộ chuyển tiếp | = cổng phía máy SSH; bận → +10000 | Ô cổng ở S14 | Trùng → 409; <1024 → 400 | "Cổng 3000 đang dùng cho demo-api" |
 | Tự bật khi mở app | Bật khi thêm qua sheet; tắt khi bấm *Chuyển tiếp* từ *Đang nghe* | Sheet Thêm | — | — |
@@ -202,7 +202,7 @@ Chi tiết + các ca của vòng trước: `context/ARCHITECTURE.md §6`.
 
 - Chuyển tiếp cổng và listening-ports: **owner-only**; cổng cục bộ chỉ bind `127.0.0.1`; chặn `local_port < 1024`.
 - Webview trình duyệt: `partition` riêng, `nodeIntegration` tắt, không chia cookie với HugRemote; chỉ cho `http(s)://localhost|127.0.0.1`.
-- `tmux` name: chỉ `[A-Za-z0-9_.-]{1,64}` (đi vào lệnh shell).
+- `tmux` name: chỉ `[A-Za-z0-9_-]{1,64}` (đi vào lệnh shell).
 - **Dòng ma trận `PERSONAS.md §2` vòng này chạm**: owner (chuyển tiếp cổng, tmux, trình duyệt); member chỉ dùng tmux/terminal trong phiên của mình (G-13), không có S14.
 - **Ca ✗ mới phải kiểm (vai `breaker`)**: member gọi `/api/port-forwards` → 403; không listener nào nghe ngoài 127.0.0.1; tên tmux chứa `;`/`$()` → 400; webview điều hướng ra domain ngoài → bị chặn.
 - **Bí mật mới**: —

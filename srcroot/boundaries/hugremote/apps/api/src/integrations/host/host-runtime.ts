@@ -72,7 +72,8 @@ export interface HostRuntime {
   mkdir(p: string): Promise<void>;
   rename(from: string, to: string): Promise<void>;
   remove(p: string): Promise<void>;
-  spawnPty(cwd: string, cols: number, rows: number): Promise<PtyHandle>;
+  /** `argv` có → chạy đúng lệnh đó thay shell (tmux, vòng 3 — chỉ SSH); không → shell đăng nhập. */
+  spawnPty(cwd: string, cols: number, rows: number, argv?: string[]): Promise<PtyHandle>;
   spawnStream(argv: string[], cwd: string, env?: Record<string, string>): Promise<StreamProc>;
 }
 
@@ -218,7 +219,8 @@ export class LocalRuntime implements HostRuntime {
     await fsp.rm(this.r(p), { recursive: true, force: false });
   }
 
-  spawnPty(cwd: string, cols: number, rows: number): Promise<PtyHandle> {
+  spawnPty(cwd: string, cols: number, rows: number, argv?: string[]): Promise<PtyHandle> {
+    if (argv) return Promise.reject(new Error('local PTY chỉ chạy shell'));
     const shell =
       process.env.SHELL && fs.existsSync(process.env.SHELL) ? process.env.SHELL : fs.existsSync('/bin/bash') ? '/bin/bash' : '/bin/sh';
     let dir: string;
@@ -387,8 +389,8 @@ export class SshRuntime implements HostRuntime {
     if (r.code !== 0) throw new Error(r.stderr.toString());
   }
 
-  async spawnPty(cwd: string, cols: number, rows: number): Promise<PtyHandle> {
-    const cmd = `${remoteCd(cwd)} && exec "\${SHELL:-/bin/sh}" -l`;
+  async spawnPty(cwd: string, cols: number, rows: number, argv?: string[]): Promise<PtyHandle> {
+    const cmd = argv ? `${remoteCd(cwd)} && exec ${argv.map(argQuote).join(' ')}` : `${remoteCd(cwd)} && exec "\${SHELL:-/bin/sh}" -l`;
     const ch: ClientChannel = await this.pool.shell(this.target, cols, rows, cmd);
     return {
       write: (d) => ch.write(d),

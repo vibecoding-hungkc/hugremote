@@ -55,6 +55,7 @@ export function useShortcuts() {
       const alt = e.altKey && !e.metaKey && !e.ctrlKey;
       if ((alt || (mod && e.shiftKey)) && e.code === 'KeyN' && e.shiftKey) return (e.preventDefault(), void newSession('claude', r.hostId, r.projectId));
       if ((alt || (mod && e.shiftKey)) && e.code === 'KeyT' && e.shiftKey) return (e.preventDefault(), void newSession('terminal', r.hostId, r.projectId));
+      if ((alt || (mod && e.shiftKey)) && e.code === 'KeyM' && e.shiftKey && r.hostId !== 'local') return (e.preventDefault(), void newSession('tmux', r.hostId, r.projectId));
       if ((alt || e.metaKey) && /^Digit[1-9]$/.test(e.code) && !e.shiftKey) {
         if (goSession(Number(e.code.slice(5)) - 1)) return;
       }

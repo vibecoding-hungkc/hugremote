@@ -1,6 +1,6 @@
-# Máy SSH thử cho dev/test/dogfood: OpenSSH + git + python3 + dự án mẫu demo-api (60 commit, remote bare để push)
+# Máy SSH thử cho dev/test/dogfood: OpenSSH + git + python3 + tmux + iproute2 (ss — vòng 3) + dự án mẫu demo-api (60 commit, remote bare để push)
 FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends openssh-server git python3 ca-certificates htop less procps \
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-server git python3 ca-certificates htop less procps tmux iproute2 \
  && rm -rf /var/lib/apt/lists/* && mkdir -p /run/sshd
 RUN useradd -m -s /bin/bash dev && mkdir -p /home/dev/.ssh && chmod 700 /home/dev/.ssh && chown -R dev:dev /home/dev/.ssh
 COPY docker/sshd/sshd_config /etc/ssh/sshd_config

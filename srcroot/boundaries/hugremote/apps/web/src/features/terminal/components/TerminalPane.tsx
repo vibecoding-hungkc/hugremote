@@ -1,13 +1,26 @@
-import { useEffect, useReducer, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/Button';
+import { toast } from '../../../components/ui/Overlay';
+import { ErrorBox } from '../../../components/ui/States';
+import { ApiError } from '../../../lib/api-client';
+import { workspaceApi } from '../../workspace/api/workspace.api';
+import { qk } from '../../workspace/hooks/useWorkspace';
 import { attachTerm, disposeTerm, getTerm, type PooledTerm } from './terminal-pool';
 
-/** Vùng terminal S6: gắn xterm từ pool, fit theo khung (ResizeObserver), chạm để mở bàn phím ảo (AC-11). */
-export function TerminalPane({ sessionId, exited, onNew, onKeyTarget }: { sessionId: string; exited: boolean; onNew: () => void; onKeyTarget?: (p: PooledTerm) => void }) {
+/**
+ * Vùng terminal S6: gắn xterm từ pool, fit theo khung (ResizeObserver), chạm để mở bàn phím ảo (AC-11).
+ * Vòng 3 — AC-56: mất kết nối thì vừa tự nối lại vừa hiện ngay *Mở lại tại đây* (Q-7); bấm → shell mới trong CHÍNH tab này
+ * (giữ id) thay vì mở tab mới. Phiên tmux (AC-55): đang nối lại = đang gắn lại session.
+ */
+export function TerminalPane({ sessionId, exited, tmuxName, onClose, onKeyTarget }: { sessionId: string; exited: boolean; tmuxName?: string; onClose: () => void; onKeyTarget?: (p: PooledTerm) => void }) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const box = useRef<HTMLDivElement>(null);
   const [, force] = useReducer((x: number) => x + 1, 0);
+  const [gen, setGen] = useState(0); // tăng sau khi mở lại → lấy xterm mới từ pool
+  const [busy, setBusy] = useState(false);
   const p = exited ? null : getTerm(sessionId);
 
   useEffect(() => {
@@ -28,23 +41,50 @@ export function TerminalPane({ sessionId, exited, onNew, onKeyTarget }: { sessio
       ro.disconnect();
       p.listeners.delete(force);
     };
-  }, [p]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [p, gen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (exited) disposeTerm(sessionId);
   }, [exited, sessionId]);
 
+  const reopen = async () => {
+    setBusy(true);
+    try {
+      await workspaceApi.reopenTerminal(sessionId);
+    } catch (e) {
+      // Vẫn đang chạy = vừa nối lại được → chỉ cần gắn lại
+      if (!(e instanceof ApiError && e.code === 'SESSION_STILL_RUNNING')) {
+        setBusy(false);
+        return toast(t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') }));
+      }
+    }
+    disposeTerm(sessionId);
+    await qc.invalidateQueries({ queryKey: qk.terminals });
+    setBusy(false);
+    setGen((g) => g + 1);
+  };
+
   const gone = exited || p?.state.exited || p?.state.gone;
+  const retrying = !!p?.state.reconnecting && !gone;
   return (
     <div className="pane" style={{ position: 'relative', background: 'var(--term-bg)' }}>
       {!exited && <div ref={box} style={{ position: 'absolute', inset: 0 }} onClick={() => p?.term.focus()} aria-label={t('term.area')} />}
-      {!!p?.state.reconnecting && !gone && <div className="ended-cover">{t('term.reconnecting', { n: p.state.reconnecting })}</div>}
-      {gone && (
+      {retrying && tmuxName && <div className="ended-cover">{t('term.tmuxAttaching', { name: tmuxName })}</div>}
+      {(gone || (retrying && !tmuxName)) && (
         <div className="ended-cover">
-          {t('term.ended')}
-          <Button size="sm" icon="plus" onClick={onNew}>
-            {t('term.newHere')}
-          </Button>
+          <ErrorBox
+            title={retrying ? t('term.lostRetry', { n: p!.state.reconnecting }) : t('term.lost')}
+            actions={
+              <>
+                <Button variant="primary" size="sm" icon="refresh" disabled={busy} onClick={() => void reopen()}>
+                  {t('term.reopenHere')}
+                </Button>
+                <Button size="sm" onClick={onClose}>
+                  {t('term.closeTab')}
+                </Button>
+              </>
+            }
+          />
         </div>
       )}
     </div>

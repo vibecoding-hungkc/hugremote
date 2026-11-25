@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from '../components/ui/Overlay';
 import { WorkspaceTree } from '../app/shell/WorkspaceTree';
-import { sessionHref, useSessions, type SessionItem } from '../app/shell/sessions';
+import { sessionHref, sessionIcon, useSessions, type SessionItem } from '../app/shell/sessions';
 import { Icon } from '../components/ui/Icon';
 import { StatusBadge } from '../components/ui/Status';
 import { EmptyState, ErrorBox, Skeleton } from '../components/ui/States';
@@ -55,7 +55,7 @@ export function WorkspacePage() {
     return (
       <div className="list" key={s.id}>
         <button className="row" style={{ width: '100%', border: 0, background: 'none', textAlign: 'left' }} onClick={() => nav(sessionHref(h.id, s))}>
-          <Icon name={s.kind === 'claude' ? 'claude' : 'term'} className={s.kind === 'claude' ? 'claude-ic' : 'term-ic'} />
+          <Icon name={sessionIcon(s).name} className={sessionIcon(s).cls} />
           <span className="t">
             <span className="t1" style={{ display: 'block' }}>
               {s.name}

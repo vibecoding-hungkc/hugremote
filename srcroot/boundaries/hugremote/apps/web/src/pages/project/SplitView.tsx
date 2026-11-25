@@ -1,3 +1,4 @@
+import { desktop } from '../../features/web/web.api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -139,6 +140,7 @@ export function SplitView({ hostId, projectId, currentId, children }: { hostId: 
             onRoute={(p, l) => setFilePos({ path: p, line: l })}
             actions={{
               openTerminalAt: (dir) => void newSession('terminal', hostId, projectId, { cwd: dir || undefined }),
+              openInBrowser: desktop() ? (rel) => void newSession('web', hostId, projectId, { url: `file://${project.rootPath}/${rel}` }) : undefined,
               sendToClaude: (p) => nav(`${pbase(hostId, projectId)}/claude/new?attach=${encodeURIComponent(p)}`),
             }}
           />

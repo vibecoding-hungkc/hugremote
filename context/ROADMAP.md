@@ -64,7 +64,7 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó. AC vòng 1–2 l
 | AC-56 | ☑ | Mở lại tại tab mất kết nối, giữ id — `2a098da`, e2e round3 |
 | AC-57 | ☑ | Chuyển tiếp cổng hai chiều — e2e round3 (-L/-R thật, 409, sửa cổng, 403 member, tự bật sau restart) |
 | AC-58 | ☑ | Cổng đang nghe (`ss`/`lsof`) — unit parse + e2e |
-| AC-59 | ☐ | Phiên trình duyệt (app desktop) |
+| AC-59 | ☑* | Phiên trình duyệt — API (unit chính sách URL) + nửa web (Chromium, cầu nối giả lập) đã kiểm; **WebContentsView thật trên Electron chưa kiểm được trên máy Linux không màn hình** → `apps/desktop/test/webview.e2e.cjs` chạy trên Mac (STATE §Blocker) |
 | AC-60 | ☑ | Files giữ trạng thái cây (store `hugremote:files-tree`) — kiểm app thật |
 | AC-61 | ☑ | Home hiện file ẩn sẵn — e2e round3 (API đúng sẵn, lỗi ở web) |
 | AC-62 | ☑ | Chip chỉ giá trị, bỏ nút khiên, bỏ chip hạn mức — kiểm app thật |

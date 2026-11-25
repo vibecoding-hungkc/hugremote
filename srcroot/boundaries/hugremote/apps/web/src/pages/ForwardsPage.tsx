@@ -1,3 +1,6 @@
+import { useNewSession } from '../app/shell/actions';
+import { desktop } from '../features/web/web.api';
+import { workspaceApi } from '../features/workspace/api/workspace.api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -76,6 +79,12 @@ export function ForwardsPage() {
 
 function ForwardRow({ f, hostName, onChanged, onError }: { f: Forward; hostName: string; onChanged: () => void; onError: (e: unknown) => void }) {
   const { t } = useTranslation();
+  const newSession = useNewSession();
+  /** Mở trong phiên trình duyệt của dự án Home của máy (S14 không thuộc dự án nào). */
+  const openWeb = async (hostId: string, localPort: number) => {
+    const home = (await workspaceApi.projects(hostId)).find((p) => p.isHome);
+    if (home) await newSession('web', hostId, home.id, { url: `http://localhost:${localPort}/` });
+  };
   const rev = f.direction === 'R';
   const [v, setV] = useState(String(rev ? f.remotePort : f.localPort));
   const [bad, setBad] = useState(false);
@@ -111,6 +120,9 @@ function ForwardRow({ f, hostName, onChanged, onError }: { f: Forward; hostName:
           {t(`fw.st_${f.status}`)}
         </span>
       </span>
+      {f.status === 'on' && !rev && desktop() && (
+        <Button variant="ghost" size="sm" iconOnly icon="globe" label={t('files.openInBrowser')} onClick={() => void openWeb(f.hostId, f.localPort)} />
+      )}
       {f.status === 'off' ? (
         <Button variant="ghost" size="sm" iconOnly icon="plug" label={t('fw.enable')} onClick={() => act(forwardsApi.update(f.id, { enabled: true }))} />
       ) : (

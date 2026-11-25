@@ -7,12 +7,8 @@ import { ConfirmDialog, RenameDialog, useDialogs } from '../../components/ui/Dia
 import { Icon } from '../../components/ui/Icon';
 import { Menu, type MenuItem } from '../../components/ui/Overlay';
 import { StatusDot } from '../../components/ui/Status';
-import { claudeApi } from '../../features/claude/api/claude.api';
-import { ck } from '../../features/claude/hooks/useClaude';
-import { workspaceApi } from '../../features/workspace/api/workspace.api';
-import { qk } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
-import { usePlusMenu } from './actions';
+import { closeNeedsConfirm, closeSessionApi, renameSessionApi, usePlusMenu } from './actions';
 import { NotifBell } from './NotifBell';
 import { pbase, sessionIcon, useSessions, type SessionItem } from './sessions';
 
@@ -31,15 +27,13 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const pop = (e: MouseEvent<HTMLElement>, items: MenuItem[]) => setMenu({ rect: e.currentTarget.getBoundingClientRect(), items });
   const close = (s: SessionItem) => {
     const run = async () => {
-      if (s.kind === 'terminal') await workspaceApi.closeTerminal(s.id);
-      else await claudeApi.remove(s.id);
-      await qc.invalidateQueries({ queryKey: s.kind === 'terminal' ? qk.terminals : ck.sessions });
+      await closeSessionApi(qc, s);
       if (s.id === currentId) {
         const next = list.find((x) => x.id !== s.id);
         nav(next ? `${base}/${next.kind}/${next.id}` : `${base}/sessions`);
       }
     };
-    if (s.status !== 'running' && s.status !== 'awaiting') return void run();
+    if (!closeNeedsConfirm(s)) return void run();
     openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t('session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
   const plusMenu = usePlusMenu();
@@ -51,7 +45,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
     pop(
       e,
       list.map((s, i) => ({
-        group: s.kind === 'claude' ? 'Claude' : 'Terminal',
+        group: s.kind === 'claude' ? 'Claude' : s.kind === 'web' ? t('web.group') : 'Terminal',
         icon: sessionIcon(s).name,
         label: (
           <>
@@ -80,7 +74,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
             <span className="tn">{s.name}</span>
             {s.bypass && <Icon name="warn" className="del" />}
             <StatusDot status={s.status} />
-            {s.kind === 'terminal' ? (
+            {s.kind !== 'claude' ? (
             <Button
               variant="ghost"
               size="sm"
@@ -122,9 +116,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
                   title={t('tree.renameSession')}
                   initial={cur.name}
                   onSave={async (name) => {
-                    if (cur.kind === 'terminal') await workspaceApi.renameTerminal(cur.id, name);
-                    else await claudeApi.patch(cur.id, { name });
-                    await qc.invalidateQueries({ queryKey: cur.kind === 'terminal' ? qk.terminals : ck.sessions });
+                    await renameSessionApi(qc, cur, name);
                   }}
                 />,
               )

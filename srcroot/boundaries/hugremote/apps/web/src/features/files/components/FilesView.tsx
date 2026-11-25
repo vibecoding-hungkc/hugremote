@@ -24,6 +24,8 @@ const errText = (t: TFunction, e: unknown) => t(`errors.${e instanceof ApiError 
 
 export interface FilesActions {
   openTerminalAt: (dir: string) => void;
+  /** Vòng 3 — AC-59: chỉ có khi chạy trong app desktop. */
+  openInBrowser?: (path: string) => void;
   sendToClaude: (path: string, e: MouseEvent<HTMLElement>) => void;
 }
 
@@ -220,6 +222,7 @@ export function FilesView({ projectId, rootPath, isHome, path: routePath, line, 
           ]
         : [
             { icon: 'file', label: t('files.open'), onSelect: () => go(x.path) },
+            ...(actions.openInBrowser ? [{ icon: 'globe' as const, label: t('files.openInBrowser'), onSelect: () => actions.openInBrowser!(x.path) }] : []),
             { icon: 'claude', label: t('files.sendToClaude'), onSelect: () => actions.sendToClaude(x.path, e) },
             { icon: 'term', label: t('files.terminalAtDir'), onSelect: () => actions.openTerminalAt(parent) },
             { icon: 'copy', label: t('files.copyPath'), kbd: '⌥⌘C', onSelect: () => copy(abs(x.path)) },

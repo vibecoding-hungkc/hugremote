@@ -36,7 +36,7 @@ last_reviewed: "2026-11-21"
 | `/ws/terminal?sessionId&cols&rows&ticket` | `terminal-ws.v1` | `sessionId, ticket` | phím thô, `resize`, `ping/pong`, `exit` | apps/web |
 | `GET /api/projects/:id/fs?path=&hidden=` | `files-api.v1` | `path` | `entries[{name,path,type,hidden,ignored,git}]` | apps/web |
 | `GET /api/claude/...` hạn mức (CAP-AI-06) | `claude-api.v1` | — | `fiveHour{pct,resetAt}`, `week{pct,resetAt}` | apps/web (vòng 3 chuyển chỗ hiện sang popup model) |
-| Cookie `hugremote_desktop_token` + preload `window.hugremoteDesktop` | `desktop-loopback.v1` | secret 32-byte | `version` (vòng 3 thêm `openWebView/closeWebView`) | apps/desktop → apps/api, apps/web |
+| Cookie `hugremote_desktop_token` + preload `window.hugremoteDesktop` | `desktop-loopback.v1` | secret 32-byte | `version` (vòng 3 thêm `web.{show,bounds,hide,close,nav,onState}` (preload CommonJS `preload.cjs`)) | apps/desktop → apps/api, apps/web |
 
 ### 1b. Bảng dữ liệu (DB schema)
 

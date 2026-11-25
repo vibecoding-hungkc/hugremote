@@ -21,6 +21,7 @@ import { SsoModule } from './modules/sso/sso.module';
 import { SystemModule } from './modules/system/system.module';
 import { ClaudeModule } from './modules/claude/claude.module';
 import { ForwardsModule } from './modules/forwards/forwards.module';
+import { WebSessionsModule } from './modules/web-sessions/web-sessions.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { ForwardsModule } from './modules/forwards/forwards.module';
     SystemModule,
     SsoModule,
     ForwardsModule,
+    WebSessionsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

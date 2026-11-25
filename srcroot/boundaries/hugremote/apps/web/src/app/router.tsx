@@ -34,6 +34,7 @@ export const router = createHashRouter([
         children: [
           { index: true, element: <Navigate to="sessions" replace /> },
           { path: 'sessions', element: <SessionsPage /> },
+          { path: 'web/:sid', lazy: () => import('../pages/project/WebPage').then((m) => ({ Component: m.WebPage })) },
           { path: 'terminal/:sid', lazy: () => import('../pages/project/TerminalPage').then((m) => ({ Component: m.TerminalPage })) },
           { path: 'claude/:sid', lazy: () => import('../pages/project/ClaudePage').then((m) => ({ Component: m.ClaudePage })) },
           { path: 'files/*', lazy: () => import('../pages/project/FilesPage').then((m) => ({ Component: m.FilesPage })) },

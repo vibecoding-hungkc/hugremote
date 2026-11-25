@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, session, shell } from 'electron';
+import { setupWebViews } from './webviews.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
@@ -147,7 +148,9 @@ function resolveAppPaths(): {
 
   // Development mode: relative to current directory
   const rootDir = path.resolve(__dirname, '..', '..', '..');
-  const runtime = process.execPath;
+  // Dev: module native của apps/api build cho Node hệ thống, không chạy được trong Node của Electron —
+  // `HUGREMOTE_BACKEND_NODE=node` để dùng Node hệ thống (e2e desktop, DECISIONS 2026-11-25). Bản đóng gói không đổi.
+  const runtime = process.env.HUGREMOTE_BACKEND_NODE || process.execPath;
   const backendEntry = path.resolve(rootDir, 'apps', 'api', 'dist', 'main.js');
   const webDist = path.resolve(rootDir, 'apps', 'web', 'dist');
   const iconPath = path.resolve(__dirname, '..', 'resources', 'icon.png');
@@ -241,10 +244,11 @@ async function start(): Promise<void> {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
     },
   });
   mainWindow = window;
+  setupWebViews(window);
 
   window.on('resize', () => saveWindowState(window));
   window.on('move', () => saveWindowState(window));

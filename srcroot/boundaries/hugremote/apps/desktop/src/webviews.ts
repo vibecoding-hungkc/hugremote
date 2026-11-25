@@ -1,0 +1,86 @@
+import { BrowserWindow, ipcMain, shell, WebContentsView } from 'electron';
+
+/**
+ * Vòng 3 — AC-59: phiên trình duyệt = một `WebContentsView` native đặt đúng ô nội dung của S13.
+ * Partition riêng (không chung cookie với HugRemote), sandbox, không Node. Chỉ cho localhost/127.0.0.1 — trang đi
+ * qua chuyển tiếp cổng; link khác mở bằng trình duyệt mặc định (G-17, ARCHITECTURE §6).
+ */
+type Bounds = { x: number; y: number; width: number; height: number };
+const PARTITION = 'persist:hugremote-web';
+
+export const allowedWebUrl = (u: string) => {
+  try {
+    const x = new URL(u);
+    return /^https?:$/.test(x.protocol) && (x.hostname === 'localhost' || x.hostname === '127.0.0.1');
+  } catch {
+    return false;
+  }
+};
+
+export function setupWebViews(win: BrowserWindow) {
+  const views = new Map<string, WebContentsView>();
+  const state = (id: string, v: WebContentsView, error?: string) => {
+    if (win.isDestroyed()) return;
+    const wc = v.webContents;
+    win.webContents.send('web:state', {
+      id,
+      url: wc.getURL(),
+      title: wc.getTitle(),
+      loading: wc.isLoading(),
+      canBack: wc.navigationHistory.canGoBack(),
+      canForward: wc.navigationHistory.canGoForward(),
+      error,
+    });
+  };
+  const create = (id: string) => {
+    const v = new WebContentsView({ webPreferences: { partition: PARTITION, sandbox: true, nodeIntegration: false, contextIsolation: true } });
+    const wc = v.webContents;
+    wc.setWindowOpenHandler(({ url }) => {
+      if (allowedWebUrl(url)) void wc.loadURL(url);
+      else if (/^https?:\/\//.test(url)) void shell.openExternal(url);
+      return { action: 'deny' };
+    });
+    wc.on('will-navigate', (e, url) => {
+      if (!allowedWebUrl(url)) {
+        e.preventDefault();
+        if (/^https?:\/\//.test(url)) void shell.openExternal(url);
+      }
+    });
+    for (const ev of ['did-navigate', 'did-navigate-in-page', 'page-title-updated', 'did-start-loading', 'did-stop-loading'] as const) wc.on(ev as 'did-stop-loading', () => state(id, v));
+    wc.on('did-fail-load', (_e, code, desc, _url, isMain) => isMain && code !== -3 && state(id, v, desc));
+    win.contentView.addChildView(v);
+    views.set(id, v);
+    return v;
+  };
+  const fit = (b: Bounds): Bounds => ({ x: Math.round(b.x), y: Math.round(b.y), width: Math.max(0, Math.round(b.width)), height: Math.max(0, Math.round(b.height)) });
+
+  ipcMain.handle('web:show', async (e, id: string, url: string, b: Bounds) => {
+    if (e.sender !== win.webContents || !allowedWebUrl(url)) return false;
+    for (const [k, other] of views) if (k !== id) other.setVisible(false); // một trang hiện một lúc
+    const v = views.get(id) ?? create(id);
+    v.setBounds(fit(b));
+    v.setVisible(true);
+    if (v.webContents.getURL() !== url) await v.webContents.loadURL(url).catch(() => undefined);
+    state(id, v);
+    return true;
+  });
+  ipcMain.on('web:bounds', (e, id: string, b: Bounds) => e.sender === win.webContents && views.get(id)?.setBounds(fit(b)));
+  ipcMain.on('web:hide', (e, id: string) => e.sender === win.webContents && views.get(id)?.setVisible(false));
+  ipcMain.on('web:close', (e, id: string) => {
+    const v = views.get(id);
+    if (e.sender !== win.webContents || !v) return;
+    win.contentView.removeChildView(v);
+    v.webContents.close();
+    views.delete(id);
+  });
+  ipcMain.on('web:nav', (e, id: string, action: string) => {
+    const v = views.get(id);
+    if (e.sender !== win.webContents || !v) return;
+    const wc = v.webContents;
+    if (action === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
+    else if (action === 'forward' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
+    else if (action === 'reload') wc.reload();
+    else if (action === 'devtools') wc.openDevTools({ mode: 'detach' });
+    else if (action === 'external' && allowedWebUrl(wc.getURL())) void shell.openExternal(wc.getURL());
+  });
+}

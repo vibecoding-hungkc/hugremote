@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState } from 'react';
 import i18n from '../../i18n';
 import type { Status } from '../../components/ui/Status';
 import { useClaudeSessions } from '../../features/claude/hooks/useClaude';
-import { useTerminals } from '../../features/workspace/hooks/useWorkspace';
+import { useTerminals, useWebSessions } from '../../features/workspace/hooks/useWorkspace';
 
 /** Phiên trong cây/thanh phiên — Claude trước, terminal sau (AC-35). */
 export interface SessionItem {
   id: string;
-  kind: 'terminal' | 'claude';
+  kind: 'terminal' | 'claude' | 'web';
   projectId: string;
   name: string;
   status: Status;
@@ -20,11 +20,16 @@ export interface SessionItem {
   pending?: number;
   /** Vòng 3: phiên terminal chạy trong tmux (biểu tượng riêng, tên = tên session). */
   tmux?: string;
+  /** Vòng 3: địa chỉ trang của phiên trình duyệt. */
+  url?: string;
 }
 
 /** Biểu tượng + class của một phiên — một chỗ cho tab, cây, bộ chọn, chuyển nhanh. */
 export const sessionIcon = (s: Pick<SessionItem, 'kind' | 'tmux'>) =>
-  s.kind === 'claude' ? ({ name: 'claude', cls: 'claude-ic' } as const) : ({ name: s.tmux ? ('tmux' as const) : ('term' as const), cls: 'term-ic' as const });
+  s.kind === 'claude' ? ({ name: 'claude', cls: 'claude-ic' } as const) : s.kind === 'web' ? ({ name: 'globe' as const, cls: '' as const }) : ({ name: s.tmux ? ('tmux' as const) : ('term' as const), cls: 'term-ic' as const });
+
+/** Thứ tự trong thanh phiên/cây: Claude → terminal → trình duyệt. */
+const ORDER = { claude: 0, terminal: 1, web: 2 } as const;
 
 const CLAUDE_STATUS: Record<string, Status> = { running: 'running', awaiting_input: 'awaiting', done: 'done', cancelled: 'stopped', error: 'err', idle: 'idle' };
 
@@ -33,6 +38,7 @@ export const sessionHref = (hostId: string, s: SessionItem) => `${pbase(hostId, 
 
 export function useSessions() {
   const terms = useTerminals();
+  const webs = useWebSessions();
   const claudes = useClaudeSessions();
   const all = useMemo<SessionItem[]>(
     () => [
@@ -57,16 +63,26 @@ export function useSessions() {
         created: t.createdAt,
         tmux: t.tmuxName ?? undefined,
       })),
+      ...(webs.data ?? []).map((w) => ({
+        id: w.id,
+        kind: 'web' as const,
+        projectId: w.projectId,
+        name: w.name,
+        status: 'running' as Status,
+        at: w.lastOpenedAt ?? w.createdAt,
+        created: w.createdAt,
+        url: w.url,
+      })),
     ],
-    [terms.data, claudes.data],
+    [terms.data, claudes.data, webs.data],
   );
   const byProject = useMemo(() => {
     const m = new Map<string, SessionItem[]>();
     for (const s of all) m.set(s.projectId, [...(m.get(s.projectId) ?? []), s]);
-    for (const [k, v] of m) m.set(k, v.sort((a, b) => (a.kind === b.kind ? a.created.localeCompare(b.created) : a.kind === 'claude' ? -1 : 1)));
+    for (const [k, v] of m) m.set(k, v.sort((a, b) => (a.kind === b.kind ? a.created.localeCompare(b.created) : ORDER[a.kind] - ORDER[b.kind])));
     return m;
   }, [all]);
-  return { all, byProject, isLoading: terms.isLoading || claudes.isLoading };
+  return { all, byProject, isLoading: terms.isLoading || claudes.isLoading || webs.isLoading };
 }
 
 /** Thời gian rút gọn ở cây: 35p · 2g · 1 ngày · 10:42 (G-9 — giờ máy người xem). */

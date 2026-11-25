@@ -144,7 +144,7 @@ Prototype: `prototype/hugremote/index.html` (bảng điều khiển → hàng "V
 | Module / thư mục | Việc | Không được làm |
 |---|---|---|
 | `src/main` | `WebContentsView` cho phiên trình duyệt, chặn điều hướng ngoài localhost | Không bật `nodeIntegration` cho webview |
-| `src/preload` | `openWebView`, `closeWebView`, bounds | Không bypass contextIsolation |
+| `src/preload` | `web.{show,bounds,hide,close,nav,onState}` (preload CommonJS `preload.cjs`) | Không bypass contextIsolation |
 
 **Biến môi trường / cấu hình mới**: — (không có).
 

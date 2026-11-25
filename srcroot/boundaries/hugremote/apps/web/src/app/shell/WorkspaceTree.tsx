@@ -8,13 +8,11 @@ import { Menu, toast, type MenuItem } from '../../components/ui/Overlay';
 import { Icon } from '../../components/ui/Icon';
 import { TreeNode } from '../../components/ui/TreeNode';
 import { useMe } from '../../features/auth/hooks/useMe';
-import { claudeApi } from '../../features/claude/api/claude.api';
-import { ck } from '../../features/claude/hooks/useClaude';
 import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk, useHosts, usePins, useProjectsOf, useSetPins } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
 import type { Project } from '../../types/schemas';
-import { openProject, useNewSession, usePlusMenu } from './actions';
+import { closeNeedsConfirm, closeSessionApi, openProject, renameSessionApi, useNewSession, usePlusMenu } from './actions';
 import { pbase, sessionHref, sessionIcon, shortAgo, useSessions, type SessionItem } from './sessions';
 
 type MenuState = { rect: DOMRect; items: MenuItem[] } | null;
@@ -111,9 +109,7 @@ export function WorkspaceTree() {
             title={t('tree.renameSession')}
             initial={s.name}
             onSave={async (name) => {
-              if (s.kind === 'terminal') await workspaceApi.renameTerminal(s.id, name);
-              else await claudeApi.patch(s.id, { name });
-              await qc.invalidateQueries({ queryKey: s.kind === 'terminal' ? qk.terminals : ck.sessions });
+              await renameSessionApi(qc, s, name);
             }}
           />,
         ),
@@ -129,12 +125,10 @@ export function WorkspaceTree() {
 
   const closeSession = (s: SessionItem) => {
     const run = async () => {
-      if (s.kind === 'terminal') await workspaceApi.closeTerminal(s.id);
-      else await claudeApi.remove(s.id);
-      await qc.invalidateQueries({ queryKey: s.kind === 'terminal' ? qk.terminals : ck.sessions });
+      await closeSessionApi(qc, s);
       if (curSid === s.id) nav(curHost && curProject ? `${pbase(curHost, curProject)}/sessions` : '/');
     };
-    if (s.status !== 'running' && s.status !== 'awaiting') return void run();
+    if (!closeNeedsConfirm(s)) return void run();
     openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t('session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
 
@@ -210,7 +204,7 @@ export function WorkspaceTree() {
                             key={s.id}
                             level={2}
                             icon={sessionIcon(s).name}
-                            iconClass={s.kind === 'claude' ? 'claude-ic' : 'term-ic'}
+                            iconClass={sessionIcon(s).cls}
                             name={s.name}
                             title={s.name}
                             selected={curSid === s.id}

@@ -123,6 +123,7 @@ Meta ra câu hỏi khó dựa trên context, chấm PASS/FAIL. **Pha V**: 3–5 
 | 2026-11-25 | I | Lát 1 (AC-53) trước khi code: trong app desktop, ⌘C có tới được `attachCustomKeyEventHandler` của xterm không, và vì sao hiện tại bôi đen nội dung Claude CLI rồi ⌘C không chép được? | PASS | Menu Electron (`apps/desktop/src/main.ts:88`) gán `role:'copy'` cho ⌘C → phím bị menu nuốt trước trang, chỉ phát sự kiện `copy` tới phần tử đang focus. xterm vốn tự chép vùng chọn khi có `copy`; lỗi thật là Claude CLI bật bắt chuột nên kéo không tạo được vùng chọn và Mac chỉ ép chọn được bằng ⌥ khi bật `macOptionClickForcesSelection`. Hệ quả code: bật cờ đó; bắt `copy` ở capture — không có vùng chọn thì gửi `\x03`; không bật `macOptionIsMeta` (hỏng ký tự gõ bằng Option); phím ⇧↵/⌥/⌘ còn lại qua custom key handler |
 | 2026-11-25 | I | Lát 2–3 (AC-54/55/56) trước khi code: `PtyManager` tự kill PTY không người xem (`reap`) và `onExit` → `markExited` đánh `exited`; phiên tmux để lâu không mở có bị đánh "đã kết thúc" dù session còn sống không? | PASS | Có, nếu giữ logic cũ. Hệ quả code: `markExited` của phiên có `tmux_name` chạy `tmux has-session -t =<tên>` — còn thì giữ `running` (chỉ tách); `markAllExited` lúc khởi động bỏ qua phiên tmux; `attach` mở PTY lười (`tmux new-session -A`). E2E `round3.e2e.mjs` kiểm qua restart API, cùng shell |
 | 2026-11-25 | I | Lát 4 (AC-57/58) trước khi code: chuyển tiếp `-R` đang bật mà không có ai dùng máy SSH đó vài phút — kết nối còn sống không, và nếu SSH đứt thì `-R` có tự quay lại không? | PASS | `SshPool.reap()` đóng client nhàn rỗi quá `idleMs` (`ssh-pool.ts:100`) → `-R` (gắn vào client) chết im lặng. Hệ quả code: `ForwardsService` chạm `pool.client()` mỗi 10 giây cho máy có chuyển tiếp đang bật (giữ `lastUsed`, đồng thời là nhịp thử lại); client đổi instance hoặc `close` → đặt lại `forwardIn`, trạng thái `err` tới khi gắn lại được; `-L` chỉ cần client lúc có kết nối vào |
+| 2026-11-25 | I | Lát 5 (AC-59) trước khi code: preload hiện tại có phơi được `window.hugremoteDesktop` cho trang không, và *Mở bằng trình duyệt* một file `README.md` trên máy SSH thì webview (partition riêng, không cookie HugRemote) tải nội dung bằng cách nào? | FAIL lúc đầu → PASS sau sửa thiết kế | (1) `apps/desktop/package.json` `"type":"module"` → `preload.ts` biên dịch ra ESM, mà cửa sổ bật `sandbox:true` chỉ nạp preload CommonJS — preload hiện tại chạy được chỉ vì rỗng. Sửa: `preload.cts` → `preload.cjs`. (2) Webview tách cookie (ARCHITECTURE §5) nên không gọi được `/api/.../fs/raw` có xác thực. Sửa: phiên `file://` không dùng webview — S13 tự đọc file qua `files-api` (đã có phiên của người dùng) rồi hiện md đã render / html trong iframe sandbox / văn bản thô; webview chỉ cho `http(s)://localhost|127.0.0.1` |
 
 ---
 
@@ -132,7 +133,7 @@ Chặn cứng sau khi đã tự thử hết cách. Không hỏi giữa chừng �
 
 | Ngày | Blocker | Đã thử gì | Trạng thái |
 |---|---|---|---|
-| | | | |
+| 2026-11-25 | AC-59: chưa chạy được Electron trên máy agent (Linux không màn hình) để kiểm `WebContentsView` thật — app treo trước khi mở cửa sổ | `--ozone-platform=headless`, `--disable-gpu`, backend bằng Node hệ thống (`HUGREMOTE_BACKEND_NODE`), chạy thẳng Electron — vẫn treo; nửa web + API đã kiểm (Chromium + cầu nối giả lập) | Chờ Authority chạy `node apps/desktop/test/webview.e2e.cjs` trên Mac (hoặc mở app, + → Trình duyệt mới) |
 
 ---
 

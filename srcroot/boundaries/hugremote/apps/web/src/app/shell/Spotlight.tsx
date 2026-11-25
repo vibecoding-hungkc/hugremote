@@ -52,9 +52,9 @@ export function Spotlight({ hostId, projectId, onClose }: { hostId?: string; pro
           out.push({
             g: h.name,
             icon: sessionIcon(s).name,
-            cls: s.kind === 'claude' ? 'claude-ic' : 'term-ic',
+            cls: sessionIcon(s).cls,
             t: s.name,
-            s: `${s.kind === 'claude' ? 'Claude' : 'Terminal'} · ${p.name}`,
+            s: `${s.kind === 'claude' ? 'Claude' : s.kind === 'web' ? t('web.group') : 'Terminal'} · ${p.name}`,
             st: s.status,
             run: () => nav(`${pbase(h.id, p.id)}/${s.kind}/${s.id}`),
           });

@@ -1,5 +1,6 @@
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { workspaceApi } from '../api/workspace.api';
+import { desktop, webApi } from '../../web/web.api';
 
 export const qk = {
   hosts: ['hosts'] as const,
@@ -7,6 +8,7 @@ export const qk = {
   projects: (h: string) => ['projects', h] as const,
   project: (id: string) => ['project', id] as const,
   terminals: ['terminals'] as const,
+  web: ['web-sessions'] as const,
 };
 
 export const useHosts = () => useQuery({ queryKey: qk.hosts, queryFn: workspaceApi.hosts, staleTime: 15_000 });
@@ -15,6 +17,8 @@ export const usePins = () => useQuery({ queryKey: qk.pins, queryFn: workspaceApi
 export const useProjects = (hostId?: string) => useQuery({ queryKey: qk.projects(hostId ?? ''), queryFn: () => workspaceApi.projects(hostId!), enabled: !!hostId });
 export const useProject = (id?: string) => useQuery({ queryKey: qk.project(id ?? ''), queryFn: () => workspaceApi.project(id!), enabled: !!id });
 export const useTerminals = () => useQuery({ queryKey: qk.terminals, queryFn: workspaceApi.terminals });
+/** Phiên trình duyệt — chỉ tải khi chạy trong app desktop (ngoài desktop không hiện, ARCHITECTURE §6). */
+export const useWebSessions = () => useQuery({ queryKey: qk.web, queryFn: webApi.list, enabled: !!desktop() });
 
 /** Dự án của nhiều máy (cây). */
 export function useProjectsOf(hostIds: string[]) {

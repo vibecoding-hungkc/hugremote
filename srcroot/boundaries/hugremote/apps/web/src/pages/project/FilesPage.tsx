@@ -1,3 +1,4 @@
+import { desktop } from '../../features/web/web.api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useNewSession } from '../../app/shell/actions';
 import { pbase } from '../../app/shell/sessions';
@@ -25,6 +26,7 @@ export function FilesPage() {
       onRoute={(p, l) => nav(p ? `${base}/${p.split('/').map(encodeURIComponent).join('/')}${l ? `/${l}` : ''}` : base, { replace: !!path && p === path })}
       actions={{
         openTerminalAt: (dir) => void newSession('terminal', hostId, projectId, { cwd: dir || undefined }),
+              openInBrowser: desktop() ? (rel) => void newSession('web', hostId, projectId, { url: `file://${project.rootPath}/${rel}` }) : undefined,
         sendToClaude: (p) => nav(`${pbase(hostId, projectId)}/claude/new?attach=${encodeURIComponent(p)}`),
       }}
     />

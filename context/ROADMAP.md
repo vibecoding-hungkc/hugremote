@@ -54,15 +54,25 @@ giữ nguyên ý định can và thay thế khi Authority cấp chứng chỉ.
 
 ## 2. Vòng này — bám AC
 
-Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó. Toàn bộ 49 AC của vòng 1 lưu nguyên vẹn ở `context/archive/vong-1/ROADMAP.md`.
+Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó. AC vòng 1–2 lưu nguyên vẹn ở `context/archive/vong-1/` và `context/archive/vong-2/ROADMAP.md`.
 
 | AC | Trạng thái | Ghi chú |
 |---|---|---|
-| AC-50 | ☐ | `apps/desktop` (Electron main + preload) khởi động `apps/api` và hiển thị `apps/web` trong BrowserWindow native |
-| AC-51 | ☐ | Xác thực loopback 1 chạm qua ephemeral secret cookie/token, cấp quyền owner không cần mật khẩu/2FA |
-| AC-52 | ☐ | Lệnh đóng gói build `.app` và `.dmg` kèm chữ ký ad-hoc `codesign --sign -` |
+| AC-53 | ☑ | Phím tắt macOS trong terminal — `e9fdd33`; ⌘ thật trên Mac chờ Authority xác nhận |
+| AC-54 | ☑ | Nhiều phiên tmux ở nút + (chỉ máy SSH) — `2a098da`, e2e round3 |
+| AC-55 | ☑ | tmux gắn lại qua restart, cùng shell — `2a098da`, e2e round3 |
+| AC-56 | ☑ | Mở lại tại tab mất kết nối, giữ id — `2a098da`, e2e round3 |
+| AC-57 | ☐ | Chuyển tiếp cổng hai chiều |
+| AC-58 | ☐ | Cổng đang nghe trên máy SSH |
+| AC-59 | ☐ | Phiên trình duyệt (app desktop) |
+| AC-60 | ☐ | Files giữ trạng thái cây |
+| AC-61 | ☐ | Home hiện file ẩn sẵn |
+| AC-62 | ☐ | Ô chat gọn |
+| AC-63 | ☐ | Hạn mức trong popup model |
+| AC-64 | ☐ | Khung nội dung Claude 1280px |
+| AC-65 | ☐ | CSS markdown (bảng viền…) |
 
-Thời lượng vòng: `intake/loops/l2/_PROPOSAL.md` (~3–5 ngày công).
+Thời lượng vòng: `intake/loops/l3/_PROPOSAL.md` (~3–5 ngày công).
 
 ---
 

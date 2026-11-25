@@ -44,6 +44,28 @@ export function prunePayload(apiDir, arch, platform = 'darwin') {
   };
   walk(path.join(apiDir, 'node_modules'));
   walk(path.join(apiDir, 'dist'));
+
+  // Xoá `@types+…` để lại symlink treo (`.pnpm/node_modules/@types/*`, `<pkg>/node_modules/@types/*`) —
+  // `codesign --verify --strict` từ chối bundle có link treo ("No such file or directory", build Mac 2026-11-25).
+  const dangling = [];
+  const unlinkDangling = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isSymbolicLink()) {
+        if (!fs.existsSync(full)) fs.unlinkSync(full); // existsSync theo link: false = đích không còn
+      } else if (e.isDirectory()) unlinkDangling(full);
+    }
+  };
+  unlinkDangling(apiDir);
+  const check = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isSymbolicLink()) !fs.existsSync(full) && dangling.push(full);
+      else if (e.isDirectory()) check(full);
+    }
+  };
+  check(apiDir);
+  if (dangling.length) throw new Error(`prune-payload: còn ${dangling.length} symlink treo, ví dụ ${dangling[0]}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {

@@ -4,6 +4,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { TerminalSocket } from '../../../lib/ws-client';
+import { isMac, macKeySeq } from './mac-keys';
 
 /**
  * Pool xterm: một instance mỗi phiên, giữ sống khi đổi tab/dự án (chuyển lại không vẽ lại — A5).
@@ -63,6 +64,7 @@ export function getTerm(id: string): PooledTerm {
     cursorBlink: true,
     scrollback: 5000,
     allowProposedApi: true,
+    macOptionClickForcesSelection: true, // ⌥+kéo chọn được chữ khi app (Claude CLI, tmux) bắt chuột — AC-53
     theme: theme(),
   });
   const fit = new FitAddon();
@@ -87,6 +89,28 @@ export function getTerm(id: string): PooledTerm {
     p.sock?.send(d);
   });
   term.onBinary((d) => p.sock?.send(Uint8Array.from(d, (c) => c.charCodeAt(0))));
+  // AC-53: phím tắt macOS (⇧↵, ⌥/⌘ + ←/→/⌫) → byte readline
+  if (isMac())
+    term.attachCustomKeyEventHandler((ev) => {
+      if (ev.type !== 'keydown' || ev.isComposing) return true;
+      const seq = macKeySeq(ev);
+      if (seq === null) return true;
+      ev.preventDefault();
+      p.sock?.send(seq);
+      return false;
+    });
+  // AC-53: ⌘C đi qua sự kiện copy (menu Electron nuốt phím trước trang) — có vùng chọn thì để xterm chép,
+  // không có thì là Ctrl+C như Terminal.app
+  el.addEventListener(
+    'copy',
+    (ev) => {
+      if (term.hasSelection()) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      p.sock?.send('\x03');
+    },
+    true,
+  );
   let t: ReturnType<typeof setTimeout> | undefined;
   term.onResize(({ cols, rows }) => {
     clearTimeout(t);

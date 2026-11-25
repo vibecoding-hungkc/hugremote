@@ -188,6 +188,12 @@ export function KeysDialog({ onClose }: { onClose: () => void }) {
     ['⌘Enter', t('keys.commit')],
     [t('keys.spaceKey'), t('keys.stage')],
     ['⌘/', t('keys.table')],
+    ['⌥← · ⌥→', t('keys.termWord')],
+    ['⌘← · ⌘→', t('keys.termLine')],
+    ['⌥⌫ · ⌘⌫', t('keys.termDel')],
+    ['⇧Enter', t('keys.termNewline')],
+    ['⌘C · ⌘V', t('keys.termCopy')],
+    ['⌥ + drag', t('keys.termSelect')],
   ];
   return createPortal(
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()} onKeyDown={(e) => e.key === 'Escape' && onClose()}>

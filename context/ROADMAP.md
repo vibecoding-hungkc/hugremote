@@ -65,12 +65,12 @@ Nguồn: `PRD.md §3`. Không thêm gì ngoài danh sách đó. AC vòng 1–2 l
 | AC-57 | ☑ | Chuyển tiếp cổng hai chiều — e2e round3 (-L/-R thật, 409, sửa cổng, 403 member, tự bật sau restart) |
 | AC-58 | ☑ | Cổng đang nghe (`ss`/`lsof`) — unit parse + e2e |
 | AC-59 | ☐ | Phiên trình duyệt (app desktop) |
-| AC-60 | ☐ | Files giữ trạng thái cây |
-| AC-61 | ☐ | Home hiện file ẩn sẵn |
-| AC-62 | ☐ | Ô chat gọn |
-| AC-63 | ☐ | Hạn mức trong popup model |
-| AC-64 | ☐ | Khung nội dung Claude 1280px |
-| AC-65 | ☐ | CSS markdown (bảng viền…) |
+| AC-60 | ☑ | Files giữ trạng thái cây (store `hugremote:files-tree`) — kiểm app thật |
+| AC-61 | ☑ | Home hiện file ẩn sẵn — e2e round3 (API đúng sẵn, lỗi ở web) |
+| AC-62 | ☑ | Chip chỉ giá trị, bỏ nút khiên, bỏ chip hạn mức — kiểm app thật |
+| AC-63 | ☑ | Thanh % hạn mức trong popup model (ẩn khi CLI không trả hạn mức) |
+| AC-64 | ☑ | `.col` 1280px, ô soạn 820px |
+| AC-65 | ☑ | CSS `.md` (bảng viền, code block…) — kiểm app thật |
 
 Thời lượng vòng: `intake/loops/l3/_PROPOSAL.md` (~3–5 ngày công).
 

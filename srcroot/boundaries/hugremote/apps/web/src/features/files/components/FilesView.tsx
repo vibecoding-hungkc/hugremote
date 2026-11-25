@@ -15,6 +15,7 @@ import { ApiError } from '../../../lib/api-client';
 import { blockedOffline } from '../../../lib/connection';
 import { filesApi, type FsEntry } from '../api/files.api';
 import { isDirty, useFiles, type OpenFile } from '../files.store';
+import { useFilesTree } from '../files-tree.store';
 import { useUi } from '../../../stores/ui.store';
 
 const IMG = /\.(png|jpe?g|gif|webp|svg|ico)$/i;
@@ -27,7 +28,7 @@ export interface FilesActions {
 }
 
 /** S8 — Files làm theo việc hằng ngày của developer (PERSONAS §1.1, AC-16/17/36/37). */
-export function FilesView({ projectId, rootPath, path: routePath, line, onRoute, actions, compact }: { projectId: string; rootPath: string; path?: string; line?: number; onRoute: (path?: string, line?: number) => void; actions: FilesActions; compact?: boolean }) {
+export function FilesView({ projectId, rootPath, isHome, path: routePath, line, onRoute, actions, compact }: { projectId: string; rootPath: string; isHome?: boolean; path?: string; line?: number; onRoute: (path?: string, line?: number) => void; actions: FilesActions; compact?: boolean }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const openDialog = useDialogs((s) => s.open);
@@ -35,8 +36,23 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
   const state = store.byProject[projectId] ?? { open: [] };
   const active = state.open.find((f) => f.path === state.active);
   const [side, setSide] = useState<'tree' | 'search'>('tree');
-  const [hidden, setHidden] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const tree = useFilesTree((s) => s.byProject[projectId]);
+  const patchTree = useFilesTree((s) => s.patch);
+  const hidden = tree?.hidden ?? !!isHome; // AC-61: Home hiện file ẩn sẵn
+  const expanded = tree?.expanded ?? {};
+  const setHidden = (v: boolean) => patchTree(projectId, { hidden: v });
+  // AC-60: giữ vị trí cuộn của cây — lưu khi gỡ, trả lại khi gắn (đợi các thư mục con tải xong một nhịp)
+  const treeEl = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = treeEl.current;
+    const y = useFilesTree.getState().byProject[projectId]?.scrollTop ?? 0;
+    const tm = setTimeout(() => el && (el.scrollTop = y), 150);
+    return () => {
+      clearTimeout(tm);
+      if (el) patchTree(projectId, { scrollTop: el.scrollTop });
+    };
+  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const setExpanded = (fn: (s: Record<string, boolean>) => Record<string, boolean>) => patchTree(projectId, { expanded: fn(useFilesTree.getState().byProject[projectId]?.expanded ?? {}) });
   const [filter, setFilter] = useState('');
   const [wrap, setWrap] = useState(false);
   const [diffMode, setDiffMode] = useState(false);
@@ -340,7 +356,7 @@ export function FilesView({ projectId, rootPath, path: routePath, line, onRoute,
         onChange={(e) => void doUpload(e.target.files)}
       />
       <div className={`files ${mobileFile && active ? 'open' : ''} ${compact ? 'compact' : ''}`}>
-        <aside className="ftree">
+        <aside className="ftree" ref={treeEl}>
           <div className="ftool">
             <div className="seg grow">
               <button className={side === 'tree' ? 'on' : ''} onClick={() => setSide('tree')}>

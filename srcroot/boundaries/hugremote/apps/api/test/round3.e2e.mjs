@@ -208,3 +208,16 @@ test('AC-57/58: -L và -R thật qua SSH, trùng cổng 409, sửa cổng, tắt
   await run(sh.id, 'pkill -f "http.server 18765"; echo done-$((1+1))', 'done-2');
   await call('DELETE', `/terminals/${sh.id}`);
 });
+
+test('AC-61: Files trả dotfile khi hidden=true (local + Home trên máy SSH), ẩn khi hidden=false', async (t) => {
+  fs.writeFileSync(path.join(work, 'proj', '.an'), 'x');
+  const names = async (pid, hidden) => (await j(await call('GET', `/projects/${pid}/fs?path=&hidden=${hidden}`))).entries.map((e) => e.name);
+  assert.ok((await names(localProj, true)).includes('.an'));
+  assert.ok(!(await names(localProj, false)).includes('.an'));
+  if (!(await sshUp())) return t.skip('demo-sshd :2222 chưa chạy');
+  const home = (await j(await call('GET', '/hosts/demo-sshd/projects'))).find((p) => p.isHome);
+  assert.ok(home, 'máy SSH phải có dự án Home');
+  const on = await names(home.id, true);
+  assert.ok(on.includes('.bashrc') && on.includes('.ssh'), JSON.stringify(on));
+  assert.ok(!(await names(home.id, false)).includes('.bashrc'));
+});

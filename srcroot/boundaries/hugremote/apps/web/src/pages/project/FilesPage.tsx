@@ -19,6 +19,7 @@ export function FilesPage() {
     <FilesView
       projectId={projectId}
       rootPath={project.rootPath}
+      isHome={project.isHome}
       path={path}
       line={line}
       onRoute={(p, l) => nav(p ? `${base}/${p.split('/').map(encodeURIComponent).join('/')}${l ? `/${l}` : ''}` : base, { replace: !!path && p === path })}

@@ -6,7 +6,6 @@ import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
 import { toast } from '../components/ui/Overlay';
 import { EmptyState, ErrorBox, Skeleton } from '../components/ui/States';
-import { StatusBadge } from '../components/ui/Status';
 import { forwardsApi, freeLocal, type Forward } from '../features/forwards/forwards.api';
 import { useHosts } from '../features/workspace/hooks/useWorkspace';
 import { ApiError } from '../lib/api-client';
@@ -30,7 +29,8 @@ export function ForwardsPage() {
   const all = fw.data ?? [];
   const usedL = all.filter((f) => f.direction === 'L').map((f) => f.localPort);
   const mine = all.filter((f) => f.hostId === host);
-  const notYet = (ports.data ?? []).filter((p) => !mine.some((f) => f.direction === 'L' && f.remotePort === p.port));
+  // bỏ cổng đã chuyển tiếp -L, và cổng do chính -R của mình mở trên máy SSH
+  const notYet = (ports.data ?? []).filter((p) => !mine.some((f) => f.remotePort === p.port));
 
   if (fw.isLoading) return <div className="content" data-screen="S14"><div className="wrap"><Skeleton rows={3} /></div></div>;
   if (fw.isError) return <div className="content" data-screen="S14"><div className="wrap"><ErrorBox title={t('fw.loadError')} onRetry={() => void fw.refetch()} /></div></div>;
@@ -106,7 +106,10 @@ function ForwardRow({ f, hostName, onChanged, onError }: { f: Forward; hostName:
       <span className="mono muted xs">→ {rev ? `${hostName}:` : 'Mac:'}</span>
       <input className={`input mono sm ${bad ? 'err' : ''}`} style={{ width: 84 }} inputMode="numeric" aria-label={rev ? t('fw.remotePortOn', { host: hostName }) : t('fw.localPort')} value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, ''))} onBlur={() => void save()} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
       <span className="hide-mobile">
-        <StatusBadge status={f.status === 'on' ? 'ok' : f.status === 'err' ? 'err' : 'idle'} />
+        <span className="badge">
+          <span className={`dot ${f.status === 'on' ? 'ok' : f.status === 'err' ? 'err' : ''}`} />
+          {t(`fw.st_${f.status}`)}
+        </span>
       </span>
       {f.status === 'off' ? (
         <Button variant="ghost" size="sm" iconOnly icon="plug" label={t('fw.enable')} onClick={() => act(forwardsApi.update(f.id, { enabled: true }))} />

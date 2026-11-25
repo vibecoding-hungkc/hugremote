@@ -63,7 +63,7 @@ type SR = { lang: string; interimResults: boolean; continuous: boolean; start():
 const SpeechRec = (window as unknown as { SpeechRecognition?: new () => SR; webkitSpeechRecognition?: new () => SR }).SpeechRecognition ??
   (window as unknown as { webkitSpeechRecognition?: new () => SR }).webkitSpeechRecognition;
 
-/** C36 — Ô soạn Claude: nháp + đính kèm giữ riêng từng phiên trên trình duyệt này (AC-39), `/` gợi ý lệnh, mic, chip Context/Hạn mức/Model/Quyền. */
+/** C36 — Ô soạn Claude: nháp + đính kèm giữ riêng từng phiên trên trình duyệt này (AC-39), `/` gợi ý lệnh, mic, chip Context/Model/Quyền chỉ giá trị (vòng 3 — AC-62), hạn mức trong popup model (AC-63). */
 export function Composer(p: ComposerProps) {
   const { t, i18n } = useTranslation();
   const online = useConnection((s) => s.online);
@@ -230,20 +230,30 @@ export function Composer(p: ComposerProps) {
               onKeyDown={keys}
             />
             {SpeechRec && <Button variant="ghost" size="sm" iconOnly icon="mic" tone={rec ? 'primary' : undefined} label={rec ? t('claude.micStop') : t('claude.mic')} onClick={mic} />}
-            <Button
-              variant="ghost"
-              size="sm"
-              iconOnly
-              icon={bypass ? 'warn' : 'shield'}
-              tone={bypass ? 'danger' : undefined}
-              label={t('claude.modeIconTip', { mode: modeLabel(p.mode) })}
-              onClick={() => setMenu(menu === 'mode' ? null : 'mode')}
-            />
           </div>
           <div className="crow tools" ref={tools}>
             {menu === 'model' && (
               <div className="menu inline" role="menu">
                 {p.optionsError && <div className="grp">{t('claude.modelProbeFailed')}</div>}
+                {five && (
+                  <div className="mi" style={{ cursor: 'default', gap: 'var(--space-sm)' }}>
+                    {[
+                      [t('claude.limit5hFull'), five.pct, five.resetAt],
+                      ...(week ? [[t('claude.limitWeekFull'), week.pct, week.resetAt] as const] : []),
+                    ].map(([label, pct, reset]) => (
+                      <div key={String(label)} style={{ display: 'grid', gap: 'var(--space-xs)' }}>
+                        <div className="xs" style={{ display: 'flex' }}>
+                          <span className="grow">{label}</span>
+                          <b className="mono">{pct}%</b>
+                          <span className="muted">&nbsp;· {t('claude.resetAt', { at: fmtReset(reset as string | undefined) })}</span>
+                        </div>
+                        <div className={`prog ${Number(pct) >= 80 ? 'warn' : ''}`} role="progressbar" aria-label={String(label)} aria-valuenow={Number(pct)} aria-valuemin={0} aria-valuemax={100}>
+                          <i style={{ width: `${Math.min(100, Number(pct))}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {models.map((m) => (
                   <div
                     key={m.value}
@@ -323,28 +333,12 @@ export function Composer(p: ComposerProps) {
               onClick={p.onToggleFocus}
             />
             <span className="cscroll">
-              <span className={`chip ${used / cap > 0.8 ? 'warn' : ''}`} title={t('claude.contextTip')}>
-                {t('claude.context')}{' '}
+              <span className={`chip ${used / cap > 0.8 ? 'warn' : ''}`} title={`${t('claude.context')} — ${t('claude.contextTip')}`} aria-label={t('claude.context')}>
                 <b className="mono">
                   {fmtK(used)}/{fmtK(cap)}
                 </b>
               </span>
-              {five && (
-                <span
-                  className={`chip ${five.pct >= 80 ? 'warn' : ''}`}
-                  title={t('claude.limitTip', { p5: five.pct, r5: fmtReset(five.resetAt), pw: week?.pct ?? '—', rw: fmtReset(week?.resetAt) })}
-                >
-                  {t('claude.limit5h')} <b>{five.pct}%</b>
-                  {week && (
-                    <span className="hide-mobile">
-                      {' '}
-                      · {t('claude.limitWeek')} <b>{week.pct}%</b>
-                    </span>
-                  )}
-                </span>
-              )}
-              <button className="chip" title={t('claude.modelTip')} onClick={() => setMenu(menu === 'model' ? null : 'model')}>
-                {t('claude.model')}{' '}
+              <button className="chip" title={`${t('claude.model')} — ${t('claude.modelTip')}`} aria-label={t('claude.model')} onClick={() => setMenu(menu === 'model' ? null : 'model')}>
                 <b>
                   {(curModel?.displayName ?? p.model ?? '…').replace(/\s*\(recommended\)/i, '')}
                   {effort ? ` · ${t(`claude.effort_${effort}`, { defaultValue: effort })}` : ''}
@@ -353,11 +347,12 @@ export function Composer(p: ComposerProps) {
               </button>
               <button
                 className={`chip ${bypass ? 'danger' : ''}`}
-                title={t('claude.modeTip', { desc: t(`claude.mode_${p.mode}_d`) })}
+                title={`${t('claude.mode')} — ${t('claude.modeTip', { desc: t(`claude.mode_${p.mode}_d`) })}`}
+                aria-label={`${t('claude.mode')}: ${modeLabel(p.mode)}`}
                 onClick={() => setMenu(menu === 'mode' ? null : 'mode')}
               >
                 <Icon name={bypass ? 'warn' : p.mode === (PermissionMode.PLAN as string) ? 'list' : 'bolt'} />
-                {t('claude.mode')} <b>{modeLabel(p.mode)}</b> ▾
+                <b>{modeLabel(p.mode)}</b> ▾
               </button>
             </span>
             {p.running && <Button variant="danger" size="sm" iconOnly icon="stop" write label={t('claude.stop')} onClick={p.onStop} />}

@@ -133,6 +133,7 @@ export function SplitView({ hostId, projectId, currentId, children }: { hostId: 
             projectId={projectId}
             compact
             rootPath={project.rootPath}
+            isHome={project.isHome}
             path={path}
             line={filePos.line}
             onRoute={(p, l) => setFilePos({ path: p, line: l })}

@@ -74,6 +74,19 @@ export function getTerm(id: string): PooledTerm {
   term.loadAddon(fit);
   term.loadAddon(new WebLinksAddon());
   term.open(el);
+  // OSC 52: Claude CLI (và tmux/vim) tự bắt chuột + vùng chọn rồi gửi nội dung chép qua `ESC ] 52 ; c ; <base64> BEL`.
+  // xterm.js không tự xử lý → không chép được (Authority 2026-11-25). Chỉ cho GHI clipboard; câu hỏi đọc (`?`) bỏ qua.
+  term.parser.registerOscHandler(52, (data) => {
+    const b64 = data.slice(data.indexOf(';') + 1);
+    if (!b64 || b64 === '?') return true;
+    try {
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      void navigator.clipboard?.writeText(new TextDecoder().decode(bytes)).catch(() => undefined);
+    } catch {
+      /* base64 hỏng */
+    }
+    return true;
+  });
   // padding đặt trên .xterm: FitAddon chỉ trừ padding của chính term.element — đặt ở khung ngoài thì hàng cuối bị cắt
   term.element!.style.padding = 'var(--space-sm)';
   const p: PooledTerm = {

@@ -398,7 +398,9 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     if (op.op === 'rate_limit') {
       if (op.info.kind === 'other') return;
       const project = await this.ws.get(s.projectId);
-      this.limitsByHost.set(project.hostId, { ...this.limitsByHost.get(project.hostId), [op.info.kind]: op.info });
+      const cur = this.limitsByHost.get(project.hostId) ?? {};
+      if (op.info.pct === null && cur[op.info.kind]?.pct != null) return; // bản không có % không đè bản có %
+      this.limitsByHost.set(project.hostId, { ...cur, [op.info.kind]: op.info });
       return;
     }
     if (op.op === 'upsert') {

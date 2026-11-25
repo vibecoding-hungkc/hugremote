@@ -9,7 +9,7 @@ import { WorkspaceService } from '../workspace/workspace.service';
 import type { WebSessionDto, WebSessionPatch } from './dto/web-session.dto';
 import { WebSessionEntity } from './web-session.entity';
 
-/** Chỉ trang chạy trên localhost/127.0.0.1 (qua chuyển tiếp cổng) hoặc file trong dự án — G-17, ARCHITECTURE §6. */
+/** Trang http(s) bất kỳ (Authority 2026-11-25 bỏ giới hạn localhost của G-17) hoặc file trong dự án — ARCHITECTURE §6. */
 export function checkWebUrl(raw: string, root?: string): { url: string; name: string } {
   const s = raw.trim();
   if (/^file:\/\//i.test(s)) {
@@ -26,14 +26,16 @@ export function checkWebUrl(raw: string, root?: string): { url: string; name: st
     if (base === undefined || (dec !== base && !dec.startsWith(`${base}/`))) throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
     return { url: `file://${p}`, name: p.split('/').filter(Boolean).pop() ?? p };
   }
+  // có scheme mà không phải http(s) (ftp:, javascript:, data:…) → chặn trước, kẻo bị thêm `http://` thành host hợp lệ
+  if (/^[a-z][\w+.-]*:\/\//i.test(s) ? !/^https?:\/\//i.test(s) : /^(javascript|data|vbscript|blob|about):/i.test(s))
+    throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
   let u: URL;
   try {
     u = new URL(/^https?:\/\//i.test(s) ? s : `http://${s}`);
   } catch {
     throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
   }
-  if (!/^https?:$/.test(u.protocol) || !['localhost', '127.0.0.1'].includes(u.hostname) || u.port === '0')
-    throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
+  if (!/^https?:$/.test(u.protocol) || !u.hostname || u.port === '0') throw AppError.badRequest(ErrorCode.WEB_URL_NOT_ALLOWED);
   return { url: u.toString(), name: `${u.host}${u.pathname === '/' ? '' : u.pathname}` };
 }
 

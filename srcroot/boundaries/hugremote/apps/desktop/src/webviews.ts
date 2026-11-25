@@ -2,8 +2,8 @@ import { BrowserWindow, ipcMain, shell, WebContentsView } from 'electron';
 
 /**
  * Vòng 3 — AC-59: phiên trình duyệt = một `WebContentsView` native đặt đúng ô nội dung của S13.
- * Partition riêng (không chung cookie với HugRemote), sandbox, không Node. Chỉ cho localhost/127.0.0.1 — trang đi
- * qua chuyển tiếp cổng; link khác mở bằng trình duyệt mặc định (G-17, ARCHITECTURE §6).
+ * Partition riêng (không chung cookie với HugRemote), sandbox, không Node. Mọi trang http(s) — Authority 2026-11-25 bỏ
+ * giới hạn chỉ localhost (G-17 cũ); scheme khác (file:, javascript:…) vẫn chặn.
  */
 type Bounds = { x: number; y: number; width: number; height: number };
 const PARTITION = 'persist:hugremote-web';
@@ -11,7 +11,7 @@ const PARTITION = 'persist:hugremote-web';
 export const allowedWebUrl = (u: string) => {
   try {
     const x = new URL(u);
-    return /^https?:$/.test(x.protocol) && (x.hostname === 'localhost' || x.hostname === '127.0.0.1');
+    return /^https?:$/.test(x.protocol);
   } catch {
     return false;
   }

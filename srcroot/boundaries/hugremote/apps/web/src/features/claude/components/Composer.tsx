@@ -270,10 +270,10 @@ export function Composer(p: ComposerProps) {
             {menu === 'model' && (
               <div className="menu inline" role="menu">
                 {p.optionsError && <div className="grp">{t('claude.modelProbeFailed')}</div>}
-                {five && (
+                {(five || week) && (
                   <div className="mi" style={{ cursor: 'default', gap: 'var(--space-sm)' }}>
                     {[
-                      [t('claude.limit5hFull'), five.pct, five.resetAt],
+                      ...(five ? [[t('claude.limit5hFull'), five.pct, five.resetAt] as const] : []),
                       ...(week ? [[t('claude.limitWeekFull'), week.pct, week.resetAt] as const] : []),
                     ].map(([label, pct, reset]) => (
                       <div key={String(label)} style={{ display: 'grid', gap: 'var(--space-xs)' }}>

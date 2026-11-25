@@ -31,15 +31,12 @@ export function ForwardsPage() {
   const [hostSel, setHost] = useState<string | undefined>(params.get('host') ?? undefined);
   const [sheet, setSheet] = useState(false);
   const host = hostSel ?? chips[0]?.id ?? hosts[0]?.id;
-  const ports = useQuery({ queryKey: ['listening', host], queryFn: () => forwardsApi.listening(host!), enabled: !!host, refetchInterval: 10000 });
 
   const err = (e: unknown) => toast(t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') }));
   const refresh = () => qc.invalidateQueries({ queryKey: FK });
   const all = fw.data ?? [];
   const usedL = all.filter((f) => f.direction === 'L').map((f) => f.localPort);
   const mine = all.filter((f) => f.hostId === host);
-  // bỏ cổng đã chuyển tiếp -L, và cổng do chính -R của mình mở trên máy SSH
-  const notYet = (ports.data ?? []).filter((p) => !mine.some((f) => f.remotePort === p.port));
 
   if (fw.isLoading) return <div className="content" data-screen="S14"><div className="wrap"><Skeleton rows={3} /></div></div>;
   if (fw.isError) return <div className="content" data-screen="S14"><div className="wrap"><ErrorBox title={t('fw.loadError')} body={t('fw.loadErrorHint')} onRetry={() => void fw.refetch()} /></div></div>;
@@ -62,28 +59,29 @@ export function ForwardsPage() {
         {mine.length > 0 && (
           <div className="list">
             {mine.map((f) => (
-              <ForwardRow key={f.id} f={f} hostName={hosts.find((h) => h.id === f.hostId)?.name ?? f.hostId} onChanged={refresh} onError={err} />
+              <ForwardRow key={f.id} f={f} onChanged={refresh} onError={err} />
             ))}
           </div>
         )}
-        {notYet.length > 0 && (
-          <>
-            <h2 className="sm" style={{ margin: 'var(--space-lg) 0 var(--space-sm)' }}>{t('fw.listening')}</h2>
-            <div className="list">
-              {notYet.map((p) => (
-                <ListeningRow key={p.port} hostId={host!} hostName={hosts.find((h) => h.id === host)?.name ?? ''} port={p.port} proc={p.proc} suggest={freeLocal(p.port, usedL)} onChanged={refresh} onError={err} />
-              ))}
-            </div>
-          </>
-        )}
-        {!mine.length && !notYet.length && <EmptyState icon="fwd" message={t('fw.empty')} />}
+        {!mine.length && <EmptyState icon="fwd" message={t('fw.empty')} />}
       </div>
-      {sheet && <AddSheet hosts={hosts} hostId={host} usedL={usedL} onClose={() => setSheet(false)} onDone={(h) => (setHost(h), setSheet(false), void refresh())} onError={err} />}
+      {sheet && (
+        <AddSheet
+          hosts={hosts}
+          hostId={host}
+          usedL={usedL}
+          forwards={all}
+          onClose={() => setSheet(false)}
+          onAdded={(h) => (setHost(h), void refresh())}
+          onDone={(h) => (setHost(h), setSheet(false), void refresh())}
+          onError={err}
+        />
+      )}
     </div>
   );
 }
 
-function ForwardRow({ f, hostName, onChanged, onError }: { f: Forward; hostName: string; onChanged: () => void; onError: (e: unknown) => void }) {
+function ForwardRow({ f, onChanged, onError }: { f: Forward; onChanged: () => void; onError: (e: unknown) => void }) {
   const { t } = useTranslation();
   const newSession = useNewSession();
   /** Mở trong phiên trình duyệt của dự án Home của máy (S14 không thuộc dự án nào). */
@@ -113,13 +111,13 @@ function ForwardRow({ f, hostName, onChanged, onError }: { f: Forward; hostName:
       <Icon name={rev ? 'up' : 'down'} />
       <div className="t">
         <div className="t1 mono">
-          {rev ? `Mac localhost:${f.localPort}` : `${hostName} ${f.remoteHost}:${f.remotePort}`}
+          {rev ? `Mac localhost:${f.localPort}` : `${f.remoteHost}:${f.remotePort}`}
           {f.label && <span className="muted xs"> · {f.label}</span>}
         </div>
         {f.status === 'err' && <div className="t2 danger-t">{f.error ? t(`errors.${f.error}`, { defaultValue: f.error }) : t('errors.INTERNAL')}</div>}
       </div>
-      <span className="mono muted xs">→ {rev ? `${hostName}:` : 'Mac:'}</span>
-      <input className={`input mono sm ${bad ? 'err' : ''}`} style={{ width: 84 }} inputMode="numeric" aria-label={rev ? t('fw.remotePortOn', { host: hostName }) : t('fw.localPort')} value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, ''))} onBlur={() => void save()} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
+      <span className="mono muted xs">→ {rev ? 'SSH:' : 'Mac:'}</span>
+      <input className={`input mono sm ${bad ? 'err' : ''}`} style={{ width: 84 }} inputMode="numeric" aria-label={rev ? t('fw.remotePortOn', { host: f.hostId }) : t('fw.localPort')} value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, ''))} onBlur={() => void save()} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
       <span className="hide-mobile">
         <span className="badge">
           <span className={`dot ${f.status === 'on' ? 'ok' : f.status === 'err' ? 'err' : ''}`} />
@@ -139,16 +137,18 @@ function ForwardRow({ f, hostName, onChanged, onError }: { f: Forward; hostName:
   );
 }
 
-function ListeningRow({ hostId, hostName, port, proc, suggest, onChanged, onError }: { hostId: string; hostName: string; port: number; proc: string; suggest: number; onChanged: () => void; onError: (e: unknown) => void }) {
+/** Một cổng máy SSH → ô cổng Mac + *Chuyển tiếp*. `port` rỗng = dòng "cổng khác" (tự nhập cổng máy SSH). */
+function ListeningRow({ hostId, port, proc, suggest, autoStart, usedL, onChanged, onError }: { hostId: string; port?: number; proc?: string; suggest: number; autoStart: boolean; usedL: number[]; onChanged: () => void; onError: (e: unknown) => void }) {
   const { t } = useTranslation();
   const [v, setV] = useState(String(suggest));
+  const [rp, setRp] = useState('');
   const [bad, setBad] = useState(false);
   const [busy, setBusy] = useState(false);
   const go = () => {
     if (busy) return;
     setBusy(true);
     void forwardsApi
-      .create({ direction: 'L', hostId, remotePort: port, localPort: Number(v), label: proc || undefined, autoStart: false })
+      .create({ direction: 'L', hostId, remotePort: port ?? Number(rp), localPort: Number(v), label: proc || undefined, autoStart })
       .then(onChanged, (e) => (setBad(e instanceof ApiError && e.code === 'LOCAL_PORT_IN_USE'), onError(e)))
       .finally(() => setBusy(false));
   };
@@ -156,21 +156,65 @@ function ListeningRow({ hostId, hostName, port, proc, suggest, onChanged, onErro
     <div className="row fw" style={{ cursor: 'default' }}>
       <Icon name="server" />
       <div className="t">
-        <div className="t1 mono">{hostName} localhost:{port}</div>
+        {port !== undefined ? (
+          <div className="t1 mono">localhost:{port}</div>
+        ) : (
+          <div className="t1 mono">
+            localhost:
+            <input
+              className="input mono sm"
+              style={{ width: 112 }}
+              inputMode="numeric"
+              aria-label={t('fw.remote')}
+              placeholder={t('fw.otherPort')}
+              value={rp}
+              onChange={(e) => {
+                const x = e.target.value.replace(/\D/g, '');
+                setRp(x);
+                if (x) setV(String(freeLocal(Number(x), usedL)));
+              }}
+            />
+          </div>
+        )}
         {proc && <div className="t2 mono">{proc}</div>}
       </div>
       <span className="mono muted xs">→ Mac:</span>
-      <input className={`input mono sm ${bad ? 'err' : ''}`} aria-invalid={bad || undefined} style={{ width: 84 }} inputMode="numeric" aria-label={t('fw.localPort')} value={v} onChange={(e) => (setBad(false), setV(e.target.value.replace(/\D/g, '')))} onKeyDown={(e) => e.key === 'Enter' && go()} />
-      <Button size="sm" icon="fwd" loading={busy} onClick={go}>
+      <input className={`input mono sm ${bad ? 'err' : ''}`} aria-invalid={bad || undefined} style={{ width: 84 }} inputMode="numeric" aria-label={t('fw.localPort')} value={v} onChange={(e) => (setBad(false), setV(e.target.value.replace(/\D/g, '')))} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), go())} />
+      <Button size="sm" icon="fwd" loading={busy} disabled={port === undefined && !rp} onClick={go}>
         {t('fw.forward')}
       </Button>
     </div>
   );
 }
 
-function AddSheet({ hosts, hostId, usedL, onClose, onDone, onError }: { hosts: { id: string; name: string }[]; hostId?: string; usedL: number[]; onClose: () => void; onDone: (hostId: string) => void; onError: (e: unknown) => void }) {
+/**
+ * Sheet Thêm (rộng 1/2 màn — Authority 2026-11-25). Máy SSH → Mac: danh sách cổng đang nghe (+ dòng cổng khác),
+ * mỗi dòng ô cổng Mac + *Chuyển tiếp*, không có nút chân. Mac → máy SSH: form như cũ.
+ */
+function AddSheet({
+  hosts,
+  hostId,
+  usedL,
+  forwards,
+  onClose,
+  onAdded,
+  onDone,
+  onError,
+}: {
+  hosts: { id: string; name: string }[];
+  hostId?: string;
+  usedL: number[];
+  forwards: Forward[];
+  onClose: () => void;
+  onAdded: (hostId: string) => void;
+  onDone: (hostId: string) => void;
+  onError: (e: unknown) => void;
+}) {
   const { t } = useTranslation();
   const [h, setH] = useState(hostId ?? hosts[0]?.id ?? '');
+  const ports = useQuery({ queryKey: ['listening', h], queryFn: () => forwardsApi.listening(h), enabled: !!h, refetchInterval: 10000 });
+  // bỏ cổng đã chuyển tiếp -L, và cổng do chính -R mở trên máy SSH
+  const notYet = (ports.data ?? []).filter((p) => !forwards.some((f) => f.hostId === h && f.remotePort === p.port));
   const [dir, setDir] = useState<'L' | 'R'>('L');
   const [remote, setRemote] = useState('localhost:8000');
   const [local, setLocal] = useState(String(freeLocal(8000, usedL)));
@@ -189,7 +233,7 @@ function AddSheet({ hosts, hostId, usedL, onClose, onDone, onError }: { hosts: {
     if (m && !touched) setLocal(String(rev ? Number(m[1]) : freeLocal(Number(m[1]), usedL)));
   };
   const sheetRef = useRef<HTMLFormElement>(null);
-  useModalFocus(sheetRef, onClose, { first: '#fw-r', tab: 'trap' });
+  useModalFocus(sheetRef, onClose, { first: '#fw-h', tab: 'trap' });
   const submit = async () => {
     const m = /^(?:(.+):)?(\d+)$/.exec(remote.trim());
     if (!m) return onError(new ApiError(400, 'VALIDATION_FAILED'));
@@ -209,7 +253,7 @@ function AddSheet({ hosts, hostId, usedL, onClose, onDone, onError }: { hosts: {
   };
   return (
     <div className="scrim" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <form ref={sheetRef} className="sheet" role="dialog" aria-modal="true" aria-label={t('fw.addTitle')} onSubmit={(e) => (e.preventDefault(), void submit())}>
+      <form ref={sheetRef} className="sheet wide" role="dialog" aria-modal="true" aria-label={t('fw.addTitle')} onSubmit={(e) => (e.preventDefault(), rev && void submit())}>
         <div className="sheet-head">
           {t('fw.addTitle')}
           <Button variant="ghost" size="sm" iconOnly icon="x" label={t('common.close')} onClick={onClose} />
@@ -230,6 +274,24 @@ function AddSheet({ hosts, hostId, usedL, onClose, onDone, onError }: { hosts: {
               <button type="button" aria-pressed={rev} className={rev ? 'on' : ''} onClick={() => setDir('R')}><Icon name="up" />{t('fw.dirR')}</button>
             </div>
           </div>
+          <label className="chk" style={{ marginBottom: 'var(--space-lg)' }}>
+            <input type="checkbox" role="switch" className="sw" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
+            {t('fw.autoStart')}
+          </label>
+          {!rev && (
+            <>
+              <h2 className="sm" style={{ margin: '0 0 var(--space-sm)' }}>{t('fw.listening')}</h2>
+              {ports.isLoading && <Skeleton rows={2} />}
+              <div className="list">
+                {notYet.map((p) => (
+                  <ListeningRow key={`${h}:${p.port}`} hostId={h} port={p.port} proc={p.proc} suggest={freeLocal(p.port, usedL)} autoStart={auto} usedL={usedL} onChanged={() => onAdded(h)} onError={onError} />
+                ))}
+                <ListeningRow key={`${h}:other`} hostId={h} suggest={freeLocal(8000, usedL)} autoStart={auto} usedL={usedL} onChanged={() => onAdded(h)} onError={onError} />
+              </div>
+            </>
+          )}
+          {rev && (
+          <>
           <div className="grid2" style={{ marginBottom: 'var(--space-lg)' }}>
             <Field id="fw-r" mono label={rev ? t('fw.remoteOpen') : t('fw.remote')} error={fieldErr.remote} value={remote} onChange={(e) => (setFieldErr({}), onRemote(e.target.value))} />
             <Field id="fw-l" mono label={rev ? t('fw.localService') : t('fw.localPort')} error={fieldErr.local} inputMode="numeric" value={local} onChange={(e) => {
@@ -244,16 +306,16 @@ function AddSheet({ hosts, hostId, usedL, onClose, onDone, onError }: { hosts: {
             <label htmlFor="fw-n">{t('fw.label')}</label>
             <input id="fw-n" className="input" value={label} onChange={(e) => setLabel(e.target.value)} />
           </div>
-          <label className="chk">
-            <input type="checkbox" role="switch" className="sw" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
-            {t('fw.autoStart')}
-          </label>
+          </>
+          )}
         </div>
         <div className="sheet-foot">
-          <Button type="button" onClick={onClose}>{t('common.cancel')}</Button>
-          <Button type="submit" variant="primary" icon="fwd" loading={busy}>
-            {t('fw.forward')}
-          </Button>
+          <Button type="button" onClick={onClose}>{rev ? t('common.cancel') : t('common.close')}</Button>
+          {rev && (
+            <Button type="submit" variant="primary" icon="fwd" loading={busy}>
+              {t('fw.forward')}
+            </Button>
+          )}
         </div>
       </form>
     </div>

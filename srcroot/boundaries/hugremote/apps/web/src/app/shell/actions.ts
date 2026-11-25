@@ -106,7 +106,7 @@ export async function renameSessionApi(qc: QueryClient, s: SessionItem, name: st
   await qc.invalidateQueries({ queryKey: sessionKey(s) });
 }
 /** Phiên trình duyệt không có tiến trình để dừng → không hỏi xác nhận khi đóng. */
-export const closeNeedsConfirm = (s: SessionItem) => s.kind !== 'web' && (s.status === 'running' || s.status === 'awaiting');
+export const closeNeedsConfirm = (s: SessionItem) => s.kind === 'claude' || (s.kind !== 'web' && (s.status === 'running' || s.status === 'awaiting'));
 
 /** Trang mặc định của phiên trình duyệt mới: chuyển tiếp -L đầu tiên đang bật của máy, không có thì localhost:3000. */
 async function defaultWebUrl(hostId: string) {

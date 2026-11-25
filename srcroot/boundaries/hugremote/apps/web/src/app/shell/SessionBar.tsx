@@ -34,7 +34,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
       }
     };
     if (!closeNeedsConfirm(s)) return void run();
-    openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t('session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
+    openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t(s.kind === 'claude' ? 'session.closeBodyClaude' : 'session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
   const plusMenu = usePlusMenu();
   const plus = (e: MouseEvent<HTMLElement>) => {
@@ -74,7 +74,6 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
             <span className="tn">{s.name}</span>
             {s.bypass && <Icon name="warn" className="del" />}
             <StatusDot status={s.status} />
-            {s.kind !== 'claude' ? (
             <Button
               variant="ghost"
               size="sm"
@@ -86,9 +85,6 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
                 close(s);
               }}
             />
-            ) : (
-              <span style={{ width: 'var(--space-xs)' }} />
-            )}
           </div>
         ))}
       </div>

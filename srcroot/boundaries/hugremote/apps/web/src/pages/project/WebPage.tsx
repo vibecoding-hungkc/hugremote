@@ -11,7 +11,7 @@ import { Icon } from '../../components/ui/Icon';
 import { toast } from '../../components/ui/Overlay';
 import { ErrorBox, Skeleton } from '../../components/ui/States';
 import { filesApi } from '../../features/files/api/files.api';
-import { forwardsApi, freeLocal } from '../../features/forwards/forwards.api';
+import { forwardsApi } from '../../features/forwards/forwards.api';
 import { desktop, webApi, type WebViewState } from '../../features/web/web.api';
 import { qk, useProject } from '../../features/workspace/hooks/useWorkspace';
 import { ApiError } from '../../lib/api-client';
@@ -39,8 +39,6 @@ export function WebPage() {
 
   useEffect(() => setAddr(url), [url]);
   const fw = useQuery({ queryKey: ['port-forwards'], queryFn: forwardsApi.list, enabled: ssh });
-  const ports = useQuery({ queryKey: ['listening', hostId], queryFn: () => forwardsApi.listening(hostId), enabled: ssh, refetchInterval: 15000 });
-  const fwOf = (remotePort: number) => fw.data?.find((f) => f.hostId === hostId && f.direction === 'L' && f.remotePort === remotePort && f.enabled);
   const port = Number(/:(\d+)/.exec(url.replace(/^file:\/\//, ''))?.[1] ?? 0);
   const viaFw = fw.data?.find((f) => f.hostId === hostId && f.direction === 'L' && f.localPort === port);
 
@@ -61,7 +59,7 @@ export function WebPage() {
       if (s.id !== cur.id) return;
       setSt(s);
       // trang tự đi sang link khác (bấm link trong trang) → lưu lại địa chỉ của phiên
-      if (s.url && s.url !== url && !s.loading && /^https?:\/\/(localhost|127\.0\.0\.1)/.test(s.url)) void webApi.patch(cur.id, { url: s.url }).then(() => qc.invalidateQueries({ queryKey: qk.web }));
+      if (s.url && s.url !== url && !s.loading && /^https?:\/\//.test(s.url)) void webApi.patch(cur.id, { url: s.url }).then(() => qc.invalidateQueries({ queryKey: qk.web }));
     });
     return () => {
       ro.disconnect();
@@ -95,20 +93,6 @@ export function WebPage() {
       err(e);
     }
   };
-  /** Bấm chip cổng của máy SSH: đã chuyển tiếp → mở cổng trên Mac; chưa → chuyển tiếp rồi mở. */
-  const openPort = async (remotePort: number) => {
-    let f = fwOf(remotePort);
-    try {
-      if (!f) {
-        f = await forwardsApi.create({ direction: 'L', hostId, remotePort, localPort: freeLocal(remotePort, (fw.data ?? []).filter((x) => x.direction === 'L').map((x) => x.localPort)), autoStart: false });
-        await qc.invalidateQueries({ queryKey: ['port-forwards'] });
-      }
-      await go(`http://localhost:${f.localPort}/`);
-    } catch (e) {
-      err(e);
-    }
-  };
-
   return (
     <div className="content flush" data-screen="S13" aria-label={t('web.title')}>
       <SessionBar hostId={hostId} projectId={projectId} currentId={sid} />
@@ -126,16 +110,6 @@ export function WebPage() {
         {!isFile && <Button variant="ghost" size="sm" iconOnly icon="ext" label={t('web.external')} onClick={() => bridge?.web.nav(cur.id, 'external')} />}
         {!isFile && <Button variant="ghost" size="sm" iconOnly icon="cog" label={t('web.devtools')} onClick={() => bridge?.web.nav(cur.id, 'devtools')} />}
       </div>
-      {ssh && !!ports.data?.length && (
-        <div className="btns" style={{ padding: 'var(--space-xs) var(--space-sm)', borderBottom: '1px solid var(--color-divider)' }}>
-          <span className="muted xs">{hostId}</span>
-          {ports.data.filter((p) => !fw.data?.some((f) => f.hostId === hostId && f.direction === 'R' && f.remotePort === p.port)).map((p) => (
-            <button key={p.port} className={`chip ${viaFw?.remotePort === p.port ? 'on' : ''}`} title={p.proc} onClick={() => void openPort(p.port)}>
-              :{p.port} {p.proc && <span className="muted xs">{p.proc}</span>}
-            </button>
-          ))}
-        </div>
-      )}
       {isFile ? (
         <FileBody projectId={projectId} rootPath={project?.rootPath ?? ''} url={url} sid={cur.id} />
       ) : !bridge ? (
@@ -169,7 +143,9 @@ function FileBody({ projectId, rootPath, url, sid }: { projectId: string; rootPa
   if (q.isLoading) return <div className="content"><Skeleton rows={4} /></div>;
   if (q.isError || !q.data) return <div className="content"><div className="wrap"><ErrorBox title={t('web.fileError', { path: rel })} onRetry={() => void q.refetch()} /></div></div>;
   const text = (q.data as { content?: string }).content ?? '';
-  if (/\.html?$/i.test(rel)) return <iframe title={rel} sandbox="" srcDoc={text} style={{ flex: 1, border: 0, background: 'var(--color-bg)' }} />;
+  // script chạy được (bấm thao tác) nhưng không `allow-same-origin` → trang không đọc được cookie/phiên của HugRemote
+  if (/\.html?$/i.test(rel))
+    return <iframe title={rel} sandbox="allow-scripts allow-forms allow-modals allow-popups" srcDoc={text} style={{ flex: 1, border: 0, background: 'var(--color-bg)' }} />;
   return (
     <div className="pane" style={{ overflow: 'auto', background: 'var(--color-bg)' }}>
       <div className="wrap" style={{ padding: 'var(--space-xl)' }}>

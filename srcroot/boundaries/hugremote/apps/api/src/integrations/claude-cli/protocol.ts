@@ -45,6 +45,20 @@ export function parseRateLimit(m: Record<string, unknown>): RateLimitInfo | null
   return { kind, pct, resetAt: ra, status: typeof r.status === 'string' ? r.status : '' };
 }
 
+/**
+ * Mọi cửa sổ hạn mức trong một `rate_limit_event`. CLI 2.1.33x chỉ để `utilization` trong
+ * `rate_limit_info.unifiedWindows.<five_hour|seven_day…>` (không có ở cấp trên) — đo thật 2026-11-25.
+ */
+export function parseRateLimits(m: Record<string, unknown>): RateLimitInfo[] {
+  const r = (m.rate_limit_info ?? m.rateLimitInfo) as Record<string, unknown> | undefined;
+  const top = parseRateLimit(m);
+  const wins = (r?.unifiedWindows ?? {}) as Record<string, Record<string, unknown>>;
+  const fromWins = Object.entries(wins)
+    .map(([type, w]) => parseRateLimit({ rate_limit_info: { ...w, rateLimitType: type } }))
+    .filter((x): x is RateLimitInfo => !!x);
+  return [...(top ? [top] : []), ...fromWins];
+}
+
 /** Tách stdout thành dòng; giữ phần dở dang tới khi có `\n` (không cắt ngang ký tự UTF-8 vì gộp Buffer trước khi decode). */
 export class JsonlDecoder {
   private buf = Buffer.alloc(0);
@@ -222,8 +236,7 @@ export class Normalizer {
       const r = m.response as { request_id?: string; response?: Record<string, unknown> };
       if (r?.request_id) out.push({ op: 'control_response', requestId: r.request_id, response: r.response ?? {} });
     } else if (type === 'rate_limit_event') {
-      const info = parseRateLimit(m);
-      if (info) out.push({ op: 'rate_limit', info });
+      for (const info of parseRateLimits(m)) out.push({ op: 'rate_limit', info });
     } else if (type === 'result') {
       const u = (m.usage ?? {}) as Record<string, number>;
       const isError = m.is_error === true || (typeof m.subtype === 'string' && m.subtype !== 'success');

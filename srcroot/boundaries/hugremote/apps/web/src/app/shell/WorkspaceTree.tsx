@@ -129,7 +129,7 @@ export function WorkspaceTree() {
       if (curSid === s.id) nav(curHost && curProject ? `${pbase(curHost, curProject)}/sessions` : '/');
     };
     if (!closeNeedsConfirm(s)) return void run();
-    openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t('session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
+    openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t(s.kind === 'claude' ? 'session.closeBodyClaude' : 'session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
 
   const hostItems = (hostId: string): MenuItem[] => [

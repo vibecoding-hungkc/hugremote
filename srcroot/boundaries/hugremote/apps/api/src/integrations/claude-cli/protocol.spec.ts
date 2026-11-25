@@ -1,4 +1,4 @@
-import { JsonlDecoder, Normalizer, parseRateLimit, permissionResponse } from './protocol';
+import { JsonlDecoder, Normalizer, parseRateLimit, parseRateLimits, permissionResponse } from './protocol';
 import { parseInit } from './probe';
 
 describe('JsonlDecoder', () => {
@@ -143,6 +143,22 @@ describe('parseRateLimit', () => {
     expect(r).toEqual({ kind: 'five_hour', pct: 81, resetAt: new Date(1_800_000_000_000).toISOString(), status: 'allowed_warning' });
     expect(parseRateLimit({ rate_limit_info: { rateLimitType: 'seven_day_opus' } })).toMatchObject({ kind: 'weekly', pct: null });
     expect(parseRateLimit({})).toBeNull();
+  });
+  it('đọc % trong unifiedWindows (dạng CLI 2.1.332 thật)', () => {
+    const l = parseRateLimits({
+      type: 'rate_limit_event',
+      rate_limit_info: {
+        status: 'allowed',
+        resetsAt: 1795734000,
+        rateLimitType: 'seven_day',
+        unifiedWindows: {
+          seven_day: { utilization: 0.53, resetsAt: 1795734000, status: 'allowed' },
+          five_hour: { utilization: 0.12, resetsAt: 1795700000, status: 'allowed' },
+        },
+      },
+    });
+    expect(l.find((x) => x.kind === 'weekly' && x.pct === 53)).toBeTruthy();
+    expect(l.find((x) => x.kind === 'five_hour')?.pct).toBe(12);
   });
 });
 

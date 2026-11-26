@@ -28,7 +28,7 @@ describe('ClaudeTurn — CLI thoát chậm sau result', () => {
     const ops: string[] = [];
     let exitInfo: { code: number | null; gotResult: boolean } | undefined;
     const turn = new ClaudeTurn('t', { onOp: (o) => ops.push(o.op), onExit: (i) => (exitInfo = i) });
-    await turn.start({ spawnStream: async () => f.proc } as unknown as HostRuntime, opts, 'hi');
+    await turn.start({ spawnStream: () => Promise.resolve(f.proc) } as unknown as HostRuntime, opts, 'hi');
     f.say({ type: 'result', subtype: 'success', is_error: false, usage: {} });
     jest.advanceTimersByTime(3000); // không trả get_context_usage → nhả result sau 3s
     expect(ops).toContain('result');
@@ -43,7 +43,7 @@ describe('ClaudeTurn — CLI thoát chậm sau result', () => {
   it('dừng sau result: kết thúc thẳng, không ghi interrupt vào stdin đã đóng', async () => {
     const f = fakeProc();
     const turn = new ClaudeTurn('t', { onOp: () => undefined, onExit: () => undefined });
-    await turn.start({ spawnStream: async () => f.proc } as unknown as HostRuntime, opts, 'hi');
+    await turn.start({ spawnStream: () => Promise.resolve(f.proc) } as unknown as HostRuntime, opts, 'hi');
     f.say({ type: 'result', subtype: 'success', is_error: false, usage: {} });
     jest.advanceTimersByTime(3000);
     const n = f.writes.length;

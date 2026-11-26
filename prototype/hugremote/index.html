@@ -560,6 +560,8 @@ input.sw:checked::after { left: 16px; }
   .proto { bottom: calc(var(--bar-h) + var(--space-xl)); }
   .proto[open] { right: var(--space-md); }
 }
+/* Vùng bôi đen trong editor/terminal: màu nhấn 35% — trước trùng màu dòng đang đứng nên không thấy (Authority 2026-11-26) */
+.codewrap ::selection, .term ::selection { background: color-mix(in srgb, var(--color-primary) 35%, transparent); }
 /* Thanh cuộn theo token (Authority 2026-11-26) */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }

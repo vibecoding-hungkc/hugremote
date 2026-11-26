@@ -36,7 +36,8 @@ function theme() {
     background: cssVar('--term-bg'),
     foreground: cssVar('--term-text'),
     cursor: cssVar('--term-text'),
-    selectionBackground: cssVar('--color-surface-raised'),
+    // màu nhấn trong suốt 35% (`#rrggbb` + alpha) — nền xám cũ khó thấy đã bôi hay chưa
+    selectionBackground: /^#[0-9a-f]{6}$/i.test(cssVar('--color-primary')) ? `${cssVar('--color-primary')}59` : cssVar('--color-surface-raised'),
     black: cssVar('--term-bg'),
     brightBlack: cssVar('--term-muted'),
     red: cssVar('--term-red'),

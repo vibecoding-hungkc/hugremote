@@ -31,8 +31,12 @@ const theme = EditorView.theme({
   '.cm-content': { caretColor: 'var(--color-text)', padding: 'var(--space-md) 0' },
   '.cm-gutters': { backgroundColor: 'var(--color-bg)', color: 'var(--color-text-muted)', border: 'none' },
   '.cm-lineNumbers .cm-gutterElement': { padding: '0 var(--space-md) 0 var(--space-sm)', minWidth: '44px' },
-  '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'var(--color-surface-raised)' },
-  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground': { backgroundColor: 'var(--color-surface-raised)' },
+  // dòng đang đứng nằm TRÊN lớp bôi đen của CodeMirror → phải trong suốt một phần, không thì che mất vùng chọn;
+  // vùng chọn dùng màu nhấn (trước trùng màu dòng đang đứng nên bôi rồi cũng không thấy — Authority 2026-11-26)
+  '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'color-mix(in srgb, var(--color-surface-raised) 60%, transparent)' },
+  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+    backgroundColor: 'color-mix(in srgb, var(--color-primary) 35%, transparent)',
+  },
   '.cm-searchMatch': { backgroundColor: 'var(--color-warning)', color: 'var(--color-bg)', borderRadius: '2px' },
   '.cm-searchMatch-selected': { outline: '2px solid var(--color-primary)' },
   '.cm-panels': { backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderTop: '1px solid var(--color-divider)' },

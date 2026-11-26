@@ -80,25 +80,23 @@ export class ForwardsService implements OnModuleInit, OnModuleDestroy {
    * Đích có ai nghe không — trước đây chỉ biết khi có kết nối thật đi qua, nên cổng đích tắt mà vẫn hiện "đang bật"
    * (Authority 2026-11-26). `-R`: thử nối cổng trên máy local · `-L`: mở thử một kênh SSH tới cổng trên máy SSH rồi đóng ngay.
    */
-  private targetUp(f: ForwardDto): Promise<boolean> {
-    const done = (fn: (ok: (v: boolean) => void) => void) =>
-      new Promise<boolean>((res) => {
-        const t = setTimeout(() => res(false), PROBE_MS);
-        fn((v) => (clearTimeout(t), res(v)));
-      });
+  private async targetUp(f: ForwardDto): Promise<boolean> {
     if (f.direction === 'R') return localPortOpen(f.localPort);
-    return done(async (ok) => {
-      try {
-        const c = await this.hosts.pool.client(await this.hosts.target(f.hostId));
-        c.forwardOut('127.0.0.1', 0, f.remoteHost, f.remotePort, (err, stream) => {
-          if (err) return ok(false);
-          stream.on('error', () => undefined);
-          stream.close();
-          ok(true);
-        });
-      } catch {
-        ok(false);
-      }
+    let c: Client;
+    try {
+      c = await this.hosts.pool.client(await this.hosts.target(f.hostId));
+    } catch {
+      return false;
+    }
+    return new Promise<boolean>((res) => {
+      const t = setTimeout(() => res(false), PROBE_MS);
+      c.forwardOut('127.0.0.1', 0, f.remoteHost, f.remotePort, (err, stream) => {
+        clearTimeout(t);
+        if (err) return res(false);
+        stream.on('error', () => undefined);
+        stream.close();
+        res(true);
+      });
     });
   }
 

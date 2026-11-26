@@ -40,7 +40,12 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const plusMenu = usePlusMenu();
   const plus = (e: MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    void plusMenu(hostId, projectId).then((items) => setMenu({ rect, items }));
+    let first = true; // lần sau (tmux về) chỉ cập nhật khi menu này còn mở — đóng rồi thì không bật lại
+    plusMenu(hostId, projectId, (items) => {
+      const f = first; // updater của setMenu chạy lúc render, sau dòng `first = false` → chụp giá trị trước
+      first = false;
+      setMenu((m) => (f || m?.rect === rect ? { rect, items } : m));
+    });
   };
   const picker = (e: MouseEvent<HTMLElement>) =>
     pop(

@@ -174,6 +174,10 @@ export function Composer(p: ComposerProps) {
     } else if (slash.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       e.preventDefault();
       setSlashIdx((si + (e.key === 'ArrowDown' ? 1 : slash.length - 1)) % slash.length);
+    } else if (slash.length && e.key === 'Tab' && !e.shiftKey) {
+      // Tab = chọn lệnh đang sáng như CLI (Authority 2026-11-26); chọn xong có dấu cách → danh sách đóng, Tab lại rời ô như thường
+      e.preventDefault();
+      setDraft((d) => ({ ...d, text: `/${slash[si].name} ` }));
     } else if (e.key === 'Tab' && e.shiftKey) {
       e.preventDefault();
       cycle();

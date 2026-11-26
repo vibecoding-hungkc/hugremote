@@ -186,17 +186,18 @@ export function WorkspaceTree() {
                         }}
                         onMore={(e) => {
                           const rect = e.currentTarget.getBoundingClientRect();
-                          void plusMenu(h.id, p.id).then((items) =>
+                          let first = true; // tmux về sau 2–3s: chỉ cập nhật khi menu này còn mở
+                          plusMenu(h.id, p.id, (items) => {
                             // danh sách tmux có thể dài → để cuối, thao tác dự án không bị đẩy khỏi tầm nhìn
-                            setMenu({
-                              rect,
-                              items: [
-                                ...items.filter((x) => !x.group),
-                                ...projectItems(h.id, p).map((x) => ({ ...x, group: t('tree.projectGroup') })),
-                                ...items.filter((x) => x.group),
-                              ],
-                            }),
-                          );
+                            const all = [
+                              ...items.filter((x) => !x.group),
+                              ...projectItems(h.id, p).map((x) => ({ ...x, group: t('tree.projectGroup') })),
+                              ...items.filter((x) => x.group),
+                            ];
+                            const f = first; // updater chạy lúc render, sau `first = false` → chụp trước
+                            first = false;
+                            setMenu((m) => (f || m?.rect === rect ? { rect, items: all } : m));
+                          });
                         }}
                         moreLabel={t('tree.projectActions', { name: p.name })}
                       />

@@ -93,7 +93,7 @@ export function Menu({ anchor, items, onClose, width = 290, children }: { anchor
     const h = ref.current?.offsetHeight ?? 0;
     const below = anchor.bottom + 4;
     setY(below + h <= innerHeight - 8 ? below : Math.max(8, Math.min(anchor.top - 4 - h, innerHeight - 8 - h)));
-  }, [anchor]);
+  }, [anchor, items?.length]); // mục về sau (tmux ls) làm menu cao thêm → đo lại
   let lastGroup: string | undefined;
   return createPortal(
     <div className="scrim" style={{ background: 'transparent' }} onClick={onClose}>
@@ -103,7 +103,7 @@ export function Menu({ anchor, items, onClose, width = 290, children }: { anchor
           const head = it.group && it.group !== lastGroup ? <div className="grp">{it.group}</div> : null;
           lastGroup = it.group ?? lastGroup;
           return (
-            <div key={i}>
+            <div key={`${it.group ?? ''}|${it.label}|${i}`}>
               {head}
               <div
                 className={`mi ${it.danger ? 'danger' : ''}`}

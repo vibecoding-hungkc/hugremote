@@ -63,29 +63,34 @@ async function tmuxBase(projectId: string): Promise<string> {
 /**
  * Mục của nút + (thanh phiên, cây dự án): Claude · Terminal · tmux mới (chỉ máy SSH, Q-6) + nhóm session tmux có sẵn.
  * tmux ls lấy lúc mở menu; máy chưa cài tmux → không có mục tmux.
+ * `show` gọi ngay với mục cố định rồi gọi lại khi tmux ls về — tmux ls qua SSH mất 2–3s, menu không được chờ (Authority 2026-11-26).
  */
 export function usePlusMenu() {
   const nav = useNavigate();
   const { t } = useTranslation();
   const newSession = useNewSession();
-  return async (hostId: string, projectId: string): Promise<MenuItem[]> => {
+  return (hostId: string, projectId: string, show: (items: MenuItem[]) => void) => {
     const items: MenuItem[] = [
       { icon: 'claude', label: t('session.newClaude'), kbd: '⌥⇧N', onSelect: () => void newSession('claude', hostId, projectId) },
       { icon: 'term', label: t('session.newTerminal'), kbd: '⌥⇧T', onSelect: () => void newSession('terminal', hostId, projectId) },
+      ...(desktop() ? [{ icon: 'globe' as const, label: t('session.newWeb'), kbd: '⌥⇧B', onSelect: () => void newSession('web', hostId, projectId) }] : []),
     ];
-    const web: MenuItem[] = desktop() ? [{ icon: 'globe', label: t('session.newWeb'), kbd: '⌥⇧B', onSelect: () => void newSession('web', hostId, projectId) }] : [];
-    if (hostId === 'local') return [...items, ...web];
-    const ls = await workspaceApi.tmuxSessions(projectId).catch(() => null);
-    if (!ls) return [...items, ...web];
-    items.push({ icon: 'tmux', label: t('session.newTmux'), kbd: '⌥⇧M', onSelect: () => void newSession('tmux', hostId, projectId) }, ...web);
-    for (const x of ls)
-      items.push({
-        group: t('session.tmuxOn', { host: hostId }), // hostId = alias trong ssh config (tên hiện ở cây)
-        icon: 'tmux',
-        label: `${x.name} · ${t('session.tmuxWindows', { n: x.windows })}${x.sessionId ? ' · ' + t('session.tmuxOpen') : ''}`,
-        onSelect: () => (x.sessionId ? nav(`${pbase(hostId, projectId)}/terminal/${x.sessionId}`) : void newSession('tmux', hostId, projectId, { tmux: x.name })),
-      });
-    return items;
+    show(items);
+    if (hostId === 'local') return;
+    void workspaceApi.tmuxSessions(projectId).then(
+      (ls) =>
+        show([
+          ...items,
+          { icon: 'tmux', label: t('session.newTmux'), kbd: '⌥⇧M', onSelect: () => void newSession('tmux', hostId, projectId) },
+          ...ls.map((x) => ({
+            group: t('session.tmuxOn', { host: hostId }), // hostId = alias trong ssh config (tên hiện ở cây)
+            icon: 'tmux' as const,
+            label: `${x.name} · ${t('session.tmuxWindows', { n: x.windows })}${x.sessionId ? ' · ' + t('session.tmuxOpen') : ''}`,
+            onSelect: () => (x.sessionId ? nav(`${pbase(hostId, projectId)}/terminal/${x.sessionId}`) : void newSession('tmux', hostId, projectId, { tmux: x.name })),
+          })),
+        ]),
+      () => undefined,
+    );
   };
 }
 

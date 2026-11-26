@@ -958,7 +958,7 @@ function topbar(r, title) {
     <span class="only-desk">${ib('sidebar', (ui.noside ? 'Hiện' : 'Ẩn') + ' không gian làm việc (⌘\\)', 'ui.noside=!ui.noside;render()')}</span>
     <span class="only-narrow hide-mobile">${ib('menu', 'Mở không gian làm việc', 'ui.sideOpen=!ui.sideOpen;render()')}</span>
     ${backTo ? `<span class="only-mobile">${ib('back', 'Về không gian làm việc', `go('${backTo}')`)}</span>` : ''}
-    <div class="grow">${h ? `<nav class="crumb" aria-label="Phạm vi hiện hành">${ic(h.kind === 'local' ? 'home' : 'server')}<b>${esc(h.name)}</b>${p ? `<span class="sep">›</span><b>${esc(p.name)}</b><span class="muted mono xs hide-mobile" title="${p.path}">${midTrunc(p.path, 40)}</span>` : ''}</nav>` : `<b>${title}</b>`}</div>
+    <div class="grow">${h ? `<nav class="crumb" aria-label="Phạm vi hiện hành">${ic(h.kind === 'local' ? 'home' : 'server')}<b>${esc(h.name)}</b>${p ? `<span class="sep">›</span><b title="${p.path}">${esc(p.name)}</b>` : ''}</nav>` : `<b>${title}</b>`}</div>
     ${inProject(r) ? projTabs(r, 'ptabs-d') : ''}
     ${inProject(r) && !['term', 'claude', 'web'].includes(r.name) ? notifBtn(r) : ''}
     <span class="only-mobile">${ib('search', 'Chuyển nhanh (⌘K)', 'openSpot()')}</span>
@@ -1703,8 +1703,8 @@ function DSPage() {
     stage('mở', sheet({}), 620)
     + stage('đang lưu (Lưu khoá, chữ "Đang lưu…")', sheet({}).replace('onclick="saveHost()">Lưu</button>', 'disabled>Đang lưu…</button>'), 620)
     + stage('lỗi lưu (giữ dữ liệu đang nhập; khung tự cuộn tới câu lỗi)', sheet({ formErr: 'Không ghi được ~/.ssh/config (file chỉ đọc) — thông tin bạn nhập vẫn giữ. Sửa quyền file rồi bấm Lưu lại.' }).replace('class="sheet-body"', 'class="sheet-body" data-ds-end'), 620), 'wide');
-  const c7 = sec(7, 'Breadcrumb phạm vi', '<span class="mono">máy › dự án</span> và đường dẫn.',
-    cell('thường', `<nav class="crumb">${ic('server')}<b>demo-sshd</b><span class="sep">›</span><b>demo-api</b><span class="muted mono xs ell">~/projects/demo-api</span></nav>`)
+  const c7 = sec(7, 'Breadcrumb phạm vi', '<span class="mono">máy › dự án</span> — đường dẫn chỉ ở tooltip.',
+    cell('thường', `<nav class="crumb">${ic('server')}<b>demo-sshd</b><span class="sep">›</span><b title="~/projects/demo-api">demo-api</b></nav>`)
     + cell('rút gọn giữa khi quá dài', `<nav class="crumb" style="max-width:280px">${ic('server')}<b>demo-behind-jump</b><span class="sep">›</span><span class="muted">…</span><span class="sep">›</span><b title="~/projects/khach-hang/gara-oto/api-dat-lich">api-dat-lich</b></nav>${gap}<div class="ehead" style="max-width:320px"><span class="fname">bookings.controller.ts</span><span class="fdir" title="~/projects/khach-hang/gara-oto/api-dat-lich/src/bookings">&lrm;~/projects/khach-hang/gara-oto/api-dat-lich/src/bookings&lrm;</span></div>`));
   const c8 = sec(8, 'Thanh phiên', 'Tab trộn Claude + terminal (Claude trước) · Đổi tên · Chia ô · + · chuông thông báo (C38). Dưới 768px dải tab đổi thành bộ chọn phiên C32.',
     cell('tab đang xem (Thêm API đặt lịch) · tab khác · tab đã kết thúc (migrate, gạch ngang)', W({}, () => dsNoId(sessionBar(r, 'c1'))), 'flush')

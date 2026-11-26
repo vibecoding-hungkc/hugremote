@@ -10,7 +10,6 @@ import { useMe } from '../../features/auth/hooks/useMe';
 import { useHosts, useProject } from '../../features/workspace/hooks/useWorkspace';
 import { useConnection } from '../../lib/connection';
 import { startEvents } from '../../lib/events';
-import { midTrunc } from '../../lib/text';
 import { useUi } from '../../stores/ui.store';
 import { ClaudeHistory } from './ClaudeHistory';
 import { NotifBell } from './NotifBell';
@@ -74,10 +73,8 @@ function Topbar() {
               {project.data && (
                 <>
                   <span className="sep">›</span>
-                  <b>{project.data.name}</b>
-                  <span className="muted mono xs hide-mobile" title={project.data.rootPath}>
-                    {midTrunc(project.data.rootPath, 40)}
-                  </span>
+                  {/* đường dẫn chỉ ở tooltip — Authority 2026-11-26 bỏ khỏi header */}
+                  <b title={project.data.rootPath}>{project.data.name}</b>
                 </>
               )}
             </nav>

@@ -282,9 +282,8 @@ export class SshPool {
       );
       throw e;
     }
-    // TCP_NODELAY như OpenSSH với phiên tương tác: ssh2 để Nagle bật → phím gõ nhanh nằm chờ ACK của phím trước
-    // (delayed ACK ~40ms+), gõ/xoá trên máy SSH bị khựng (Authority 2026-11-26). Có máy trung gian thì socket TCP là
-    // của jump — jump cũng mở qua chính hàm này nên đã được set; ở đây sock là stream forwardOut, lệnh tự bỏ qua.
+    // TCP_NODELAY như OpenSSH: ssh2 để Nagle bật → phím gõ chờ ACK phím trước, terminal SSH khựng (Authority 2026-11-26).
+    // Qua máy trung gian: jump đã set khi mở bằng chính hàm này; sock ở đây là stream forwardOut nên lệnh tự bỏ qua.
     client.setNoDelay(true);
     this.log.log(`${t.id}: đã nối ${t.user}@${t.hostName}:${t.port}${jump ? ' qua máy trung gian' : ''}`);
     return { client, jump };

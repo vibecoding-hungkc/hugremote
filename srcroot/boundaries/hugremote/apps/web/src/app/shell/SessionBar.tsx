@@ -8,7 +8,7 @@ import { Icon } from '../../components/ui/Icon';
 import { Menu, type MenuItem } from '../../components/ui/Overlay';
 import { StatusDot } from '../../components/ui/Status';
 import { useUi } from '../../stores/ui.store';
-import { closeNeedsConfirm, closeSessionApi, renameSessionApi, usePlusMenu } from './actions';
+import { closeNeedsConfirm, closeSessionApi, renameSessionApi, usePlusMenu, type MenuState } from './actions';
 import { ClaudeHistory } from './ClaudeHistory';
 import { NotifBell } from './NotifBell';
 import { pbase, sessionIcon, useSessions, type SessionItem } from './sessions';
@@ -21,7 +21,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const list = useSessions().byProject.get(projectId) ?? [];
   const cur = list.find((s) => s.id === currentId);
   const openDialog = useDialogs((s) => s.open);
-  const [menu, setMenu] = useState<{ rect: DOMRect; items: MenuItem[] } | null>(null);
+  const [menu, setMenu] = useState<MenuState>(null);
   const base = pbase(hostId, projectId);
   const split = useUi((s) => s.split);
   const setUi = useUi((s) => s.set);
@@ -38,15 +38,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
     openDialog(<ConfirmDialog danger title={t('session.closeTitle', { name: s.name })} body={<p>{t(s.kind === 'claude' ? 'session.closeBodyClaude' : 'session.closeBody')}</p>} confirmLabel={t('session.close')} onConfirm={run} />);
   };
   const plusMenu = usePlusMenu();
-  const plus = (e: MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    let first = true; // lần sau (tmux về) chỉ cập nhật khi menu này còn mở — đóng rồi thì không bật lại
-    plusMenu(hostId, projectId, (items) => {
-      const f = first; // updater của setMenu chạy lúc render, sau dòng `first = false` → chụp giá trị trước
-      first = false;
-      setMenu((m) => (f || m?.rect === rect ? { rect, items } : m));
-    });
-  };
+  const plus = (e: MouseEvent<HTMLElement>) => plusMenu(hostId, projectId, e.currentTarget.getBoundingClientRect(), setMenu);
   const picker = (e: MouseEvent<HTMLElement>) =>
     pop(
       e,

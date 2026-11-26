@@ -166,10 +166,11 @@ export function Composer(p: ComposerProps) {
     p.onMode(next);
     toast(t('claude.modeChanged', { mode: modeLabel(next) }));
   };
+  const pickSlash = () => setDraft((d) => ({ ...d, text: `/${slash[si].name} ` }));
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      if (slash.length && (draft.text.length > 1 || si > 0)) return setDraft((d) => ({ ...d, text: `/${slash[si].name} ` }));
+      if (slash.length && (draft.text.length > 1 || si > 0)) return pickSlash();
       void send();
     } else if (slash.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       e.preventDefault();
@@ -177,7 +178,7 @@ export function Composer(p: ComposerProps) {
     } else if (slash.length && e.key === 'Tab' && !e.shiftKey) {
       // Tab = chọn lệnh đang sáng như CLI (Authority 2026-11-26); chọn xong có dấu cách → danh sách đóng, Tab lại rời ô như thường
       e.preventDefault();
-      setDraft((d) => ({ ...d, text: `/${slash[si].name} ` }));
+      pickSlash();
     } else if (e.key === 'Tab' && e.shiftKey) {
       e.preventDefault();
       cycle();

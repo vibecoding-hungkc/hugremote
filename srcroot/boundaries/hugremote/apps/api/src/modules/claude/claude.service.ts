@@ -9,7 +9,14 @@ import type { AppConfig } from '../../config/app-config';
 import { AppError } from '../../common/app-error';
 import type { AuthUser } from '../../common/auth-user';
 import type { ChatItem, NormOp } from '../../integrations/claude-cli/protocol';
-import { cliProjectSlug, listCliSessions, type CliSession } from '../../integrations/claude-cli/cli-sessions';
+import {
+  cliProjectSlug,
+  isCliId,
+  listCliSessions,
+  parseCliTranscript,
+  readCliTranscript,
+  type CliSession,
+} from '../../integrations/claude-cli/cli-sessions';
 import { probeCli, type CliOptions } from '../../integrations/claude-cli/probe';
 import type { RateLimitInfo } from '../../integrations/claude-cli/protocol';
 import { ClaudeTurn } from '../../integrations/claude-cli/runner';
@@ -181,6 +188,15 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     });
     await this.repo.insertSession(s);
     if (d.resumeCliId) {
+      // hội thoại cũ trong file phiên CLI → nhập vào khung chat để xem lại (Authority 2026-11-26); đọc lỗi thì chỉ có dòng ghi chú
+      for (const it of await this.cliHistory(projectId, d.resumeCliId, `cli-${s.id.slice(0, 8)}`))
+        await this.repo.insertMessage({
+          sessionId: s.id,
+          seq: this.nextSeq(s),
+          role: it.kind,
+          content: JSON.stringify(it),
+          createdAt: now(),
+        });
       // đánh dấu đã có lượt trên CLI → lượt đầu ở HugRemote dùng `--resume` thay vì `--session-id`
       const seq = this.nextSeq(s);
       const item: ChatItem = { kind: 'note', id: `${s.id.slice(0, 8)}-cli`, text: 'CLI_RESUMED' };
@@ -189,6 +205,16 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     }
     this.status(s, 'idle');
     return this.dto(s);
+  }
+
+  private async cliHistory(projectId: string, cliId: string, prefix: string): Promise<ChatItem[]> {
+    try {
+      const { project, rt } = await this.ws.context(projectId);
+      return parseCliTranscript(await readCliTranscript(rt, await rt.realpath(project.rootPath), cliId), prefix);
+    } catch (e) {
+      this.log.warn(`nhập lịch sử CLI ${cliId}: ${(e as Error).message}`);
+      return [];
+    }
   }
 
   /** Phiên Claude CLI có sẵn trong thư mục dự án mà chưa gắn với phiên HugRemote nào (AC-23). */
@@ -212,8 +238,7 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
   /** Xoá một phiên khỏi lịch sử CLI (`~/.claude/projects/<slug>/<id>.jsonl` trên máy đích) + phiên HugRemote gắn với nó. */
   async removeCliSession(u: AuthUser, projectId: string, cliId: string) {
     cliId = cliId.toLowerCase(); // so không phân biệt hoa/thường — `3A3A…` từng lách kiểm chủ phiên (dogfood breaker #2)
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(cliId))
-      throw AppError.badRequest(ErrorCode.VALIDATION_FAILED);
+    if (!isCliId(cliId)) throw AppError.badRequest(ErrorCode.VALIDATION_FAILED);
     const { project, rt } = await this.ws.context(projectId);
     const had = (await this.repo.byProject(projectId)).find((x) => x.cliSessionId?.toLowerCase() === cliId);
     if (had) await this.remove(u, had.id); // phiên của người khác → 403 trước khi đụng file

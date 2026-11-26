@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSideWidth } from '../../../components/ui/SideResize';
 import type { TFunction } from 'i18next';
 import { Button } from '../../../components/ui/Button';
 import { CodeEditor, type CodeEditorHandle } from '../../../components/ui/CodeEditor';
@@ -31,6 +32,7 @@ export interface FilesActions {
 
 /** S8 — Files làm theo việc hằng ngày của developer (PERSONAS §1.1, AC-16/17/36/37). */
 export function FilesView({ projectId, rootPath, isHome, path: routePath, line, onRoute, actions, compact }: { projectId: string; rootPath: string; isHome?: boolean; path?: string; line?: number; onRoute: (path?: string, line?: number) => void; actions: FilesActions; compact?: boolean }) {
+  const sideW = useSideWidth('hr.sidew.files', 280);
   const { t } = useTranslation();
   const qc = useQueryClient();
   const openDialog = useDialogs((s) => s.open);
@@ -358,7 +360,8 @@ export function FilesView({ projectId, rootPath, isHome, path: routePath, line, 
         hidden
         onChange={(e) => void doUpload(e.target.files)}
       />
-      <div className={`files ${mobileFile && active ? 'open' : ''} ${compact ? 'compact' : ''}`}>
+      <div className={`files ${mobileFile && active ? 'open' : ''} ${compact ? 'compact' : ''}`} style={sideW.style}>
+        {sideW.handle}
         <aside className="ftree" ref={treeEl}>
           <div className="ftool">
             <div className="seg grow">

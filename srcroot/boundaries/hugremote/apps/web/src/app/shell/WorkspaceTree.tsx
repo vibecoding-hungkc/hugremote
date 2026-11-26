@@ -12,10 +12,9 @@ import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk, useHosts, usePins, useProjectsOf, useSetPins } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
 import type { Project } from '../../types/schemas';
-import { closeNeedsConfirm, closeSessionApi, openProject, renameSessionApi, useNewSession, usePlusMenu } from './actions';
+import { closeNeedsConfirm, closeSessionApi, openProject, renameSessionApi, useNewSession, usePlusMenu, type MenuState } from './actions';
 import { pbase, sessionHref, sessionIcon, shortAgo, useSessions, type SessionItem } from './sessions';
 
-type MenuState = { rect: DOMRect; items: MenuItem[] } | null;
 
 /** C11 cây Máy → Dự án → Phiên. Chỉ mở thứ đang dùng (Authority lượt 2); đầu cây có Thu gọn tất cả + ghim thêm máy. */
 export function WorkspaceTree() {
@@ -184,21 +183,14 @@ export function WorkspaceTree() {
                           ui.toggle(key, true);
                           openProject(nav, h.id, p.id, me.data?.preferences.lastTab?.[p.id], ss);
                         }}
-                        onMore={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          let first = true; // tmux về sau 2–3s: chỉ cập nhật khi menu này còn mở
-                          plusMenu(h.id, p.id, (items) => {
-                            // danh sách tmux có thể dài → để cuối, thao tác dự án không bị đẩy khỏi tầm nhìn
-                            const all = [
-                              ...items.filter((x) => !x.group),
-                              ...projectItems(h.id, p).map((x) => ({ ...x, group: t('tree.projectGroup') })),
-                              ...items.filter((x) => x.group),
-                            ];
-                            const f = first; // updater chạy lúc render, sau `first = false` → chụp trước
-                            first = false;
-                            setMenu((m) => (f || m?.rect === rect ? { rect, items: all } : m));
-                          });
-                        }}
+                        onMore={(e) =>
+                          // danh sách tmux có thể dài → để cuối, thao tác dự án không bị đẩy khỏi tầm nhìn
+                          plusMenu(h.id, p.id, e.currentTarget.getBoundingClientRect(), setMenu, (items) => [
+                            ...items.filter((x) => !x.group),
+                            ...projectItems(h.id, p).map((x) => ({ ...x, group: t('tree.projectGroup') })),
+                            ...items.filter((x) => x.group),
+                          ])
+                        }
                         moreLabel={t('tree.projectActions', { name: p.name })}
                       />
                       {pOpen &&

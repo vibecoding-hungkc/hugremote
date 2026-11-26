@@ -1,4 +1,5 @@
 import { JsonlDecoder, Normalizer, parseRateLimit, parseRateLimits, permissionResponse } from './protocol';
+import { parseCliTranscript } from './cli-sessions';
 import { parseInit } from './probe';
 
 describe('JsonlDecoder', () => {
@@ -182,5 +183,29 @@ describe('parseInit', () => {
       ['haiku', 200_000, []],
     ]);
     expect(o.commands[0].name).toBe('compact');
+  });
+});
+
+describe('parseCliTranscript', () => {
+  it('file phiên CLI → user/assistant/tool; bỏ meta, agent con, lệnh nội bộ, tool mất phần gọi', () => {
+    const L = (o: object) => JSON.stringify(o);
+    const jsonl = [
+      '{"type":"user","message":{"content":"bị cắt', // dòng đầu dở dang
+      L({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'gone', content: 'x' }] } }),
+      L({ type: 'user', message: { content: 'sửa lỗi đăng nhập' } }),
+      L({ type: 'user', isMeta: true, message: { content: 'meta' } }),
+      L({ type: 'user', message: { content: '<command-name>/model</command-name>' } }),
+      L({ type: 'assistant', message: { content: [{ type: 'text', text: 'Để tôi xem.' }] } }),
+      L({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 't1', name: 'Read', input: { file_path: 'a.ts' } }] } }),
+      L({ type: 'assistant', isSidechain: true, message: { content: [{ type: 'text', text: 'agent con' }] } }),
+      L({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 't1', content: 'nội dung' }] } }),
+      L({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 't2', name: 'Bash', input: { command: 'ls' } }] } }),
+      L({ type: 'mode', mode: 'x' }),
+    ].join('\n');
+    const items = parseCliTranscript(jsonl, 'cli');
+    expect(items.map((i) => i.kind)).toEqual(['user', 'assistant', 'tool', 'tool']);
+    expect(items[0]).toMatchObject({ text: 'sửa lỗi đăng nhập' });
+    expect(items[2]).toMatchObject({ id: 't1', name: 'Read', input: { file_path: 'a.ts' }, result: 'nội dung', done: true });
+    expect(items[3]).toMatchObject({ id: 't2', done: true }); // lượt bị ngắt: không quay mãi
   });
 });

@@ -103,7 +103,7 @@ export function Menu({ anchor, items, onClose, width = 290, children }: { anchor
           const head = it.group && it.group !== lastGroup ? <div className="grp">{it.group}</div> : null;
           lastGroup = it.group ?? lastGroup;
           return (
-            <div key={`${it.group ?? ''}|${it.label}|${i}`}>
+            <div key={i}>
               {head}
               <div
                 className={`mi ${it.danger ? 'danger' : ''}`}

@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, type NavigateFunction } from 'react-router-dom';
 import { toast, type MenuItem } from '../../components/ui/Overlay';
@@ -63,13 +64,21 @@ async function tmuxBase(projectId: string): Promise<string> {
 /**
  * Mục của nút + (thanh phiên, cây dự án): Claude · Terminal · tmux mới (chỉ máy SSH, Q-6) + nhóm session tmux có sẵn.
  * tmux ls lấy lúc mở menu; máy chưa cài tmux → không có mục tmux.
- * `show` gọi ngay với mục cố định rồi gọi lại khi tmux ls về — tmux ls qua SSH mất 2–3s, menu không được chờ (Authority 2026-11-26).
+ * Menu mở ngay với mục cố định, tmux ls (qua SSH 2–3s) về thì thêm vào — chỉ khi menu này còn mở (Authority 2026-11-26).
+ * `arrange` sắp lại danh sách cuối (cây dự án chèn nhóm "Dự án" vào giữa).
  */
+export type MenuState = { rect: DOMRect; items: MenuItem[] } | null;
 export function usePlusMenu() {
   const nav = useNavigate();
   const { t } = useTranslation();
   const newSession = useNewSession();
-  return (hostId: string, projectId: string, show: (items: MenuItem[]) => void) => {
+  return (hostId: string, projectId: string, rect: DOMRect, setMenu: Dispatch<SetStateAction<MenuState>>, arrange = (x: MenuItem[]) => x) => {
+    let first = true;
+    const show = (items: MenuItem[]) => {
+      const f = first; // updater của setMenu chạy lúc render (sau `first = false`) → chụp giá trị trước
+      first = false;
+      setMenu((m) => (f || m?.rect === rect ? { rect, items: arrange(items) } : m));
+    };
     const items: MenuItem[] = [
       { icon: 'claude', label: t('session.newClaude'), kbd: '⌥⇧N', onSelect: () => void newSession('claude', hostId, projectId) },
       { icon: 'term', label: t('session.newTerminal'), kbd: '⌥⇧T', onSelect: () => void newSession('terminal', hostId, projectId) },

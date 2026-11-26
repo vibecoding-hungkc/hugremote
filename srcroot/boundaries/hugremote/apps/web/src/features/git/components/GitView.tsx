@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSideWidth } from '../../../components/ui/SideResize';
 import { Button } from '../../../components/ui/Button';
 import { ConfirmDialog, useDialogs } from '../../../components/ui/Dialogs';
 import { DiffBlock } from '../../../components/ui/DiffBlock';
@@ -112,6 +113,7 @@ export function GitView(props: GitViewProps) {
 }
 
 function RepoGit({ projectId, history, onHistory, onOpenFile: openProjectFile, focusPath, compact, repo, header, listed }: GitViewProps & { repo: string; header: ReactNode; listed?: number }) {
+  const sideW = useSideWidth('hr.sidew.git', 340);
   const { t, i18n } = useTranslation();
   const qc = useQueryClient();
   const online = useConnection((s) => s.online);
@@ -420,7 +422,8 @@ function RepoGit({ projectId, history, onHistory, onOpenFile: openProjectFile, f
   return (
     <div className="content flush" data-screen="S9" aria-label="Git">
       {!online && null}
-      <div className={`git ${pane ? 'open' : ''} ${compact ? 'compact' : ''}`}>
+      <div className={`git ${pane ? 'open' : ''} ${compact ? 'compact' : ''}`} style={sideW.style}>
+        {sideW.handle}
         <aside className="gleft">{left}</aside>
         <section className="pane gright">{right}</section>
       </div>

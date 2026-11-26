@@ -537,6 +537,13 @@ input.sw:checked::after { left: 16px; }
   .proto { bottom: calc(var(--bar-h) + var(--space-xl)); }
   .proto[open] { right: var(--space-md); }
 }
+/* Thanh cuộn theo token (Authority 2026-11-26) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-divider); border: 2px solid transparent; background-clip: padding-box; border-radius: 999px; min-height: 32px; }
+:hover::-webkit-scrollbar-thumb { background-color: var(--color-border); }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background-color: var(--color-text-muted); }
+@supports not selector(::-webkit-scrollbar) { * { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; } }
 </style>
 </head>
 <body>
@@ -1486,7 +1493,7 @@ function composer(r, c, compact) {
 function S10(r) {
   const p = proj(r.host, r.proj), cs = claudesOf(r.host, r.proj);
   if (r.sid === 'new') return `<div class="content flush" data-screen="S10" aria-label="S10 Claude">${connBar()}${sessionBar(r, 'new', { id: 'new', name: 'Phiên Claude mới', kind: 'claude', status: 'done' })}
-    <div class="chat"><div class="col">${empty('claude', `Giao việc cho Claude Code. Claude chạy trong <span class="mono">${p.path}</span> trên ${esc(host(r.host).name)}.`, ['Giải thích cấu trúc dự án này', 'Tìm và sửa test đang lỗi', 'Viết README cho dự án'].map(s => `<button class="btn sm" onclick="const t=document.getElementById('prompt-new');t.value='${s}';ui.newDraft='${s}';t.focus()">${s}</button>`).join(''))}
+    <div class="chat"><div class="col">${empty('claude', `Giao việc cho Claude Code. Claude chạy trong <span class="mono">${p.path}</span> trên ${esc(host(r.host).name)}.`, ['Giải thích cấu trúc dự án này', 'Tìm và sửa test đang lỗi', 'Báo cáo trạng thái dự án'].map(s => `<button class="btn sm" onclick="const t=document.getElementById('prompt-new');t.value='${s}';ui.newDraft='${s}';t.focus()">${s}</button>`).join(''))}
     ${cs.some(c => c.cli) ? `<div class="section-title">Tiếp tục phiên tạo từ Claude CLI</div><div class="list">${cs.filter(c => c.cli).map(c => `<div class="row" tabindex="0" onclick="go('${pbase(r.host, r.proj)}/claude/${c.id}')">${ic('claude', 'claude-ic')}<div class="t"><div class="t1">${esc(c.name)}</div><div class="t2">${durLabel(c)}</div></div><span class="btn sm">Tiếp tục</span></div>`).join('')}</div>` : ''}</div></div>${composer(r, null)}</div>`;
   const cur = cs.find(c => c.id === r.sid);
   if (!cur) { const raw = findSess(r.host, r.proj, r.sid); return raw ? notOwned(r) : Sessions(r); }

@@ -1,4 +1,6 @@
+import { mergeChatItem, type ChatItem } from '@app/shared';
 import type { HostRuntime } from '../host/host-runtime';
+import { Normalizer } from './protocol';
 
 export interface CliSession {
   /** Session id của CLI (= tên file `.jsonl`). */
@@ -9,6 +11,9 @@ export interface CliSession {
 
 /** Thư mục CLI lưu phiên theo cwd: mọi ký tự không phải chữ/số → `-` (`/a/b.c` → `-a-b-c`). */
 export const cliProjectSlug = (absCwd: string) => absCwd.replace(/[^a-zA-Z0-9]/g, '-');
+
+/** Id phiên CLI hợp lệ (UUID chữ thường) — tên file, nên phải chặt trước khi ghép vào lệnh shell. */
+export const isCliId = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id);
 
 const SEP = '\u0001@@HR@@';
 
@@ -65,4 +70,62 @@ export function parseCliDump(out: string): CliSession[] {
     res.push({ id, title, updatedAt: new Date(Number(mtime) * 1000).toISOString() });
   }
   return res;
+}
+
+/** Đọc tối đa ngần này byte cuối file phiên khi nhập lịch sử — phiên dài hàng chục MB chỉ lấy phần gần nhất. */
+const TRANSCRIPT_TAIL = 4 * 1024 * 1024;
+/** Số mục giữ lại khi nhập lịch sử (mục mới nhất). */
+const TRANSCRIPT_ITEMS = 400;
+
+/** Nội dung file phiên CLI (phần cuối) — để hiện lại hội thoại cũ khi tiếp tục phiên từ CLI (Authority 2026-11-26). */
+export async function readCliTranscript(rt: HostRuntime, absCwd: string, id: string): Promise<string> {
+  if (!isCliId(id)) return '';
+  const f = `$HOME/.claude/projects/${cliProjectSlug(absCwd)}/${id}.jsonl`;
+  const r = await rt.exec(['sh', '-c', `tail -c ${TRANSCRIPT_TAIL} "${f}" 2>/dev/null`], {
+    timeoutMs: 15_000,
+    maxBytes: TRANSCRIPT_TAIL + 1024,
+  });
+  return r.stdout.toString('utf8');
+}
+
+/**
+ * File phiên CLI (`~/.claude/projects/<slug>/<id>.jsonl`) → mục hội thoại như lượt chạy ở HugRemote.
+ * Cùng khuôn tin nhắn với stream-json nên dùng lại `Normalizer`; bỏ agent con (`isSidechain`), dòng meta, bản tóm tắt
+ * sau /compact và tin lệnh nội bộ (`<command-name>…`). Công cụ mất phần gọi (bị cắt ở đầu file) thì bỏ.
+ */
+export function parseCliTranscript(jsonl: string, prefix: string): ChatItem[] {
+  const norm = new Normalizer(prefix);
+  const items = new Map<string, ChatItem>();
+  const put = (it: ChatItem) => {
+    const prev = items.get(it.id);
+    items.set(it.id, prev ? mergeChatItem(prev, it) : it);
+  };
+  let n = 0;
+  for (const line of jsonl.split('\n')) {
+    if (!line.startsWith('{')) continue;
+    let o: Record<string, unknown>;
+    try {
+      o = JSON.parse(line) as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+    if ((o.type !== 'user' && o.type !== 'assistant') || o.isSidechain || o.isMeta || o.isCompactSummary) continue;
+    if (o.type === 'user') {
+      const c = (o.message as { content?: unknown } | undefined)?.content;
+      const texts =
+        typeof c === 'string'
+          ? [c]
+          : Array.isArray(c)
+            ? (c as { type?: string; text?: string }[]).filter((b) => b.type === 'text').map((b) => b.text ?? '')
+            : [];
+      const text = texts.filter((x) => x.trim() && !x.startsWith('<')).join('\n\n');
+      if (text) put({ kind: 'user', id: `${prefix}-u${++n}`, text });
+    }
+    for (const op of norm.feed({ ...o, parent_tool_use_id: null })) if (op.op === 'upsert') put(op.item);
+  }
+  // lịch sử đã xong: công cụ chưa có kết quả (lượt bị ngắt) cũng thôi quay
+  return [...items.values()]
+    .filter((it) => it.kind !== 'tool' || it.name)
+    .map((it) => (it.kind === 'tool' && !it.done ? { ...it, done: true } : it))
+    .slice(-TRANSCRIPT_ITEMS);
 }

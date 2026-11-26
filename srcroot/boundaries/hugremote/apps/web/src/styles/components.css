@@ -129,7 +129,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .conn { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-lg); background: var(--color-surface-raised); border-bottom: 1px solid var(--color-warning); font-size: var(--text-sm); flex: none; }
 /* C8 + C32 thanh phiên, chia ô */
 .tabbar { height: var(--bar-h); flex: none; display: flex; align-items: stretch; background: var(--color-surface); border-bottom: 1px solid var(--color-divider); }
-.tabs { flex: 1; min-width: 0; display: flex; align-items: stretch; overflow-x: auto; scrollbar-width: thin; }
+.tabs { flex: 1; min-width: 0; display: flex; align-items: stretch; overflow-x: auto; }
 .tab { display: flex; align-items: center; gap: var(--space-sm); padding: 0 var(--space-xs) 0 var(--space-md); border-right: 1px solid var(--color-divider); cursor: pointer; font-size: var(--text-sm); color: var(--color-text-muted); white-space: nowrap; flex: none; max-width: 240px; }
 .tab .tn { overflow: hidden; text-overflow: ellipsis; }
 .tab.on { color: var(--color-text); background: var(--color-bg); box-shadow: inset 0 2px 0 var(--color-primary); }
@@ -226,7 +226,11 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .logv .r { color: var(--term-red); }
 .logv .y { color: var(--term-yellow); }
 /* S8 */
-.files { display: grid; grid-template-columns: 280px 1fr; flex: 1; min-height: 0; }
+.files { --side-w: 280px; display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); flex: 1; min-height: 0; position: relative; }
+/* tay kéo độ rộng cột trái (Files, Git — useSideWidth) */
+.sresize { position: absolute; top: 0; bottom: 0; left: calc(var(--side-w) - 3px); width: 6px; cursor: col-resize; z-index: 2; touch-action: none; }
+.sresize:hover, .sresize.drag, .sresize:focus-visible { background: var(--color-primary); outline: none; }
+.compact > .sresize { display: none; }
 .ftree { border-right: 1px solid var(--color-divider); overflow: auto; background: var(--color-surface); }
 .ftool { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm); border-bottom: 1px solid var(--color-divider); }
 .fside { padding: var(--space-sm) var(--space-sm) 0; display: grid; gap: var(--space-sm); }
@@ -272,7 +276,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .linkp { background: none; border: 0; padding: 0; cursor: pointer; color: var(--color-primary); text-align: left; font: inherit; }
 .linkp:hover { text-decoration: underline; }
 /* S9 */
-.git { display: grid; grid-template-columns: 340px 1fr; flex: 1; min-height: 0; }
+.git { --side-w: 340px; display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr); flex: 1; min-height: 0; position: relative; }
 .gleft { border-right: 1px solid var(--color-divider); overflow: auto; display: flex; flex-direction: column; background: var(--color-surface); }
 .repolist { flex: none; max-height: calc(5.5 * 44px); overflow-y: auto; border-bottom: 1px solid var(--color-divider); }
 .gsec { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-xs) var(--space-xs) var(--space-md); font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; }
@@ -413,3 +417,14 @@ input.sw:focus-visible { outline: 2px solid var(--color-primary); outline-offset
 .md th { background: var(--color-surface-raised); font-weight: 600; }
 .md tr:nth-child(even) td { background: var(--color-surface); }
 .md hr { border: 0; border-top: 1px solid var(--color-divider); }
+
+/* Thanh cuộn theo token (Authority 2026-11-26) — Chromium/Electron/Safari dùng ::-webkit-scrollbar; Chromium bỏ qua khối này
+   nếu phần tử có scrollbar-width/scrollbar-color, nên hai thuộc tính chuẩn chỉ đặt cho Firefox */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-divider); border: 2px solid transparent; background-clip: padding-box; border-radius: 999px; min-height: 32px; }
+:hover::-webkit-scrollbar-thumb { background-color: var(--color-border); }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background-color: var(--color-text-muted); }
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+}

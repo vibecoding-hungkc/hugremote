@@ -251,6 +251,7 @@ ví dụ màn quản trị nội bộ và app cho khách hàng không dùng chun
 | C40 | Hàng chuyển tiếp cổng (vòng 3) | S14 | đang chuyển tiếp · đã tắt · lỗi (mất kết nối / bị cấm) · ô cổng lỗi trùng · chưa chuyển tiếp (đang nghe) |
 | C41 | Thanh % hạn mức (vòng 3, dùng class `.prog`) | S10 (popup model) | <80% (`--color-primary`) · ≥80% (`--color-warning`) · không có dữ liệu (ẩn) |
 | C42 | Công tắc bật/tắt (vòng 3) | S14 (sheet Thêm: *Tự bật khi mở app*) | bật · tắt · focus |
+| C51 | Ghi chú phiên (vòng 3, Authority 2026-11-26): dải `.notebar` dưới thanh tab (viền trái `--color-warning`) · nút `note` trên thanh tab (chấm `--color-warning` khi có) · dòng `.tnote` ở cây · `.cnote` ở thẻ S2 | S6 · S10 · S13 · C11 · S2 | một dòng · mở hết · đang sửa (textarea, đếm x/500) · ẩn · rỗng (chỉ nút) |
 
 ## 5. Ba khuôn trạng thái dùng chung
 

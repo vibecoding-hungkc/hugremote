@@ -66,6 +66,8 @@ export class HostDto {
   @ApiProperty() hasSecret!: boolean;
   @ApiProperty() workspaceDir!: string;
   @ApiProperty() trusted!: boolean;
+  /** Lần nối SSH gần nhất: ok · err (hỏng/rớt). Không có = chưa nối. */
+  @ApiPropertyOptional({ enum: ['ok', 'err'] }) conn?: 'ok' | 'err';
   @ApiProperty() pinned!: boolean;
   @ApiPropertyOptional() pinPosition?: number;
   @ApiPropertyOptional() configFile?: string;

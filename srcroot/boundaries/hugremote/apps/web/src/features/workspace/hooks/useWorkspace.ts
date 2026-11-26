@@ -11,7 +11,8 @@ export const qk = {
   web: ['web-sessions'] as const,
 };
 
-export const useHosts = () => useQuery({ queryKey: qk.hosts, queryFn: workspaceApi.hosts, staleTime: 15_000 });
+// 10 giây/lần: chấm trạng thái máy theo lần nối SSH gần nhất (`conn`) — Authority 2026-11-26
+export const useHosts = () => useQuery({ queryKey: qk.hosts, queryFn: workspaceApi.hosts, staleTime: 10_000, refetchInterval: 10_000 });
 export const usePins = () => useQuery({ queryKey: qk.pins, queryFn: workspaceApi.pins });
 /** Query con chỉ chạy khi đã có máy (G-11, skill luật 13). */
 export const useProjects = (hostId?: string) => useQuery({ queryKey: qk.projects(hostId ?? ''), queryFn: () => workspaceApi.projects(hostId!), enabled: !!hostId });

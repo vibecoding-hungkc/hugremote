@@ -63,6 +63,12 @@ export function WorkspacePage() {
             <span className="t2" style={{ display: 'block' }}>
               {h.kind === 'local' ? t('hosts.thisMachineShort') : h.name} › {p.name} · {shortAgo(s.at)}
             </span>
+            {s.note && (
+              <span className="t2 cnote">
+                <Icon name="note" className="note-ic" />
+                <span className="ell">{s.note.text}</span>
+              </span>
+            )}
           </span>
           <StatusBadge status={s.status} />
         </button>

@@ -1,6 +1,7 @@
 import { desktop } from '../../features/web/web.api';
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useNoteUi } from '../../features/notes/notes';
 import { useUi } from '../../stores/ui.store';
 import { useNewSession } from './actions';
 import { pbase, useSessions } from './sessions';
@@ -58,6 +59,11 @@ export function useShortcuts() {
       if ((alt || (mod && e.shiftKey)) && e.code === 'KeyT' && e.shiftKey) return (e.preventDefault(), void newSession('terminal', r.hostId, r.projectId));
       if ((alt || (mod && e.shiftKey)) && e.code === 'KeyM' && e.shiftKey && r.hostId !== 'local') return (e.preventDefault(), void newSession('tmux', r.hostId, r.projectId));
       if ((alt || (mod && e.shiftKey)) && e.code === 'KeyB' && e.shiftKey && desktop()) return (e.preventDefault(), void newSession('web', r.hostId, r.projectId));
+      // ⌥⇧K: ghi chú của phiên đang mở — chưa có thì mở ô gõ, có rồi thì ẩn/hiện dải (Authority 2026-11-26)
+      if (alt && e.shiftKey && e.code === 'KeyK' && r.sid) {
+        const cur = list.find((s) => s.id === r.sid);
+        if (cur) return (e.preventDefault(), useNoteUi.getState().toggle(cur.id, !!cur.note));
+      }
       if ((alt || e.metaKey) && /^Digit[1-9]$/.test(e.code) && !e.shiftKey) {
         if (goSession(Number(e.code.slice(5)) - 1)) return;
       }

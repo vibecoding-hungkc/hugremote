@@ -54,7 +54,7 @@ export function Spotlight({ hostId, projectId, onClose }: { hostId?: string; pro
             icon: sessionIcon(s).name,
             cls: sessionIcon(s).cls,
             t: s.name,
-            s: `${s.kind === 'claude' ? 'Claude' : s.kind === 'web' ? t('web.group') : 'Terminal'} · ${p.name}`,
+            s: `${s.kind === 'claude' ? 'Claude' : s.kind === 'web' ? t('web.group') : 'Terminal'} · ${p.name}${s.note ? ` · 📝 ${s.note.text}` : ''}`,
             st: s.status,
             run: () => nav(`${pbase(h.id, p.id)}/${s.kind}/${s.id}`),
           });

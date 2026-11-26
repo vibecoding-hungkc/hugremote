@@ -7,6 +7,8 @@ import { ConfirmDialog, RenameDialog, useDialogs } from '../../components/ui/Dia
 import { Icon } from '../../components/ui/Icon';
 import { Menu, type MenuItem } from '../../components/ui/Overlay';
 import { StatusDot } from '../../components/ui/Status';
+import { NoteBar } from '../../features/notes/NoteBar';
+import { useNoteUi } from '../../features/notes/notes';
 import { useUi } from '../../stores/ui.store';
 import { closeNeedsConfirm, closeSessionApi, renameSessionApi, usePlusMenu, type MenuState } from './actions';
 import { ClaudeHistory } from './ClaudeHistory';
@@ -25,6 +27,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const base = pbase(hostId, projectId);
   const split = useUi((s) => s.split);
   const setUi = useUi((s) => s.set);
+  const noteUi = useNoteUi();
   const pop = (e: MouseEvent<HTMLElement>, items: MenuItem[]) => setMenu({ rect: e.currentTarget.getBoundingClientRect(), items });
   const close = (s: SessionItem) => {
     const run = async () => {
@@ -40,9 +43,8 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
   const plusMenu = usePlusMenu();
   const plus = (e: MouseEvent<HTMLElement>) => plusMenu(hostId, projectId, e.currentTarget.getBoundingClientRect(), setMenu);
   const picker = (e: MouseEvent<HTMLElement>) =>
-    pop(
-      e,
-      list.map((s, i) => ({
+    pop(e, [
+      ...list.map((s, i) => ({
         group: s.kind === 'claude' ? 'Claude' : s.kind === 'web' ? t('web.group') : 'Terminal',
         icon: sessionIcon(s).name,
         label: (
@@ -53,8 +55,11 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
         kbd: i < 9 ? `⌥${i + 1}` : undefined,
         onSelect: () => nav(`${base}/${s.kind}/${s.id}`),
       })),
-    );
+      // điện thoại: nút 📝 không có chỗ trên thanh → nằm cuối bộ chọn phiên
+      ...(cur ? [{ group: ' ', icon: 'note' as const, label: cur.note ? t('note.thisSession') : t('note.addThis'), kbd: '⌥⇧K', onSelect: () => noteUi.toggle(cur.id, !!cur.note) }] : []),
+    ]);
   return (
+    <>
     <div className="tabbar">
       <div className="tabs" role="tablist">
         {list.map((s, i) => (
@@ -65,7 +70,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
             role="tab"
             aria-selected={s.id === currentId}
             tabIndex={0}
-            title={`${s.name}${i < 9 ? ` (⌥${i + 1})` : ''}`}
+            title={`${s.name}${i < 9 ? ` (⌥${i + 1})` : ''}${s.note ? `\n📝 ${s.note.text}` : ''}`}
             onClick={() => nav(`${base}/${s.kind}/${s.id}`)}
             onKeyDown={(e) => e.key === 'Enter' && nav(`${base}/${s.kind}/${s.id}`)}
           >
@@ -99,6 +104,21 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
       <div className="tools">
         <NotifBell hostId={hostId} projectId={projectId} />
         <ClaudeHistory hostId={hostId} projectId={projectId} />
+        {cur && (
+          <span className={`hide-mobile notebtn ${cur.note ? 'has' : ''}`}>
+            <span className="vsep" aria-hidden />
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              icon="note"
+              tone={cur.note && !noteUi.hidden[cur.id] ? 'primary' : undefined}
+              label={cur.note ? t(noteUi.hidden[cur.id] ? 'note.show' : 'note.hideBtn') : t('note.addThis')}
+              aria-keyshortcuts="Alt+Shift+K"
+              onClick={() => noteUi.toggle(cur.id, !!cur.note)}
+            />
+          </span>
+        )}
         {cur && (
           <Button
             variant="ghost"
@@ -145,5 +165,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
       </div>
       {menu && <Menu anchor={menu.rect} items={menu.items} onClose={() => setMenu(null)} />}
     </div>
+    {cur && <NoteBar sessionId={cur.id} name={cur.name} note={cur.note} />}
+    </>
   );
 }

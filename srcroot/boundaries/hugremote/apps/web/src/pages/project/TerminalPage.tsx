@@ -32,6 +32,7 @@ export function TerminalPage() {
           key={sid}
           sessionId={sid}
           exited={cur.status === 'exited'}
+          exitCode={cur.exitCode}
           tmuxName={cur.tmux}
           onClose={() =>
             void workspaceApi.closeTerminal(sid).then(async () => {

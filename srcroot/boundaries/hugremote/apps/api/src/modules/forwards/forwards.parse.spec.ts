@@ -1,4 +1,5 @@
-import { parseLsof, parseSs } from './forwards.service';
+import { parseLsof, parseSs, localPortOpen } from './forwards.service';
+import * as net from 'node:net';
 
 describe('cổng đang nghe (AC-58)', () => {
   it('parse ss -ltnpH, gộp IPv4/IPv6, bỏ 22', () => {
@@ -21,5 +22,16 @@ describe('cổng đang nghe (AC-58)', () => {
       { port: 3000, proc: 'node' },
       { port: 5173, proc: 'vite' },
     ]);
+  });
+});
+
+describe('localPortOpen (S14 kiểm cổng đích — Authority 2026-11-26)', () => {
+  it('có tiến trình nghe → true; đóng rồi → false', async () => {
+    const srv = net.createServer().listen(0, '127.0.0.1');
+    await new Promise((r) => srv.once('listening', r));
+    const port = (srv.address() as net.AddressInfo).port;
+    expect(await localPortOpen(port)).toBe(true);
+    await new Promise((r) => srv.close(r));
+    expect(await localPortOpen(port)).toBe(false);
   });
 });

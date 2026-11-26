@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState, type MouseEvent } from 'react';
+import { Fragment, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
@@ -12,6 +12,9 @@ import { workspaceApi } from '../../features/workspace/api/workspace.api';
 import { qk, useHosts, usePins, useProjectsOf, useSetPins } from '../../features/workspace/hooks/useWorkspace';
 import { useUi } from '../../stores/ui.store';
 import type { Project } from '../../types/schemas';
+import { NoteDialog } from '../../features/notes/NoteBar';
+import { useLostTerms } from '../../features/terminal/lost';
+import { useConnection } from '../../lib/connection';
 import { closeNeedsConfirm, closeSessionApi, openProject, renameSessionApi, useNewSession, usePlusMenu, type MenuState } from './actions';
 import { pbase, sessionHref, sessionIcon, shortAgo, useSessions, type SessionItem } from './sessions';
 
@@ -94,6 +97,12 @@ export function WorkspaceTree() {
 
   const sessionItems = (s: SessionItem): MenuItem[] => [
     {
+      icon: 'note',
+      label: s.note ? t('note.editMenu') : t('note.addMenu'),
+      kbd: '⌥⇧K',
+      onSelect: () => openDialog(<NoteDialog sessionId={s.id} name={s.name} initial={s.note?.text ?? ''} />),
+    },
+    {
       icon: 'edit',
       label: t('tree.renameSession'),
       onSelect: () =>
@@ -132,6 +141,8 @@ export function WorkspaceTree() {
     { icon: 'unpin', label: t('tree.unpin'), danger: true, onSelect: () => setPins.mutate((pins.data ?? []).filter((x) => x !== hostId)) },
   ];
 
+  const online = useConnection((s) => s.online);
+  const lostIds = useLostTerms((s) => s.ids);
   return (
     <>
       <div className="tree-head">
@@ -147,6 +158,8 @@ export function WorkspaceTree() {
           const hostSessions = projects.flatMap((p) => sessions.byProject.get(p.id) ?? []);
           const need = hostSessions.filter((s) => s.status === 'awaiting').length;
           const run = hostSessions.filter((s) => s.status === 'running').length;
+          // đỏ khi: HugRemote mất kết nối · lần nối SSH gần nhất hỏng/rớt · có terminal của máy đang nối lại (Authority 2026-11-26)
+          const down = !online || h.conn === 'err' || hostSessions.some((s) => lostIds[s.id]);
           return (
             <div key={h.id}>
               <TreeNode
@@ -158,8 +171,8 @@ export function WorkspaceTree() {
                 onClick={() => ui.toggle(h.id, !hOpen)}
                 count={!hOpen ? need : 0}
                 meta={!hOpen && run ? t('tree.running', { count: run }) : undefined}
-                status={h.trusted ? 'ok' : 'connecting'}
-                statusTitle={h.trusted ? t('status.ok') : t('tree.notTrusted')}
+                status={!h.trusted ? 'connecting' : down ? 'err' : 'ok'}
+                statusTitle={!h.trusted ? t('tree.notTrusted') : down ? t('tree.hostDown') : t('status.ok')}
                 onMore={(e) => pop(e, hostItems(h.id))}
                 moreLabel={t('tree.hostActions', { name: h.name })}
               />
@@ -195,13 +208,13 @@ export function WorkspaceTree() {
                       />
                       {pOpen &&
                         ss.map((s) => (
+                          <Fragment key={s.id}>
                           <TreeNode
-                            key={s.id}
                             level={2}
                             icon={sessionIcon(s).name}
                             iconClass={sessionIcon(s).cls}
                             name={s.name}
-                            title={s.name}
+                            title={s.note ? `${s.name}\n📝 ${s.note.text}` : s.name}
                             selected={curSid === s.id}
                             meta={s.status === 'awaiting' ? t('tree.needsApproval') : shortAgo(s.at)}
                             metaWarn={s.status === 'awaiting'}
@@ -212,6 +225,14 @@ export function WorkspaceTree() {
                             onMore={(e) => pop(e, sessionItems(s))}
                             moreLabel={t('tree.sessionActions', { name: s.name })}
                           />
+                          {s.note && (
+                            // dòng ghi chú dưới phiên: nhìn cây là biết cửa sổ nào đang làm gì (Authority 2026-11-26)
+                            <div className="tnote" title={s.note.text} onClick={() => nav(sessionHref(h.id, s))}>
+                              <Icon name="note" className="note-ic" />
+                              <span>{s.note.text}</span>
+                            </div>
+                          )}
+                          </Fragment>
                         ))}
                       {pOpen && !ss.length && (
                         <TreeNode level={2} icon="plus" name={t('tree.noSessions')} muted onClick={() => newSession('terminal', h.id, p.id)} />

@@ -85,6 +85,13 @@ interface PoolEntry {
 export class SshPool {
   private readonly log = new Logger('Ssh');
   private readonly entries = new Map<string, PoolEntry>();
+  /** Kết quả lần nối gần nhất theo máy: 'ok' nối được · 'err' nối hỏng / rớt ngoài ý muốn. Không có = chưa nối (hoặc nghỉ vì rảnh). */
+  private readonly health = new Map<string, 'ok' | 'err'>();
+
+  /** Chấm trạng thái máy ở cây (Authority 2026-11-26: mất kết nối phải hiện đỏ). */
+  state(id: string): 'ok' | 'err' | undefined {
+    return this.health.get(id);
+  }
   private readonly timer: NodeJS.Timeout;
 
   constructor(
@@ -104,6 +111,7 @@ export class SshPool {
     const e = this.entries.get(id);
     if (!e) return;
     this.entries.delete(id);
+    this.health.delete(id); // nghỉ vì rảnh/chủ động đóng — không phải lỗi
     e.client.end();
     e.jumpClient?.end();
   }
@@ -136,15 +144,19 @@ export class SshPool {
       const drop = () => {
         if (this.entries.get(t.id) === entry) this.entries.delete(t.id);
       };
+      this.health.set(t.id, 'ok');
       client.on('close', () => {
-        if (this.entries.get(t.id) === entry) this.log.log(`${t.id}: đóng kết nối SSH`);
+        if (this.entries.get(t.id) === entry) {
+          this.log.log(`${t.id}: đóng kết nối SSH`);
+          this.health.set(t.id, 'err'); // rớt ngoài ý muốn (disconnect() đã gỡ entry trước khi đóng)
+        }
         drop();
       });
       client.on('error', drop);
       return client;
     });
     this.entries.set(t.id, entry);
-    entry.ready.catch(() => this.entries.delete(t.id));
+    entry.ready.catch(() => (this.entries.delete(t.id), this.health.set(t.id, 'err')));
     return entry.ready;
   }
 

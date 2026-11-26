@@ -114,6 +114,8 @@ def finish(is_error=False, msg=''):
     emit({'type': 'result', 'subtype': 'error_during_execution' if is_error else 'success', 'is_error': is_error, 'session_id': session_id,
           'duration_ms': int((time.time() - t0) * 1000), 'num_turns': 1, 'result': msg,
           'total_cost_usd': 0.0123, 'usage': {'input_tokens': 4200, 'output_tokens': 380, 'cache_read_input_tokens': 15000}})
+    # 'treo': báo result rồi không thoát dù stdin đóng — như CLI thật chờ mạng/hook/tác vụ nền lúc thoát (dogfood 2026-11-26)
+    if 'treo' in prompt: time.sleep(90)
     stdin_closed.wait(5); sys.exit(0)
 
 emit({'type': 'stream_event', 'session_id': session_id, 'event': {'type': 'message_start', 'message': {'role': 'assistant'}}})

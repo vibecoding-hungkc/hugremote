@@ -6,7 +6,7 @@ export type ListeningPort = S['ListeningPortDto'];
 
 /** forwards-api.v1 (owner-only) — AC-57/58. */
 export const forwardsApi = {
-  list: () => api<Forward[]>('/port-forwards'),
+  list: (check = false) => api<Forward[]>('/port-forwards', check ? { query: { check: 1 } } : {}),
   create: (b: S['CreateForwardDto']) => api<Forward>('/port-forwards', { body: b }),
   update: (id: string, b: S['UpdateForwardDto']) => api<Forward>(`/port-forwards/${id}`, { method: 'PATCH', body: b }),
   remove: (id: string) => api<void>(`/port-forwards/${id}`, { method: 'DELETE' }),

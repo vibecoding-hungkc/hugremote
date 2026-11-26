@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import i18n from '../../i18n';
 import type { Status } from '../../components/ui/Status';
 import { useClaudeSessions } from '../../features/claude/hooks/useClaude';
+import { useNotes } from '../../features/notes/notes';
 import { useTerminals, useWebSessions } from '../../features/workspace/hooks/useWorkspace';
 
 /** Phiên trong cây/thanh phiên — Claude trước, terminal sau (AC-35). */
@@ -20,8 +21,12 @@ export interface SessionItem {
   pending?: number;
   /** Vòng 3: phiên terminal chạy trong tmux (biểu tượng riêng, tên = tên session). */
   tmux?: string;
+  /** Terminal đã thoát: mã thoát; không có = đóng vì mất kết nối (SSH rớt), không phải tự thoát. */
+  exitCode?: number;
   /** Vòng 3: địa chỉ trang của phiên trình duyệt. */
   url?: string;
+  /** Ghi chú của phiên (Authority 2026-11-26) — hiện ở dải dưới thanh tab, cây, trang tổng, ⌘K. */
+  note?: { text: string; updatedAt: string };
 }
 
 /** Biểu tượng + class của một phiên — một chỗ cho tab, cây, bộ chọn, chuyển nhanh. */
@@ -40,8 +45,10 @@ export function useSessions() {
   const terms = useTerminals();
   const webs = useWebSessions();
   const claudes = useClaudeSessions();
+  const notes = useNotes().data;
   const all = useMemo<SessionItem[]>(
-    () => [
+    () =>
+      [
       ...(claudes.data ?? []).map((c) => ({
         id: c.id,
         kind: 'claude' as const,
@@ -62,6 +69,7 @@ export function useSessions() {
         at: t.lastAttachedAt ?? t.createdAt,
         created: t.createdAt,
         tmux: t.tmuxName ?? undefined,
+        exitCode: t.exitCode,
       })),
       ...(webs.data ?? []).map((w) => ({
         id: w.id,
@@ -73,8 +81,8 @@ export function useSessions() {
         created: w.createdAt,
         url: w.url,
       })),
-    ],
-    [terms.data, claudes.data, webs.data],
+      ].map((s) => (notes?.has(s.id) ? { ...s, note: notes.get(s.id) } : s)),
+    [terms.data, claudes.data, webs.data, notes],
   );
   const byProject = useMemo(() => {
     const m = new Map<string, SessionItem[]>();

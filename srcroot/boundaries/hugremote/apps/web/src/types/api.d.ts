@@ -1613,6 +1613,8 @@ export interface components {
             hasSecret: boolean;
             workspaceDir: string;
             trusted: boolean;
+            /** @enum {string} */
+            conn?: "ok" | "err";
             pinned: boolean;
             pinPosition?: number;
             configFile?: string;
@@ -2020,6 +2022,8 @@ export interface components {
             /** @enum {string} */
             status: "on" | "off" | "err";
             error?: string;
+            /** @enum {string} */
+            target?: "up" | "down";
         };
         CreateForwardDto: {
             /** @enum {string} */

@@ -21,6 +21,8 @@ export const ICON_PATHS = {
   "x": "<path d=\"M6 6l12 12M18 6L6 18\"/>",
   "chev": "<path d=\"M9 6l6 6-6 6\"/>",
   "chevd": "<path d=\"M6 9l6 6 6-6\"/>",
+  "chevu": "<path d=\"M6 15l6-6 6 6\"/>",
+  "note": "<path d=\"M5 4h14v10l-6 6H5z\"/><path d=\"M13 20v-6h6M8 9h8M8 13h3\"/>",
   "back": "<path d=\"M15 6l-6 6 6 6\"/>",
   "more": "<circle cx=\"5\" cy=\"12\" r=\"1\"/><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"19\" cy=\"12\" r=\"1\"/>",
   "pin": "<path d=\"M12 17v5M9 3h6l-1 6 3 3H7l3-3z\"/>",

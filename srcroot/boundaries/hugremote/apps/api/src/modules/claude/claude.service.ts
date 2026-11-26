@@ -471,6 +471,9 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       }
       return;
     }
+    // CLI làm tiếp sau result (thông báo tác vụ nền) → lại là đang chạy
+    if ((op.op === 'upsert' || op.op === 'delta') && l.turn?.finished && (s.status === 'done' || s.status === 'error'))
+      await this.setStatus(s, 'running');
     if (op.op === 'upsert') {
       if (op.final) {
         l.partial.delete(op.item.id);
@@ -510,6 +513,9 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       if (op.isError) l.hadError = true;
       const item = { ...op.item, ...(l.stopping ? { stopped: true } : {}) };
       await this.persist(s, item, ClaudeEvent.FINISH);
+      // có result là xong lượt: báo ngay, không chờ tiến trình thoát (CLI có thể thoát chậm vài phút — Authority 2026-11-26);
+      // hàng chờ vẫn chỉ rút ở onExit để hai tiến trình không cùng ghi một phiên CLI
+      if (!l.stopping) await this.setStatus(s, op.isError ? 'error' : 'done');
       this.events.publish({
         type: 'turn_finished',
         data: { sessionId: s.id, projectId: s.projectId, summary: item },

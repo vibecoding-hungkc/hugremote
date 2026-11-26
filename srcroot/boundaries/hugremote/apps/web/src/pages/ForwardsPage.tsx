@@ -20,7 +20,8 @@ export function ForwardsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const hosts = (useHosts().data?.hosts ?? []).filter((h) => h.id !== 'local');
-  const fw = useQuery({ queryKey: FK, queryFn: forwardsApi.list, refetchInterval: 5000 });
+  // poll 5 giây kèm kiểm cổng đích khi đang mở màn (Authority 2026-11-26) — rời màn là ngừng
+  const fw = useQuery({ queryKey: FK, queryFn: () => forwardsApi.list(true), refetchInterval: 5000 });
   // Bộ lọc chỉ gồm máy đang ở không gian làm việc (ghim) + máy đã có chuyển tiếp — theo thứ tự ghim
   const pins = usePins().data ?? [];
   const chips = hosts
@@ -104,6 +105,7 @@ function ForwardRow({ f, onChanged, onError }: { f: Forward; onChanged: () => vo
     }
   };
   const act = (p: Promise<unknown>) => void p.then(onChanged, onError);
+  const down = f.status === 'on' && f.target === 'down';
   return (
     <div className="row fw" style={{ cursor: 'default' }}>
       <Icon name={rev ? 'up' : 'down'} />
@@ -113,13 +115,14 @@ function ForwardRow({ f, onChanged, onError }: { f: Forward; onChanged: () => vo
           {f.label && <span className="muted xs"> · {f.label}</span>}
         </div>
         {f.status === 'err' && <div className="t2 danger-t">{f.error ? t(`errors.${f.error}`, { defaultValue: f.error }) : t('errors.INTERNAL')}</div>}
+        {down && <div className="t2 danger-t">{t('fw.targetDown')}</div>}
       </div>
       <span className="mono muted xs">→ {rev ? 'SSH:' : 'local:'}</span>
       <input className={`input mono sm ${bad ? 'err' : ''}`} style={{ width: 84 }} inputMode="numeric" aria-label={rev ? t('fw.remotePortOn', { host: f.hostId }) : t('fw.localPort')} value={v} onChange={(e) => setV(e.target.value.replace(/\D/g, ''))} onBlur={() => void save()} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
       <span className="hide-mobile">
         <span className="badge">
-          <span className={`dot ${f.status === 'on' ? 'ok' : f.status === 'err' ? 'err' : ''}`} />
-          {t(`fw.st_${f.status}`)}
+          <span className={`dot ${down ? 'err' : f.status === 'on' ? 'ok' : f.status === 'err' ? 'err' : ''}`} />
+          {down ? t('fw.st_down') : t(`fw.st_${f.status}`)}
         </span>
       </span>
       {f.status === 'on' && !rev && desktop() && (

@@ -25,6 +25,8 @@ export interface TurnHandlers {
  * lời yêu cầu quyền (`--permission-prompts host`) và gửi interrupt; nhận `result` thì đóng stdin, CLI tự thoát.
  * Tác vụ chạy độc lập với trình duyệt (G-14) — runner không biết gì về SSE/HTTP.
  */
+export const LINGER_MS = 10_000;
+
 export class ClaudeTurn {
   private proc?: StreamProc;
   private readonly norm: Normalizer;
@@ -35,6 +37,13 @@ export class ClaudeTurn {
   private readonly pending = new Map<string, Record<string, unknown>>();
   /** `result` giữ lại tới khi CLI trả `get_context_usage` (≤3s) để tóm tắt lượt mang luôn Context a/b. */
   private held?: Extract<NormOp, { op: 'result' }>;
+  /**
+   * CLI đã trả `result` + đóng stdin mà chưa thoát (chờ mạng khi thoát, hook, tác vụ nền…) → quá LINGER_MS không in gì
+   * thì kết thúc hộ. Trước đây phiên kẹt "Claude đang làm" tới khi tiến trình tự thoát (Authority 2026-11-26).
+   */
+  private linger?: NodeJS.Timeout;
+  private lingerKilled = false;
+  private stdinEnded = false;
   private ctxReq?: string;
   private ctxTimer?: NodeJS.Timeout;
 
@@ -77,7 +86,8 @@ export class ClaudeTurn {
       this.h.onExit({ code: null, stderr: (e as Error).message, notInstalled, gotResult: false });
       return;
     }
-    this.proc.onStdout((d) =>
+    this.proc.onStdout((d) => {
+      this.linger?.refresh(); // còn in ra (CLI làm tiếp sau result) → chưa phải treo
       this.decoder.push(d, (obj) => {
         for (const op of this.norm.feed(obj)) {
           if (op.op === 'permission') this.pending.set(op.requestId, op.item.input);
@@ -92,12 +102,14 @@ export class ClaudeTurn {
           }
           this.h.onOp(op);
         }
-      }),
-    );
+      });
+    });
     this.proc.onStderr((d) => (this.stderr = (this.stderr + d.toString('utf8')).slice(-4000)));
     this.proc.onExit((code) => {
       this.releaseResult(null);
       this.ended = true;
+      clearTimeout(this.linger);
+      if (this.lingerKilled) code = 0; // đã xong lượt, chỉ là thoát chậm — không phải lỗi
       const notInstalled = code === 127 || /command not found|not found: claude|No such file/i.test(this.stderr);
       this.h.onExit({ code, stderr: this.stderr, notInstalled: notInstalled && !this.gotResult, gotResult: this.gotResult });
     });
@@ -106,6 +118,7 @@ export class ClaudeTurn {
 
   private holdResult(op: Extract<NormOp, { op: 'result' }>) {
     this.held = op;
+    if (this.stdinEnded) return this.releaseResult(null); // result lần hai (CLI làm tiếp sau khi đã đóng stdin): không hỏi context được
     this.ctxReq = `ctx-${this.turnId}`;
     this.proc?.stdin.write(controlRequest(this.ctxReq, { subtype: 'get_context_usage' }));
     this.ctxTimer = setTimeout(() => this.releaseResult(null), 3000);
@@ -120,7 +133,20 @@ export class ClaudeTurn {
     if (resp && typeof resp.totalTokens === 'number' && typeof resp.maxTokens === 'number')
       r.item.context = { used: resp.totalTokens, max: resp.maxTokens };
     this.h.onOp(r);
-    if (!this.ended) this.proc?.stdin.end();
+    if (this.ended) return;
+    this.stdinEnded = true;
+    this.proc?.stdin.end();
+    this.linger ??= setTimeout(() => {
+      if (!this.running) return;
+      this.lingerKilled = true;
+      this.proc!.signal('SIGTERM');
+    }, LINGER_MS);
+    this.linger.unref();
+  }
+
+  /** Đã nhận `result` — lượt xong về nội dung, tiến trình có thể còn đang thoát. */
+  get finished() {
+    return this.gotResult && !this.held;
   }
 
   get running() {
@@ -130,7 +156,7 @@ export class ClaudeTurn {
   /** Trả lời yêu cầu quyền hoặc AskUserQuestion. false nếu yêu cầu không còn chờ (đã trả lời ở thiết bị khác). */
   answer(requestId: string, allow: boolean, answers?: Record<string, string>): boolean {
     const input = this.pending.get(requestId);
-    if (!this.proc || this.ended || input === undefined) return false;
+    if (!this.proc || this.ended || this.stdinEnded || input === undefined) return false;
     this.pending.delete(requestId);
     this.proc.stdin.write(permissionResponse(requestId, allow, input, answers));
     return true;
@@ -141,12 +167,15 @@ export class ClaudeTurn {
   }
 
   setPermissionMode(mode: string) {
-    if (this.running) this.proc!.stdin.write(controlRequest(crypto.randomUUID(), { subtype: 'set_permission_mode', mode }));
+    if (this.running && !this.stdinEnded)
+      this.proc!.stdin.write(controlRequest(crypto.randomUUID(), { subtype: 'set_permission_mode', mode }));
   }
 
   /** Dừng lượt: interrupt qua giao thức, quá 3s chưa thoát thì SIGINT, 8s thì SIGKILL. */
   interrupt() {
     if (!this.running) return;
+    // stdin đã đóng sau result → không gửi được interrupt qua giao thức (ghi vào stream đã end), kết thúc thẳng
+    if (this.finished) return void ((this.lingerKilled = true), this.proc!.signal('SIGTERM'));
     this.proc!.stdin.write(controlRequest(crypto.randomUUID(), { subtype: 'interrupt' }));
     setTimeout(() => this.running && this.proc!.signal('SIGINT'), 3000).unref();
     setTimeout(() => this.running && this.proc!.signal('SIGKILL'), 8000).unref();

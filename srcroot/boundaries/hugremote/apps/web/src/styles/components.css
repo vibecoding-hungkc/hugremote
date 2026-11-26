@@ -428,3 +428,29 @@ input.sw:focus-visible { outline: 2px solid var(--color-primary); outline-offset
 @supports not selector(::-webkit-scrollbar) {
   * { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
 }
+
+/* C51 ghi chú phiên (Authority 2026-11-26) — dải dưới thanh tab, viền trái vàng như giấy dán; dòng ghi chú ở cây + thẻ S2 */
+.notebar { flex: none; display: flex; align-items: flex-start; gap: var(--space-sm); padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-md); background: var(--color-surface); border-bottom: 1px solid var(--color-divider); box-shadow: inset 3px 0 0 var(--color-warning); font-size: var(--text-sm); }
+.notebar.plain { padding: 0; background: none; border: 0; box-shadow: none; }
+.note-ic { color: var(--color-warning); flex: none; }
+.notebar > .note-ic { margin-top: 6px; }
+.notebar .ntext { flex: 1; min-width: 0; padding: 4px 0; cursor: text; line-height: 1.45; }
+.notebar .ntext.one { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.notebar .ntext.all { white-space: pre-wrap; overflow-wrap: anywhere; }
+.notebar .nmeta { font-size: var(--text-xs); color: var(--color-text-muted); white-space: nowrap; padding-top: 6px; }
+.notebar .nedit { flex: 1; min-width: 0; display: grid; gap: var(--space-xs); }
+.notebar .nedit textarea { width: 100%; resize: vertical; min-height: 56px; font: inherit; }
+.notebar .nedit .btns { display: flex; align-items: center; gap: var(--space-xs); margin: 0; }
+.tnote { display: flex; align-items: center; gap: var(--space-xs); padding: 0 var(--space-md) var(--space-xs) calc(var(--space-xl) + var(--space-lg) + 24px); margin-top: -6px; font-size: var(--text-xs); color: var(--color-text-muted); cursor: pointer; }
+.tnote span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tnote:hover { color: var(--color-text); }
+.cnote { display: flex !important; align-items: center; gap: var(--space-xs); margin-top: 2px; color: var(--color-text); min-width: 0; }
+.notebtn { display: inline-flex; align-items: center; position: relative; }
+.notebtn .vsep { width: 1px; height: 20px; background: var(--color-divider); margin: 0 var(--space-xs); }
+.notebtn.has::after { content: ''; position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--color-warning); pointer-events: none; }
+
+/* Mất kết nối terminal (Authority 2026-11-26): badge bo tròn giữa ô — "Đang kết nối lại…" / "Đã kết nối lại", không nút */
+.reconn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs) var(--space-md); border-radius: 999px; background: var(--color-surface-raised); color: var(--color-text); font-size: var(--text-sm); box-shadow: inset 0 0 0 1px var(--color-divider); pointer-events: none; }
+.reconn .ok-ic { color: var(--color-success); flex: none; }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--color-divider); border-top-color: var(--color-primary); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }

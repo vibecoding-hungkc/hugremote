@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@app/shared';
 import { Roles } from '../../common/decorators';
@@ -12,9 +12,10 @@ import { ForwardsService } from './forwards.service';
 export class ForwardsController {
   constructor(private readonly fw: ForwardsService) {}
 
+  /** `?check=1`: kiểm thêm cổng đích của từng chuyển tiếp đang bật (S14 poll 5 giây — Authority 2026-11-26). */
   @Get('port-forwards')
-  list(): Promise<ForwardDto[]> {
-    return this.fw.list();
+  list(@Query('check') check?: string): Promise<ForwardDto[]> {
+    return this.fw.list(check === '1');
   }
 
   @Post('port-forwards')

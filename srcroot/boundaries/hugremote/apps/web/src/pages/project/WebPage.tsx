@@ -38,7 +38,7 @@ export function WebPage() {
   const ssh = hostId !== 'local';
 
   useEffect(() => setAddr(url), [url]);
-  const fw = useQuery({ queryKey: ['port-forwards'], queryFn: forwardsApi.list, enabled: ssh });
+  const fw = useQuery({ queryKey: ['port-forwards'], queryFn: () => forwardsApi.list(), enabled: ssh });
   const port = Number(/:(\d+)/.exec(url.replace(/^file:\/\//, ''))?.[1] ?? 0);
   const viaFw = fw.data?.find((f) => f.hostId === hostId && f.direction === 'L' && f.localPort === port);
 

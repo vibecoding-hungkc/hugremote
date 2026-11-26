@@ -98,6 +98,9 @@ Vòng: 3
 | 44 | S14 mở bằng trình duyệt ngoài | 3 | bật một chuyển tiếp SSH → local | có nút ↗ "Mở bằng trình duyệt ngoài" (+ 🌐 trong Electron) |
 | 45 | Git repo lồng nhau | 3 | dự án có repo con + dự án Home | danh sách repo đủ, nhánh + số thay đổi; chọn → diff/commit/lịch sử đúng repo; nhớ sau F5; ≤5.5 dòng rồi cuộn |
 | 46 | Electron: khung web + menu | 3 | app desktop: S13 ở zoom ≠ 100%; mở ⋯ cây khi đang ở S13 | khung web vừa ô; menu không bị che |
+| 47 | Ghi chú phiên (C51) | 3 | thêm ghi chú bằng nút 📝 / ⌥⇧K / ⋯ trong cây; sửa tại chỗ, Esc, xoá; ẩn/hiện; F5; ⌘K tìm theo ghi chú; member sửa ghi chú phiên người khác qua API; 390px | dải hiện đúng, cây + thẻ S2 + ⌘K có ghi chú, còn sau F5, member → 403, không tràn ngang |
+| 48 | Tự nối lại terminal + chấm máy | 3 | đang ở terminal máy SSH thì tắt máy SSH / rớt mạng rồi bật lại | chỉ badge "Đang kết nối lại…" giữa ô, không nút; chấm máy đỏ; có lại → "Đã kết nối lại" 2 giây, chấm xanh; gõ `exit` thật vẫn có *Mở lại tại đây* |
+| 49 | S14 trạng thái cổng đích | 3 | tắt/bật dịch vụ ở cổng đích cả hai chiều khi đang mở S14 | ≤5 giây đổi "Cổng không hoạt động" (đỏ) ↔ đang chuyển tiếp |
 
 ## 4. Kết quả
 

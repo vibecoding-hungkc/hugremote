@@ -16,7 +16,8 @@ export interface PooledTerm {
   fit: FitAddon;
   el: HTMLDivElement;
   sock?: TerminalSocket;
-  state: { exited: boolean; gone: boolean; reconnecting: number; notice?: string };
+  /** exitCode null khi phiên đóng mà không có mã thoát — kênh SSH rớt, không phải người dùng gõ `exit`. */
+  state: { exited: boolean; exitCode?: number | null; gone: boolean; reconnecting: number; notice?: string };
   listeners: Set<() => void>;
   /** Server báo `replay` → gói nhị phân kế tiếp là buffer cũ (đã có người xem); `muted` khi xterm đang ghi nó. */
   awaitReplay?: boolean;
@@ -158,7 +159,7 @@ export function attachTerm(p: PooledTerm, container: HTMLElement) {
         p.term.reset(); // nối lại: replay là toàn bộ buffer — ghi chồng lên màn cũ thì output lặp hai lần (dogfood edge)
         p.term.write(d, () => (p.muted = false));
       },
-      exit: () => ((p.state.exited = true), notify()),
+      exit: (code) => ((p.state.exited = true), (p.state.exitCode = code), notify()),
       gone: () => ((p.state.gone = true), notify()),
       reconnecting: (n) => ((p.state.reconnecting = n), notify()),
       open: () => ((p.state.reconnecting = 0), notify()),

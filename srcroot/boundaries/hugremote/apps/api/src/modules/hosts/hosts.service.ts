@@ -130,6 +130,7 @@ export class HostsService implements OnModuleInit, OnModuleDestroy {
         hasSecret: !!m?.secretEnc,
         workspaceDir: m?.workspaceDir ?? '~',
         trusted: this.knownCache.some((k) => k.host === h.hostName && k.port === h.port),
+        conn: this.pool.state(h.alias),
         pinned: pinPos.has(h.alias),
         pinPosition: pinPos.get(h.alias),
         configFile: owner ? h.file.replace(os.homedir(), '~') : undefined,

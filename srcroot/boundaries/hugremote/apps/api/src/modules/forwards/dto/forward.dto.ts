@@ -33,6 +33,8 @@ export class ForwardDto {
   @ApiProperty() enabled!: boolean;
   @ApiProperty({ enum: ['on', 'off', 'err'] }) status!: 'on' | 'off' | 'err';
   @ApiPropertyOptional() error?: string;
+  /** Chỉ khi gọi `?check=1`: cổng đích có ai nghe không (`-R`: cổng trên máy local · `-L`: cổng trên máy SSH). */
+  @ApiPropertyOptional({ enum: ['up', 'down'] }) target?: 'up' | 'down';
 }
 
 export class ListeningPortDto {

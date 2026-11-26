@@ -46,6 +46,7 @@ last_reviewed: "2026-11-21"
 | `projects` | `id, host_id, name, root_path, is_home` | unique (host_id, root_path); mỗi máy một `is_home` |
 | `port_forwards` (vòng 3) | `id, direction, host_id, remote_host, remote_port, local_port, label, auto_start` | unique local_port khi `L` |
 | `web_sessions` (vòng 3) | `id, project_id, owner_user_id, url, name` | FK project_id |
+| `session_notes` (vòng 3, 2026-11-26) | `session_id, text, updated_at` | không FK — khoá theo id phiên của ba bảng phiên; mồ côi dọn khi ghi |
 
 ### 1c. Cache entity
 

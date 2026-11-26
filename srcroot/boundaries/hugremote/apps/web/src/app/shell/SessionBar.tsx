@@ -63,6 +63,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
         {list.map((s, i) => (
           <div
             key={s.id}
+            ref={(el) => void (s.id === currentId && el?.scrollIntoView({ block: 'nearest', inline: 'nearest' }))}
             className={`tab ${s.id === currentId ? 'on' : ''} ${s.status === 'exited' ? 'ended' : ''}`}
             role="tab"
             aria-selected={s.id === currentId}

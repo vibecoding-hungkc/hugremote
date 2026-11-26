@@ -127,7 +127,7 @@ function ForwardRow({ f, onChanged, onError }: { f: Forward; onChanged: () => vo
       )}
       {/* trình duyệt hệ thống: app desktop chuyển window.open sang shell.openExternal; web thường chỉ đúng khi đang mở HugRemote ngay trên máy chạy nó */}
       {f.status === 'on' && !rev && (desktop() || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) && (
-        <Button variant="ghost" size="sm" iconOnly icon="ext" label={t('web.external')} onClick={() => window.open(`http://localhost:${f.localPort}/`, '_blank', 'noopener')} />
+        <Button variant="ghost" size="sm" iconOnly icon="ext" label={`${t('web.external')} localhost:${f.localPort}`} onClick={() => window.open(`http://localhost:${f.localPort}/`, '_blank', 'noopener')} />
       )}
       {f.status === 'off' ? (
         <Button variant="ghost" size="sm" iconOnly icon="plug" label={t('fw.enable')} onClick={() => act(forwardsApi.update(f.id, { enabled: true }))} />
@@ -165,13 +165,13 @@ function ListeningRow({ dir, hostId, port, proc, suggest, autoStart, usedL, onCh
       <Icon name={rev ? 'up' : 'server'} />
       <div className="t">
         <div className="t1 mono">
-          localhost:
           {port !== undefined ? (
-            port
+            `localhost:${port}`
           ) : (
+            // dòng "cổng khác": chỉ ô nhập, co theo chỗ trống (sheet 550px từng cắt mất ô — dogfood picky V3)
             <input
               className="input mono sm"
-              style={{ width: 112 }}
+              style={{ width: '100%', maxWidth: 160, minWidth: 0 }}
               inputMode="numeric"
               aria-label={rev ? t('fw.localService') : t('fw.remote')}
               placeholder={t('fw.otherPort')}

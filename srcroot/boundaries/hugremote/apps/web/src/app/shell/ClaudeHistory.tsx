@@ -7,7 +7,7 @@ import { ConfirmDialog, useDialogs } from '../../components/ui/Dialogs';
 import { Icon } from '../../components/ui/Icon';
 import { Menu, toast } from '../../components/ui/Overlay';
 import { claudeApi } from '../../features/claude/api/claude.api';
-import { ck } from '../../features/claude/hooks/useClaude';
+import { ck, useClaudeSessions } from '../../features/claude/hooks/useClaude';
 import { ApiError } from '../../lib/api-client';
 import { pbase } from './sessions';
 
@@ -23,6 +23,8 @@ export function ClaudeHistory({ hostId, projectId }: { hostId: string; projectId
   const q = useQuery({ queryKey: key, queryFn: () => claudeApi.cliSessions(projectId, true), enabled: !!anchor, staleTime: 10_000 });
   const fail = (e: unknown) => toast(t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') }));
   const base = pbase(hostId, projectId);
+  const sessions = useClaudeSessions().data ?? [];
+  const running = (id?: string) => !!id && sessions.some((x) => x.id === id && (x.status === 'running' || x.status === 'awaiting_input'));
 
   const open = (c: { id: string; title: string; linkedId?: string; recent: boolean }) => {
     setAnchor(null);
@@ -48,18 +50,25 @@ export function ClaudeHistory({ hostId, projectId }: { hostId: string; projectId
       <ConfirmDialog
         danger
         title={t('hist.delTitle', { name: c.title })}
-        body={<p>{t('hist.delBody')}</p>}
+        body={
+          <p>
+            {t('hist.delBody')}
+            {running(c.linkedId) && <b> {t('hist.delRunning')}</b>}
+          </p>
+        }
         confirmLabel={t('hist.del')}
         onConfirm={async () => {
           try {
             await claudeApi.removeCli(projectId, c.id);
-            // đang đứng ở chính phiên vừa xoá → về danh sách phiên của dự án (không bị đẩy về trang chủ)
-            if (c.linkedId && loc.pathname.endsWith(`/claude/${c.linkedId}`)) nav(`${base}/sessions`);
           } catch (e) {
             fail(e);
           }
-          void qc.invalidateQueries({ queryKey: key });
+          // đang đứng ở phiên vừa xoá: chuyển trang rồi gỡ phiên khỏi cache trong cùng nhịp — không thì trang Claude thấy phiên
+          // mất và văng về "/", hoặc trang Phiên chuyển lại vào chính phiên vừa xoá (dogfood edge V1)
+          if (c.linkedId && loc.pathname.endsWith(`/claude/${c.linkedId}`)) nav(`${base}/sessions`);
+          if (c.linkedId) qc.setQueryData<{ id: string }[]>(ck.sessions, (l) => l?.filter((x) => x.id !== c.linkedId));
           void qc.invalidateQueries({ queryKey: ck.sessions });
+          void qc.invalidateQueries({ queryKey: key });
           void qc.invalidateQueries({ queryKey: ['claudecli', projectId] });
         }}
       />,
@@ -69,7 +78,20 @@ export function ClaudeHistory({ hostId, projectId }: { hostId: string; projectId
 
   return (
     <>
-      <Button variant="ghost" size="sm" iconOnly icon="history" label={t('hist.title')} onClick={(e) => setAnchor(e.currentTarget.getBoundingClientRect())} />
+      <Button
+        variant="ghost"
+        size="sm"
+        iconOnly
+        icon="history"
+        label={t('hist.title')}
+        aria-haspopup="menu"
+        aria-expanded={!!anchor}
+        onClick={(e) => {
+          // tải xong mới mở → menu có dòng để nhận focus ngay (dogfood a11y #2: lần mở đầu focus kẹt ở nút)
+          const rect = e.currentTarget.getBoundingClientRect();
+          void qc.fetchQuery({ queryKey: key, queryFn: () => claudeApi.cliSessions(projectId, true), staleTime: 10_000 }).finally(() => setAnchor(rect));
+        }}
+      />
       {anchor && (
         <Menu anchor={anchor} width={360} onClose={() => setAnchor(null)}>
           <div className="grp">{t('hist.title')}</div>
@@ -80,7 +102,11 @@ export function ClaudeHistory({ hostId, projectId }: { hostId: string; projectId
           ) : q.data?.length ? (
             <div className="hist">
               {q.data.map((c) => (
-                <div key={c.id} className="mi notif" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }} role="menuitem" tabIndex={0} onClick={() => void open(c)} onKeyDown={(e) => e.key === 'Enter' && void open(c)}>
+                <div key={c.id} className="mi notif" style={{ gridTemplateColumns: 'minmax(0, 1fr)' }} role="menuitem" tabIndex={0} aria-keyshortcuts="Delete" onClick={() => void open(c)} onKeyDown={(e) => {
+                  if (e.key === 'Enter') void open(c);
+                  // nút 🗑 lồng trong dòng không tới được bằng Tab → Delete/⌫ trên dòng = xoá (dogfood a11y #1)
+                  if (e.key === 'Delete' || e.key === 'Backspace') (e.preventDefault(), del(c));
+                }}>
                   <b>
                     <Icon name="claude" className="claude-ic" />
                     <span className="grow ell" style={{ minWidth: 0 }}>

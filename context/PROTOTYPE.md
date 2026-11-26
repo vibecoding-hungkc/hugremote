@@ -223,5 +223,6 @@ cho test so ảnh pha I (G-16).
 | 16 | 2026-11-24 | "Mở rộng khung content của session Claude, giữ nguyên khung chat; content render md chưa đúng, bảng không có khung" | `.col` 820→1280px; thêm CSS `.md` (bảng, code, danh sách, trích dẫn); phiên Refactor auth có bảng mẫu |
 | 17 | 2026-11-25 | "Gợi ý /lệnh vẫn bị ngắt 2 dòng; thêm icon lịch sử cạnh chuông (xoá + bấm = resume); khung chat bỏ nền ngoài, cao 1.5×, viền gradient" | Tên lệnh `nowrap`, mô tả clamp 2 dòng; menu `hist` cạnh `notifBtn`; `.composer` nền trong suốt, `.cbox` viền gradient, textarea min-height 1.5× |
 | 18 | 2026-11-25 | "Dự án trong workspace có cả + và ⋯ — gộp menu + vào ⋯" | `rowMenu` kind `project` = menu `plus` + nhóm "Dự án" (trước danh sách tmux); bỏ nút + ở dòng dự án |
+| 19 | 2026-11-25 | "Git chỉ nhận repo ở thư mục được mở — muốn xem repo trong thư mục, tối đa 4 cấp" → bản dropdown → "show hết danh sách, không dropdown" → "oke làm bản thật" | S9: mục "Repo trong thư mục (N)" đầu cột trái, mỗi dòng nhánh + số thay đổi, `.repolist` cao ~5 dòng; dữ liệu mẫu `gitRepos` (Home có 3 repo con, demo-api có `packages/sdk`) |
 
 Chốt bởi Authority: 2026-11-24

@@ -272,7 +272,8 @@ async function start(): Promise<void> {
   window.webContents.on('will-navigate', (event, url) => {
     if (!sameOrigin(url)) {
       event.preventDefault();
-      shell.openExternal(url);
+      // chỉ http(s) ra trình duyệt hệ thống — `file:`/`smb:`… từng được mở thẳng (dogfood breaker #7)
+      if (/^https?:\/\//.test(url)) void shell.openExternal(url);
     }
   });
 

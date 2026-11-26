@@ -36,11 +36,13 @@ export function parseCliDump(out: string): CliSession[] {
     let custom = '';
     let ai = '';
     let prompt = '';
+    let valid = false;
     for (const line of chunk.slice(nl + 1).split('\n')) {
       if (!line.startsWith('{')) continue; // dòng đầu bị cắt giữa chừng
       let o: Record<string, unknown>;
       try {
         o = JSON.parse(line) as Record<string, unknown>;
+        valid = true;
       } catch {
         continue;
       }
@@ -58,6 +60,7 @@ export function parseCliDump(out: string): CliSession[] {
         if (text && !text.startsWith('<')) prompt = text;
       }
     }
+    if (!valid) continue; // file rỗng/hỏng: CLI không resume được → không đưa vào danh sách (dogfood edge L1)
     const title = (custom || ai || prompt || id.slice(0, 8)).replace(/\s+/g, ' ').trim().slice(0, 80);
     res.push({ id, title, updatedAt: new Date(Number(mtime) * 1000).toISOString() });
   }

@@ -76,8 +76,8 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
         JSON.parse(fs.readFileSync(this.limitsFile, 'utf8')) as Record<string, Partial<Record<'five_hour' | 'weekly', RateLimitInfo>>>,
       ))
         this.limitsByHost.set(h, v);
-    } catch {
-      /* chưa có file */
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'ENOENT') this.log.warn(`đọc hạn mức đã lưu: ${(e as Error).message}`);
     }
     await this.repo.resetRunning();
     this.ws.registerHooks({
@@ -156,10 +156,12 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
     d: { name?: string; permissionMode?: string; model?: string; effort?: string; confirm?: boolean; resumeCliId?: string },
   ) {
     await this.ws.get(projectId);
+    // id CLI là tên file: đưa về chữ thường — ổ không phân biệt hoa/thường (APFS) coi `3A3A…` và `3a3a…` là một file (dogfood breaker #2/#3)
+    if (d.resumeCliId) d = { ...d, resumeCliId: d.resumeCliId.toLowerCase() };
     if (d.resumeCliId) {
-      // một phiên CLI chỉ gắn với một phiên HugRemote — đã gắn thì trả phiên cũ (không tạo trùng)
-      const had = (await this.repo.byProject(projectId)).find((x) => x.cliSessionId === d.resumeCliId);
-      if (had) return this.dto(had);
+      // một phiên CLI chỉ gắn với một phiên HugRemote — đã gắn thì trả phiên cũ (không tạo trùng); phiên của người khác → 403 (G-13)
+      const had = (await this.repo.byProject(projectId)).find((x) => x.cliSessionId?.toLowerCase() === d.resumeCliId);
+      if (had) return this.dto(await this.owned(u, had.id));
     }
     if (d.permissionMode === PermissionMode.BYPASS && !d.confirm) throw AppError.badRequest(ErrorCode.CONFIRM_REQUIRED);
     const n = (await this.repo.byProject(projectId)).length + 1;
@@ -209,9 +211,11 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
 
   /** Xoá một phiên khỏi lịch sử CLI (`~/.claude/projects/<slug>/<id>.jsonl` trên máy đích) + phiên HugRemote gắn với nó. */
   async removeCliSession(u: AuthUser, projectId: string, cliId: string) {
-    if (!/^[0-9a-f-]{36}$/i.test(cliId)) throw AppError.badRequest(ErrorCode.VALIDATION_FAILED);
+    cliId = cliId.toLowerCase(); // so không phân biệt hoa/thường — `3A3A…` từng lách kiểm chủ phiên (dogfood breaker #2)
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(cliId))
+      throw AppError.badRequest(ErrorCode.VALIDATION_FAILED);
     const { project, rt } = await this.ws.context(projectId);
-    const had = (await this.repo.byProject(projectId)).find((x) => x.cliSessionId === cliId);
+    const had = (await this.repo.byProject(projectId)).find((x) => x.cliSessionId?.toLowerCase() === cliId);
     if (had) await this.remove(u, had.id); // phiên của người khác → 403 trước khi đụng file
     const abs = await rt.realpath(project.rootPath);
     await rt.exec(['sh', '-c', `rm -f -- "$HOME/.claude/projects/${cliProjectSlug(abs)}/${cliId}.jsonl"`], { timeoutMs: 15_000 });
@@ -433,9 +437,13 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
       const cur = this.limitsByHost.get(project.hostId) ?? {};
       if (op.info.pct === null && cur[op.info.kind]?.pct != null) return; // bản không có % không đè bản có %
       this.limitsByHost.set(project.hostId, { ...cur, [op.info.kind]: op.info });
-      fs.promises
-        .writeFile(this.limitsFile, JSON.stringify(Object.fromEntries(this.limitsByHost)), { mode: 0o600 })
-        .catch((e: Error) => this.log.warn(`lưu hạn mức: ${e.message}`));
+      // ghi đồng bộ + rename: hai `rate_limit_event` liền nhau (5 giờ rồi tuần) từng ghi chồng async làm hỏng file (dogfood smoke #42)
+      try {
+        fs.writeFileSync(`${this.limitsFile}.tmp`, JSON.stringify(Object.fromEntries(this.limitsByHost)), { mode: 0o600 });
+        fs.renameSync(`${this.limitsFile}.tmp`, this.limitsFile);
+      } catch (e) {
+        this.log.warn(`lưu hạn mức: ${(e as Error).message}`);
+      }
       return;
     }
     if (op.op === 'upsert') {
@@ -523,7 +531,11 @@ export class ClaudeService implements OnModuleInit, OnModuleDestroy {
         this.log.error(`"${s.name}": lượt lỗi (exit ${info.code}) ${info.stderr.trim().split('\n').pop()?.slice(0, 200) ?? ''}`);
         await this.persist(
           s,
-          { kind: 'note', id: `${crypto.randomUUID().slice(0, 8)}-n`, text: info.stderr.trim().slice(-800) || `exit ${info.code}` },
+          {
+            kind: 'note',
+            id: `${crypto.randomUUID().slice(0, 8)}-n`,
+            text: info.stderr.trim().slice(-800) || (info.code === null ? 'TURN_INTERRUPTED' : `exit ${info.code}`),
+          },
           ClaudeEvent.ERROR,
         );
       } else {

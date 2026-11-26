@@ -417,7 +417,7 @@ export function ChatView({
         return (
           <div className="note" key={m.id}>
             <Icon name={m.text === 'CLI_RESUMED' ? 'claude' : 'stop'} />
-            {m.text === 'CLAUDE_NOT_INSTALLED' ? t('claude.notInstalled', { host: hostName }) : m.text === 'CLI_RESUMED' ? t('claude.cliResumed') : m.text}
+            {m.text === 'CLAUDE_NOT_INSTALLED' ? t('claude.notInstalled', { host: hostName }) : m.text === 'CLI_RESUMED' ? t('claude.cliResumed') : m.text === 'TURN_INTERRUPTED' ? t('claude.turnInterrupted') : m.text}
           </div>
         );
     }

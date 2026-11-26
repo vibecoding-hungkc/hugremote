@@ -74,6 +74,7 @@ export function Composer(p: ComposerProps) {
   const [menu, setMenu] = useState<'model' | 'mode' | null>(null);
   const [rec, setRec] = useState<SR | null>(null);
   const [sending, setSending] = useState(false);
+  const [slashIdx, setSlashIdx] = useState(0);
   const ta = useRef<HTMLTextAreaElement>(null);
   const tools = useRef<HTMLDivElement>(null);
 
@@ -142,6 +143,8 @@ export function Composer(p: ComposerProps) {
   const effort = p.effort ?? (curModel?.efforts.includes('high') ? 'high' : undefined);
   const slashOn = draft.text.startsWith('/') && !draft.text.includes(' ');
   const slash = slashOn ? (p.options?.commands ?? []).filter((c) => c.name.toLowerCase().startsWith(draft.text.slice(1).toLowerCase())).slice(0, 8) : [];
+  // lệnh đang trỏ trong gợi ý `/` — ↑↓ đổi, Enter chọn (dogfood a11y #4)
+  const si = Math.min(slashIdx, Math.max(0, slash.length - 1));
   const five = p.limits?.fiveHour;
   const week = p.limits?.weekly;
   const fmtReset = (iso?: string | null) => (iso ? new Date(iso).toLocaleString(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
@@ -166,8 +169,11 @@ export function Composer(p: ComposerProps) {
   const keys = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      if (slash.length && draft.text.length > 1) return setDraft((d) => ({ ...d, text: `/${slash[0].name} ` }));
+      if (slash.length && (draft.text.length > 1 || si > 0)) return setDraft((d) => ({ ...d, text: `/${slash[si].name} ` }));
       void send();
+    } else if (slash.length && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      setSlashIdx((si + (e.key === 'ArrowDown' ? 1 : slash.length - 1)) % slash.length);
     } else if (e.key === 'Tab' && e.shiftKey) {
       e.preventDefault();
       cycle();
@@ -215,11 +221,13 @@ export function Composer(p: ComposerProps) {
           </div>
         )}
         {slash.length > 0 && (
-          <div className="slash" role="listbox">
-            {slash.map((c) => (
+          <div className="slash" role="listbox" id={`slash-${p.sid}`} aria-label={t('claude.slashList')}>
+            {slash.map((c, i) => (
               <div
                 key={c.name}
-                className="mi"
+                id={`slash-${p.sid}-${i}`}
+                className={`mi ${i === si ? 'on' : ''}`}
+                aria-selected={i === si}
                 role="option"
                 tabIndex={-1}
                 onMouseDown={(e) => {
@@ -261,7 +269,10 @@ export function Composer(p: ComposerProps) {
               aria-label={t('claude.promptLabel')}
               placeholder={rec ? t('claude.listening') : p.running ? t('claude.placeholderQueue') : t('claude.placeholder')}
               value={draft.text}
-              onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+              onChange={(e) => (setSlashIdx(0), setDraft((d) => ({ ...d, text: e.target.value })))}
+              aria-controls={slash.length ? `slash-${p.sid}` : undefined}
+              aria-expanded={slash.length > 0}
+              aria-activedescendant={slash.length ? `slash-${p.sid}-${si}` : undefined}
               onKeyDown={keys}
             />
             {SpeechRec && <Button variant="ghost" size="sm" iconOnly icon="mic" tone={rec ? 'primary' : undefined} label={rec ? t('claude.micStop') : t('claude.mic')} onClick={mic} />}
@@ -271,7 +282,7 @@ export function Composer(p: ComposerProps) {
               <div className="menu inline" role="menu">
                 {p.optionsError && <div className="grp">{t('claude.modelProbeFailed')}</div>}
                 {(five || week) && (
-                  <div className="mi" style={{ cursor: 'default', gap: 'var(--space-sm)' }}>
+                  <div className="mi static" style={{ gap: 'var(--space-sm)' }}>
                     {[
                       ...(five ? [[t('claude.limit5hFull'), five.pct, five.resetAt] as const] : []),
                       ...(week ? [[t('claude.limitWeekFull'), week.pct, week.resetAt] as const] : []),
@@ -291,7 +302,7 @@ export function Composer(p: ComposerProps) {
                 )}
                 {!five && !week && (
                   // CLI chỉ báo hạn mức kèm một lượt chat → chưa có lượt nào trên máy này thì nói rõ, không ẩn im lặng
-                  <div className="mi" style={{ cursor: 'default' }}>
+                  <div className="mi static" style={{ maxWidth: 320 }}>
                     <span className="d">{t('claude.limitsUnknown')}</span>
                   </div>
                 )}

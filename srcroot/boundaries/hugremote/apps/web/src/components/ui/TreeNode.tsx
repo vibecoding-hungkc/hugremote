@@ -56,7 +56,7 @@ export function TreeNode({
       title={title}
       onClick={onClick}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onClick();
+        if (e.key === 'Enter' && e.target === e.currentTarget) onClick(); // Enter trên nút ⋯ bên trong không chuyển trang (dogfood a11y #6)
         if (onToggle && ((e.key === 'ArrowRight' && !expanded) || (e.key === 'ArrowLeft' && expanded))) (e.preventDefault(), onToggle());
       }}
       onContextMenu={

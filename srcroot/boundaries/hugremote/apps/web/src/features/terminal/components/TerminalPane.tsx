@@ -67,7 +67,11 @@ export function TerminalPane({ sessionId, exited, tmuxName, onClose, onKeyTarget
   const gone = exited || p?.state.exited || p?.state.gone;
   const retrying = !!p?.state.reconnecting && !gone;
   // Shell thoát thật (exit, tmux bị kill) ≠ mất kết nối: nói đúng, và để output cuối còn nhìn thấy (dải dưới đáy)
-  const ended = !retrying && !!(exited || p?.state.exited);
+  // 4404 sau khi API khởi động lại = PTY đã mất → cũng là "đã kết thúc", không phải "mất kết nối" (dogfood edge V2)
+  const ended = !retrying && !!(exited || p?.state.exited || p?.state.gone);
+  useEffect(() => {
+    if (p?.state.gone) void qc.invalidateQueries({ queryKey: qk.terminals });
+  }, [p?.state.gone, qc]);
   return (
     <div className="pane" style={{ position: 'relative', background: 'var(--term-bg)' }}>
       {!exited && <div ref={box} style={{ position: 'absolute', inset: 0 }} onClick={() => p?.term.focus()} aria-label={t('term.area')} />}

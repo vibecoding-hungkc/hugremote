@@ -34,7 +34,8 @@ export class GitService {
 
   private async git(rt: HostRuntime, cwd: string, args: string[], opts: { timeoutMs?: number; stdin?: string; ceiling?: string } = {}) {
     try {
-      return await rt.exec(['git', ...args], {
+      // core.quotePath=false: đường dẫn tiếng Việt/dấu cách không bị bọc ngoặc + escape bát phân (dogfood edge V5)
+      return await rt.exec(['git', '-c', 'core.quotePath=false', ...args], {
         cwd,
         env: opts.ceiling ? { ...ENV, GIT_CEILING_DIRECTORIES: opts.ceiling } : ENV,
         timeoutMs: opts.timeoutMs ?? 30_000,
@@ -65,24 +66,101 @@ export class GitService {
     return parent && parent !== rootPath ? parent : undefined;
   }
 
-  /** Repo lồng trong dự án tới 5 cấp (gốc dự án trước). */
-  async repos(projectId: string) {
+  /**
+   * Mọi repo trong thư mục dự án, sâu tối đa 4 cấp (Authority 2026-11-25): gốc dự án (`''`) nếu chính nó là repo, rồi repo
+   * con theo thứ tự tên. Một lệnh `find` trên máy đích, bỏ qua node_modules/vendor/dist/.cache và không đi vào `.git`.
+   * Mỗi repo kèm nhánh + số thay đổi (tối đa 4 lệnh git cùng lúc — sshd mặc định MaxSessions 10).
+   */
+  /** Nhiều tab/thiết bị mở Git cùng lúc → dùng chung một lượt quét (sshd MaxSessions 10 từng làm 14/20 yêu cầu 500 — breaker #5). */
+  private readonly scanning = new Map<
+    string,
+    Promise<{ repos: { path: string; branch: string | null; changes: number }[]; more: number }>
+  >();
+  repos(projectId: string) {
+    let p = this.scanning.get(projectId);
+    if (!p) {
+      p = this.scanRepos(projectId).finally(() => this.scanning.delete(projectId));
+      this.scanning.set(projectId, p);
+    }
+    return p;
+  }
+
+  private async scanRepos(projectId: string) {
     const c = await this.ctx(projectId);
     const ceiling = this.ceilingOf(c.project.rootPath);
     const top = await this.git(c.rt, c.cwd, ['rev-parse', '--show-toplevel'], { ceiling });
-    if (top.code === 0) return { repos: [''] };
     const r = await c.rt
-      .exec(['find', '.', '-maxdepth', '5', '-name', '.git', '-not', '-path', '*/node_modules/*'], {
-        cwd: c.project.rootPath,
-        timeoutMs: 10_000,
-      })
-      .catch(() => null);
-    const repos = (r?.stdout.toString().split('\n') ?? [])
+      .exec(
+        [
+          'find',
+          '.',
+          '-maxdepth',
+          '5',
+          '(',
+          '-name',
+          'node_modules',
+          '-o',
+          '-name',
+          'vendor',
+          '-o',
+          '-name',
+          'dist',
+          '-o',
+          '-name',
+          '.cache',
+          ')',
+          '-prune',
+          '-o',
+          '-name',
+          '.git',
+          '-print',
+          '-prune',
+        ],
+        { cwd: c.cwd, timeoutMs: 15_000, maxBytes: 1024 * 1024 },
+      )
+      .catch((e: unknown) => HostsService.mapSshError(e));
+    const nested = (r?.stdout.toString().split('\n') ?? [])
       .filter(Boolean)
       .map((p) => path.posix.dirname(p.replace(/^\.\//, '')))
       .filter((p) => p !== '.')
-      .sort();
-    return { repos };
+      // nông trước rồi theo tên: vượt trần thì bỏ repo sâu, không bỏ dự án thật cùng cấp (dogfood edge V6)
+      .sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
+    const all = [...(top.code === 0 ? [''] : []), ...nested];
+    const paths = all.slice(0, 200);
+    const out: { path: string; branch: string | null; changes: number }[] = [];
+    // ponytail: hàng đợi 4 luồng đơn giản; đủ cho vài chục repo
+    let next = 0;
+    const worker = async () => {
+      while (next < paths.length) {
+        const p = paths[next++];
+        const st = await this.git(c.rt, this.files.abs(c.project, p), ['status', '--porcelain=v1', '--branch', '--untracked-files=all'], {
+          ceiling,
+          timeoutMs: 10_000,
+        }).catch(() => null);
+        // `-uall`: dòng `?? dir/` còn lại là repo con — không tính là thay đổi
+        const lines =
+          st?.code === 0
+            ? st.stdout
+                .toString('utf8')
+                .split('\n')
+                .filter((l) => l && !(l.startsWith('?? ') && l.endsWith('/')))
+            : [];
+        const head = lines[0]?.startsWith('## ') ? lines[0].slice(3) : '';
+        const branch =
+          !head || head.startsWith('HEAD (no branch)')
+            ? null
+            : head
+                .replace(/^No commits yet on /, '')
+                .split('...')[0]
+                .split(' ')[0];
+        out.push({ path: p, branch, changes: Math.max(0, lines.length - 1) });
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+    return {
+      repos: out.sort((a, b) => (a.path === '' ? -1 : b.path === '' ? 1 : a.path.localeCompare(b.path))),
+      more: all.length - paths.length,
+    };
   }
 
   async status(projectId: string, repo?: string) {
@@ -133,6 +211,8 @@ export class GitService {
           deleted: 0,
         });
       } else if (l.startsWith('? ')) {
+        // `-uall` liệt kê từng file; thư mục còn dấu `/` = repo con lồng bên trong → có danh sách repo riêng, không phải thay đổi
+        if (l.endsWith('/')) continue;
         changes.push({ path: l.slice(2), x: '?', y: '?', staged: false, unstaged: true, untracked: true, added: 0, deleted: 0 });
       }
     }
@@ -155,8 +235,29 @@ export class GitService {
     return { isRepo: true, branch, upstream, ahead, behind, changes };
   }
 
+  /**
+   * Đường dẫn file từ client phải là tương đối, nằm trong repo: không tuyệt đối, không `~`, không `..`, không pathspec `:…`
+   * hay cờ `-…`. `diff --no-index` từng đọc được mọi file trên máy (kể cả `secret.key`) — dogfood breaker #1.
+   */
+  private rel(c: { project: Parameters<FilesService['abs']>[0] }, repo: string | undefined, file: string) {
+    const clean = path.posix.normalize(file);
+    if (
+      !file ||
+      file.includes('\0') ||
+      path.posix.isAbsolute(clean) ||
+      clean.startsWith('~') ||
+      clean === '..' ||
+      clean.startsWith('../') ||
+      /^[:-]/.test(file)
+    )
+      throw AppError.forbidden(ErrorCode.PATH_OUTSIDE_ROOT);
+    this.files.abs(c.project, path.posix.join(repo ?? '', clean)); // máy local: realpath trong gốc dự án
+    return clean;
+  }
+
   async diff(projectId: string, file: string, staged: boolean, repo?: string) {
     const c = await this.ctx(projectId, repo);
+    file = this.rel(c, repo, file);
     let r = await this.git(c.rt, c.cwd, ['diff', ...(staged ? ['--cached'] : []), '--no-color', '--no-ext-diff', '-M', '--', file]);
     if (!staged && !r.stdout.length) r = await this.git(c.rt, c.cwd, ['diff', '--no-color', '--no-index', '--', '/dev/null', file]); // file chưa track
     return { path: file, diff: r.stdout.toString('utf8') };
@@ -171,7 +272,10 @@ export class GitService {
   async stage(projectId: string, paths: string[], on: boolean, repo?: string) {
     const c = await this.ctx(projectId, repo);
     const all = paths.length === 1 && paths[0] === '*';
-    if (on) await this.ok(c.rt, c.cwd, ['add', '-A', '--', ...(all ? ['.'] : paths)]);
+    if (!all) paths = paths.map((p) => this.rel(c, repo, p)); // chặn `:(exclude)…`/`:/` kéo repo con vào thành gitlink (breaker #6)
+    // "tất cả" không được kéo repo con vào thành gitlink → loại các thư mục repo con khỏi pathspec
+    const nested = all ? await this.nestedRepos(c.rt, c.cwd) : [];
+    if (on) await this.ok(c.rt, c.cwd, ['add', '-A', '--', ...(all ? ['.', ...nested.map((d) => `:(exclude)${d}`)] : paths)]);
     else {
       const hasHead = (await this.git(c.rt, c.cwd, ['rev-parse', '--verify', 'HEAD'])).code === 0;
       await this.ok(
@@ -183,9 +287,20 @@ export class GitService {
     return this.status(projectId, repo);
   }
 
+  /** Repo con chưa theo dõi trong `cwd` (git báo `?? dir/` khi `-uall`). */
+  private async nestedRepos(rt: HostRuntime, cwd: string) {
+    const r = await this.git(rt, cwd, ['status', '--porcelain=v1', '-z', '--untracked-files=all']);
+    return r.stdout
+      .toString('utf8')
+      .split('\0')
+      .filter((l) => l.startsWith('?? ') && l.endsWith('/'))
+      .map((l) => l.slice(3, -1));
+  }
+
   /** Bỏ thay đổi chưa commit của một file (UI hỏi xác nhận trước). */
   async discard(projectId: string, file: string, repo?: string) {
     const c = await this.ctx(projectId, repo);
+    file = this.rel(c, repo, file);
     const st = await this.status(projectId, repo);
     const ch = st.changes.find((x) => x.path === file);
     if (!ch) return st;

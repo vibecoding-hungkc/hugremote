@@ -170,7 +170,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .sheet-body { flex: 1; overflow: auto; padding: var(--space-lg); }
 .sheet-foot { padding: var(--space-md) var(--space-lg); border-top: 1px solid var(--color-divider); display: flex; gap: var(--space-sm); justify-content: flex-end; flex-wrap: wrap; }
 .dialog { margin: auto; width: 480px; max-width: calc(100% - 2 * var(--space-lg)); max-height: calc(100% - 2 * var(--space-lg)); overflow: auto; background: var(--color-surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--space-xl); display: grid; gap: var(--space-lg); }
-.dialog.warn { box-shadow: var(--shadow), inset 0 0 0 1px var(--color-danger); }
+.dialog.warn, .dialog.danger { box-shadow: var(--shadow), inset 0 0 0 1px var(--color-danger); }
 .dialog h2 { margin: 0; font-size: var(--text-xl); }
 .dialog p { margin: 0; color: var(--color-text-muted); font-size: var(--text-sm); }
 .fp { font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-bg); border-radius: var(--radius); padding: var(--space-md); word-break: break-all; }
@@ -183,6 +183,8 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .menu .grp { padding: var(--space-xs) var(--space-md); font-size: var(--text-xs); color: var(--color-text-muted); }
 .mi { min-height: 40px; padding: var(--space-xs) var(--space-md); border-radius: var(--radius); cursor: pointer; display: grid; gap: 2px; align-content: center; font-size: var(--text-sm); }
 .mi:hover, .mi.on, .mi:focus-visible { background: var(--color-surface-raised); }
+.mi.static { cursor: default; }
+.mi.static:hover { background: transparent; } /* dòng chỉ để đọc (hạn mức, giải thích) không giả làm mục bấm được */
 .mi .d { font-size: var(--text-xs); color: var(--color-text-muted); }
 .mi.notif b .btn { flex: none; }
 .mi.danger b, .mi.danger { color: var(--color-danger); }
@@ -272,6 +274,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 /* S9 */
 .git { display: grid; grid-template-columns: 340px 1fr; flex: 1; min-height: 0; }
 .gleft { border-right: 1px solid var(--color-divider); overflow: auto; display: flex; flex-direction: column; background: var(--color-surface); }
+.repolist { flex: none; max-height: calc(5.5 * 44px); overflow-y: auto; border-bottom: 1px solid var(--color-divider); }
 .gsec { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-xs) var(--space-xs) var(--space-md); font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .04em; }
 .grow-row { display: flex; align-items: center; gap: var(--space-sm); min-height: 44px; padding: 0 var(--space-xs) 0 var(--space-md); cursor: pointer; border-bottom: 1px solid var(--color-divider); }
 .grow-row:hover, .grow-row.sel { background: var(--color-surface-raised); }
@@ -327,7 +330,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .attach { display: inline-flex; gap: var(--space-xs); align-items: center; font-size: var(--text-xs); padding: 2px var(--space-xs) 2px var(--space-sm); border-radius: var(--radius-pill); background: var(--color-surface-raised); }
 .slash { border: 1px solid var(--color-divider); border-radius: var(--radius); background: var(--color-bg); padding: var(--space-xs); }
 .slash .mi { display: flex; gap: var(--space-md); align-items: center; }
-.slash .mi b { font-family: var(--font-mono); min-width: 90px; flex: none; white-space: nowrap; } /* tên lệnh luôn 1 dòng */
+.slash .mi b { font-family: var(--font-mono); min-width: 90px; max-width: 45%; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* tên lệnh luôn 1 dòng; tên plugin dài không ép mô tả */
 .slash .mi .muted { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; } /* mô tả tối đa 2 dòng */
 .hist { max-height: min(60vh, 480px); overflow-y: auto; }
 /* S11 S12 */
@@ -351,6 +354,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
   .only-mobile { display: none !important; }
 }
 @media (max-width: 767px) {
+  .mi kbd { display: none; } /* phím tắt không dùng được trên điện thoại */
   /* ô chat điện thoại: chip xuống dòng thay vì cuộn ngang — chip quyền (Bypass) phải luôn thấy được */
   .cscroll { flex-wrap: wrap; overflow-x: visible; }
   /* S14: hàng chuyển tiếp xuống dòng — địa chỉ một dòng, ô cổng + nút dòng dưới */

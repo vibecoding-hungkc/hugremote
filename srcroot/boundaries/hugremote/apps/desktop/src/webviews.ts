@@ -19,6 +19,7 @@ export const allowedWebUrl = (u: string) => {
 
 export function setupWebViews(win: BrowserWindow) {
   const views = new Map<string, WebContentsView>();
+  const asked = new Map<string, string>(); // link renderer xin hiện lần gần nhất, theo phiên
   const state = (id: string, v: WebContentsView, error?: string) => {
     if (win.isDestroyed()) return;
     const wc = v.webContents;
@@ -65,10 +66,15 @@ export function setupWebViews(win: BrowserWindow) {
   ipcMain.handle('web:show', async (e, id: string, url: string, b: Bounds) => {
     if (e.sender !== win.webContents || !allowedWebUrl(url)) return false;
     for (const [k, other] of views) if (k !== id) other.setVisible(false); // một trang hiện một lúc
+    const fresh = !views.has(id);
     const v = views.get(id) ?? create(id);
     v.setBounds(fit(b));
     v.setVisible(true);
-    if (v.webContents.getURL() !== url) await v.webContents.loadURL(url).catch(() => undefined);
+    // chỉ nạp khi view mới hoặc renderer xin link KHÁC lần trước (gõ thanh địa chỉ). Quay lại phiên với link đã lưu cũ
+    // (trang đã đi tiếp mà chưa kịp lưu, redirect…) thì giữ nguyên trang đang mở — Authority 2026-11-26: đổi tab về là về home
+    const again = !fresh && asked.get(id) === url;
+    asked.set(id, url);
+    if (!again && v.webContents.getURL() !== url) await v.webContents.loadURL(url).catch(() => undefined);
     state(id, v);
     return true;
   });
@@ -86,6 +92,7 @@ export function setupWebViews(win: BrowserWindow) {
     win.contentView.removeChildView(v);
     v.webContents.close();
     views.delete(id);
+    asked.delete(id);
   });
   ipcMain.on('web:nav', (e, id: string, action: string) => {
     const v = views.get(id);

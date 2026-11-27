@@ -140,9 +140,11 @@ export class SshPool {
     })();
     if (key) {
       this.inflightProbe.set(key, run);
-      run.finally(() => {
-        if (this.inflightProbe.get(key) === run) this.inflightProbe.delete(key);
-      }).catch(() => undefined);
+      run
+        .finally(() => {
+          if (this.inflightProbe.get(key) === run) this.inflightProbe.delete(key);
+        })
+        .catch(() => undefined);
     }
     return run;
   }
@@ -312,9 +314,7 @@ export class SshPool {
       jump?.end();
       const kind = (e as SshError).kind ?? (e as Error).message;
       const reason = e instanceof SshError && typeof e.details.reason === 'string' ? ` (${e.details.reason})` : '';
-      this.log.warn(
-        `${t.id}: không nối được ${t.hostName}:${t.port}${jump ? ' (qua máy trung gian)' : ''} — ${kind}${reason}`,
-      );
+      this.log.warn(`${t.id}: không nối được ${t.hostName}:${t.port}${jump ? ' (qua máy trung gian)' : ''} — ${kind}${reason}`);
       throw e;
     }
     // TCP_NODELAY như OpenSSH: ssh2 để Nagle bật → phím gõ chờ ACK phím trước, terminal SSH khựng (Authority 2026-11-26).

@@ -863,7 +863,7 @@ export const vi = {
     HOST_KEY_CHANGED: 'Khoá của máy đã đổi — có thể có kẻ đứng giữa',
     SSH_CONFIG_CHANGED: 'Cấu hình SSH vừa thay đổi ở nơi khác — đã tải lại',
     SSH_AUTH_FAILED: 'Máy từ chối xác thực — kiểm khoá hoặc mật khẩu',
-    SSH_UNREACHABLE: 'Không tới được máy — kiểm địa chỉ, mạng hoặc máy trung gian',
+    SSH_UNREACHABLE: 'Không tới được máy — kiểm địa chỉ hoặc mạng',
     SSH_REFUSED: 'Máy từ chối kết nối — dịch vụ SSH có đang chạy?',
     PATH_OUTSIDE_ROOT: 'Thư mục này nằm ngoài phạm vi được phép',
     PATH_NOT_FOUND: 'Không tìm thấy đường dẫn',

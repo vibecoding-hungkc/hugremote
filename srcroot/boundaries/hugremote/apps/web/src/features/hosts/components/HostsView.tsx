@@ -217,7 +217,15 @@ function HostSheet({ form: initial, hosts, onClose, onSaved }: { form: FormState
       return;
     }
     if (e instanceof ApiError && e.code === 'HOST_IS_JUMP') return setErr(t('hosts.isJump', { names: ((e.details?.dependents as string[] | undefined) ?? []).join(', ') }));
-    setErr(t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') }));
+    const base = t(`errors.${e instanceof ApiError ? e.code : 'INTERNAL'}`, { defaultValue: t('errors.INTERNAL') });
+    // Chỉ nhắc máy trung gian khi máy NÀY thật sự đi qua một máy khác — tránh nhắc chung chung gây hiểu nhầm là đang
+    // qua trung gian dù đang nối thẳng (dogfood 2026-11-27).
+    const jumpHint =
+      f.proxyJump && e instanceof ApiError && (e.code === 'SSH_UNREACHABLE' || e.code === 'SSH_REFUSED')
+        ? ` — ${t('hostkey.via', { via: f.proxyJump })}?`
+        : '';
+    const reason = e instanceof ApiError && typeof e.details?.reason === 'string' ? e.details.reason : undefined;
+    setErr(`${base}${jumpHint}${reason ? ` (${reason})` : ''}`);
   };
   const test = async () => {
     if (!f.alias.trim() || !f.hostName.trim()) return setErr(t('hosts.needAliasHost'));

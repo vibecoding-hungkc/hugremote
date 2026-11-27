@@ -87,6 +87,10 @@ export class SshPool {
   private readonly entries = new Map<string, PoolEntry>();
   /** Kết quả lần nối gần nhất theo máy: 'ok' nối được · 'err' nối hỏng / rớt ngoài ý muốn. Không có = chưa nối (hoặc nghỉ vì rảnh). */
   private readonly health = new Map<string, 'ok' | 'err'>();
+  /** `probe()` đang chạy theo máy (không tính `_new`) — nhiều lượt "Thử kết nối"/poll dồn vào cùng một kết nối thay vì mở
+   * nhiều kết nối song song tới cùng máy (dogfood 2026-11-27: bấm thử lại dồn dập có thể khiến sshd đích chặn do quá
+   * nhiều kết nối chưa xác thực cùng lúc — MaxStartups). */
+  private readonly inflightProbe = new Map<string, Promise<{ fingerprint: string; keyType: string }>>();
 
   /** Chấm trạng thái máy ở cây (Authority 2026-11-26: mất kết nối phải hiện đỏ). */
   state(id: string): 'ok' | 'err' | undefined {
@@ -121,13 +125,26 @@ export class SshPool {
     clearInterval(this.timer);
   }
 
-  /** Kết nối mới (không qua pool) — dùng cho "Thử kết nối" để kiểm đúng cấu hình đang sửa. */
+  /** Kết nối mới (không qua pool) — dùng cho "Thử kết nối" để kiểm đúng cấu hình đang sửa. Nhiều lượt gọi chồng cùng
+   * một máy (id thật, không phải `_new`) dùng chung một lượt đang chạy thay vì mỗi lượt một kết nối riêng. */
   async probe(t: SshTarget): Promise<{ fingerprint: string; keyType: string }> {
-    let seen: { fingerprint: string; keyType: string } = { fingerprint: '', keyType: '' };
-    const { client, jump } = await this.open(t, (k) => (seen = k));
-    client.end();
-    jump?.end();
-    return seen;
+    const key = t.id !== '_new' ? t.id : undefined;
+    const cur = key ? this.inflightProbe.get(key) : undefined;
+    if (cur) return cur;
+    const run = (async () => {
+      let seen: { fingerprint: string; keyType: string } = { fingerprint: '', keyType: '' };
+      const { client, jump } = await this.open(t, (k) => (seen = k));
+      client.end();
+      jump?.end();
+      return seen;
+    })();
+    if (key) {
+      this.inflightProbe.set(key, run);
+      run.finally(() => {
+        if (this.inflightProbe.get(key) === run) this.inflightProbe.delete(key);
+      }).catch(() => undefined);
+    }
+    return run;
   }
 
   /** Lấy client sẵn sàng của máy — mở mới nếu chưa có hoặc đã rớt. */
@@ -253,6 +270,10 @@ export class SshPool {
       sock,
       readyTimeout: 15_000,
       keepaliveInterval: 15_000,
+      // ssh2 mặc định tự xưng `SSH-2.0-ssh2js<ver>` — chuỗi lạ, không giống client thật nào, dễ bị tường lửa/EDR ở máy
+      // đích để ý/chặn riêng trong khi OpenSSH thật thì không (dogfood 2026-11-27, chưa chắc chắn 100% nhưng là nghi
+      // phạm khớp bằng chứng nhất). Tự xưng như OpenSSH thật để giảm khả năng bị phân biệt đối xử.
+      ident: 'OpenSSH_9.9',
       hostVerifier: (key: Buffer) => {
         const fp = fingerprintOf(key);
         const keyType = keyTypeOf(key);
@@ -289,8 +310,10 @@ export class SshPool {
     } catch (e) {
       client.end();
       jump?.end();
+      const kind = (e as SshError).kind ?? (e as Error).message;
+      const reason = e instanceof SshError && typeof e.details.reason === 'string' ? ` (${e.details.reason})` : '';
       this.log.warn(
-        `${t.id}: không nối được ${t.hostName}:${t.port}${jump ? ' (qua máy trung gian)' : ''} — ${(e as SshError).kind ?? (e as Error).message}`,
+        `${t.id}: không nối được ${t.hostName}:${t.port}${jump ? ' (qua máy trung gian)' : ''} — ${kind}${reason}`,
       );
       throw e;
     }

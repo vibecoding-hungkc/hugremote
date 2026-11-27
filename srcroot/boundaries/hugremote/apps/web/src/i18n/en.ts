@@ -855,7 +855,7 @@ export const en: Messages = {
     HOST_KEY_CHANGED: 'The machine key changed — possible man-in-the-middle',
     SSH_CONFIG_CHANGED: 'SSH config changed elsewhere — reloaded',
     SSH_AUTH_FAILED: 'The machine rejected authentication — check key or password',
-    SSH_UNREACHABLE: 'Machine unreachable — check address, network or jump host',
+    SSH_UNREACHABLE: 'Machine unreachable — check address or network',
     SSH_REFUSED: 'Connection refused — is the SSH service running?',
     PATH_OUTSIDE_ROOT: 'This folder is outside the allowed area',
     PATH_NOT_FOUND: 'Path not found',

@@ -8,6 +8,7 @@ import { Icon } from '../../components/ui/Icon';
 import { Menu, type MenuItem } from '../../components/ui/Overlay';
 import { StatusDot } from '../../components/ui/Status';
 import { NoteBar } from '../../features/notes/NoteBar';
+import { useLostTerms } from '../../features/terminal/lost';
 import { useNoteUi } from '../../features/notes/notes';
 import { useUi } from '../../stores/ui.store';
 import { closeNeedsConfirm, closeSessionApi, renameSessionApi, usePlusMenu, type MenuState } from './actions';
@@ -58,6 +59,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
       // điện thoại: nút 📝 không có chỗ trên thanh → nằm cuối bộ chọn phiên
       ...(cur ? [{ group: ' ', icon: 'note' as const, label: cur.note ? t('note.thisSession') : t('note.addThis'), kbd: '⌥⇧K', onSelect: () => noteUi.toggle(cur.id, !!cur.note) }] : []),
     ]);
+  const lostIds = useLostTerms((st) => st.ids); // đang tự nối lại ≠ đã kết thúc — không gạch tên tab
   return (
     <>
     <div className="tabbar">
@@ -66,7 +68,7 @@ export function SessionBar({ hostId, projectId, currentId }: { hostId: string; p
           <div
             key={s.id}
             ref={(el) => void (s.id === currentId && el?.scrollIntoView({ block: 'nearest', inline: 'nearest' }))}
-            className={`tab ${s.id === currentId ? 'on' : ''} ${s.status === 'exited' ? 'ended' : ''}`}
+            className={`tab ${s.id === currentId ? 'on' : ''} ${s.status === 'exited' && !lostIds[s.id] ? 'ended' : ''}`}
             role="tab"
             aria-selected={s.id === currentId}
             tabIndex={0}

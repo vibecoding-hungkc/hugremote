@@ -34,8 +34,11 @@ const theme = EditorView.theme({
   // dòng đang đứng nằm TRÊN lớp bôi đen của CodeMirror → phải trong suốt một phần, không thì che mất vùng chọn;
   // vùng chọn dùng màu nhấn (trước trùng màu dòng đang đứng nên bôi rồi cũng không thấy — Authority 2026-11-26)
   '.cm-activeLine, .cm-activeLineGutter': { backgroundColor: 'color-mix(in srgb, var(--color-surface-raised) 60%, transparent)' },
-  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
-    backgroundColor: 'color-mix(in srgb, var(--color-primary) 35%, transparent)',
+  // nền dòng đang đứng vẫn che phần chọn trên chính dòng đó → đưa lớp bôi đen (35% alpha) lên trên chữ
+  '.cm-selectionLayer': { zIndex: '0 !important', pointerEvents: 'none' },
+  // !important: rule mặc định "&light.cm-focused > .cm-scroller > .cm-selectionLayer …" của CodeMirror nặng specificity hơn → tím nhạt #d7d4f0
+  '.cm-selectionLayer .cm-selectionBackground, .cm-content ::selection': {
+    backgroundColor: 'color-mix(in srgb, var(--color-primary) 35%, transparent) !important',
   },
   '.cm-searchMatch': { backgroundColor: 'var(--color-warning)', color: 'var(--color-bg)', borderRadius: '2px' },
   '.cm-searchMatch-selected': { outline: '2px solid var(--color-primary)' },

@@ -18,6 +18,8 @@ interface Live {
   exitCode: number | null;
   /** Đã có người xem → buffer chứa câu hỏi terminal (DA…) đã được trả lời; lần sau replay báo client đừng trả lời lại. */
   viewed?: boolean;
+  /** HugRemote tự tắt (thu hồi / tắt app / dừng dự án) — không phải người dùng thoát shell. */
+  killed?: boolean;
 }
 
 /**
@@ -48,7 +50,9 @@ export class PtyManager {
       this.append(l, d);
       for (const v of l.viewers) v.send(d);
     });
-    pty.onExit((code) => {
+    pty.onExit((raw) => {
+      // node-pty (Máy này) báo mã số cả khi bị HugRemote kill → coi như mất kết nối (null) để client tự mở lại
+      const code = l.killed ? null : raw;
       l.exited = true;
       l.exitCode = code;
       for (const v of l.viewers) v.sendControl({ type: 'exit', code });
@@ -104,6 +108,7 @@ export class PtyManager {
   kill(id: string) {
     const l = this.live.get(id);
     if (!l) return;
+    l.killed = true;
     l.pty.kill();
   }
 
@@ -115,6 +120,6 @@ export class PtyManager {
   private reap() {
     const limit = LIMITS.TERMINAL_IDLE_REAP_MINUTES * 60_000;
     const now = Date.now();
-    for (const l of this.live.values()) if (!l.viewers.size && now - l.lastViewerAt > limit) l.pty.kill();
+    for (const l of this.live.values()) if (!l.viewers.size && now - l.lastViewerAt > limit) this.kill(l.id);
   }
 }

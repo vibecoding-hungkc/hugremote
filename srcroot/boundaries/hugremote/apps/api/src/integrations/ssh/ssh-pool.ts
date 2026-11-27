@@ -272,10 +272,6 @@ export class SshPool {
       sock,
       readyTimeout: 15_000,
       keepaliveInterval: 15_000,
-      // ssh2 mặc định tự xưng `SSH-2.0-ssh2js<ver>` — chuỗi lạ, không giống client thật nào, dễ bị tường lửa/EDR ở máy
-      // đích để ý/chặn riêng trong khi OpenSSH thật thì không (dogfood 2026-11-27, chưa chắc chắn 100% nhưng là nghi
-      // phạm khớp bằng chứng nhất). Tự xưng như OpenSSH thật để giảm khả năng bị phân biệt đối xử.
-      ident: 'OpenSSH_9.9',
       hostVerifier: (key: Buffer) => {
         const fp = fingerprintOf(key);
         const keyType = keyTypeOf(key);

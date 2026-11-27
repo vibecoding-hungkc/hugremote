@@ -101,6 +101,12 @@ const packagerOptions = {
   asar: false,
   icon: path.join(desktopDir, 'resources', 'icon'),
   extraResource: [path.join(buildStage, 'payload', 'hugremote')],
+  // Thiếu khoá này thì macOS (Local Network privacy, Big Sur+) không hỏi quyền và chặn thẳng mọi kết nối của app tới
+  // IP mạng LAN (192.168.x.x…) — kết nối SSH tới máy trong cùng mạng sẽ báo "connect EHOSTUNREACH" dù `ssh` dòng lệnh
+  // (process khác, đã có quyền) vẫn nối bình thường (dogfood 2026-11-27).
+  extendInfo: {
+    NSLocalNetworkUsageDescription: 'HugRemote cần truy cập mạng cục bộ (LAN) để nối SSH tới các máy trong cùng mạng với bạn.',
+  },
 };
 
 const results = await packager(packagerOptions);

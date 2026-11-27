@@ -79,7 +79,9 @@ export function Spotlight({ hostId, projectId, onClose }: { hostId?: string; pro
 
   const res = useMemo(() => {
     const toks = norm(q).split(/\s+/).filter(Boolean);
-    if (!toks.length) return items.filter((i) => i.st === 'awaiting' || i.st === 'running');
+    // ô trống: MỌI phiên (Authority 2026-11-27 — trước chỉ phiên cần bạn + đang chạy), cần bạn → đang chạy → còn lại
+    const rank = (i: Item) => (i.st === 'awaiting' ? 0 : i.st === 'running' ? 1 : 2);
+    if (!toks.length) return items.filter((i) => i.st).sort((a, b) => rank(a) - rank(b));
     const hit = items.filter((i) => toks.every((k) => norm(`${i.t} ${i.s}`).includes(k)));
     // khớp ở tên xếp trước khớp ở mô tả; file chỉ giữ 20 cái đầu cho gọn
     hit.sort((a, b) => Number(toks.every((k) => norm(b.t).includes(k))) - Number(toks.every((k) => norm(a.t).includes(k))));

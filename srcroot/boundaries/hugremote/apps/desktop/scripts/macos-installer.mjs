@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
 
 const MACHO_MAGICS = new Set([
   0xfeedfacf,
@@ -12,6 +13,36 @@ const MACHO_MAGICS = new Set([
 ]);
 
 const defaultRun = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
+
+/**
+ * Ghi đè LC_UUID của file Mach-O (thin 64-bit hoặc fat) bằng UUID suy từ `seed` — cố định qua mọi lần build.
+ * macOS Local Network privacy nhận diện app theo Mach-O UUID của file thực thi chính (Apple TN3179). Binary Electron
+ * dựng sẵn có UUID giống hệt nhau ở mọi app cùng phiên bản Electron (v1, app Electron khác…), nên quyết định cũ của
+ * UUID đó bị dùng lại: app không bao giờ được hỏi quyền và bị chặn LAN im lặng (EHOSTUNREACH).
+ * Phải chạy TRƯỚC khi ký. Trả số slice đã vá.
+ */
+export function patchMachOUuid(filePath, seed) {
+  const buf = fs.readFileSync(filePath);
+  const uuid = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
+  uuid[6] = (uuid[6] & 0x0f) | 0x50; // RFC 4122 v5
+  uuid[8] = (uuid[8] & 0x3f) | 0x80;
+  const patchSlice = (off) => {
+    if (buf.readUInt32LE(off) !== 0xfeedfacf) throw new Error(`Không phải Mach-O 64-bit tại offset ${off}`);
+    const ncmds = buf.readUInt32LE(off + 16);
+    let p = off + 32;
+    for (let i = 0; i < ncmds; i++) {
+      if (buf.readUInt32LE(p) === 0x1b) return uuid.copy(buf, p + 8), 1; // LC_UUID
+      p += buf.readUInt32LE(p + 4);
+    }
+    throw new Error('Không thấy LC_UUID');
+  };
+  let n = 0;
+  if (buf.readUInt32BE(0) === 0xcafebabe) {
+    for (let i = 0, count = buf.readUInt32BE(4); i < count; i++) n += patchSlice(buf.readUInt32BE(8 + i * 20 + 8));
+  } else n = patchSlice(0);
+  fs.writeFileSync(filePath, buf);
+  return n;
+}
 
 export function isMachOBinary(filePath) {
   let fd;

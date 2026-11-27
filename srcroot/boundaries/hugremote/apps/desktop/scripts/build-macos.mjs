@@ -3,7 +3,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { signAndVerifyMacApp, buildMacDmg } from './macos-installer.mjs';
+import { signAndVerifyMacApp, buildMacDmg, patchMachOUuid } from './macos-installer.mjs';
 import { prunePayload } from './prune-payload.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -158,6 +158,9 @@ for (const iconFile of ['HugRemote.icns', 'electron.icns', 'icon.icns']) {
   fs.copyFileSync(path.join(desktopDir, 'resources', 'icon.icns'), path.join(resourcesDir, iconFile));
 }
 fs.copyFileSync(path.join(desktopDir, 'resources', 'icon.png'), path.join(resourcesDir, 'icon.png'));
+
+// UUID riêng cho file thực thi chính — Local Network privacy theo UUID, không theo bundle id (xem patchMachOUuid)
+patchMachOUuid(path.join(appPath, 'Contents', 'MacOS', 'HugRemote'), 'com.hugtech.hugremote/v2');
 
 // 6. Ký mã ad-hoc và xác thực chữ ký (AC-52)
 console.log('6. Ký mã ad-hoc (codesign --sign - --force --deep)...');

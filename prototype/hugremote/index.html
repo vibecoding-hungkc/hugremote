@@ -366,7 +366,7 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .code .st { color: var(--color-success); }
 .code .cm { color: var(--color-text-muted); }
 .code mark, .sres mark { background: var(--color-warning); color: var(--color-bg); border-radius: 2px; }
-.preview { flex: 1; overflow: auto; padding: var(--space-xl); max-width: 760px; }
+.preview { flex: 1; min-width: 0; overflow: auto; padding: var(--space-xl); } /* dàn hết bề ngang còn lại (Authority 2026-11-28) */
 .preview h1 { font-size: var(--text-xl); margin-top: 0; }
 .preview code { font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-surface-raised); padding: 2px var(--space-xs); border-radius: var(--radius); }
 .edkeys { display: none; }

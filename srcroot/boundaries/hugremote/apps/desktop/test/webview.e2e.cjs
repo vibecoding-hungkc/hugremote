@@ -83,6 +83,36 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hr-web-'));
     await win.evaluate((home) => (location.hash = `#/s/local/p/${home}/files`), setup.home);
     await new Promise((r) => setTimeout(r, 800));
     assert.equal((await viewText()).visible, false, 'rời phiên trình duyệt mà webview vẫn hiện');
+
+    // Authority 2026-11-28: nút Tải lại không chạy khi trang chưa tải được lần nào (server chưa bật) — lịch sử rỗng,
+    // reload() không làm gì; view native còn che hộp lỗi. Server bật rồi bấm Tải lại → phải ra trang.
+    const free = await new Promise((r) => { const s = http.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
+    const w2 = await win.evaluate(async ({ home, free }) => {
+      const s = await fetch('/api/auth/desktop-session', { method: 'POST' }).then((r) => r.json());
+      const h = { 'content-type': 'application/json', authorization: `Bearer ${s.accessToken}` };
+      return fetch(`/api/projects/${home}/web-sessions`, { method: 'POST', headers: h, body: JSON.stringify({ url: `http://localhost:${free}/` }) }).then((r) => r.json());
+    }, { home: setup.home, free });
+    await win.evaluate(({ home, id }) => (location.hash = `#/s/local/p/${home}/web/${id}`), { home: setup.home, id: w2.id });
+    const viewOf = (url) =>
+      app.evaluate(async ({ BrowserWindow }, url) => {
+        const v = BrowserWindow.getAllWindows()[0].contentView.children.find((c) => c.webContents && (c.webContents.getURL().startsWith(url) || c.getVisible() === false));
+        return v ? { visible: v.getVisible(), url: v.webContents.getURL(), text: await v.webContents.executeJavaScript('document.body?.innerText ?? ""').catch(() => '') } : null;
+      }, url);
+    await win.getByText(`Không mở được http://localhost:${free}/`).waitFor({ timeout: 15_000 });
+    const hidden = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].contentView.children.filter((c) => c.webContents && c.getVisible()).length);
+    assert.equal(hidden, 0, 'trang lỗi mà view native vẫn hiện, che hộp lỗi');
+    const site2 = http.createServer((_q, s) => s.end('<h1>hr-reload-ok</h1>')).listen(free, '127.0.0.1');
+    await new Promise((r) => site2.once('listening', r));
+    await win.getByRole('button', { name: 'Tải lại' }).first().click();
+    let r2 = null;
+    for (let i = 0; i < 40 && !(r2 && /hr-reload-ok/.test(r2.text)); i++) {
+      await new Promise((r) => setTimeout(r, 250));
+      r2 = await viewOf(`http://localhost:${free}`);
+    }
+    site2.close();
+    assert.ok(r2 && /hr-reload-ok/.test(r2.text) && r2.visible, `Tải lại không ra trang: ${JSON.stringify(r2)}`);
+    assert.equal(await win.getByText(`Không mở được http://localhost:${free}/`).count(), 0, 'tải lại được mà hộp lỗi vẫn còn');
+    console.log('✔ Tải lại sau khi trang lỗi: hộp lỗi hiện (view ẩn), bật server + Tải lại → ra trang');
     ok = true;
     console.log('✔ AC-59 webview desktop: tải trang localhost, chặn domain ngoài, ẩn khi rời phiên');
   } catch (e) {

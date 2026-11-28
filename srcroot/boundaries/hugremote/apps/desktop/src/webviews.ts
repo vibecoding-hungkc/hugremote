@@ -20,6 +20,9 @@ export const allowedWebUrl = (u: string) => {
 export function setupWebViews(win: BrowserWindow) {
   const views = new Map<string, WebContentsView>();
   const asked = new Map<string, string>(); // link renderer xin hiện lần gần nhất, theo phiên
+  // tải lỗi → ẩn view (view native đè lên HTML, che mất hộp lỗi + nút Thử lại); bắt đầu tải lại → hiện lại
+  const failed = new Map<string, { url: string; desc: string }>(); // phiên → link tải lỗi + lý do
+  let shown: string | undefined;
   const state = (id: string, v: WebContentsView, error?: string) => {
     if (win.isDestroyed()) return;
     const wc = v.webContents;
@@ -47,8 +50,17 @@ export function setupWebViews(win: BrowserWindow) {
         if (/^https?:\/\//.test(url)) void shell.openExternal(url);
       }
     });
-    for (const ev of ['did-navigate', 'did-navigate-in-page', 'page-title-updated', 'did-start-loading', 'did-stop-loading'] as const) wc.on(ev as 'did-stop-loading', () => state(id, v));
-    wc.on('did-fail-load', (_e, code, desc, _url, isMain) => isMain && code !== -3 && state(id, v, desc));
+    for (const ev of ['did-navigate', 'did-navigate-in-page', 'page-title-updated', 'did-stop-loading'] as const) wc.on(ev as 'did-stop-loading', () => !failed.has(id) && state(id, v));
+    wc.on('did-start-loading', () => {
+      if (failed.delete(id) && shown === id) v.setVisible(true);
+      state(id, v);
+    });
+    wc.on('did-fail-load', (_e, code, desc, url, isMain) => {
+      if (!isMain || code === -3) return;
+      failed.set(id, { url, desc });
+      v.setVisible(false);
+      state(id, v, desc);
+    });
     win.contentView.addChildView(v);
     views.set(id, v);
     return v;
@@ -68,14 +80,18 @@ export function setupWebViews(win: BrowserWindow) {
     for (const [k, other] of views) if (k !== id) other.setVisible(false); // một trang hiện một lúc
     const fresh = !views.has(id);
     const v = views.get(id) ?? create(id);
+    shown = id;
     v.setBounds(fit(b));
-    v.setVisible(true);
+    v.setVisible(!failed.has(id));
     // chỉ nạp khi view mới hoặc renderer xin link KHÁC lần trước (gõ thanh địa chỉ). Quay lại phiên với link đã lưu cũ
     // (trang đã đi tiếp mà chưa kịp lưu, redirect…) thì giữ nguyên trang đang mở — Authority 2026-11-26: đổi tab về là về home
     const again = !fresh && asked.get(id) === url;
     asked.set(id, url);
-    if (!again && v.webContents.getURL() !== url) await v.webContents.loadURL(url).catch(() => undefined);
-    state(id, v);
+    // quay lại phiên đang lỗi → thử tải lại trang lỗi (server có thể đã chạy)
+    const retry = again ? failed.get(id)?.url : undefined;
+    if (retry) await v.webContents.loadURL(retry).catch(() => undefined);
+    else if (!again && v.webContents.getURL() !== url) await v.webContents.loadURL(url).catch(() => undefined);
+    state(id, v, failed.get(id)?.desc); // loadURL lỗi thì did-fail-load đã báo — đừng gửi state trống xoá hộp lỗi
     return true;
   });
   // bounds kèm hiện lại: renderer ẩn view khi có menu/hộp thoại phủ lên (view native luôn đè lên HTML), đóng menu → gửi bounds
@@ -83,9 +99,13 @@ export function setupWebViews(win: BrowserWindow) {
     const v = views.get(id);
     if (e.sender !== win.webContents || !v) return;
     v.setBounds(fit(b));
-    v.setVisible(true);
+    v.setVisible(!failed.has(id));
   });
-  ipcMain.on('web:hide', (e, id: string) => e.sender === win.webContents && views.get(id)?.setVisible(false));
+  ipcMain.on('web:hide', (e, id: string) => {
+    if (e.sender !== win.webContents) return;
+    if (shown === id) shown = undefined;
+    views.get(id)?.setVisible(false);
+  });
   ipcMain.on('web:close', (e, id: string) => {
     const v = views.get(id);
     if (e.sender !== win.webContents || !v) return;
@@ -93,6 +113,7 @@ export function setupWebViews(win: BrowserWindow) {
     v.webContents.close();
     views.delete(id);
     asked.delete(id);
+    failed.delete(id);
   });
   ipcMain.on('web:nav', (e, id: string, action: string) => {
     const v = views.get(id);
@@ -100,7 +121,12 @@ export function setupWebViews(win: BrowserWindow) {
     const wc = v.webContents;
     if (action === 'back' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
     else if (action === 'forward' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
-    else if (action === 'reload') wc.reload();
+    // trang chưa nạp được lần nào (server chưa chạy) → lịch sử rỗng, reload() không làm gì → nạp lại đúng link
+    else if (action === 'reload') {
+      const u = failed.get(id)?.url || wc.getURL() || asked.get(id);
+      if ((failed.has(id) || !wc.getURL()) && u) void wc.loadURL(u).catch(() => undefined);
+      else wc.reload();
+    }
     else if (action === 'devtools') wc.openDevTools({ mode: 'detach' });
     else if (action === 'external' && allowedWebUrl(wc.getURL())) void shell.openExternal(wc.getURL());
   });

@@ -252,8 +252,12 @@ textarea.input { padding: var(--space-sm) var(--space-md); resize: none; }
 .code .st { color: var(--color-success); }
 .code .cm { color: var(--color-text-muted); }
 .code mark, .sres mark { background: var(--color-warning); color: var(--color-bg); border-radius: 2px; }
-.preview { flex: 1; overflow: auto; padding: var(--space-xl); max-width: 760px; }
-.preview h1 { font-size: var(--text-xl); margin-top: 0; }
+.preview { flex: 1; min-width: 0; overflow: auto; padding: var(--space-xl); } /* dàn hết bề ngang còn lại (Authority 2026-11-28) */
+.preview img { max-width: 100%; }
+.preview.md { align-content: start; } /* dùng chung kiểu Markdown của chat (.md) — grid không giãn dòng theo chiều cao */
+.preview.md h1 { font-size: var(--text-xl); }
+.preview.md h2 { padding-bottom: var(--space-xs); border-bottom: 1px solid var(--color-divider); }
+.preview.md > :first-child { margin-top: 0; }
 .preview code { font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-surface-raised); padding: 2px var(--space-xs); border-radius: var(--radius); }
 .edkeys { display: none; }
 .legend { padding: var(--space-xs) var(--space-md); font-size: var(--text-xs); color: var(--color-text-muted); }
@@ -408,6 +412,8 @@ input.sw:focus-visible { outline: 2px solid var(--color-primary); outline-offset
 .md > * { margin: 0; }
 .md h1, .md h2, .md h3, .md h4 { font-size: var(--text-base); font-weight: 600; margin-top: var(--space-sm); }
 .md ul, .md ol { padding-left: var(--space-xl); display: grid; gap: var(--space-xs); }
+.md ul { list-style: disc; }
+.md ol { list-style: decimal; }
 .md code { font-family: var(--font-mono); font-size: var(--text-sm); background: var(--color-surface-raised); padding: 0 var(--space-xs); border-radius: var(--radius); }
 .md pre { background: var(--color-surface); border: 1px solid var(--color-divider); border-radius: var(--radius); padding: var(--space-md); overflow-x: auto; }
 .md pre code { background: transparent; padding: 0; }

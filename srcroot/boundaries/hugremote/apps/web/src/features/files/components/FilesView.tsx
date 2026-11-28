@@ -326,7 +326,7 @@ export function FilesView({ projectId, rootPath, isHome, path: routePath, line, 
     if (compare && active.conflictMtime) return <CompareView projectId={projectId} file={active} />;
     if (diffMode) return fileDiff.isLoading ? <Skeleton rows={4} /> : <DiffBlock diff={fileDiff.data?.diff ?? ''} />;
     if (LOG.test(active.path)) return <LogView projectId={projectId} file={active} />;
-    if (/\.md$/i.test(active.path) && preview) return <div className="preview" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(active.buf, { async: false })) }} />;
+    if (/\.md$/i.test(active.path) && preview) return <div className="preview md" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(active.buf, { async: false })) }} />;
     return (
       <CodeEditor
         ref={editor}
